@@ -81,8 +81,9 @@ type EventMapping struct {
 
 // Config is the configuration for the processor
 type Config struct {
-	OCSFVersion   OCSFVersion    `mapstructure:"ocsf_version"`
-	EventMappings []EventMapping `mapstructure:"event_mappings"`
+	OCSFVersion       OCSFVersion    `mapstructure:"ocsf_version"`
+	EventMappings     []EventMapping `mapstructure:"event_mappings"`
+	RuntimeValidation *bool          `mapstructure:"runtime_validation"`
 }
 
 // Validate validates the processor configuration

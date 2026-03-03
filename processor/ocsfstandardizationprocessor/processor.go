@@ -45,9 +45,10 @@ type compiledEventMapping struct {
 }
 
 type ocsfStandardizationProcessor struct {
-	logger        *zap.Logger
-	ocsfVersion   OCSFVersion
-	eventMappings []compiledEventMapping
+	logger            *zap.Logger
+	ocsfVersion       OCSFVersion
+	eventMappings     []compiledEventMapping
+	runtimeValidation bool
 }
 
 func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfStandardizationProcessor, error) {
@@ -85,10 +86,16 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 		compiled = append(compiled, compiledEventMap)
 	}
 
+	runtimeValidation := true
+	if config.RuntimeValidation != nil {
+		runtimeValidation = *config.RuntimeValidation
+	}
+
 	return &ocsfStandardizationProcessor{
-		logger:        logger,
-		ocsfVersion:   config.OCSFVersion,
-		eventMappings: compiled,
+		logger:            logger,
+		ocsfVersion:       config.OCSFVersion,
+		eventMappings:     compiled,
+		runtimeValidation: runtimeValidation,
 	}, nil
 }
 
@@ -175,13 +182,15 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 		}
 
 		// Validate the body is a valid OCSF log
-		err := osp.validateBody(eventMapping.classID, newBody)
-		if err != nil {
-			osp.logger.Error("mapped log does not conform to OCSF spec",
-				zap.Error(err),
-				zap.Int("class_id", eventMapping.classID),
-			)
-			return false
+		if osp.runtimeValidation {
+			err := osp.validateBody(eventMapping.classID, newBody)
+			if err != nil {
+				osp.logger.Error("mapped log does not conform to OCSF spec",
+					zap.Error(err),
+					zap.Int("class_id", eventMapping.classID),
+				)
+				return false
+			}
 		}
 
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {

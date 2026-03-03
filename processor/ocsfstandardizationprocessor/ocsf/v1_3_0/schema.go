@@ -5,9 +5,20 @@ package v130
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
+)
+
+// Precompiled regex patterns for OCSF types.
+var (
+	regexDatetimeT = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(Z|[\\+-]\\d{2}:\\d{2})?$")
+	regexEmailT    = regexp.MustCompile("^[a-zA-Z0-9!#$%&'*+-/=?^_`{|}~.]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
+	regexHostnameT = regexp.MustCompile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
+	regexIPT       = regexp.MustCompile("((^\\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]).){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\s*$)|(^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$))")
+	regexMACT      = regexp.MustCompile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
+	regexUuidT     = regexp.MustCompile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 )
 
 // Account represents the OCSF Account object.
@@ -25,6 +36,22 @@ func (o *Account) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -47,6 +74,15 @@ func (o *Actor) Validate() error {
 	var errs []error
 	if o.AppName == nil && o.AppUID == nil && o.InvokedBy == nil && o.Process == nil && o.Session == nil && o.User == nil {
 		errs = append(errs, errors.New("at least one of [app_name, app_uid, invoked_by, process, session, user] must be set"))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.AppUID != nil && len(*o.AppUID) > 65535 {
+		errs = append(errs, fmt.Errorf("app_uid: length %d exceeds max 65535", len(*o.AppUID)))
+	}
+	if o.InvokedBy != nil && len(*o.InvokedBy) > 65535 {
+		errs = append(errs, fmt.Errorf("invoked_by: length %d exceeds max 65535", len(*o.InvokedBy)))
 	}
 	return errors.Join(errs...)
 }
@@ -100,6 +136,49 @@ func (o *AffectedPackage) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Architecture != nil && len(*o.Architecture) > 65535 {
+		errs = append(errs, fmt.Errorf("architecture: length %d exceeds max 65535", len(*o.Architecture)))
+	}
+	if o.CpeName != nil && len(*o.CpeName) > 65535 {
+		errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(*o.CpeName)))
+	}
+	if o.FixedInVersion != nil && len(*o.FixedInVersion) > 65535 {
+		errs = append(errs, fmt.Errorf("fixed_in_version: length %d exceeds max 65535", len(*o.FixedInVersion)))
+	}
+	if o.License != nil && len(*o.License) > 65535 {
+		errs = append(errs, fmt.Errorf("license: length %d exceeds max 65535", len(*o.License)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.PackageManager != nil && len(*o.PackageManager) > 65535 {
+		errs = append(errs, fmt.Errorf("package_manager: length %d exceeds max 65535", len(*o.PackageManager)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Purl != nil && len(*o.Purl) > 65535 {
+		errs = append(errs, fmt.Errorf("purl: length %d exceeds max 65535", len(*o.Purl)))
+	}
+	if o.Release != nil && len(*o.Release) > 65535 {
+		errs = append(errs, fmt.Errorf("release: length %d exceeds max 65535", len(*o.Release)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -121,6 +200,31 @@ func (o *Agent) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.UIDAlt != nil && len(*o.UIDAlt) > 65535 {
+		errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(*o.UIDAlt)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -147,6 +251,31 @@ func (o *Analytic) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Category != nil && len(*o.Category) > 65535 {
+		errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(*o.Category)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -167,6 +296,12 @@ func (o *API) Validate() error {
 	if o.Operation == nil {
 		errs = append(errs, errors.New("operation is required"))
 	}
+	if o.Operation != nil && len(*o.Operation) > 65535 {
+		errs = append(errs, fmt.Errorf("operation: length %d exceeds max 65535", len(*o.Operation)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -185,6 +320,9 @@ func (o *Attack) Validate() error {
 	var errs []error
 	if o.SubTechnique == nil && o.Tactic == nil && o.Technique == nil {
 		errs = append(errs, errors.New("at least one of [sub_technique, tactic, technique] must be set"))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -224,6 +362,25 @@ func (o *AuthFactor) Validate() error {
 			errs = append(errs, fmt.Errorf("exactly one of [email_addr, phone_number, security_questions] must be set, got %d", count))
 		}
 	}
+	if o.FactorTypeID != nil {
+		switch *o.FactorTypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+		default:
+			errs = append(errs, fmt.Errorf("factor_type_id: invalid value %d", *o.FactorTypeID))
+		}
+	}
+	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
+		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
+	}
+	if o.FactorType != nil && len(*o.FactorType) > 65535 {
+		errs = append(errs, fmt.Errorf("factor_type: length %d exceeds max 65535", len(*o.FactorType)))
+	}
+	if o.PhoneNumber != nil && len(*o.PhoneNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("phone_number: length %d exceeds max 65535", len(*o.PhoneNumber)))
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -232,6 +389,15 @@ func (o *AuthFactor) Validate() error {
 type Authorization struct {
 	Decision *string `mapstructure:"decision,omitempty"`
 	Policy   *Policy `mapstructure:"policy,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Authorization.
+func (o *Authorization) Validate() error {
+	var errs []error
+	if o.Decision != nil && len(*o.Decision) > 65535 {
+		errs = append(errs, fmt.Errorf("decision: length %d exceeds max 65535", len(*o.Decision)))
+	}
+	return errors.Join(errs...)
 }
 
 // AutonomousSystem represents the OCSF Autonomous System object.
@@ -246,6 +412,9 @@ func (o *AutonomousSystem) Validate() error {
 	var errs []error
 	if o.Name == nil && o.Number == nil {
 		errs = append(errs, errors.New("at least one of [name, number] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
 	}
 	return errors.Join(errs...)
 }
@@ -276,6 +445,21 @@ func (o *Certificate) Validate() error {
 	if o.SerialNumber == nil {
 		errs = append(errs, errors.New("serial_number is required"))
 	}
+	if o.Issuer != nil && len(*o.Issuer) > 65535 {
+		errs = append(errs, fmt.Errorf("issuer: length %d exceeds max 65535", len(*o.Issuer)))
+	}
+	if o.SerialNumber != nil && len(*o.SerialNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(*o.SerialNumber)))
+	}
+	if o.Subject != nil && len(*o.Subject) > 65535 {
+		errs = append(errs, fmt.Errorf("subject: length %d exceeds max 65535", len(*o.Subject)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -292,6 +476,12 @@ func (o *CisBenchmark) Validate() error {
 	var errs []error
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
 	}
 	return errors.Join(errs...)
 }
@@ -311,6 +501,12 @@ func (o *CisBenchmarkResult) Validate() error {
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -328,6 +524,15 @@ func (o *CisControl) Validate() error {
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -343,6 +548,12 @@ func (o *CisCsc) Validate() error {
 	var errs []error
 	if o.Control == nil {
 		errs = append(errs, errors.New("control is required"))
+	}
+	if o.Control != nil && len(*o.Control) > 65535 {
+		errs = append(errs, fmt.Errorf("control: length %d exceeds max 65535", len(*o.Control)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -363,6 +574,18 @@ func (o *Cloud) Validate() error {
 	var errs []error
 	if o.Provider == nil {
 		errs = append(errs, errors.New("provider is required"))
+	}
+	if o.ProjectUID != nil && len(*o.ProjectUID) > 65535 {
+		errs = append(errs, fmt.Errorf("project_uid: length %d exceeds max 65535", len(*o.ProjectUID)))
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
+	if o.Region != nil && len(*o.Region) > 65535 {
+		errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(*o.Region)))
+	}
+	if o.Zone != nil && len(*o.Zone) > 65535 {
+		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
 	}
 	return errors.Join(errs...)
 }
@@ -387,6 +610,25 @@ func (o *Compliance) Validate() error {
 	if len(o.Standards) == 0 {
 		errs = append(errs, errors.New("standards is required"))
 	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
+	if o.Control != nil && len(*o.Control) > 65535 {
+		errs = append(errs, fmt.Errorf("control: length %d exceeds max 65535", len(*o.Control)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -410,6 +652,27 @@ func (o *Container) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.NetworkDriver != nil && len(*o.NetworkDriver) > 65535 {
+		errs = append(errs, fmt.Errorf("network_driver: length %d exceeds max 65535", len(*o.NetworkDriver)))
+	}
+	if o.Orchestrator != nil && len(*o.Orchestrator) > 65535 {
+		errs = append(errs, fmt.Errorf("orchestrator: length %d exceeds max 65535", len(*o.Orchestrator)))
+	}
+	if o.PodUuid != nil && !regexUuidT.MatchString(*o.PodUuid) {
+		errs = append(errs, fmt.Errorf("pod_uuid: invalid value %q", *o.PodUuid))
+	}
+	if o.Runtime != nil && len(*o.Runtime) > 65535 {
+		errs = append(errs, fmt.Errorf("runtime: length %d exceeds max 65535", len(*o.Runtime)))
+	}
+	if o.Tag != nil && len(*o.Tag) > 65535 {
+		errs = append(errs, fmt.Errorf("tag: length %d exceeds max 65535", len(*o.Tag)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -437,6 +700,21 @@ func (o *CVE) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.CweUID != nil && len(*o.CweUID) > 65535 {
+		errs = append(errs, fmt.Errorf("cwe_uid: length %d exceeds max 65535", len(*o.CweUID)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -469,6 +747,18 @@ func (o *CVSS) Validate() error {
 			errs = append(errs, fmt.Errorf("depth: invalid value %q", *o.Depth))
 		}
 	}
+	if o.Depth != nil && len(*o.Depth) > 65535 {
+		errs = append(errs, fmt.Errorf("depth: length %d exceeds max 65535", len(*o.Depth)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.VectorString != nil && len(*o.VectorString) > 65535 {
+		errs = append(errs, fmt.Errorf("vector_string: length %d exceeds max 65535", len(*o.VectorString)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -485,6 +775,12 @@ func (o *Cwe) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Caption != nil && len(*o.Caption) > 65535 {
+		errs = append(errs, fmt.Errorf("caption: length %d exceeds max 65535", len(*o.Caption)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -503,6 +799,12 @@ func (o *D3fTactic) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -520,6 +822,12 @@ func (o *D3fTechnique) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -536,6 +844,9 @@ func (o *D3fend) Validate() error {
 	var errs []error
 	if o.D3fTactic == nil && o.D3fTechnique == nil {
 		errs = append(errs, errors.New("at least one of [d3f_tactic, d3f_technique] must be set"))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -555,6 +866,26 @@ func (o *DataClassification) Validate() error {
 	var errs []error
 	if o.CategoryID == nil && o.ConfidentialityID == nil {
 		errs = append(errs, errors.New("at least one of [category_id, confidentiality_id] must be set"))
+	}
+	if o.CategoryID != nil {
+		switch *o.CategoryID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("category_id: invalid value %d", *o.CategoryID))
+		}
+	}
+	if o.ConfidentialityID != nil {
+		switch *o.ConfidentialityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
+		}
+	}
+	if o.Category != nil && len(*o.Category) > 65535 {
+		errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(*o.Category)))
+	}
+	if o.Confidentiality != nil && len(*o.Confidentiality) > 65535 {
+		errs = append(errs, fmt.Errorf("confidentiality: length %d exceeds max 65535", len(*o.Confidentiality)))
 	}
 	return errors.Join(errs...)
 }
@@ -581,6 +912,52 @@ func (o *DataSecurity) Validate() error {
 	if o.DataLifecycleStateID == nil && o.DetectionPattern == nil && o.DetectionSystemID == nil && o.Policy == nil {
 		errs = append(errs, errors.New("at least one of [data_lifecycle_state_id, detection_pattern, detection_system_id, policy] must be set"))
 	}
+	if o.CategoryID != nil {
+		switch *o.CategoryID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("category_id: invalid value %d", *o.CategoryID))
+		}
+	}
+	if o.ConfidentialityID != nil {
+		switch *o.ConfidentialityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
+		}
+	}
+	if o.DataLifecycleStateID != nil {
+		switch *o.DataLifecycleStateID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("data_lifecycle_state_id: invalid value %d", *o.DataLifecycleStateID))
+		}
+	}
+	if o.DetectionSystemID != nil {
+		switch *o.DetectionSystemID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 99:
+		default:
+			errs = append(errs, fmt.Errorf("detection_system_id: invalid value %d", *o.DetectionSystemID))
+		}
+	}
+	if o.Category != nil && len(*o.Category) > 65535 {
+		errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(*o.Category)))
+	}
+	if o.Confidentiality != nil && len(*o.Confidentiality) > 65535 {
+		errs = append(errs, fmt.Errorf("confidentiality: length %d exceeds max 65535", len(*o.Confidentiality)))
+	}
+	if o.DataLifecycleState != nil && len(*o.DataLifecycleState) > 65535 {
+		errs = append(errs, fmt.Errorf("data_lifecycle_state: length %d exceeds max 65535", len(*o.DataLifecycleState)))
+	}
+	if o.DetectionPattern != nil && len(*o.DetectionPattern) > 65535 {
+		errs = append(errs, fmt.Errorf("detection_pattern: length %d exceeds max 65535", len(*o.DetectionPattern)))
+	}
+	if o.DetectionSystem != nil && len(*o.DetectionSystem) > 65535 {
+		errs = append(errs, fmt.Errorf("detection_system: length %d exceeds max 65535", len(*o.DetectionSystem)))
+	}
+	if o.PatternMatch != nil && len(*o.PatternMatch) > 65535 {
+		errs = append(errs, fmt.Errorf("pattern_match: length %d exceeds max 65535", len(*o.PatternMatch)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -606,6 +983,25 @@ func (o *Database) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -634,6 +1030,25 @@ func (o *Databucket) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -655,6 +1070,12 @@ func (o *DceRpc) Validate() error {
 	}
 	if o.RpcInterface == nil {
 		errs = append(errs, errors.New("rpc_interface is required"))
+	}
+	if o.Command != nil && len(*o.Command) > 65535 {
+		errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(*o.Command)))
+	}
+	if o.CommandResponse != nil && len(*o.CommandResponse) > 65535 {
+		errs = append(errs, fmt.Errorf("command_response: length %d exceeds max 65535", len(*o.CommandResponse)))
 	}
 	return errors.Join(errs...)
 }
@@ -716,6 +1137,92 @@ func (o *Device) Validate() error {
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
 	}
+	if o.RiskLevelID != nil {
+		switch *o.RiskLevelID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
+		}
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.AutoscaleUID != nil && len(*o.AutoscaleUID) > 65535 {
+		errs = append(errs, fmt.Errorf("autoscale_uid: length %d exceeds max 65535", len(*o.AutoscaleUID)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.Hypervisor != nil && len(*o.Hypervisor) > 65535 {
+		errs = append(errs, fmt.Errorf("hypervisor: length %d exceeds max 65535", len(*o.Hypervisor)))
+	}
+	if o.Imei != nil && len(*o.Imei) > 65535 {
+		errs = append(errs, fmt.Errorf("imei: length %d exceeds max 65535", len(*o.Imei)))
+	}
+	if o.InstanceUID != nil && len(*o.InstanceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(*o.InstanceUID)))
+	}
+	if o.InterfaceName != nil && len(*o.InterfaceName) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(*o.InterfaceName)))
+	}
+	if o.InterfaceUID != nil && len(*o.InterfaceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(*o.InterfaceUID)))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.MAC != nil && len(*o.MAC) > 32 {
+		errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(*o.MAC)))
+	}
+	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
+		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Region != nil && len(*o.Region) > 65535 {
+		errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(*o.Region)))
+	}
+	if o.RiskLevel != nil && len(*o.RiskLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(*o.RiskLevel)))
+	}
+	if o.Subnet != nil && len(*o.Subnet) > 42 {
+		errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(*o.Subnet)))
+	}
+	if o.SubnetUID != nil && len(*o.SubnetUID) > 65535 {
+		errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(*o.SubnetUID)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.UIDAlt != nil && len(*o.UIDAlt) > 65535 {
+		errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(*o.UIDAlt)))
+	}
+	if o.VlanUID != nil && len(*o.VlanUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(*o.VlanUID)))
+	}
+	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
+	}
+	if o.Zone != nil && len(*o.Zone) > 65535 {
+		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -737,6 +1244,30 @@ type DeviceHwInfo struct {
 	SerialNumber     *string       `mapstructure:"serial_number,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for DeviceHwInfo.
+func (o *DeviceHwInfo) Validate() error {
+	var errs []error
+	if o.BiosDate != nil && len(*o.BiosDate) > 65535 {
+		errs = append(errs, fmt.Errorf("bios_date: length %d exceeds max 65535", len(*o.BiosDate)))
+	}
+	if o.BiosManufacturer != nil && len(*o.BiosManufacturer) > 65535 {
+		errs = append(errs, fmt.Errorf("bios_manufacturer: length %d exceeds max 65535", len(*o.BiosManufacturer)))
+	}
+	if o.BiosVer != nil && len(*o.BiosVer) > 65535 {
+		errs = append(errs, fmt.Errorf("bios_ver: length %d exceeds max 65535", len(*o.BiosVer)))
+	}
+	if o.Chassis != nil && len(*o.Chassis) > 65535 {
+		errs = append(errs, fmt.Errorf("chassis: length %d exceeds max 65535", len(*o.Chassis)))
+	}
+	if o.CPUType != nil && len(*o.CPUType) > 65535 {
+		errs = append(errs, fmt.Errorf("cpu_type: length %d exceeds max 65535", len(*o.CPUType)))
+	}
+	if o.SerialNumber != nil && len(*o.SerialNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(*o.SerialNumber)))
+	}
+	return errors.Join(errs...)
+}
+
 // DigitalSignature represents the OCSF Digital Signature object.
 // The Digital Signature object contains information about the cryptographic mechanism used to verify the authenticity, integrity, and origin of the file or application.
 type DigitalSignature struct {
@@ -755,6 +1286,29 @@ func (o *DigitalSignature) Validate() error {
 	var errs []error
 	if o.AlgorithmID == nil {
 		errs = append(errs, errors.New("algorithm_id is required"))
+	}
+	if o.AlgorithmID != nil {
+		switch *o.AlgorithmID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", *o.AlgorithmID))
+		}
+	}
+	if o.StateID != nil {
+		switch *o.StateID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
+		}
+	}
+	if o.Algorithm != nil && len(*o.Algorithm) > 65535 {
+		errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(*o.Algorithm)))
+	}
+	if o.DeveloperUID != nil && len(*o.DeveloperUID) > 65535 {
+		errs = append(errs, fmt.Errorf("developer_uid: length %d exceeds max 65535", len(*o.DeveloperUID)))
+	}
+	if o.State != nil && len(*o.State) > 65535 {
+		errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(*o.State)))
 	}
 	return errors.Join(errs...)
 }
@@ -787,6 +1341,15 @@ func (o *DNSAnswer) Validate() error {
 	if o.Rdata == nil {
 		errs = append(errs, errors.New("rdata is required"))
 	}
+	if o.Class != nil && len(*o.Class) > 65535 {
+		errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(*o.Class)))
+	}
+	if o.Rdata != nil && len(*o.Rdata) > 65535 {
+		errs = append(errs, fmt.Errorf("rdata: length %d exceeds max 65535", len(*o.Rdata)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -806,6 +1369,25 @@ func (o *DNSQuery) Validate() error {
 	var errs []error
 	if o.Hostname == nil {
 		errs = append(errs, errors.New("hostname is required"))
+	}
+	if o.OpcodeID != nil {
+		switch *o.OpcodeID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("opcode_id: invalid value %d", *o.OpcodeID))
+		}
+	}
+	if o.Class != nil && len(*o.Class) > 65535 {
+		errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(*o.Class)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.Opcode != nil && len(*o.Opcode) > 65535 {
+		errs = append(errs, fmt.Errorf("opcode: length %d exceeds max 65535", len(*o.Opcode)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -827,6 +1409,28 @@ func (o *DomainContact) Validate() error {
 	var errs []error
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
+		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.PhoneNumber != nil && len(*o.PhoneNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("phone_number: length %d exceeds max 65535", len(*o.PhoneNumber)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -858,6 +1462,30 @@ func (o *Email) Validate() error {
 	if len(o.To) == 0 {
 		errs = append(errs, errors.New("to is required"))
 	}
+	if o.DeliveredTo != nil && !regexEmailT.MatchString(*o.DeliveredTo) {
+		errs = append(errs, fmt.Errorf("delivered_to: invalid value %q", *o.DeliveredTo))
+	}
+	if o.From != nil && !regexEmailT.MatchString(*o.From) {
+		errs = append(errs, fmt.Errorf("from: invalid value %q", *o.From))
+	}
+	if o.MessageUID != nil && len(*o.MessageUID) > 65535 {
+		errs = append(errs, fmt.Errorf("message_uid: length %d exceeds max 65535", len(*o.MessageUID)))
+	}
+	if o.RawHeader != nil && len(*o.RawHeader) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_header: length %d exceeds max 65535", len(*o.RawHeader)))
+	}
+	if o.ReplyTo != nil && !regexEmailT.MatchString(*o.ReplyTo) {
+		errs = append(errs, fmt.Errorf("reply_to: invalid value %q", *o.ReplyTo))
+	}
+	if o.SmtpFrom != nil && !regexEmailT.MatchString(*o.SmtpFrom) {
+		errs = append(errs, fmt.Errorf("smtp_from: invalid value %q", *o.SmtpFrom))
+	}
+	if o.Subject != nil && len(*o.Subject) > 65535 {
+		errs = append(errs, fmt.Errorf("subject: length %d exceeds max 65535", len(*o.Subject)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -871,6 +1499,33 @@ type EmailAuth struct {
 	DmarcOverride *string `mapstructure:"dmarc_override,omitempty"`
 	DmarcPolicy   *string `mapstructure:"dmarc_policy,omitempty"`
 	Spf           *string `mapstructure:"spf,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for EmailAuth.
+func (o *EmailAuth) Validate() error {
+	var errs []error
+	if o.Dkim != nil && len(*o.Dkim) > 65535 {
+		errs = append(errs, fmt.Errorf("dkim: length %d exceeds max 65535", len(*o.Dkim)))
+	}
+	if o.DkimDomain != nil && len(*o.DkimDomain) > 65535 {
+		errs = append(errs, fmt.Errorf("dkim_domain: length %d exceeds max 65535", len(*o.DkimDomain)))
+	}
+	if o.DkimSignature != nil && len(*o.DkimSignature) > 65535 {
+		errs = append(errs, fmt.Errorf("dkim_signature: length %d exceeds max 65535", len(*o.DkimSignature)))
+	}
+	if o.Dmarc != nil && len(*o.Dmarc) > 65535 {
+		errs = append(errs, fmt.Errorf("dmarc: length %d exceeds max 65535", len(*o.Dmarc)))
+	}
+	if o.DmarcOverride != nil && len(*o.DmarcOverride) > 65535 {
+		errs = append(errs, fmt.Errorf("dmarc_override: length %d exceeds max 65535", len(*o.DmarcOverride)))
+	}
+	if o.DmarcPolicy != nil && len(*o.DmarcPolicy) > 65535 {
+		errs = append(errs, fmt.Errorf("dmarc_policy: length %d exceeds max 65535", len(*o.DmarcPolicy)))
+	}
+	if o.Spf != nil && len(*o.Spf) > 65535 {
+		errs = append(errs, fmt.Errorf("spf: length %d exceeds max 65535", len(*o.Spf)))
+	}
+	return errors.Join(errs...)
 }
 
 // Endpoint represents the OCSF Endpoint object.
@@ -903,6 +1558,61 @@ func (o *Endpoint) Validate() error {
 	var errs []error
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.InstanceUID != nil && len(*o.InstanceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(*o.InstanceUID)))
+	}
+	if o.InterfaceName != nil && len(*o.InterfaceName) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(*o.InterfaceName)))
+	}
+	if o.InterfaceUID != nil && len(*o.InterfaceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(*o.InterfaceUID)))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.MAC != nil && len(*o.MAC) > 32 {
+		errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(*o.MAC)))
+	}
+	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
+		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.SubnetUID != nil && len(*o.SubnetUID) > 65535 {
+		errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(*o.SubnetUID)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.VlanUID != nil && len(*o.VlanUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(*o.VlanUID)))
+	}
+	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
+	}
+	if o.Zone != nil && len(*o.Zone) > 65535 {
+		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
 	}
 	return errors.Join(errs...)
 }
@@ -950,6 +1660,24 @@ func (o *Enrichment) Validate() error {
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
+	if o.ShortDesc != nil && len(*o.ShortDesc) > 65535 {
+		errs = append(errs, fmt.Errorf("short_desc: length %d exceeds max 65535", len(*o.ShortDesc)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -967,6 +1695,12 @@ func (o *Epss) Validate() error {
 	var errs []error
 	if o.Score == nil {
 		errs = append(errs, errors.New("score is required"))
+	}
+	if o.Score != nil && len(*o.Score) > 65535 {
+		errs = append(errs, fmt.Errorf("score: length %d exceeds max 65535", len(*o.Score)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -1025,6 +1759,15 @@ func (o *Extension) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1041,6 +1784,15 @@ func (o *Feature) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -1087,6 +1839,53 @@ func (o *File) Validate() error {
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
 	}
+	if o.ConfidentialityID != nil {
+		switch *o.ConfidentialityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
+		}
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.CompanyName != nil && len(*o.CompanyName) > 65535 {
+		errs = append(errs, fmt.Errorf("company_name: length %d exceeds max 65535", len(*o.CompanyName)))
+	}
+	if o.Confidentiality != nil && len(*o.Confidentiality) > 65535 {
+		errs = append(errs, fmt.Errorf("confidentiality: length %d exceeds max 65535", len(*o.Confidentiality)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Ext != nil && len(*o.Ext) > 65535 {
+		errs = append(errs, fmt.Errorf("ext: length %d exceeds max 65535", len(*o.Ext)))
+	}
+	if o.MimeType != nil && len(*o.MimeType) > 65535 {
+		errs = append(errs, fmt.Errorf("mime_type: length %d exceeds max 65535", len(*o.MimeType)))
+	}
+	if o.ParentFolder != nil && len(*o.ParentFolder) > 65535 {
+		errs = append(errs, fmt.Errorf("parent_folder: length %d exceeds max 65535", len(*o.ParentFolder)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.SecurityDescriptor != nil && len(*o.SecurityDescriptor) > 65535 {
+		errs = append(errs, fmt.Errorf("security_descriptor: length %d exceeds max 65535", len(*o.SecurityDescriptor)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1116,6 +1915,18 @@ func (o *Finding) Validate() error {
 	}
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.ProductUID != nil && len(*o.ProductUID) > 65535 {
+		errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(*o.ProductUID)))
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1150,6 +1961,18 @@ func (o *FindingInfo) Validate() error {
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.ProductUID != nil && len(*o.ProductUID) > 65535 {
+		errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(*o.ProductUID)))
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1169,6 +1992,19 @@ func (o *Fingerprint) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.AlgorithmID != nil {
+		switch *o.AlgorithmID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", *o.AlgorithmID))
+		}
+	}
+	if o.Algorithm != nil && len(*o.Algorithm) > 65535 {
+		errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(*o.Algorithm)))
+	}
+	if o.Value != nil && len(*o.Value) > 64 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 64", len(*o.Value)))
 	}
 	return errors.Join(errs...)
 }
@@ -1196,6 +2032,33 @@ func (o *FirewallRule) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Category != nil && len(*o.Category) > 65535 {
+		errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(*o.Category)))
+	}
+	if o.Condition != nil && len(*o.Condition) > 65535 {
+		errs = append(errs, fmt.Errorf("condition: length %d exceeds max 65535", len(*o.Condition)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.MatchLocation != nil && len(*o.MatchLocation) > 65535 {
+		errs = append(errs, fmt.Errorf("match_location: length %d exceeds max 65535", len(*o.MatchLocation)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Sensitivity != nil && len(*o.Sensitivity) > 65535 {
+		errs = append(errs, fmt.Errorf("sensitivity: length %d exceeds max 65535", len(*o.Sensitivity)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1216,6 +2079,21 @@ func (o *Group) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1231,6 +2109,9 @@ func (o *Hassh) Validate() error {
 	var errs []error
 	if o.Fingerprint == nil {
 		errs = append(errs, errors.New("fingerprint is required"))
+	}
+	if o.Algorithm != nil && len(*o.Algorithm) > 65535 {
+		errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(*o.Algorithm)))
 	}
 	return errors.Join(errs...)
 }
@@ -1259,6 +2140,21 @@ func (o *HTTPCookie) Validate() error {
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
 	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Samesite != nil && len(*o.Samesite) > 65535 {
+		errs = append(errs, fmt.Errorf("samesite: length %d exceeds max 65535", len(*o.Samesite)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1277,6 +2173,12 @@ func (o *HTTPHeader) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
 	}
 	return errors.Join(errs...)
 }
@@ -1306,6 +2208,24 @@ func (o *HTTPRequest) Validate() error {
 			errs = append(errs, fmt.Errorf("http_method: invalid value %q", *o.HTTPMethod))
 		}
 	}
+	if o.Args != nil && len(*o.Args) > 65535 {
+		errs = append(errs, fmt.Errorf("args: length %d exceeds max 65535", len(*o.Args)))
+	}
+	if o.HTTPMethod != nil && len(*o.HTTPMethod) > 65535 {
+		errs = append(errs, fmt.Errorf("http_method: length %d exceeds max 65535", len(*o.HTTPMethod)))
+	}
+	if o.Referrer != nil && len(*o.Referrer) > 65535 {
+		errs = append(errs, fmt.Errorf("referrer: length %d exceeds max 65535", len(*o.Referrer)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.UserAgent != nil && len(*o.UserAgent) > 65535 {
+		errs = append(errs, fmt.Errorf("user_agent: length %d exceeds max 65535", len(*o.UserAgent)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1327,6 +2247,15 @@ func (o *HTTPResponse) Validate() error {
 	if o.Code == nil {
 		errs = append(errs, errors.New("code is required"))
 	}
+	if o.ContentType != nil && len(*o.ContentType) > 65535 {
+		errs = append(errs, fmt.Errorf("content_type: length %d exceeds max 65535", len(*o.ContentType)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1342,6 +2271,12 @@ func (o *Idp) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1361,6 +2296,18 @@ func (o *Image) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Tag != nil && len(*o.Tag) > 65535 {
+		errs = append(errs, fmt.Errorf("tag: length %d exceeds max 65535", len(*o.Tag)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1385,6 +2332,31 @@ func (o *Ja4Fingerprint) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.SectionA != nil && len(*o.SectionA) > 65535 {
+		errs = append(errs, fmt.Errorf("section_a: length %d exceeds max 65535", len(*o.SectionA)))
+	}
+	if o.SectionB != nil && len(*o.SectionB) > 65535 {
+		errs = append(errs, fmt.Errorf("section_b: length %d exceeds max 65535", len(*o.SectionB)))
+	}
+	if o.SectionC != nil && len(*o.SectionC) > 65535 {
+		errs = append(errs, fmt.Errorf("section_c: length %d exceeds max 65535", len(*o.SectionC)))
+	}
+	if o.SectionD != nil && len(*o.SectionD) > 65535 {
+		errs = append(errs, fmt.Errorf("section_d: length %d exceeds max 65535", len(*o.SectionD)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
 	}
 	return errors.Join(errs...)
 }
@@ -1412,6 +2384,25 @@ func (o *Job) Validate() error {
 	}
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if o.RunStateID != nil {
+		switch *o.RunStateID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("run_state_id: invalid value %d", *o.RunStateID))
+		}
+	}
+	if o.CmdLine != nil && len(*o.CmdLine) > 65535 {
+		errs = append(errs, fmt.Errorf("cmd_line: length %d exceeds max 65535", len(*o.CmdLine)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.RunState != nil && len(*o.RunState) > 65535 {
+		errs = append(errs, fmt.Errorf("run_state: length %d exceeds max 65535", len(*o.RunState)))
 	}
 	return errors.Join(errs...)
 }
@@ -1441,6 +2432,31 @@ func (o *KbArticle) Validate() error {
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if o.InstallStateID != nil {
+		switch *o.InstallStateID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("install_state_id: invalid value %d", *o.InstallStateID))
+		}
+	}
+	if o.Bulletin != nil && len(*o.Bulletin) > 65535 {
+		errs = append(errs, fmt.Errorf("bulletin: length %d exceeds max 65535", len(*o.Bulletin)))
+	}
+	if o.Classification != nil && len(*o.Classification) > 65535 {
+		errs = append(errs, fmt.Errorf("classification: length %d exceeds max 65535", len(*o.Classification)))
+	}
+	if o.InstallState != nil && len(*o.InstallState) > 65535 {
+		errs = append(errs, fmt.Errorf("install_state: length %d exceeds max 65535", len(*o.InstallState)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1463,6 +2479,25 @@ func (o *Kernel) Validate() error {
 	}
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.SystemCall != nil && len(*o.SystemCall) > 65535 {
+		errs = append(errs, fmt.Errorf("system_call: length %d exceeds max 65535", len(*o.SystemCall)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -1492,6 +2527,21 @@ type KeyboardInfo struct {
 	KeyboardType    *string `mapstructure:"keyboard_type,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for KeyboardInfo.
+func (o *KeyboardInfo) Validate() error {
+	var errs []error
+	if o.Ime != nil && len(*o.Ime) > 65535 {
+		errs = append(errs, fmt.Errorf("ime: length %d exceeds max 65535", len(*o.Ime)))
+	}
+	if o.KeyboardLayout != nil && len(*o.KeyboardLayout) > 65535 {
+		errs = append(errs, fmt.Errorf("keyboard_layout: length %d exceeds max 65535", len(*o.KeyboardLayout)))
+	}
+	if o.KeyboardType != nil && len(*o.KeyboardType) > 65535 {
+		errs = append(errs, fmt.Errorf("keyboard_type: length %d exceeds max 65535", len(*o.KeyboardType)))
+	}
+	return errors.Join(errs...)
+}
+
 // KillChainPhase represents the OCSF Kill Chain Phase object.
 // The Kill Chain Phase object represents a single phase of a cyber attack, including the initial reconnaissance and planning stages up to the final objective of the attacker. It provides a detailed description of each phase and its associated activities within the broader context of a cyber attack. See Cyber Kill Chain®.
 type KillChainPhase struct {
@@ -1504,6 +2554,16 @@ func (o *KillChainPhase) Validate() error {
 	var errs []error
 	if o.PhaseID == nil {
 		errs = append(errs, errors.New("phase_id is required"))
+	}
+	if o.PhaseID != nil {
+		switch *o.PhaseID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("phase_id: invalid value %d", *o.PhaseID))
+		}
+	}
+	if o.Phase != nil && len(*o.Phase) > 65535 {
+		errs = append(errs, fmt.Errorf("phase: length %d exceeds max 65535", len(*o.Phase)))
 	}
 	return errors.Join(errs...)
 }
@@ -1531,6 +2591,36 @@ type LDAPPerson struct {
 	Surname        *string   `mapstructure:"surname,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for LDAPPerson.
+func (o *LDAPPerson) Validate() error {
+	var errs []error
+	if o.CostCenter != nil && len(*o.CostCenter) > 65535 {
+		errs = append(errs, fmt.Errorf("cost_center: length %d exceeds max 65535", len(*o.CostCenter)))
+	}
+	if o.EmployeeUID != nil && len(*o.EmployeeUID) > 65535 {
+		errs = append(errs, fmt.Errorf("employee_uid: length %d exceeds max 65535", len(*o.EmployeeUID)))
+	}
+	if o.GivenName != nil && len(*o.GivenName) > 65535 {
+		errs = append(errs, fmt.Errorf("given_name: length %d exceeds max 65535", len(*o.GivenName)))
+	}
+	if o.JobTitle != nil && len(*o.JobTitle) > 65535 {
+		errs = append(errs, fmt.Errorf("job_title: length %d exceeds max 65535", len(*o.JobTitle)))
+	}
+	if o.LDAPCn != nil && len(*o.LDAPCn) > 65535 {
+		errs = append(errs, fmt.Errorf("ldap_cn: length %d exceeds max 65535", len(*o.LDAPCn)))
+	}
+	if o.LDAPDn != nil && len(*o.LDAPDn) > 65535 {
+		errs = append(errs, fmt.Errorf("ldap_dn: length %d exceeds max 65535", len(*o.LDAPDn)))
+	}
+	if o.OfficeLocation != nil && len(*o.OfficeLocation) > 65535 {
+		errs = append(errs, fmt.Errorf("office_location: length %d exceeds max 65535", len(*o.OfficeLocation)))
+	}
+	if o.Surname != nil && len(*o.Surname) > 65535 {
+		errs = append(errs, fmt.Errorf("surname: length %d exceeds max 65535", len(*o.Surname)))
+	}
+	return errors.Join(errs...)
+}
+
 // LoadBalancer represents the OCSF Load Balancer object.
 // The load balancer object describes the load balancer entity and contains additional information regarding the distribution of traffic across a network.
 type LoadBalancer struct {
@@ -1552,6 +2642,30 @@ func (o *LoadBalancer) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Classification != nil && len(*o.Classification) > 65535 {
+		errs = append(errs, fmt.Errorf("classification: length %d exceeds max 65535", len(*o.Classification)))
+	}
+	if o.ErrorMessage != nil && len(*o.ErrorMessage) > 65535 {
+		errs = append(errs, fmt.Errorf("error_message: length %d exceeds max 65535", len(*o.ErrorMessage)))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1580,6 +2694,33 @@ func (o *Location) Validate() error {
 	if o.City == nil && o.Country == nil && o.PostalCode == nil && o.Region == nil {
 		errs = append(errs, errors.New("at least one of [city, country, postal_code, region] must be set"))
 	}
+	if o.City != nil && len(*o.City) > 65535 {
+		errs = append(errs, fmt.Errorf("city: length %d exceeds max 65535", len(*o.City)))
+	}
+	if o.Continent != nil && len(*o.Continent) > 65535 {
+		errs = append(errs, fmt.Errorf("continent: length %d exceeds max 65535", len(*o.Continent)))
+	}
+	if o.Country != nil && len(*o.Country) > 65535 {
+		errs = append(errs, fmt.Errorf("country: length %d exceeds max 65535", len(*o.Country)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Geohash != nil && len(*o.Geohash) > 65535 {
+		errs = append(errs, fmt.Errorf("geohash: length %d exceeds max 65535", len(*o.Geohash)))
+	}
+	if o.Isp != nil && len(*o.Isp) > 65535 {
+		errs = append(errs, fmt.Errorf("isp: length %d exceeds max 65535", len(*o.Isp)))
+	}
+	if o.PostalCode != nil && len(*o.PostalCode) > 65535 {
+		errs = append(errs, fmt.Errorf("postal_code: length %d exceeds max 65535", len(*o.PostalCode)))
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
+	if o.Region != nil && len(*o.Region) > 65535 {
+		errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(*o.Region)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1605,6 +2746,27 @@ func (o *Logger) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.LogLevel != nil && len(*o.LogLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("log_level: length %d exceeds max 65535", len(*o.LogLevel)))
+	}
+	if o.LogName != nil && len(*o.LogName) > 65535 {
+		errs = append(errs, fmt.Errorf("log_name: length %d exceeds max 65535", len(*o.LogName)))
+	}
+	if o.LogProvider != nil && len(*o.LogProvider) > 65535 {
+		errs = append(errs, fmt.Errorf("log_provider: length %d exceeds max 65535", len(*o.LogProvider)))
+	}
+	if o.LogVersion != nil && len(*o.LogVersion) > 65535 {
+		errs = append(errs, fmt.Errorf("log_version: length %d exceeds max 65535", len(*o.LogVersion)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1628,6 +2790,18 @@ func (o *Malware) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1654,6 +2828,25 @@ func (o *ManagedEntity) Validate() error {
 	var errs []error
 	if o.Device == nil && o.Group == nil && o.Name == nil && o.Org == nil && o.Policy == nil && o.UID == nil && o.User == nil {
 		errs = append(errs, errors.New("at least one of [device, group, name, org, policy, uid, user] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -1692,6 +2885,36 @@ func (o *Metadata) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.CorrelationUID != nil && len(*o.CorrelationUID) > 65535 {
+		errs = append(errs, fmt.Errorf("correlation_uid: length %d exceeds max 65535", len(*o.CorrelationUID)))
+	}
+	if o.EventCode != nil && len(*o.EventCode) > 65535 {
+		errs = append(errs, fmt.Errorf("event_code: length %d exceeds max 65535", len(*o.EventCode)))
+	}
+	if o.LogLevel != nil && len(*o.LogLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("log_level: length %d exceeds max 65535", len(*o.LogLevel)))
+	}
+	if o.LogName != nil && len(*o.LogName) > 65535 {
+		errs = append(errs, fmt.Errorf("log_name: length %d exceeds max 65535", len(*o.LogName)))
+	}
+	if o.LogProvider != nil && len(*o.LogProvider) > 65535 {
+		errs = append(errs, fmt.Errorf("log_provider: length %d exceeds max 65535", len(*o.LogProvider)))
+	}
+	if o.LogVersion != nil && len(*o.LogVersion) > 65535 {
+		errs = append(errs, fmt.Errorf("log_version: length %d exceeds max 65535", len(*o.LogVersion)))
+	}
+	if o.OriginalTime != nil && len(*o.OriginalTime) > 65535 {
+		errs = append(errs, fmt.Errorf("original_time: length %d exceeds max 65535", len(*o.OriginalTime)))
+	}
+	if o.TenantUID != nil && len(*o.TenantUID) > 65535 {
+		errs = append(errs, fmt.Errorf("tenant_uid: length %d exceeds max 65535", len(*o.TenantUID)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1710,6 +2933,12 @@ func (o *Metric) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
 	}
 	return errors.Join(errs...)
 }
@@ -1731,6 +2960,28 @@ func (o *Module) Validate() error {
 	var errs []error
 	if o.LoadTypeID == nil {
 		errs = append(errs, errors.New("load_type_id is required"))
+	}
+	if o.LoadTypeID != nil {
+		switch *o.LoadTypeID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("load_type_id: invalid value %d", *o.LoadTypeID))
+		}
+	}
+	if o.BaseAddress != nil && len(*o.BaseAddress) > 65535 {
+		errs = append(errs, fmt.Errorf("base_address: length %d exceeds max 65535", len(*o.BaseAddress)))
+	}
+	if o.FunctionName != nil && len(*o.FunctionName) > 65535 {
+		errs = append(errs, fmt.Errorf("function_name: length %d exceeds max 65535", len(*o.FunctionName)))
+	}
+	if o.LoadType != nil && len(*o.LoadType) > 65535 {
+		errs = append(errs, fmt.Errorf("load_type: length %d exceeds max 65535", len(*o.LoadType)))
+	}
+	if o.StartAddress != nil && len(*o.StartAddress) > 65535 {
+		errs = append(errs, fmt.Errorf("start_address: length %d exceeds max 65535", len(*o.StartAddress)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -1756,6 +3007,42 @@ func (o *NetworkConnectionInfo) Validate() error {
 	var errs []error
 	if o.DirectionID == nil {
 		errs = append(errs, errors.New("direction_id is required"))
+	}
+	if o.BoundaryID != nil {
+		switch *o.BoundaryID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+		default:
+			errs = append(errs, fmt.Errorf("boundary_id: invalid value %d", *o.BoundaryID))
+		}
+	}
+	if o.DirectionID != nil {
+		switch *o.DirectionID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("direction_id: invalid value %d", *o.DirectionID))
+		}
+	}
+	if o.ProtocolVerID != nil {
+		switch *o.ProtocolVerID {
+		case 0, 4, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("protocol_ver_id: invalid value %d", *o.ProtocolVerID))
+		}
+	}
+	if o.Boundary != nil && len(*o.Boundary) > 65535 {
+		errs = append(errs, fmt.Errorf("boundary: length %d exceeds max 65535", len(*o.Boundary)))
+	}
+	if o.Direction != nil && len(*o.Direction) > 65535 {
+		errs = append(errs, fmt.Errorf("direction: length %d exceeds max 65535", len(*o.Direction)))
+	}
+	if o.ProtocolName != nil && len(*o.ProtocolName) > 65535 {
+		errs = append(errs, fmt.Errorf("protocol_name: length %d exceeds max 65535", len(*o.ProtocolName)))
+	}
+	if o.ProtocolVer != nil && len(*o.ProtocolVer) > 65535 {
+		errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(*o.ProtocolVer)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1796,6 +3083,67 @@ func (o *NetworkEndpoint) Validate() error {
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.InstanceUID != nil && len(*o.InstanceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(*o.InstanceUID)))
+	}
+	if o.InterfaceName != nil && len(*o.InterfaceName) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(*o.InterfaceName)))
+	}
+	if o.InterfaceUID != nil && len(*o.InterfaceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(*o.InterfaceUID)))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.MAC != nil && len(*o.MAC) > 32 {
+		errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(*o.MAC)))
+	}
+	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
+		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
+		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
+	}
+	if o.SubnetUID != nil && len(*o.SubnetUID) > 65535 {
+		errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(*o.SubnetUID)))
+	}
+	if o.SvcName != nil && len(*o.SvcName) > 65535 {
+		errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(*o.SvcName)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.VlanUID != nil && len(*o.VlanUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(*o.VlanUID)))
+	}
+	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
+	}
+	if o.Zone != nil && len(*o.Zone) > 65535 {
+		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1821,6 +3169,40 @@ func (o *NetworkInterface) Validate() error {
 	}
 	if o.Hostname == nil && o.IP == nil && o.MAC == nil && o.Name == nil {
 		errs = append(errs, errors.New("at least one of [hostname, ip, mac, name] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.MAC != nil && len(*o.MAC) > 32 {
+		errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(*o.MAC)))
+	}
+	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
+		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Namespace != nil && len(*o.Namespace) > 65535 {
+		errs = append(errs, fmt.Errorf("namespace: length %d exceeds max 65535", len(*o.Namespace)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1860,6 +3242,67 @@ func (o *NetworkProxy) Validate() error {
 	var errs []error
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.InstanceUID != nil && len(*o.InstanceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(*o.InstanceUID)))
+	}
+	if o.InterfaceName != nil && len(*o.InterfaceName) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(*o.InterfaceName)))
+	}
+	if o.InterfaceUID != nil && len(*o.InterfaceUID) > 65535 {
+		errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(*o.InterfaceUID)))
+	}
+	if o.IP != nil && len(*o.IP) > 40 {
+		errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(*o.IP)))
+	}
+	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
+		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.MAC != nil && len(*o.MAC) > 32 {
+		errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(*o.MAC)))
+	}
+	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
+		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
+		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
+	}
+	if o.SubnetUID != nil && len(*o.SubnetUID) > 65535 {
+		errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(*o.SubnetUID)))
+	}
+	if o.SvcName != nil && len(*o.SvcName) > 65535 {
+		errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(*o.SvcName)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.VlanUID != nil && len(*o.VlanUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(*o.VlanUID)))
+	}
+	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
+		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
+	}
+	if o.Zone != nil && len(*o.Zone) > 65535 {
+		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
 	}
 	return errors.Join(errs...)
 }
@@ -1902,6 +3345,22 @@ func (o *Observable) Validate() error {
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -1919,6 +3378,18 @@ func (o *Organization) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.OuName != nil && len(*o.OuName) > 65535 {
+		errs = append(errs, fmt.Errorf("ou_name: length %d exceeds max 65535", len(*o.OuName)))
+	}
+	if o.OuUID != nil && len(*o.OuUID) > 65535 {
+		errs = append(errs, fmt.Errorf("ou_uid: length %d exceeds max 65535", len(*o.OuUID)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -1948,6 +3419,40 @@ func (o *OS) Validate() error {
 	}
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 99, 100, 101, 200, 201, 300, 301, 302, 400, 401, 402:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Build != nil && len(*o.Build) > 65535 {
+		errs = append(errs, fmt.Errorf("build: length %d exceeds max 65535", len(*o.Build)))
+	}
+	if o.Country != nil && len(*o.Country) > 65535 {
+		errs = append(errs, fmt.Errorf("country: length %d exceeds max 65535", len(*o.Country)))
+	}
+	if o.CpeName != nil && len(*o.CpeName) > 65535 {
+		errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(*o.CpeName)))
+	}
+	if o.Edition != nil && len(*o.Edition) > 65535 {
+		errs = append(errs, fmt.Errorf("edition: length %d exceeds max 65535", len(*o.Edition)))
+	}
+	if o.Lang != nil && len(*o.Lang) > 65535 {
+		errs = append(errs, fmt.Errorf("lang: length %d exceeds max 65535", len(*o.Lang)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.SpName != nil && len(*o.SpName) > 65535 {
+		errs = append(errs, fmt.Errorf("sp_name: length %d exceeds max 65535", len(*o.SpName)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -1991,12 +3496,50 @@ func (o *Osint) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
 	if o.Tlp != nil {
 		switch *o.Tlp {
 		case "AMBER", "AMBER STRICT", "CLEAR", "GREEN", "RED":
 		default:
 			errs = append(errs, fmt.Errorf("tlp: invalid value %q", *o.Tlp))
 		}
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Tlp != nil && len(*o.Tlp) > 65535 {
+		errs = append(errs, fmt.Errorf("tlp: length %d exceeds max 65535", len(*o.Tlp)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Value != nil && len(*o.Value) > 65535 {
+		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
 	}
 	return errors.Join(errs...)
 }
@@ -2027,6 +3570,40 @@ func (o *Package) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Architecture != nil && len(*o.Architecture) > 65535 {
+		errs = append(errs, fmt.Errorf("architecture: length %d exceeds max 65535", len(*o.Architecture)))
+	}
+	if o.CpeName != nil && len(*o.CpeName) > 65535 {
+		errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(*o.CpeName)))
+	}
+	if o.License != nil && len(*o.License) > 65535 {
+		errs = append(errs, fmt.Errorf("license: length %d exceeds max 65535", len(*o.License)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Purl != nil && len(*o.Purl) > 65535 {
+		errs = append(errs, fmt.Errorf("purl: length %d exceeds max 65535", len(*o.Purl)))
+	}
+	if o.Release != nil && len(*o.Release) > 65535 {
+		errs = append(errs, fmt.Errorf("release: length %d exceeds max 65535", len(*o.Release)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2053,6 +3630,24 @@ func (o *PeripheralDevice) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Class != nil && len(*o.Class) > 65535 {
+		errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(*o.Class)))
+	}
+	if o.Model != nil && len(*o.Model) > 65535 {
+		errs = append(errs, fmt.Errorf("model: length %d exceeds max 65535", len(*o.Model)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.SerialNumber != nil && len(*o.SerialNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(*o.SerialNumber)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2072,6 +3667,18 @@ func (o *Policy) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -2104,6 +3711,25 @@ func (o *Process) Validate() error {
 	if o.Pid == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [pid, uid] must be set"))
 	}
+	if o.IntegrityID != nil {
+		switch *o.IntegrityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("integrity_id: invalid value %d", *o.IntegrityID))
+		}
+	}
+	if o.CmdLine != nil && len(*o.CmdLine) > 65535 {
+		errs = append(errs, fmt.Errorf("cmd_line: length %d exceeds max 65535", len(*o.CmdLine)))
+	}
+	if o.Integrity != nil && len(*o.Integrity) > 65535 {
+		errs = append(errs, fmt.Errorf("integrity: length %d exceeds max 65535", len(*o.Integrity)))
+	}
+	if o.Sandbox != nil && len(*o.Sandbox) > 65535 {
+		errs = append(errs, fmt.Errorf("sandbox: length %d exceeds max 65535", len(*o.Sandbox)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2130,6 +3756,27 @@ func (o *Product) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.CpeName != nil && len(*o.CpeName) > 65535 {
+		errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(*o.CpeName)))
+	}
+	if o.Lang != nil && len(*o.Lang) > 65535 {
+		errs = append(errs, fmt.Errorf("lang: length %d exceeds max 65535", len(*o.Lang)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2153,6 +3800,15 @@ func (o *QueryInfo) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.QueryString != nil && len(*o.QueryString) > 65535 {
+		errs = append(errs, fmt.Errorf("query_string: length %d exceeds max 65535", len(*o.QueryString)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2175,6 +3831,18 @@ func (o *RelatedEvent) Validate() error {
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if o.ProductUID != nil && len(*o.ProductUID) > 65535 {
+		errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(*o.ProductUID)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2192,6 +3860,9 @@ func (o *Remediation) Validate() error {
 	var errs []error
 	if o.Desc == nil {
 		errs = append(errs, errors.New("desc is required"))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
 	}
 	return errors.Join(errs...)
 }
@@ -2214,6 +3885,19 @@ func (o *Reputation) Validate() error {
 	if o.ScoreID == nil {
 		errs = append(errs, errors.New("score_id is required"))
 	}
+	if o.ScoreID != nil {
+		switch *o.ScoreID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("score_id: invalid value %d", *o.ScoreID))
+		}
+	}
+	if o.Provider != nil && len(*o.Provider) > 65535 {
+		errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(*o.Provider)))
+	}
+	if o.Score != nil && len(*o.Score) > 65535 {
+		errs = append(errs, fmt.Errorf("score: length %d exceeds max 65535", len(*o.Score)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2231,6 +3915,9 @@ func (o *Request) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2257,6 +3944,24 @@ func (o *ResourceDetails) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Criticality != nil && len(*o.Criticality) > 65535 {
+		errs = append(errs, fmt.Errorf("criticality: length %d exceeds max 65535", len(*o.Criticality)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Namespace != nil && len(*o.Namespace) > 65535 {
+		errs = append(errs, fmt.Errorf("namespace: length %d exceeds max 65535", len(*o.Namespace)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2270,6 +3975,21 @@ type Response struct {
 	ErrorMessage *string     `mapstructure:"error_message,omitempty"`
 	Flags        []string    `mapstructure:"flags,omitempty"`
 	Message      *string     `mapstructure:"message,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Response.
+func (o *Response) Validate() error {
+	var errs []error
+	if o.Error != nil && len(*o.Error) > 65535 {
+		errs = append(errs, fmt.Errorf("error: length %d exceeds max 65535", len(*o.Error)))
+	}
+	if o.ErrorMessage != nil && len(*o.ErrorMessage) > 65535 {
+		errs = append(errs, fmt.Errorf("error_message: length %d exceeds max 65535", len(*o.ErrorMessage)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	return errors.Join(errs...)
 }
 
 // RpcInterface represents the OCSF RPC Interface object.
@@ -2289,6 +4009,12 @@ func (o *RpcInterface) Validate() error {
 	}
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
+	}
+	if o.Uuid != nil && !regexUuidT.MatchString(*o.Uuid) {
+		errs = append(errs, fmt.Errorf("uuid: invalid value %q", *o.Uuid))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -2310,6 +4036,24 @@ func (o *Rule) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Category != nil && len(*o.Category) > 65535 {
+		errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(*o.Category)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2328,6 +4072,12 @@ func (o *San) Validate() error {
 	}
 	if o.Type == nil {
 		errs = append(errs, errors.New("type is required"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -2350,6 +4100,22 @@ func (o *Scan) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2363,6 +4129,16 @@ type SecurityState struct {
 // Validate checks required fields, constraints, and enum values for SecurityState.
 func (o *SecurityState) Validate() error {
 	var errs []error
+	if o.StateID != nil {
+		switch *o.StateID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 99:
+		default:
+			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
+		}
+	}
+	if o.State != nil && len(*o.State) > 65535 {
+		errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(*o.State)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2380,6 +4156,15 @@ func (o *Service) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -2402,6 +4187,33 @@ type Session struct {
 	Uuid             *string `mapstructure:"uuid,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for Session.
+func (o *Session) Validate() error {
+	var errs []error
+	if o.CredentialUID != nil && len(*o.CredentialUID) > 65535 {
+		errs = append(errs, fmt.Errorf("credential_uid: length %d exceeds max 65535", len(*o.CredentialUID)))
+	}
+	if o.ExpirationReason != nil && len(*o.ExpirationReason) > 65535 {
+		errs = append(errs, fmt.Errorf("expiration_reason: length %d exceeds max 65535", len(*o.ExpirationReason)))
+	}
+	if o.Issuer != nil && len(*o.Issuer) > 65535 {
+		errs = append(errs, fmt.Errorf("issuer: length %d exceeds max 65535", len(*o.Issuer)))
+	}
+	if o.Terminal != nil && len(*o.Terminal) > 65535 {
+		errs = append(errs, fmt.Errorf("terminal: length %d exceeds max 65535", len(*o.Terminal)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.UIDAlt != nil && len(*o.UIDAlt) > 65535 {
+		errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(*o.UIDAlt)))
+	}
+	if o.Uuid != nil && !regexUuidT.MatchString(*o.Uuid) {
+		errs = append(errs, fmt.Errorf("uuid: invalid value %q", *o.Uuid))
+	}
+	return errors.Join(errs...)
+}
+
 // SubTechnique represents the OCSF MITRE ATT&CK® Sub Technique object.
 // The MITRE ATT&CK® Sub Technique object describes the sub technique ID and/or name associated to an attack, as defined by ATT&CK® Matrix.
 type SubTechnique struct {
@@ -2415,6 +4227,12 @@ func (o *SubTechnique) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2437,6 +4255,15 @@ func (o *Table) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2454,6 +4281,12 @@ func (o *Tactic) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2470,6 +4303,12 @@ func (o *Technique) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2489,6 +4328,22 @@ func (o *Ticket) Validate() error {
 	var errs []error
 	if o.SrcURL == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [src_url, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2513,6 +4368,16 @@ func (o *Timespan) Validate() error {
 	var errs []error
 	if o.Duration == nil && o.DurationDays == nil && o.DurationHours == nil && o.DurationMins == nil && o.DurationMonths == nil && o.DurationSecs == nil && o.DurationWeeks == nil && o.DurationYears == nil {
 		errs = append(errs, errors.New("at least one of [duration, duration_days, duration_hours, duration_mins, duration_months, duration_secs, duration_weeks, duration_years] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -2543,6 +4408,15 @@ func (o *TLS) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.Cipher != nil && len(*o.Cipher) > 65535 {
+		errs = append(errs, fmt.Errorf("cipher: length %d exceeds max 65535", len(*o.Cipher)))
+	}
+	if o.Sni != nil && len(*o.Sni) > 65535 {
+		errs = append(errs, fmt.Errorf("sni: length %d exceeds max 65535", len(*o.Sni)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2559,6 +4433,16 @@ func (o *TLSExtension) Validate() error {
 	var errs []error
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 5, 10, 13, 14, 15, 16, 18, 19, 20, 21, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
 	}
 	return errors.Join(errs...)
 }
@@ -2584,6 +4468,30 @@ func (o *URL) Validate() error {
 	var errs []error
 	if o.Path == nil && o.URLString == nil {
 		errs = append(errs, errors.New("at least one of [path, url_string] must be set"))
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.Hostname != nil && !regexHostnameT.MatchString(*o.Hostname) {
+		errs = append(errs, fmt.Errorf("hostname: invalid value %q", *o.Hostname))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
+		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
+	}
+	if o.QueryString != nil && len(*o.QueryString) > 65535 {
+		errs = append(errs, fmt.Errorf("query_string: length %d exceeds max 65535", len(*o.QueryString)))
+	}
+	if o.ResourceType != nil && len(*o.ResourceType) > 65535 {
+		errs = append(errs, fmt.Errorf("resource_type: length %d exceeds max 65535", len(*o.ResourceType)))
+	}
+	if o.Scheme != nil && len(*o.Scheme) > 65535 {
+		errs = append(errs, fmt.Errorf("scheme: length %d exceeds max 65535", len(*o.Scheme)))
+	}
+	if o.Subdomain != nil && len(*o.Subdomain) > 65535 {
+		errs = append(errs, fmt.Errorf("subdomain: length %d exceeds max 65535", len(*o.Subdomain)))
 	}
 	return errors.Join(errs...)
 }
@@ -2614,6 +4522,44 @@ func (o *User) Validate() error {
 	var errs []error
 	if o.Account == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [account, name, uid] must be set"))
+	}
+	if o.RiskLevelID != nil {
+		switch *o.RiskLevelID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
+		}
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.CredentialUID != nil && len(*o.CredentialUID) > 65535 {
+		errs = append(errs, fmt.Errorf("credential_uid: length %d exceeds max 65535", len(*o.CredentialUID)))
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
+		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
+	}
+	if o.FullName != nil && len(*o.FullName) > 65535 {
+		errs = append(errs, fmt.Errorf("full_name: length %d exceeds max 65535", len(*o.FullName)))
+	}
+	if o.RiskLevel != nil && len(*o.RiskLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(*o.RiskLevel)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.UIDAlt != nil && len(*o.UIDAlt) > 65535 {
+		errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(*o.UIDAlt)))
 	}
 	return errors.Join(errs...)
 }
@@ -2648,6 +4594,18 @@ func (o *Vulnerability) Validate() error {
 	if o.CVE == nil && o.Cwe == nil {
 		errs = append(errs, errors.New("at least one of [cve, cwe] must be set"))
 	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Title != nil && len(*o.Title) > 65535 {
+		errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(*o.Title)))
+	}
+	if o.VendorName != nil && len(*o.VendorName) > 65535 {
+		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2668,6 +4626,18 @@ func (o *WebResource) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2694,6 +4664,34 @@ type Whois struct {
 // Validate checks required fields, constraints, and enum values for Whois.
 func (o *Whois) Validate() error {
 	var errs []error
+	if o.DnssecStatusID != nil {
+		switch *o.DnssecStatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("dnssec_status_id: invalid value %d", *o.DnssecStatusID))
+		}
+	}
+	if o.DnssecStatus != nil && len(*o.DnssecStatus) > 65535 {
+		errs = append(errs, fmt.Errorf("dnssec_status: length %d exceeds max 65535", len(*o.DnssecStatus)))
+	}
+	if o.Domain != nil && len(*o.Domain) > 65535 {
+		errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(*o.Domain)))
+	}
+	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
+		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
+	}
+	if o.PhoneNumber != nil && len(*o.PhoneNumber) > 65535 {
+		errs = append(errs, fmt.Errorf("phone_number: length %d exceeds max 65535", len(*o.PhoneNumber)))
+	}
+	if o.Registrar != nil && len(*o.Registrar) > 65535 {
+		errs = append(errs, fmt.Errorf("registrar: length %d exceeds max 65535", len(*o.Registrar)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.Subnet != nil && len(*o.Subnet) > 42 {
+		errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(*o.Subnet)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2711,6 +4709,12 @@ func (o *WinRegKey) Validate() error {
 	var errs []error
 	if o.Path == nil {
 		errs = append(errs, errors.New("path is required"))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.SecurityDescriptor != nil && len(*o.SecurityDescriptor) > 65535 {
+		errs = append(errs, fmt.Errorf("security_descriptor: length %d exceeds max 65535", len(*o.SecurityDescriptor)))
 	}
 	return errors.Join(errs...)
 }
@@ -2737,6 +4741,22 @@ func (o *WinRegValue) Validate() error {
 	if o.Path == nil {
 		errs = append(errs, errors.New("path is required"))
 	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Path != nil && len(*o.Path) > 65535 {
+		errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(*o.Path)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
 	return errors.Join(errs...)
 }
 
@@ -2761,6 +4781,28 @@ func (o *WinWinResource) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Details != nil && len(*o.Details) > 65535 {
+		errs = append(errs, fmt.Errorf("details: length %d exceeds max 65535", len(*o.Details)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.SvcName != nil && len(*o.SvcName) > 65535 {
+		errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(*o.SvcName)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
 	return errors.Join(errs...)
 }
@@ -2794,6 +4836,64 @@ func (o *WinWinService) Validate() error {
 	}
 	if o.CmdLine == nil && o.ServiceCategoryID == nil && len(o.ServiceDependencies) == 0 && o.ServiceErrorControlID == nil && o.ServiceStartName == nil && o.ServiceStartTypeID == nil && o.ServiceTypeID == nil {
 		errs = append(errs, errors.New("at least one of [cmd_line, service_category_id, service_dependencies, service_error_control_id, service_start_name, service_start_type_id, service_type_id] must be set"))
+	}
+	if o.ServiceCategoryID != nil {
+		switch *o.ServiceCategoryID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("service_category_id: invalid value %d", *o.ServiceCategoryID))
+		}
+	}
+	if o.ServiceErrorControlID != nil {
+		switch *o.ServiceErrorControlID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("service_error_control_id: invalid value %d", *o.ServiceErrorControlID))
+		}
+	}
+	if o.ServiceStartTypeID != nil {
+		switch *o.ServiceStartTypeID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("service_start_type_id: invalid value %d", *o.ServiceStartTypeID))
+		}
+	}
+	if o.ServiceTypeID != nil {
+		switch *o.ServiceTypeID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("service_type_id: invalid value %d", *o.ServiceTypeID))
+		}
+	}
+	if o.CmdLine != nil && len(*o.CmdLine) > 65535 {
+		errs = append(errs, fmt.Errorf("cmd_line: length %d exceeds max 65535", len(*o.CmdLine)))
+	}
+	if o.LoadOrderGroup != nil && len(*o.LoadOrderGroup) > 65535 {
+		errs = append(errs, fmt.Errorf("load_order_group: length %d exceeds max 65535", len(*o.LoadOrderGroup)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.ServiceCategory != nil && len(*o.ServiceCategory) > 65535 {
+		errs = append(errs, fmt.Errorf("service_category: length %d exceeds max 65535", len(*o.ServiceCategory)))
+	}
+	if o.ServiceErrorControl != nil && len(*o.ServiceErrorControl) > 65535 {
+		errs = append(errs, fmt.Errorf("service_error_control: length %d exceeds max 65535", len(*o.ServiceErrorControl)))
+	}
+	if o.ServiceStartName != nil && len(*o.ServiceStartName) > 65535 {
+		errs = append(errs, fmt.Errorf("service_start_name: length %d exceeds max 65535", len(*o.ServiceStartName)))
+	}
+	if o.ServiceStartType != nil && len(*o.ServiceStartType) > 65535 {
+		errs = append(errs, fmt.Errorf("service_start_type: length %d exceeds max 65535", len(*o.ServiceStartType)))
+	}
+	if o.ServiceType != nil && len(*o.ServiceType) > 65535 {
+		errs = append(errs, fmt.Errorf("service_type: length %d exceeds max 65535", len(*o.ServiceType)))
+	}
+	if o.UID != nil && len(*o.UID) > 65535 {
+		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -2862,12 +4962,77 @@ func (o *AccountChange) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300100, 300101, 300102, 300103, 300104, 300105, 300106, 300107, 300108, 300109, 300110, 300111, 300199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -2938,12 +5103,87 @@ func (o *AdminGroupQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5009:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500900, 500901, 500999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3018,12 +5258,77 @@ func (o *APIActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600300, 600301, 600302, 600303, 600304, 600399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3087,12 +5392,77 @@ func (o *ApplicationLifecycle) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600200, 600201, 600202, 600203, 600204, 600205, 600206, 600207, 600208, 600299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3176,12 +5546,97 @@ func (o *Authentication) Validate() error {
 	if o.DstEndpoint == nil && o.Service == nil {
 		errs = append(errs, errors.New("at least one of [dst_endpoint, service] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.AuthProtocolID != nil {
+		switch *o.AuthProtocolID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("auth_protocol_id: invalid value %d", *o.AuthProtocolID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.LogonTypeID != nil {
+		switch *o.LogonTypeID {
+		case 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 99:
+		default:
+			errs = append(errs, fmt.Errorf("logon_type_id: invalid value %d", *o.LogonTypeID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300200, 300201, 300202, 300203, 300204, 300205, 300206, 300299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AuthProtocol != nil && len(*o.AuthProtocol) > 65535 {
+		errs = append(errs, fmt.Errorf("auth_protocol: length %d exceeds max 65535", len(*o.AuthProtocol)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.LogonType != nil && len(*o.LogonType) > 65535 {
+		errs = append(errs, fmt.Errorf("logon_type: length %d exceeds max 65535", len(*o.LogonType)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3263,12 +5718,77 @@ func (o *AuthorizeSession) Validate() error {
 			errs = append(errs, fmt.Errorf("exactly one of [group, privileges] must be set, got %d", count))
 		}
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300300, 300301, 300302, 300399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3328,12 +5848,77 @@ func (o *BaseEvent) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 0:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 0:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 0, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3408,12 +5993,90 @@ func (o *ComplianceFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200300, 200301, 200302, 200303, 200399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3479,12 +6142,77 @@ func (o *ConfigState) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500200, 500201, 500202, 500299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3566,12 +6294,110 @@ func (o *DataSecurityFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.ImpactID != nil {
+		switch *o.ImpactID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
+		}
+	}
+	if o.RiskLevelID != nil {
+		switch *o.RiskLevelID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200600, 200601, 200602, 200603, 200604, 200699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Impact != nil && len(*o.Impact) > 65535 {
+		errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(*o.Impact)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.RiskLevel != nil && len(*o.RiskLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(*o.RiskLevel)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3650,12 +6476,87 @@ func (o *DatastoreActivity) Validate() error {
 	if o.Database == nil && o.Databucket == nil && o.Table == nil {
 		errs = append(errs, errors.New("at least one of [database, databucket, table] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
+	if o.TypeID != nil {
+		switch *o.TypeID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600500, 600501, 600502, 600503, 600504, 600505, 600506, 600507, 600508, 600509, 600510, 600599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3734,12 +6635,113 @@ func (o *DetectionFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.ImpactID != nil {
+		switch *o.ImpactID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
+		}
+	}
+	if o.RiskLevelID != nil {
+		switch *o.RiskLevelID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200400, 200401, 200402, 200403, 200499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Impact != nil && len(*o.Impact) > 65535 {
+		errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(*o.Impact)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.RiskDetails != nil && len(*o.RiskDetails) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_details: length %d exceeds max 65535", len(*o.RiskDetails)))
+	}
+	if o.RiskLevel != nil && len(*o.RiskLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(*o.RiskLevel)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3812,12 +6814,107 @@ func (o *DeviceConfigStateChange) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5019:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.PrevSecurityLevelID != nil {
+		switch *o.PrevSecurityLevelID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("prev_security_level_id: invalid value %d", *o.PrevSecurityLevelID))
+		}
+	}
+	if o.SecurityLevelID != nil {
+		switch *o.SecurityLevelID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("security_level_id: invalid value %d", *o.SecurityLevelID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StateID != nil {
+		switch *o.StateID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501900, 501901, 501902, 501999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.PrevSecurityLevel != nil && len(*o.PrevSecurityLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("prev_security_level: length %d exceeds max 65535", len(*o.PrevSecurityLevel)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.SecurityLevel != nil && len(*o.SecurityLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("security_level: length %d exceeds max 65535", len(*o.SecurityLevel)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.State != nil && len(*o.State) > 65535 {
+		errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(*o.State)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3889,12 +6986,83 @@ func (o *DhcpActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400400, 400401, 400402, 400403, 400404, 400405, 400406, 400407, 400408, 400409, 400499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TransactionUID != nil && len(*o.TransactionUID) > 65535 {
+		errs = append(errs, fmt.Errorf("transaction_uid: length %d exceeds max 65535", len(*o.TransactionUID)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -3968,12 +7136,90 @@ func (o *DNSActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.RcodeID != nil {
+		switch *o.RcodeID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 99:
+		default:
+			errs = append(errs, fmt.Errorf("rcode_id: invalid value %d", *o.RcodeID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400300, 400301, 400302, 400306, 400399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Rcode != nil && len(*o.Rcode) > 65535 {
+		errs = append(errs, fmt.Errorf("rcode: length %d exceeds max 65535", len(*o.Rcode)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4045,12 +7291,93 @@ func (o *EmailActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4009:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.DirectionID != nil {
+		switch *o.DirectionID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("direction_id: invalid value %d", *o.DirectionID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400900, 400901, 400902, 400903, 400999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.Banner != nil && len(*o.Banner) > 65535 {
+		errs = append(errs, fmt.Errorf("banner: length %d exceeds max 65535", len(*o.Banner)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Direction != nil && len(*o.Direction) > 65535 {
+		errs = append(errs, fmt.Errorf("direction: length %d exceeds max 65535", len(*o.Direction)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.SmtpHello != nil && len(*o.SmtpHello) > 65535 {
+		errs = append(errs, fmt.Errorf("smtp_hello: length %d exceeds max 65535", len(*o.SmtpHello)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4115,12 +7442,80 @@ func (o *EmailFileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4011:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401100, 401101, 401102, 401103, 401199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.EmailUID != nil && len(*o.EmailUID) > 65535 {
+		errs = append(errs, fmt.Errorf("email_uid: length %d exceeds max 65535", len(*o.EmailUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4185,12 +7580,80 @@ func (o *EmailURLActivity) Validate() error {
 	if o.URL == nil {
 		errs = append(errs, errors.New("url is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4012:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401200, 401201, 401202, 401203, 401299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.EmailUID != nil && len(*o.EmailUID) > 65535 {
+		errs = append(errs, fmt.Errorf("email_uid: length %d exceeds max 65535", len(*o.EmailUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4260,12 +7723,80 @@ func (o *EntityManagement) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300400, 300401, 300402, 300403, 300404, 300405, 300406, 300407, 300408, 300409, 300410, 300411, 300412, 300413, 300499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4337,12 +7868,93 @@ func (o *EventLog) Validate() error {
 	if o.LogName == nil && o.LogProvider == nil && o.LogType == nil && o.LogTypeID == nil {
 		errs = append(errs, errors.New("at least one of [log_name, log_provider, log_type, log_type_id] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1008:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.LogTypeID != nil {
+		switch *o.LogTypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("log_type_id: invalid value %d", *o.LogTypeID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100800, 100801, 100802, 100803, 100804, 100805, 100806, 100807, 100808, 100809, 100810, 100899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.LogName != nil && len(*o.LogName) > 65535 {
+		errs = append(errs, fmt.Errorf("log_name: length %d exceeds max 65535", len(*o.LogName)))
+	}
+	if o.LogProvider != nil && len(*o.LogProvider) > 65535 {
+		errs = append(errs, fmt.Errorf("log_provider: length %d exceeds max 65535", len(*o.LogProvider)))
+	}
+	if o.LogType != nil && len(*o.LogType) > 65535 {
+		errs = append(errs, fmt.Errorf("log_type: length %d exceeds max 65535", len(*o.LogType)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4420,12 +8032,89 @@ func (o *FileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100100, 100101, 100102, 100103, 100104, 100105, 100106, 100107, 100108, 100109, 100110, 100111, 100112, 100113, 100114, 100199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Component != nil && len(*o.Component) > 65535 {
+		errs = append(errs, fmt.Errorf("component: length %d exceeds max 65535", len(*o.Component)))
+	}
+	if o.ConnectionUID != nil && len(*o.ConnectionUID) > 65535 {
+		errs = append(errs, fmt.Errorf("connection_uid: length %d exceeds max 65535", len(*o.ConnectionUID)))
+	}
+	if o.CreateMask != nil && len(*o.CreateMask) > 65535 {
+		errs = append(errs, fmt.Errorf("create_mask: length %d exceeds max 65535", len(*o.CreateMask)))
+	}
+	if o.FileDiff != nil && len(*o.FileDiff) > 65535 {
+		errs = append(errs, fmt.Errorf("file_diff: length %d exceeds max 65535", len(*o.FileDiff)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4501,12 +8190,77 @@ func (o *FileHosting) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600600, 600601, 600602, 600603, 600604, 600605, 600606, 600607, 600608, 600609, 600610, 600611, 600612, 600613, 600614, 600615, 600616, 600699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4576,12 +8330,87 @@ func (o *FileQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5007:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500700, 500701, 500799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4652,12 +8481,80 @@ func (o *FileRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 7:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 7002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700200, 700201, 700202, 700203, 700204, 700299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CommandUID != nil && len(*o.CommandUID) > 65535 {
+		errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(*o.CommandUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4727,12 +8624,87 @@ func (o *FolderQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5008:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500800, 500801, 500899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4810,12 +8782,92 @@ func (o *FtpActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4008:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400800, 400801, 400802, 400803, 400804, 400805, 400806, 400899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Command != nil && len(*o.Command) > 65535 {
+		errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(*o.Command)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
+		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.Type != nil && len(*o.Type) > 65535 {
+		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4887,12 +8939,77 @@ func (o *GroupManagement) Validate() error {
 	if len(o.Privileges) == 0 && o.User == nil {
 		errs = append(errs, errors.New("at least one of [privileges, user] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300600, 300601, 300602, 300603, 300604, 300605, 300606, 300699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -4974,12 +9091,80 @@ func (o *HTTPActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400200, 400201, 400202, 400203, 400204, 400205, 400206, 400207, 400208, 400299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5067,12 +9252,123 @@ func (o *IncidentFinding) Validate() error {
 	if o.Assignee == nil && o.AssigneeGroup == nil {
 		errs = append(errs, errors.New("at least one of [assignee, assignee_group] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.ImpactID != nil {
+		switch *o.ImpactID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
+		}
+	}
+	if o.PriorityID != nil {
+		switch *o.PriorityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("priority_id: invalid value %d", *o.PriorityID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200500, 200501, 200502, 200503, 200599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.VerdictID != nil {
+		switch *o.VerdictID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("verdict_id: invalid value %d", *o.VerdictID))
+		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Desc != nil && len(*o.Desc) > 65535 {
+		errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(*o.Desc)))
+	}
+	if o.Impact != nil && len(*o.Impact) > 65535 {
+		errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(*o.Impact)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.Priority != nil && len(*o.Priority) > 65535 {
+		errs = append(errs, fmt.Errorf("priority: length %d exceeds max 65535", len(*o.Priority)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Verdict != nil && len(*o.Verdict) > 65535 {
+		errs = append(errs, fmt.Errorf("verdict: length %d exceeds max 65535", len(*o.Verdict)))
 	}
 	return errors.Join(errs...)
 }
@@ -5137,12 +9433,77 @@ func (o *InventoryInfo) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500100, 500101, 500102, 500199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5212,12 +9573,87 @@ func (o *JobQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5010:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501000, 501001, 501099:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5289,12 +9725,77 @@ func (o *KernelActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100300, 100301, 100302, 100303, 100304, 100399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5366,12 +9867,77 @@ func (o *KernelExtension) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100200, 100201, 100202, 100299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5441,12 +10007,87 @@ func (o *KernelObjectQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500600, 500601, 500699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5522,12 +10163,80 @@ func (o *MemoryActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100400, 100401, 100402, 100403, 100404, 100405, 100406, 100407, 100408, 100409, 100499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.BaseAddress != nil && len(*o.BaseAddress) > 65535 {
+		errs = append(errs, fmt.Errorf("base_address: length %d exceeds max 65535", len(*o.BaseAddress)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5599,12 +10308,77 @@ func (o *ModuleActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100500, 100501, 100502, 100599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5678,12 +10452,87 @@ func (o *ModuleQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5011:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501100, 501101, 501199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5755,12 +10604,80 @@ func (o *NetworkActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400100, 400101, 400102, 400103, 400104, 400105, 400106, 400107, 400199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5839,12 +10756,97 @@ func (o *NetworkConnectionQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5012:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StateID != nil {
+		switch *o.StateID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+		default:
+			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501200, 501201, 501299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.State != nil && len(*o.State) > 65535 {
+		errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(*o.State)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5920,12 +10922,80 @@ func (o *NetworkFileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4010:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401000, 401001, 401002, 401003, 401004, 401005, 401006, 401007, 401008, 401009, 401010, 401011, 401012, 401013, 401014, 401015, 401016, 401099:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -5996,12 +11066,80 @@ func (o *NetworkRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 7:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 7004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700400, 700401, 700402, 700403, 700404, 700499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CommandUID != nil && len(*o.CommandUID) > 65535 {
+		errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(*o.CommandUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6071,12 +11209,87 @@ func (o *NetworksQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5013:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501300, 501301, 501399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6156,12 +11369,93 @@ func (o *NtpActivity) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4013:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
+	if o.StratumID != nil {
+		switch *o.StratumID {
+		case 0, 1, 2, 16, 17, 99:
+		default:
+			errs = append(errs, fmt.Errorf("stratum_id: invalid value %d", *o.StratumID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401300, 401301, 401302, 401303, 401304, 401305, 401306, 401307, 401399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.Stratum != nil && len(*o.Stratum) > 65535 {
+		errs = append(errs, fmt.Errorf("stratum: length %d exceeds max 65535", len(*o.Stratum)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Version != nil && len(*o.Version) > 65535 {
+		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
 	return errors.Join(errs...)
 }
@@ -6226,12 +11520,77 @@ func (o *PatchState) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500400, 500401, 500402, 500499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6301,12 +11660,87 @@ func (o *PeripheralDeviceQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5014:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501400, 501401, 501499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6384,12 +11818,87 @@ func (o *ProcessActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1007:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.InjectionTypeID != nil {
+		switch *o.InjectionTypeID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("injection_type_id: invalid value %d", *o.InjectionTypeID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100700, 100701, 100702, 100703, 100704, 100705, 100799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.InjectionType != nil && len(*o.InjectionType) > 65535 {
+		errs = append(errs, fmt.Errorf("injection_type: length %d exceeds max 65535", len(*o.InjectionType)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6459,12 +11968,87 @@ func (o *ProcessQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5015:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501500, 501501, 501599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6535,12 +12119,80 @@ func (o *ProcessRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 7:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 7003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700300, 700301, 700302, 700303, 700304, 700399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CommandUID != nil && len(*o.CommandUID) > 65535 {
+		errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(*o.CommandUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6619,12 +12271,86 @@ func (o *RDPActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400500, 400501, 400502, 400503, 400504, 400505, 400506, 400599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.IdentifierCookie != nil && len(*o.IdentifierCookie) > 65535 {
+		errs = append(errs, fmt.Errorf("identifier_cookie: length %d exceeds max 65535", len(*o.IdentifierCookie)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.ProtocolVer != nil && len(*o.ProtocolVer) > 65535 {
+		errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(*o.ProtocolVer)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6691,12 +12417,80 @@ func (o *RemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 7:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 7001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700100, 700101, 700102, 700103, 700104, 700199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CommandUID != nil && len(*o.CommandUID) > 65535 {
+		errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(*o.CommandUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6773,12 +12567,83 @@ func (o *ScanActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6007:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600700, 600701, 600702, 600703, 600704, 600705, 600706, 600707, 600708, 600709, 600710, 600799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CommandUID != nil && len(*o.CommandUID) > 65535 {
+		errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(*o.CommandUID)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.ScheduleUID != nil && len(*o.ScheduleUID) > 65535 {
+		errs = append(errs, fmt.Errorf("schedule_uid: length %d exceeds max 65535", len(*o.ScheduleUID)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6847,12 +12712,77 @@ func (o *ScheduledJobActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 1006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100600, 100601, 100602, 100603, 100604, 100605, 100606, 100699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -6942,12 +12872,117 @@ func (o *SecurityFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.ImpactID != nil {
+		switch *o.ImpactID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
+		}
+	}
+	if o.RiskLevelID != nil {
+		switch *o.RiskLevelID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StateID != nil {
+		switch *o.StateID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200100, 200101, 200102, 200103, 200199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Impact != nil && len(*o.Impact) > 65535 {
+		errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(*o.Impact)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.RiskLevel != nil && len(*o.RiskLevel) > 65535 {
+		errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(*o.RiskLevel)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.State != nil && len(*o.State) > 65535 {
+		errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(*o.State)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7017,12 +13052,87 @@ func (o *ServiceQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5016:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501600, 501601, 501699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7092,12 +13202,87 @@ func (o *SessionQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5017:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501700, 501701, 501799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7179,12 +13364,105 @@ func (o *SmbActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4006:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.ShareTypeID != nil {
+		switch *o.ShareTypeID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("share_type_id: invalid value %d", *o.ShareTypeID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400600, 400601, 400602, 400603, 400604, 400605, 400606, 400699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Command != nil && len(*o.Command) > 65535 {
+		errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(*o.Command)))
+	}
+	if o.Dialect != nil && len(*o.Dialect) > 65535 {
+		errs = append(errs, fmt.Errorf("dialect: length %d exceeds max 65535", len(*o.Dialect)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.OpenType != nil && len(*o.OpenType) > 65535 {
+		errs = append(errs, fmt.Errorf("open_type: length %d exceeds max 65535", len(*o.OpenType)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Share != nil && len(*o.Share) > 65535 {
+		errs = append(errs, fmt.Errorf("share: length %d exceeds max 65535", len(*o.Share)))
+	}
+	if o.ShareType != nil && len(*o.ShareType) > 65535 {
+		errs = append(errs, fmt.Errorf("share_type: length %d exceeds max 65535", len(*o.ShareType)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TreeUID != nil && len(*o.TreeUID) > 65535 {
+		errs = append(errs, fmt.Errorf("tree_uid: length %d exceeds max 65535", len(*o.TreeUID)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7254,12 +13532,77 @@ func (o *SoftwareInfo) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5020:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 502000, 502001, 502002, 502099:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7336,12 +13679,93 @@ func (o *SSHActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.AuthTypeID != nil {
+		switch *o.AuthTypeID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("auth_type_id: invalid value %d", *o.AuthTypeID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4007:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400700, 400701, 400702, 400703, 400704, 400705, 400706, 400707, 400799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.AuthType != nil && len(*o.AuthType) > 65535 {
+		errs = append(errs, fmt.Errorf("auth_type: length %d exceeds max 65535", len(*o.AuthType)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.ProtocolVer != nil && len(*o.ProtocolVer) > 65535 {
+		errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(*o.ProtocolVer)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7419,12 +13843,93 @@ func (o *TunnelActivity) Validate() error {
 	if o.ConnectionInfo == nil && o.Session == nil && o.SrcEndpoint == nil && o.Traffic == nil && o.TunnelInterface == nil && o.TunnelTypeID == nil {
 		errs = append(errs, errors.New("at least one of [connection_info, session, src_endpoint, traffic, tunnel_interface, tunnel_type_id] must be set"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 4:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 4014:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
+	if o.TunnelTypeID != nil {
+		switch *o.TunnelTypeID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("tunnel_type_id: invalid value %d", *o.TunnelTypeID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401400, 401401, 401402, 401403, 401499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.AppName != nil && len(*o.AppName) > 65535 {
+		errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(*o.AppName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.ProtocolName != nil && len(*o.ProtocolName) > 65535 {
+		errs = append(errs, fmt.Errorf("protocol_name: length %d exceeds max 65535", len(*o.ProtocolName)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TunnelType != nil && len(*o.TunnelType) > 65535 {
+		errs = append(errs, fmt.Errorf("tunnel_type: length %d exceeds max 65535", len(*o.TunnelType)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7495,12 +14000,77 @@ func (o *UserAccess) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 3:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 3005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300500, 300501, 300502, 300599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7565,12 +14135,77 @@ func (o *UserInventory) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500300, 500301, 500302, 500399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7640,12 +14275,87 @@ func (o *UserQuery) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 5018:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501800, 501801, 501899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7719,12 +14429,90 @@ func (o *VulnerabilityFinding) Validate() error {
 	if len(o.Vulnerabilities) == 0 {
 		errs = append(errs, errors.New("vulnerabilities is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 2:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 2002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.ConfidenceID != nil {
+		switch *o.ConfidenceID {
+		case 0, 1, 2, 3, 99:
+		default:
+			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200200, 200201, 200202, 200203, 200299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Comment != nil && len(*o.Comment) > 65535 {
+		errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(*o.Comment)))
+	}
+	if o.Confidence != nil && len(*o.Confidence) > 65535 {
+		errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(*o.Confidence)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7796,12 +14584,77 @@ func (o *WebResourceAccessActivity) Validate() error {
 	if len(o.WebResources) == 0 {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600400, 600401, 600402, 600403, 600404, 600499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7871,12 +14724,77 @@ func (o *WebResourcesActivity) Validate() error {
 	if len(o.WebResources) == 0 {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 6:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 6001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600100, 600101, 600102, 600103, 600104, 600105, 600106, 600107, 600108, 600199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -7948,12 +14866,90 @@ func (o *WinPrefetchQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 205019:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20501900, 20501901, 20501999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.Name != nil && len(*o.Name) > 65535 {
+		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8029,12 +15025,80 @@ func (o *WinRegistryKeyActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 201001:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100100, 20100101, 20100102, 20100103, 20100104, 20100105, 20100106, 20100107, 20100108, 20100109, 20100199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.CreateMask != nil && len(*o.CreateMask) > 65535 {
+		errs = append(errs, fmt.Errorf("create_mask: length %d exceeds max 65535", len(*o.CreateMask)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8104,12 +15168,87 @@ func (o *WinRegistryKeyQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 205004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20500400, 20500401, 20500499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8182,12 +15321,77 @@ func (o *WinRegistryValueActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 201002:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100200, 20100201, 20100202, 20100203, 20100204, 20100299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8257,12 +15461,87 @@ func (o *WinRegistryValueQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 5:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 205005:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.QueryResultID != nil {
+		switch *o.QueryResultID {
+		case 0, 1, 2, 3, 4, 5, 99:
+		default:
+			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20500500, 20500501, 20500599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.QueryResult != nil && len(*o.QueryResult) > 65535 {
+		errs = append(errs, fmt.Errorf("query_result: length %d exceeds max 65535", len(*o.QueryResult)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8334,12 +15613,77 @@ func (o *WinResourceActivity) Validate() error {
 	if o.WinResource == nil {
 		errs = append(errs, errors.New("win_resource is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 201003:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100300, 20100301, 20100399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
@@ -8411,12 +15755,77 @@ func (o *WinWinServiceActivity) Validate() error {
 	if o.WinService == nil {
 		errs = append(errs, errors.New("win_service is required"))
 	}
+	if o.ActivityID != nil {
+		switch *o.ActivityID {
+		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+		default:
+			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
+		}
+	}
+	if o.CategoryUID != nil {
+		switch *o.CategoryUID {
+		case 1:
+		default:
+			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
+		}
+	}
+	if o.ClassUID != nil {
+		switch *o.ClassUID {
+		case 201004:
+		default:
+			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
+		}
+	}
+	if o.SeverityID != nil {
+		switch *o.SeverityID {
+		case 0, 1, 2, 3, 4, 5, 6, 99:
+		default:
+			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	if o.StatusID != nil {
+		switch *o.StatusID {
+		case 0, 1, 2, 99:
+		default:
+			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100400, 20100401, 20100402, 20100403, 20100404, 20100405, 20100406, 20100407, 20100499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
+	}
+	if o.ActivityName != nil && len(*o.ActivityName) > 65535 {
+		errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(*o.ActivityName)))
+	}
+	if o.CategoryName != nil && len(*o.CategoryName) > 65535 {
+		errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(*o.CategoryName)))
+	}
+	if o.ClassName != nil && len(*o.ClassName) > 65535 {
+		errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(*o.ClassName)))
+	}
+	if o.Message != nil && len(*o.Message) > 65535 {
+		errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(*o.Message)))
+	}
+	if o.RawData != nil && len(*o.RawData) > 65535 {
+		errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(*o.RawData)))
+	}
+	if o.Severity != nil && len(*o.Severity) > 65535 {
+		errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(*o.Severity)))
+	}
+	if o.Status != nil && len(*o.Status) > 65535 {
+		errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(*o.Status)))
+	}
+	if o.StatusCode != nil && len(*o.StatusCode) > 65535 {
+		errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(*o.StatusCode)))
+	}
+	if o.StatusDetail != nil && len(*o.StatusDetail) > 65535 {
+		errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(*o.StatusDetail)))
+	}
+	if o.TypeName != nil && len(*o.TypeName) > 65535 {
+		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
 	return errors.Join(errs...)
 }
