@@ -56,7 +56,9 @@ func BenchmarkProcessLogs(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			b.StopTimer()
 			logs := makeBenchmarkLogs(100)
+			b.StartTimer()
 			_, _ = processor.processLogs(context.Background(), logs)
 		}
 	})
@@ -70,7 +72,9 @@ func BenchmarkProcessLogs(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for b.Loop() {
+			b.StopTimer()
 			logs := makeBenchmarkLogs(100)
+			b.StartTimer()
 			_, _ = processor.processLogs(context.Background(), logs)
 		}
 	})
