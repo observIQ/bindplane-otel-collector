@@ -55,3 +55,9 @@ perf-test/
 
 # JetBrains IDE files
 .idea/
+
+# OMC Agents
+.omc/
+
+# OCSF Schema files
+ocsf_schema.json
