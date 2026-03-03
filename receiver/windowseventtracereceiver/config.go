@@ -17,6 +17,8 @@ package windowseventtracereceiver
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 )
@@ -38,6 +40,9 @@ const (
 	// LevelNone is the none trace level.
 	LevelNone TraceLevelString = "none"
 )
+
+// guidPattern matches the standard braced GUID format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+var guidPattern = regexp.MustCompile(`^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$`)
 
 // Config is the configuration for the windows event trace receiver.
 type Config struct {
@@ -91,6 +96,9 @@ func (cfg *Config) Validate() error {
 	for _, provider := range cfg.Providers {
 		if provider.Name == "" {
 			return fmt.Errorf("provider name cannot be empty; it must be a valid ETW provider name or GUID")
+		}
+		if strings.HasPrefix(provider.Name, "{") && !guidPattern.MatchString(provider.Name) {
+			return fmt.Errorf("provider %q looks like a GUID but is not valid; expected format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}", provider.Name)
 		}
 	}
 
