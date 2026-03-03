@@ -6,19 +6,38 @@ on:
         description: "Collector Version"
         required: true
         default: "v0.0.1"
+      build_amd64:
+        description: "Build amd64 MSI"
+        type: boolean
+        default: true
+      build_arm64:
+        description: "Build arm64 MSI"
+        type: boolean
+        default: true
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        shell: bash
+        run: |
+          matrix='{"include":[]}'
+          if [ "${{ inputs.build_amd64 }}" = "true" ]; then
+            matrix=$(echo $matrix | jq '.include += [{"arch":"amd64","msi_name":"observiq-otel-collector.msi","msi_arch":"x64"}]')
+          fi
+          if [ "${{ inputs.build_arm64 }}" = "true" ]; then
+            matrix=$(echo $matrix | jq '.include += [{"arch":"arm64","msi_name":"observiq-otel-collector-arm64.msi","msi_arch":"arm64"}]')
+          fi
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   build-msi:
+    needs: setup
     runs-on: windows-2022
     strategy:
-      matrix:
-        include:
-          - arch: amd64
-            msi_name: observiq-otel-collector.msi
-            msi_arch: x64
-          - arch: arm64
-            msi_name: observiq-otel-collector-arm64.msi
-            msi_arch: arm64
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
