@@ -28,17 +28,17 @@ import (
 // and string-typed IP fields for validation.
 func authenticationInputBody() map[string]any {
 	return map[string]any{
-		"event_type":  "authentication",
-		"activity":    "1",             // string that needs integer coercion
-		"category":    3,               // already int
-		"severity":    "2",             // string that needs integer coercion
-		"time":        "2025-06-15T14:30:00Z", // RFC3339 string that needs timestamp coercion
-		"start_time":  "2025-06-15T14:29:58Z", // RFC3339 string that needs timestamp coercion
-		"end_time":    int64(1750000200000),    // epoch millis, already correct type
-		"type":        300201,
-		"is_mfa":      "true",  // string that needs boolean coercion
-		"is_remote":   1,       // int that needs boolean coercion
-		"is_cleartext": false,
+		"event_type":    "authentication",
+		"activity":      "1",                    // string that needs integer coercion
+		"category":      3,                      // already int
+		"severity":      "2",                    // string that needs integer coercion
+		"time":          "2025-06-15T14:30:00Z", // RFC3339 string that needs timestamp coercion
+		"start_time":    "2025-06-15T14:29:58Z", // RFC3339 string that needs timestamp coercion
+		"end_time":      int64(1750000200000),   // epoch millis, already correct type
+		"type":          300201,
+		"is_mfa":        "true", // string that needs boolean coercion
+		"is_remote":     1,      // int that needs boolean coercion
+		"is_cleartext":  false,
 		"auth_protocol": "SAML",
 		"logon_type":    "Network",
 		"status":        "Success",
