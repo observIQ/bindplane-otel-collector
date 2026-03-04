@@ -49,6 +49,7 @@ type Schema struct {
 
 // Type represents a primitive OCSF type.
 type Type struct {
+	BaseType    string `json:"type"`
 	Description string `json:"description"`
 	Caption     string `json:"caption"`
 	Regex       string `json:"regex"`
@@ -115,6 +116,8 @@ var regexOverrides = map[string]map[string]string{
 	"v1_0_0": {
 		// v1.0.0 ip_t uses PCRE atomic groups; use the v1.1.0 RE2-compatible pattern instead.
 		"ip_t": `((^\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]).){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\s*$)|(^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$))`,
+		// v1.0.0 datetime_t regex has URL-encoded %3A instead of ':'; use the v1.1.0 pattern.
+		"datetime_t": `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[\+-]\d{2}:\d{2})?$`,
 	},
 }
 
@@ -624,7 +627,7 @@ func writeFieldCoverageValidation(buf *bytes.Buffer, schema Schema, classNames [
 		}
 		cls := schema.Classes[name]
 		attrs := filterOutProfileAttrs(cls.Attributes)
-		writeFieldReqsMapEntry(buf, fmt.Sprintf("ClassUID%s", toGoName(name)), attrs, cls.Constraints)
+		writeFieldReqsMapEntry(buf, fmt.Sprintf("ClassUID%s", toGoName(name)), attrs, cls.Constraints, schema.Types)
 	}
 	buf.WriteString("}\n\n")
 
@@ -636,7 +639,7 @@ func writeFieldCoverageValidation(buf *bytes.Buffer, schema Schema, classNames [
 	for _, name := range objectNames {
 		obj := schema.Objects[name]
 		attrs := filterOutProfileAttrs(obj.Attributes)
-		writeFieldReqsMapEntry(buf, fmt.Sprintf("%q", name), attrs, obj.Constraints)
+		writeFieldReqsMapEntry(buf, fmt.Sprintf("%q", name), attrs, obj.Constraints, schema.Types)
 	}
 	buf.WriteString("}\n\n")
 
@@ -644,8 +647,34 @@ func writeFieldCoverageValidation(buf *bytes.Buffer, schema Schema, classNames [
 	writeFieldCoverageFuncs(buf)
 }
 
+// resolveCoercionType resolves an OCSF type name to a coercion type by
+// following the type hierarchy. For example, port_t -> integer_t -> "integer".
+func resolveCoercionType(typeName string, schemaTypes map[string]Type) string {
+	switch typeName {
+	case "integer_t":
+		return "integer"
+	case "long_t":
+		return "long"
+	case "float_t":
+		return "float"
+	case "boolean_t":
+		return "boolean"
+	case "timestamp_t":
+		return "timestamp"
+	case "datetime_t":
+		return "datetime"
+	case "object_t", "json_t":
+		return ""
+	default:
+		if t, ok := schemaTypes[typeName]; ok && t.BaseType != "" {
+			return resolveCoercionType(t.BaseType, schemaTypes)
+		}
+		return "string"
+	}
+}
+
 // writeFieldReqsMapEntry writes a single entry in a fieldReqs map.
-func writeFieldReqsMapEntry(buf *bytes.Buffer, key string, attrs map[string]Attribute, constraints Constraints) {
+func writeFieldReqsMapEntry(buf *bytes.Buffer, key string, attrs map[string]Attribute, constraints Constraints, schemaTypes map[string]Type) {
 	var required []string
 	objectFields := map[string]string{}
 	fieldTypes := map[string]string{}
@@ -659,19 +688,9 @@ func writeFieldReqsMapEntry(buf *bytes.Buffer, key string, attrs map[string]Attr
 			objectFields[name] = attr.ObjectType
 		}
 		// Map OCSF types to coercion type names for scalar fields.
-		switch attr.Type {
-		case "integer_t":
-			fieldTypes[name] = "integer"
-		case "long_t":
-			fieldTypes[name] = "long"
-		case "float_t":
-			fieldTypes[name] = "float"
-		case "boolean_t":
-			fieldTypes[name] = "boolean"
-		case "object_t", "json_t":
-			// Non-scalar — skip
-		default:
-			fieldTypes[name] = "string"
+		coercion := resolveCoercionType(attr.Type, schemaTypes)
+		if coercion != "" {
+			fieldTypes[name] = coercion
 		}
 	}
 

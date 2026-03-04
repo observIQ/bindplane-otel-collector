@@ -28,7 +28,7 @@ processors:
           - default: "Bindplane Agent"
             to: "source.name"
           - to: "activity_id"
-            default: 901290
+            default: 2
           - to: "category_uid"
             default: 2
           - to: "severity_id"
