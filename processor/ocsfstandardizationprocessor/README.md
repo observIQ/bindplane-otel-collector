@@ -1,5 +1,7 @@
 # OCSF Standardization Processor
 
+**Status: Alpha**
+
 This processor is used to create JSON OCSF compliant log bodies from OTEL logs.
 
 ## Supported pipelines
@@ -72,3 +74,23 @@ processors:
           - from: 'body["action"]'
             to: "action"
 ```
+
+## Benchmarks
+
+Processing 100 Authentication (class 3002) log records per iteration with 22 field mappings, filter expressions, type coercion (timestamps, integers, booleans), and regex validation (IP addresses).
+
+**100 logs per batch:**
+
+| Benchmark | ns/op | B/op | allocs/op |
+| -- | -- | -- | -- |
+| ValidationEnabled | 1,113,682 | 1,042,327 | 19,733 |
+| ValidationDisabled | 767,687 | 980,329 | 19,701 |
+
+**Per log:**
+
+| Benchmark | μs/log | B/log | allocs/log |
+| -- | -- | -- | -- |
+| ValidationEnabled | ~11.1 | ~10,423 | ~197 |
+| ValidationDisabled | ~7.7 | ~9,803 | ~197 |
+
+*Measured on Apple M4 Pro, Go 1.25, 5 iterations averaged.*
