@@ -28,16 +28,16 @@ processors:
           - default: "Bindplane Agent"
             to: "source.name"
           - to: "activity_id"
-            default: 5
+            default: 2
           - to: "category_uid"
             default: 2
           - to: "severity_id"
             default: 3
           - to: "time"
-            default: "123"
+            default: 4587928389
           - to: "type_uid"
             default: 1
-          - to: "user"
+          - to: "user.name"
             default: "test"
           - to: "metadata.product.name"
             default: "bindplane"

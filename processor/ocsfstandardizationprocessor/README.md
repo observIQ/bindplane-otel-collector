@@ -18,6 +18,7 @@ The following options may be configured:
 | -- | -- | -- | -- | -- |
 | `ocsf_version` | string | | Yes | The OCSF schema version. Supported: `1.0.0` through `1.7.0`. |
 | `event_mappings` | []EventMapping | `[]` | No | List of event mappings that define how logs are transformed. |
+| `runtime_validation` | bool | `true` | No | Enables runtime OCSF validation of mapped log bodies. When enabled, logs that do not conform to the OCSF schema (missing required fields, invalid enum values, regex/range constraint violations) are dropped. |
 
 ### EventMapping
 

@@ -5,6270 +5,17908 @@ package v110
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
-
-	"github.com/go-viper/mapstructure/v2"
 )
 
-// Account represents the OCSF Account object.
-// The Account object contains details about the account that initiated or performed a specific activity within a system or application.
-type Account struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	Type   *string `mapstructure:"type,omitempty"`
-	TypeID *int    `mapstructure:"type_id,omitempty"`
-	UID    *string `mapstructure:"uid,omitempty"`
+// Precompiled regex patterns for OCSF types.
+var (
+	regexDatetimeT = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(Z|[\\+-]\\d{2}:\\d{2})?$")
+	regexEmailT    = regexp.MustCompile("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
+	regexHostnameT = regexp.MustCompile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
+	regexIPT       = regexp.MustCompile("((^\\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]).){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\\s*$)|(^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$))")
+	regexMACT      = regexp.MustCompile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
+	regexUuidT     = regexp.MustCompile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+)
+
+// toInt64 converts a numeric value to int64 for validation.
+func toInt64(v any) (int64, bool) {
+	switch n := v.(type) {
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	case float64:
+		return int64(n), true
+	default:
+		return 0, false
+	}
 }
 
-// Validate checks required fields, constraints, and enum values for Account.
-func (o *Account) Validate() error {
+// validateAccount checks required fields, constraints, and enum values.
+func validateAccount(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Actor represents the OCSF Actor object.
-// The Actor object contains details about the user, role, or process that initiated or performed a specific activity.
-type Actor struct {
-	Authorizations []Authorization `mapstructure:"authorizations,omitempty"`
-	Idp            *Idp            `mapstructure:"idp,omitempty"`
-	InvokedBy      *string         `mapstructure:"invoked_by,omitempty"`
-	Process        *Process        `mapstructure:"process,omitempty"`
-	Session        *Session        `mapstructure:"session,omitempty"`
-	User           *User           `mapstructure:"user,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Actor.
-func (o *Actor) Validate() error {
+// validateActor checks required fields, constraints, and enum values.
+func validateActor(data map[string]any) error {
 	var errs []error
-	if o.InvokedBy == nil && o.Process == nil && o.Session == nil && o.User == nil {
-		errs = append(errs, errors.New("at least one of [invoked_by, process, session, user] must be set"))
+	{
+		_, ok0 := data["invoked_by"]
+		_, ok1 := data["process"]
+		_, ok2 := data["session"]
+		_, ok3 := data["user"]
+		if !ok0 && !ok1 && !ok2 && !ok3 {
+			errs = append(errs, errors.New("at least one of [invoked_by, process, session, user] must be set"))
+		}
+	}
+	if v, ok := data["invoked_by"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("invoked_by: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["authorizations"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAuthorization(m); err != nil {
+						errs = append(errs, fmt.Errorf("authorizations[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["idp"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateIdp(m); err != nil {
+				errs = append(errs, fmt.Errorf("idp: %w", err))
+			}
+		}
+	}
+	if v, ok := data["process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["session"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSession(m); err != nil {
+				errs = append(errs, fmt.Errorf("session: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// AffectedCode represents the OCSF Affected Code object.
-// The Affected Code object describes details about a code block identified as vulnerable.
-type AffectedCode struct {
-	EndLine     *int         `mapstructure:"end_line,omitempty"`
-	File        *File        `mapstructure:"file"`
-	Owner       *User        `mapstructure:"owner,omitempty"`
-	Remediation *Remediation `mapstructure:"remediation,omitempty"`
-	StartLine   *int         `mapstructure:"start_line,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for AffectedCode.
-func (o *AffectedCode) Validate() error {
+// validateAffectedCode checks required fields, constraints, and enum values.
+func validateAffectedCode(data map[string]any) error {
 	var errs []error
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["owner"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("owner: %w", err))
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// AffectedPackage represents the OCSF Affected Software Package object.
-// The Affected Package object describes details about a software package identified as affected by a vulnerability/vulnerabilities.
-type AffectedPackage struct {
-	Architecture   *string      `mapstructure:"architecture,omitempty"`
-	Epoch          *int         `mapstructure:"epoch,omitempty"`
-	FixedInVersion *string      `mapstructure:"fixed_in_version,omitempty"`
-	License        *string      `mapstructure:"license,omitempty"`
-	Name           *string      `mapstructure:"name"`
-	PackageManager *string      `mapstructure:"package_manager,omitempty"`
-	Path           *string      `mapstructure:"path,omitempty"`
-	Purl           *string      `mapstructure:"purl,omitempty"`
-	Release        *string      `mapstructure:"release,omitempty"`
-	Remediation    *Remediation `mapstructure:"remediation,omitempty"`
-	Version        *string      `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for AffectedPackage.
-func (o *AffectedPackage) Validate() error {
+// validateAffectedPackage checks required fields, constraints, and enum values.
+func validateAffectedPackage(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if v, ok := data["architecture"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("architecture: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["fixed_in_version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("fixed_in_version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["license"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("license: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["package_manager"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("package_manager: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["purl"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("purl: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["release"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("release: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Analytic represents the OCSF Analytic object.
-// The Analytic object contains details about the analytic technique used to analyze and derive insights from the data or information that led to the creation of a finding or conclusion.
-type Analytic struct {
-	Category         *string    `mapstructure:"category,omitempty"`
-	Desc             *string    `mapstructure:"desc,omitempty"`
-	Name             *string    `mapstructure:"name,omitempty"`
-	RelatedAnalytics []Analytic `mapstructure:"related_analytics,omitempty"`
-	Type             *string    `mapstructure:"type,omitempty"`
-	TypeID           *int       `mapstructure:"type_id"`
-	UID              *string    `mapstructure:"uid,omitempty"`
-	Version          *string    `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Analytic.
-func (o *Analytic) Validate() error {
+// validateAnalytic checks required fields, constraints, and enum values.
+func validateAnalytic(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["related_analytics"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAnalytic(m); err != nil {
+						errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// API represents the OCSF API object.
-// The API, or Application Programming Interface, object represents information pertaining to an API request and response.
-type API struct {
-	Group     *Group    `mapstructure:"group,omitempty"`
-	Operation *string   `mapstructure:"operation"`
-	Request   *Request  `mapstructure:"request,omitempty"`
-	Response  *Response `mapstructure:"response,omitempty"`
-	Service   *Service  `mapstructure:"service,omitempty"`
-	Version   *string   `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for API.
-func (o *API) Validate() error {
+// validateAPI checks required fields, constraints, and enum values.
+func validateAPI(data map[string]any) error {
 	var errs []error
-	if o.Operation == nil {
+	if _, ok := data["operation"]; !ok {
 		errs = append(errs, errors.New("operation is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Attack represents the OCSF MITRE ATT&CK® object.
-// The MITRE ATT&CK® object describes the tactic, technique & sub-technique associated to an attack as defined in ATT&CK MatrixTM.
-type Attack struct {
-	SubTechnique *SubTechnique `mapstructure:"sub_technique,omitempty"`
-	Tactic       *Tactic       `mapstructure:"tactic,omitempty"`
-	Tactics      []Tactic      `mapstructure:"tactics,omitempty"`
-	Technique    *Technique    `mapstructure:"technique,omitempty"`
-	Version      *string       `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Attack.
-func (o *Attack) Validate() error {
-	var errs []error
-	if o.SubTechnique == nil && o.Tactic == nil && o.Technique == nil {
-		errs = append(errs, errors.New("at least one of [sub_technique, tactic, technique] must be set"))
+	if v, ok := data["operation"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("operation: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
+			}
+		}
+	}
+	if v, ok := data["request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["service"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateService(m); err != nil {
+				errs = append(errs, fmt.Errorf("service: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Authorization represents the OCSF Authorization Result object.
-// The Authorization Result object provides details about the authorization outcome and associated policies related to activity.
-type Authorization struct {
-	Decision *string `mapstructure:"decision,omitempty"`
-	Policy   *Policy `mapstructure:"policy,omitempty"`
-}
-
-// Certificate represents the OCSF Digital Certificate object.
-// The Digital Certificate, also known as a Public Key Certificate, object contains information about the ownership and usage of a public key. It serves as a means to establish trust in the authenticity and integrity of the public key and the associated entity. Defined by D3FEND d3f:Certificate.
-type Certificate struct {
-	CreatedTime    *int64        `mapstructure:"created_time,omitempty"`
-	ExpirationTime *int64        `mapstructure:"expiration_time,omitempty"`
-	Fingerprints   []Fingerprint `mapstructure:"fingerprints"`
-	Issuer         *string       `mapstructure:"issuer"`
-	SerialNumber   *string       `mapstructure:"serial_number"`
-	Subject        *string       `mapstructure:"subject,omitempty"`
-	UID            *string       `mapstructure:"uid,omitempty"`
-	Version        *string       `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Certificate.
-func (o *Certificate) Validate() error {
+// validateAttack checks required fields, constraints, and enum values.
+func validateAttack(data map[string]any) error {
 	var errs []error
-	if len(o.Fingerprints) == 0 {
+	{
+		_, ok0 := data["sub_technique"]
+		_, ok1 := data["tactic"]
+		_, ok2 := data["technique"]
+		if !ok0 && !ok1 && !ok2 {
+			errs = append(errs, errors.New("at least one of [sub_technique, tactic, technique] must be set"))
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["sub_technique"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSubTechnique(m); err != nil {
+				errs = append(errs, fmt.Errorf("sub_technique: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tactic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTactic(m); err != nil {
+				errs = append(errs, fmt.Errorf("tactic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tactics"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateTactic(m); err != nil {
+						errs = append(errs, fmt.Errorf("tactics[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["technique"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTechnique(m); err != nil {
+				errs = append(errs, fmt.Errorf("technique: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateAuthorization checks required fields, constraints, and enum values.
+func validateAuthorization(data map[string]any) error {
+	var errs []error
+	if v, ok := data["decision"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("decision: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["policy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validatePolicy(m); err != nil {
+				errs = append(errs, fmt.Errorf("policy: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateCertificate checks required fields, constraints, and enum values.
+func validateCertificate(data map[string]any) error {
+	var errs []error
+	if _, ok := data["fingerprints"]; !ok {
 		errs = append(errs, errors.New("fingerprints is required"))
 	}
-	if o.Issuer == nil {
+	if _, ok := data["issuer"]; !ok {
 		errs = append(errs, errors.New("issuer is required"))
 	}
-	if o.SerialNumber == nil {
+	if _, ok := data["serial_number"]; !ok {
 		errs = append(errs, errors.New("serial_number is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// CisBenchmark represents the OCSF CIS Benchmark object.
-// The CIS Benchmark object describes best practices for securely configuring IT systems, software, networks, and cloud infrastructure as defined by the Center for Internet Security. See also Getting to Know the CIS Benchmarks.
-type CisBenchmark struct {
-	CisControls []CisControl `mapstructure:"cis_controls,omitempty"`
-	Desc        *string      `mapstructure:"desc,omitempty"`
-	Name        *string      `mapstructure:"name"`
-}
-
-// Validate checks required fields, constraints, and enum values for CisBenchmark.
-func (o *CisBenchmark) Validate() error {
-	var errs []error
-	if o.Name == nil {
-		errs = append(errs, errors.New("name is required"))
+	if v, ok := data["issuer"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("issuer: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["serial_number"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["subject"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subject: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["fingerprints"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateFingerprint(m); err != nil {
+						errs = append(errs, fmt.Errorf("fingerprints[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// CisBenchmarkResult represents the OCSF CIS Benchmark Result object.
-// The CIS Benchmark Result object contains information as defined by the Center for Internet Security (CIS) benchmark result. CIS Benchmarks are a collection of best practices for securely configuring IT systems, software, networks, and cloud infrastructure.
-type CisBenchmarkResult struct {
-	Desc        *string      `mapstructure:"desc,omitempty"`
-	Name        *string      `mapstructure:"name"`
-	Remediation *Remediation `mapstructure:"remediation,omitempty"`
-	Rule        *Rule        `mapstructure:"rule,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for CisBenchmarkResult.
-func (o *CisBenchmarkResult) Validate() error {
+// validateCisBenchmark checks required fields, constraints, and enum values.
+func validateCisBenchmark(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["cis_controls"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateCisControl(m); err != nil {
+						errs = append(errs, fmt.Errorf("cis_controls[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// CisControl represents the OCSF CIS Control object.
-// The CIS Control (aka Critical Security Control) object describes a prioritized set of actions to protect your organization and data from cyber-attack vectors. The CIS Controls are defined by the Center for Internet Security.
-type CisControl struct {
-	Desc    *string `mapstructure:"desc,omitempty"`
-	Name    *string `mapstructure:"name"`
-	Version *string `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for CisControl.
-func (o *CisControl) Validate() error {
+// validateCisBenchmarkResult checks required fields, constraints, and enum values.
+func validateCisBenchmarkResult(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
+	}
+	if v, ok := data["rule"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRule(m); err != nil {
+				errs = append(errs, fmt.Errorf("rule: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// CisCsc represents the OCSF CIS CSC object.
-// The CIS Critical Security Control (CSC) contains information as defined by the Center for Internet Security Critical Security Control (CIS CSC). Prioritized set of actions to protect your organization and data from cyber-attack vectors.
-type CisCsc struct {
-	Control *string `mapstructure:"control"`
-	Version *string `mapstructure:"version,omitempty"`
+// validateCisControl checks required fields, constraints, and enum values.
+func validateCisControl(data map[string]any) error {
+	var errs []error
+	if _, ok := data["name"]; !ok {
+		errs = append(errs, errors.New("name is required"))
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for CisCsc.
-func (o *CisCsc) Validate() error {
+// validateCisCsc checks required fields, constraints, and enum values.
+func validateCisCsc(data map[string]any) error {
 	var errs []error
-	if o.Control == nil {
+	if _, ok := data["control"]; !ok {
 		errs = append(errs, errors.New("control is required"))
 	}
+	if v, ok := data["control"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("control: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Cloud represents the OCSF Cloud object.
-// The Cloud object contains information about a cloud account such as AWS Account ID, regions, etc.
-type Cloud struct {
-	Account    *Account      `mapstructure:"account,omitempty"`
-	Org        *Organization `mapstructure:"org,omitempty"`
-	ProjectUID *string       `mapstructure:"project_uid,omitempty"`
-	Provider   *string       `mapstructure:"provider"`
-	Region     *string       `mapstructure:"region,omitempty"`
-	Zone       *string       `mapstructure:"zone,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Cloud.
-func (o *Cloud) Validate() error {
+// validateCloud checks required fields, constraints, and enum values.
+func validateCloud(data map[string]any) error {
 	var errs []error
-	if o.Provider == nil {
+	if _, ok := data["provider"]; !ok {
 		errs = append(errs, errors.New("provider is required"))
 	}
+	if v, ok := data["project_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("project_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["region"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["zone"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["account"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAccount(m); err != nil {
+				errs = append(errs, fmt.Errorf("account: %w", err))
+			}
+		}
+	}
+	if v, ok := data["org"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOrganization(m); err != nil {
+				errs = append(errs, fmt.Errorf("org: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Compliance represents the OCSF Compliance object.
-// The Compliance object contains information about Industry and Regulatory Framework standards, controls and requirements.
-type Compliance struct {
-	Control      *string  `mapstructure:"control,omitempty"`
-	Requirements []string `mapstructure:"requirements,omitempty"`
-	Standards    []string `mapstructure:"standards"`
-	Status       *string  `mapstructure:"status,omitempty"`
-	StatusCode   *string  `mapstructure:"status_code,omitempty"`
-	StatusDetail *string  `mapstructure:"status_detail,omitempty"`
-	StatusID     *int     `mapstructure:"status_id,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Compliance.
-func (o *Compliance) Validate() error {
+// validateCompliance checks required fields, constraints, and enum values.
+func validateCompliance(data map[string]any) error {
 	var errs []error
-	if len(o.Standards) == 0 {
+	if _, ok := data["standards"]; !ok {
 		errs = append(errs, errors.New("standards is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Container represents the OCSF Container object.
-// The Container object describes an instance of a specific container. A container is a prepackaged, portable system image that runs isolated on an existing system using a container runtime like containerd.
-type Container struct {
-	Hash          *Fingerprint `mapstructure:"hash,omitempty"`
-	Image         *Image       `mapstructure:"image,omitempty"`
-	Name          *string      `mapstructure:"name,omitempty"`
-	NetworkDriver *string      `mapstructure:"network_driver,omitempty"`
-	Orchestrator  *string      `mapstructure:"orchestrator,omitempty"`
-	PodUuid       *string      `mapstructure:"pod_uuid,omitempty"`
-	Runtime       *string      `mapstructure:"runtime,omitempty"`
-	Size          *int64       `mapstructure:"size,omitempty"`
-	Tag           *string      `mapstructure:"tag,omitempty"`
-	UID           *string      `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Container.
-func (o *Container) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
 	}
-	return errors.Join(errs...)
-}
-
-// CVE represents the OCSF CVE object.
-// The Common Vulnerabilities and Exposures (CVE) object represents publicly disclosed cybersecurity vulnerabilities defined in CVE Program catalog (CVE). There is one CVE Record for each vulnerability in the catalog.
-type CVE struct {
-	CreatedTime  *int64   `mapstructure:"created_time,omitempty"`
-	CVSS         []CVSS   `mapstructure:"cvss,omitempty"`
-	Cwe          *Cwe     `mapstructure:"cwe,omitempty"`
-	CweUID       *string  `mapstructure:"cwe_uid,omitempty"`
-	CweURL       *string  `mapstructure:"cwe_url,omitempty"`
-	Desc         *string  `mapstructure:"desc,omitempty"`
-	Epss         *Epss    `mapstructure:"epss,omitempty"`
-	ModifiedTime *int64   `mapstructure:"modified_time,omitempty"`
-	Product      *Product `mapstructure:"product,omitempty"`
-	References   []string `mapstructure:"references,omitempty"`
-	Title        *string  `mapstructure:"title,omitempty"`
-	Type         *string  `mapstructure:"type,omitempty"`
-	UID          *string  `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for CVE.
-func (o *CVE) Validate() error {
-	var errs []error
-	if o.UID == nil {
-		errs = append(errs, errors.New("uid is required"))
+	if v, ok := data["control"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("control: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	return errors.Join(errs...)
-}
-
-// CVSS represents the OCSF CVSS Score object.
-// The Common Vulnerability Scoring System (CVSS) object provides a way to capture the principal characteristics of a vulnerability and produce a numerical score reflecting its severity.
-type CVSS struct {
-	BaseScore    *float64 `mapstructure:"base_score"`
-	Depth        *string  `mapstructure:"depth,omitempty"`
-	Metrics      []Metric `mapstructure:"metrics,omitempty"`
-	OverallScore *float64 `mapstructure:"overall_score,omitempty"`
-	Severity     *string  `mapstructure:"severity,omitempty"`
-	VectorString *string  `mapstructure:"vector_string,omitempty"`
-	Version      *string  `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for CVSS.
-func (o *CVSS) Validate() error {
-	var errs []error
-	if o.BaseScore == nil {
-		errs = append(errs, errors.New("base_score is required"))
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.Version == nil {
-		errs = append(errs, errors.New("version is required"))
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.Depth != nil {
-		switch *o.Depth {
-		case "Base", "Environmental", "Temporal":
-		default:
-			errs = append(errs, fmt.Errorf("depth: invalid value %q", *o.Depth))
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// Cwe represents the OCSF CWE object.
-// The CWE object represents a weakness in a software system that can be exploited by a threat actor to perform an attack. The CWE object is based on the Common Weakness Enumeration (CWE) catalog.
-type Cwe struct {
-	Caption *string `mapstructure:"caption,omitempty"`
-	SrcURL  *string `mapstructure:"src_url,omitempty"`
-	UID     *string `mapstructure:"uid"`
+// validateContainer checks required fields, constraints, and enum values.
+func validateContainer(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["network_driver"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("network_driver: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["orchestrator"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("orchestrator: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["pod_uuid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexUuidT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("pod_uuid: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["runtime"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("runtime: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["tag"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("tag: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hash"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFingerprint(m); err != nil {
+				errs = append(errs, fmt.Errorf("hash: %w", err))
+			}
+		}
+	}
+	if v, ok := data["image"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateImage(m); err != nil {
+				errs = append(errs, fmt.Errorf("image: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Cwe.
-func (o *Cwe) Validate() error {
+// validateCVE checks required fields, constraints, and enum values.
+func validateCVE(data map[string]any) error {
 	var errs []error
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if v, ok := data["cwe_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cwe_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["cvss"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateCVSS(m); err != nil {
+						errs = append(errs, fmt.Errorf("cvss[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["cwe"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCwe(m); err != nil {
+				errs = append(errs, fmt.Errorf("cwe: %w", err))
+			}
+		}
+	}
+	if v, ok := data["epss"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateEpss(m); err != nil {
+				errs = append(errs, fmt.Errorf("epss: %w", err))
+			}
+		}
+	}
+	if v, ok := data["product"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("product: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Database represents the OCSF Database object.
-// The database object is used for databases which are typically datastore services that contain an organized collection of structured and unstructured data or a types of data.
-type Database struct {
-	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
-	Desc         *string `mapstructure:"desc,omitempty"`
-	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
-	Name         *string `mapstructure:"name,omitempty"`
-	Size         *int64  `mapstructure:"size,omitempty"`
-	Type         *string `mapstructure:"type,omitempty"`
-	TypeID       *int    `mapstructure:"type_id"`
-	UID          *string `mapstructure:"uid,omitempty"`
+// validateCVSS checks required fields, constraints, and enum values.
+func validateCVSS(data map[string]any) error {
+	var errs []error
+	if _, ok := data["base_score"]; !ok {
+		errs = append(errs, errors.New("base_score is required"))
+	}
+	if _, ok := data["version"]; !ok {
+		errs = append(errs, errors.New("version is required"))
+	}
+	if v, ok := data["depth"]; ok {
+		if strVal, ok := v.(string); ok {
+			switch strVal {
+			case "Base", "Environmental", "Temporal":
+			default:
+				errs = append(errs, fmt.Errorf("depth: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["depth"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("depth: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vector_string"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vector_string: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["metrics"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateMetric(m); err != nil {
+						errs = append(errs, fmt.Errorf("metrics[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Database.
-func (o *Database) Validate() error {
+// validateCwe checks required fields, constraints, and enum values.
+func validateCwe(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["uid"]; !ok {
+		errs = append(errs, errors.New("uid is required"))
+	}
+	if v, ok := data["caption"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("caption: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateDatabase checks required fields, constraints, and enum values.
+func validateDatabase(data map[string]any) error {
+	var errs []error
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["groups"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateGroup(m); err != nil {
+						errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Databucket represents the OCSF Databucket object.
-// The databucket object is a basic container that holds data, typically organized through the use of data partitions.
-type Databucket struct {
-	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
-	Desc         *string `mapstructure:"desc,omitempty"`
-	File         *File   `mapstructure:"file,omitempty"`
-	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
-	Name         *string `mapstructure:"name,omitempty"`
-	Size         *int64  `mapstructure:"size,omitempty"`
-	Type         *string `mapstructure:"type,omitempty"`
-	TypeID       *int    `mapstructure:"type_id"`
-	UID          *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Databucket.
-func (o *Databucket) Validate() error {
+// validateDatabucket checks required fields, constraints, and enum values.
+func validateDatabucket(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["groups"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateGroup(m); err != nil {
+						errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// DceRpc represents the OCSF DCE/RPC object.
-// The DCE/RPC, or Distributed Computing Environment/Remote Procedure Call, object describes the remote procedure call system for distributed computing environments. Defined by D3FEND d3f:RemoteProcedureCall.
-type DceRpc struct {
-	Command         *string       `mapstructure:"command,omitempty"`
-	CommandResponse *string       `mapstructure:"command_response,omitempty"`
-	Flags           []string      `mapstructure:"flags"`
-	Opnum           *int          `mapstructure:"opnum,omitempty"`
-	RpcInterface    *RpcInterface `mapstructure:"rpc_interface"`
-}
-
-// Validate checks required fields, constraints, and enum values for DceRpc.
-func (o *DceRpc) Validate() error {
+// validateDceRpc checks required fields, constraints, and enum values.
+func validateDceRpc(data map[string]any) error {
 	var errs []error
-	if len(o.Flags) == 0 {
+	if _, ok := data["flags"]; !ok {
 		errs = append(errs, errors.New("flags is required"))
 	}
-	if o.RpcInterface == nil {
+	if _, ok := data["rpc_interface"]; !ok {
 		errs = append(errs, errors.New("rpc_interface is required"))
 	}
+	if v, ok := data["command"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["command_response"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("command_response: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["rpc_interface"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRpcInterface(m); err != nil {
+				errs = append(errs, fmt.Errorf("rpc_interface: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Device represents the OCSF Device object.
-// The Device object represents an addressable computer system or host, which is typically connected to a computer network and participates in the transmission or processing of data within the computer network. Defined by D3FEND d3f:Host.
-type Device struct {
-	AutoscaleUID      *string            `mapstructure:"autoscale_uid,omitempty"`
-	CreatedTime       *int64             `mapstructure:"created_time,omitempty"`
-	Desc              *string            `mapstructure:"desc,omitempty"`
-	Domain            *string            `mapstructure:"domain,omitempty"`
-	FirstSeenTime     *int64             `mapstructure:"first_seen_time,omitempty"`
-	Groups            []Group            `mapstructure:"groups,omitempty"`
-	Hostname          *string            `mapstructure:"hostname,omitempty"`
-	HwInfo            *DeviceHwInfo      `mapstructure:"hw_info,omitempty"`
-	Hypervisor        *string            `mapstructure:"hypervisor,omitempty"`
-	Image             *Image             `mapstructure:"image,omitempty"`
-	Imei              *string            `mapstructure:"imei,omitempty"`
-	InstanceUID       *string            `mapstructure:"instance_uid,omitempty"`
-	InterfaceName     *string            `mapstructure:"interface_name,omitempty"`
-	InterfaceUID      *string            `mapstructure:"interface_uid,omitempty"`
-	IP                *string            `mapstructure:"ip,omitempty"`
-	IsCompliant       *bool              `mapstructure:"is_compliant,omitempty"`
-	IsManaged         *bool              `mapstructure:"is_managed,omitempty"`
-	IsPersonal        *bool              `mapstructure:"is_personal,omitempty"`
-	IsTrusted         *bool              `mapstructure:"is_trusted,omitempty"`
-	LastSeenTime      *int64             `mapstructure:"last_seen_time,omitempty"`
-	Location          *Location          `mapstructure:"location,omitempty"`
-	MAC               *string            `mapstructure:"mac,omitempty"`
-	ModifiedTime      *int64             `mapstructure:"modified_time,omitempty"`
-	Name              *string            `mapstructure:"name,omitempty"`
-	NetworkInterfaces []NetworkInterface `mapstructure:"network_interfaces,omitempty"`
-	Org               *Organization      `mapstructure:"org,omitempty"`
-	OS                *OS                `mapstructure:"os,omitempty"`
-	Region            *string            `mapstructure:"region,omitempty"`
-	RiskLevel         *string            `mapstructure:"risk_level,omitempty"`
-	RiskLevelID       *int               `mapstructure:"risk_level_id,omitempty"`
-	RiskScore         *int               `mapstructure:"risk_score,omitempty"`
-	Subnet            *string            `mapstructure:"subnet,omitempty"`
-	SubnetUID         *string            `mapstructure:"subnet_uid,omitempty"`
-	Type              *string            `mapstructure:"type,omitempty"`
-	TypeID            *int               `mapstructure:"type_id"`
-	UID               *string            `mapstructure:"uid,omitempty"`
-	UIDAlt            *string            `mapstructure:"uid_alt,omitempty"`
-	VlanUID           *string            `mapstructure:"vlan_uid,omitempty"`
-	VpcUID            *string            `mapstructure:"vpc_uid,omitempty"`
-	Zone              *string            `mapstructure:"zone,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Device.
-func (o *Device) Validate() error {
+// validateDevice checks required fields, constraints, and enum values.
+func validateDevice(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
+	{
+		_, ok0 := data["hostname"]
+		_, ok1 := data["instance_uid"]
+		_, ok2 := data["interface_name"]
+		_, ok3 := data["interface_uid"]
+		_, ok4 := data["ip"]
+		_, ok5 := data["name"]
+		_, ok6 := data["uid"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 && !ok5 && !ok6 {
+			errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
+		}
+	}
+	if v, ok := data["risk_level_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4:
+			default:
+				errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["autoscale_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("autoscale_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["hypervisor"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("hypervisor: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["imei"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("imei: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["instance_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 40 {
+				errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexIPT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("ip: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 32 {
+				errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexMACT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("mac: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["region"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["risk_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["subnet"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 42 {
+				errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["subnet_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid_alt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vlan_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vpc_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["zone"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["groups"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateGroup(m); err != nil {
+						errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["hw_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDeviceHwInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("hw_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["image"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateImage(m); err != nil {
+				errs = append(errs, fmt.Errorf("image: %w", err))
+			}
+		}
+	}
+	if v, ok := data["location"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLocation(m); err != nil {
+				errs = append(errs, fmt.Errorf("location: %w", err))
+			}
+		}
+	}
+	if v, ok := data["network_interfaces"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateNetworkInterface(m); err != nil {
+						errs = append(errs, fmt.Errorf("network_interfaces[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["org"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOrganization(m); err != nil {
+				errs = append(errs, fmt.Errorf("org: %w", err))
+			}
+		}
+	}
+	if v, ok := data["os"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOS(m); err != nil {
+				errs = append(errs, fmt.Errorf("os: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// DeviceHwInfo represents the OCSF Device Hardware Info object.
-// The Device Hardware Information object contains details and specifications of the physical components that make up a device. This information provides an overview of the hardware capabilities, configuration, and characteristics of the device.
-type DeviceHwInfo struct {
-	BiosDate         *string       `mapstructure:"bios_date,omitempty"`
-	BiosManufacturer *string       `mapstructure:"bios_manufacturer,omitempty"`
-	BiosVer          *string       `mapstructure:"bios_ver,omitempty"`
-	Chassis          *string       `mapstructure:"chassis,omitempty"`
-	CPUBits          *int          `mapstructure:"cpu_bits,omitempty"`
-	CPUCores         *int          `mapstructure:"cpu_cores,omitempty"`
-	CPUCount         *int          `mapstructure:"cpu_count,omitempty"`
-	CPUSpeed         *int          `mapstructure:"cpu_speed,omitempty"`
-	CPUType          *string       `mapstructure:"cpu_type,omitempty"`
-	DesktopDisplay   *Display      `mapstructure:"desktop_display,omitempty"`
-	KeyboardInfo     *KeyboardInfo `mapstructure:"keyboard_info,omitempty"`
-	RamSize          *int          `mapstructure:"ram_size,omitempty"`
-	SerialNumber     *string       `mapstructure:"serial_number,omitempty"`
-}
-
-// DigitalSignature represents the OCSF Digital Signature object.
-// The Digital Signature object contains information about the cryptographic mechanism used to verify the authenticity, integrity, and origin of the file or application.
-type DigitalSignature struct {
-	Algorithm    *string      `mapstructure:"algorithm,omitempty"`
-	AlgorithmID  *int         `mapstructure:"algorithm_id"`
-	Certificate  *Certificate `mapstructure:"certificate,omitempty"`
-	CreatedTime  *int64       `mapstructure:"created_time,omitempty"`
-	DeveloperUID *string      `mapstructure:"developer_uid,omitempty"`
-	Digest       *Fingerprint `mapstructure:"digest,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DigitalSignature.
-func (o *DigitalSignature) Validate() error {
+// validateDeviceHwInfo checks required fields, constraints, and enum values.
+func validateDeviceHwInfo(data map[string]any) error {
 	var errs []error
-	if o.AlgorithmID == nil {
+	if v, ok := data["bios_date"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("bios_date: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["bios_manufacturer"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("bios_manufacturer: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["bios_ver"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("bios_ver: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["chassis"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("chassis: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["cpu_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cpu_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["serial_number"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desktop_display"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDisplay(m); err != nil {
+				errs = append(errs, fmt.Errorf("desktop_display: %w", err))
+			}
+		}
+	}
+	if v, ok := data["keyboard_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateKeyboardInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("keyboard_info: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateDigitalSignature checks required fields, constraints, and enum values.
+func validateDigitalSignature(data map[string]any) error {
+	var errs []error
+	if _, ok := data["algorithm_id"]; !ok {
 		errs = append(errs, errors.New("algorithm_id is required"))
 	}
+	if v, ok := data["algorithm_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["algorithm"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["developer_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("developer_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["certificate"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCertificate(m); err != nil {
+				errs = append(errs, fmt.Errorf("certificate: %w", err))
+			}
+		}
+	}
+	if v, ok := data["digest"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFingerprint(m); err != nil {
+				errs = append(errs, fmt.Errorf("digest: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Display represents the OCSF Display object.
-// The Display object contains information about the physical or virtual display connected to a computer system.
-type Display struct {
-	ColorDepth          *int `mapstructure:"color_depth,omitempty"`
-	PhysicalHeight      *int `mapstructure:"physical_height,omitempty"`
-	PhysicalOrientation *int `mapstructure:"physical_orientation,omitempty"`
-	PhysicalWidth       *int `mapstructure:"physical_width,omitempty"`
-	ScaleFactor         *int `mapstructure:"scale_factor,omitempty"`
-}
-
-// DNSAnswer represents the OCSF DNS Answer object.
-// The DNS Answer object represents a specific response provided by the Domain Name System (DNS) when querying for information about a domain or performing a DNS operation. It encapsulates the relevant details and data returned by the DNS server in response to a query.
-type DNSAnswer struct {
-	Class     *string  `mapstructure:"class,omitempty"`
-	FlagIds   []int    `mapstructure:"flag_ids,omitempty"`
-	Flags     []string `mapstructure:"flags,omitempty"`
-	PacketUID *int     `mapstructure:"packet_uid,omitempty"`
-	Rdata     *string  `mapstructure:"rdata"`
-	Ttl       *int     `mapstructure:"ttl,omitempty"`
-	Type      *string  `mapstructure:"type,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DNSAnswer.
-func (o *DNSAnswer) Validate() error {
+// validateDisplay checks required fields, constraints, and enum values.
+func validateDisplay(data map[string]any) error {
 	var errs []error
-	if o.Rdata == nil {
+	return errors.Join(errs...)
+}
+
+// validateDNSAnswer checks required fields, constraints, and enum values.
+func validateDNSAnswer(data map[string]any) error {
+	var errs []error
+	if _, ok := data["rdata"]; !ok {
 		errs = append(errs, errors.New("rdata is required"))
 	}
+	if v, ok := data["class"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["rdata"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("rdata: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// DNSQuery represents the OCSF DNS Query object.
-// The DNS query object represents a specific request made to the Domain Name System (DNS) to retrieve information about a domain or perform a DNS operation. This object encapsulates the necessary attributes and methods to construct and send DNS queries, specify the query type (e.g., A, AAAA, MX). Defined by D3FEND d3f:DNSLookup.
-type DNSQuery struct {
-	Class     *string `mapstructure:"class,omitempty"`
-	Hostname  *string `mapstructure:"hostname"`
-	Opcode    *string `mapstructure:"opcode,omitempty"`
-	OpcodeID  *int    `mapstructure:"opcode_id,omitempty"`
-	PacketUID *int    `mapstructure:"packet_uid,omitempty"`
-	Type      *string `mapstructure:"type,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DNSQuery.
-func (o *DNSQuery) Validate() error {
+// validateDNSQuery checks required fields, constraints, and enum values.
+func validateDNSQuery(data map[string]any) error {
 	var errs []error
-	if o.Hostname == nil {
+	if _, ok := data["hostname"]; !ok {
 		errs = append(errs, errors.New("hostname is required"))
 	}
+	if v, ok := data["opcode_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6:
+			default:
+				errs = append(errs, fmt.Errorf("opcode_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["opcode"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("opcode: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Email represents the OCSF Email object.
-// The Email object describes the email metadata such as sender, recipients, and direction. Defined by D3FEND d3f:Email.
-type Email struct {
-	Cc             []string `mapstructure:"cc,omitempty"`
-	DeliveredTo    *string  `mapstructure:"delivered_to,omitempty"`
-	From           *string  `mapstructure:"from"`
-	MessageUID     *string  `mapstructure:"message_uid,omitempty"`
-	RawHeader      *string  `mapstructure:"raw_header,omitempty"`
-	ReplyTo        *string  `mapstructure:"reply_to,omitempty"`
-	Size           *int64   `mapstructure:"size,omitempty"`
-	SmtpFrom       *string  `mapstructure:"smtp_from,omitempty"`
-	SmtpTo         []string `mapstructure:"smtp_to,omitempty"`
-	Subject        *string  `mapstructure:"subject,omitempty"`
-	To             []string `mapstructure:"to"`
-	UID            *string  `mapstructure:"uid,omitempty"`
-	XOriginatingIP []string `mapstructure:"x_originating_ip,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Email.
-func (o *Email) Validate() error {
+// validateEmail checks required fields, constraints, and enum values.
+func validateEmail(data map[string]any) error {
 	var errs []error
-	if o.From == nil {
+	if _, ok := data["from"]; !ok {
 		errs = append(errs, errors.New("from is required"))
 	}
-	if len(o.To) == 0 {
+	if _, ok := data["to"]; !ok {
 		errs = append(errs, errors.New("to is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// EmailAuth represents the OCSF Email Authentication object.
-// The Email Authentication object describes the Sender Policy Framework (SPF), DomainKeys Identified Mail (DKIM) and Domain-based Message Authentication, Reporting and Conformance (DMARC) attributes of an email.
-type EmailAuth struct {
-	Dkim          *string `mapstructure:"dkim,omitempty"`
-	DkimDomain    *string `mapstructure:"dkim_domain,omitempty"`
-	DkimSignature *string `mapstructure:"dkim_signature,omitempty"`
-	Dmarc         *string `mapstructure:"dmarc,omitempty"`
-	DmarcOverride *string `mapstructure:"dmarc_override,omitempty"`
-	DmarcPolicy   *string `mapstructure:"dmarc_policy,omitempty"`
-	Spf           *string `mapstructure:"spf,omitempty"`
-}
-
-// Endpoint represents the OCSF Endpoint object.
-// The Endpoint object describes a physical or virtual device that connects to and exchanges information with a computer network. Some examples of endpoints are mobile devices, desktop computers, virtual machines, embedded devices, and servers. Internet-of-Things devices—like cameras, lighting, refrigerators, security systems, smart speakers, and thermostats—are also endpoints.
-type Endpoint struct {
-	Domain        *string       `mapstructure:"domain,omitempty"`
-	Hostname      *string       `mapstructure:"hostname,omitempty"`
-	HwInfo        *DeviceHwInfo `mapstructure:"hw_info,omitempty"`
-	InstanceUID   *string       `mapstructure:"instance_uid,omitempty"`
-	InterfaceName *string       `mapstructure:"interface_name,omitempty"`
-	InterfaceUID  *string       `mapstructure:"interface_uid,omitempty"`
-	IP            *string       `mapstructure:"ip,omitempty"`
-	Location      *Location     `mapstructure:"location,omitempty"`
-	MAC           *string       `mapstructure:"mac,omitempty"`
-	Name          *string       `mapstructure:"name,omitempty"`
-	OS            *OS           `mapstructure:"os,omitempty"`
-	SubnetUID     *string       `mapstructure:"subnet_uid,omitempty"`
-	Type          *string       `mapstructure:"type,omitempty"`
-	TypeID        *int          `mapstructure:"type_id,omitempty"`
-	UID           *string       `mapstructure:"uid,omitempty"`
-	VlanUID       *string       `mapstructure:"vlan_uid,omitempty"`
-	VpcUID        *string       `mapstructure:"vpc_uid,omitempty"`
-	Zone          *string       `mapstructure:"zone,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Endpoint.
-func (o *Endpoint) Validate() error {
-	var errs []error
-	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
+	if v, ok := data["delivered_to"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexEmailT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("delivered_to: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["from"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexEmailT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("from: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["message_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_header"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_header: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["reply_to"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexEmailT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("reply_to: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["smtp_from"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexEmailT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("smtp_from: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["subject"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subject: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// EndpointConnection represents the OCSF Endpoint Connection object.
-// The Endpoint Connection object contains information detailing a connection attempt to an endpoint.
-type EndpointConnection struct {
-	Code            *int             `mapstructure:"code,omitempty"`
-	NetworkEndpoint *NetworkEndpoint `mapstructure:"network_endpoint,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for EndpointConnection.
-func (o *EndpointConnection) Validate() error {
+// validateEmailAuth checks required fields, constraints, and enum values.
+func validateEmailAuth(data map[string]any) error {
 	var errs []error
-	if o.Code == nil && o.NetworkEndpoint == nil {
-		errs = append(errs, errors.New("at least one of [code, network_endpoint] must be set"))
+	if v, ok := data["dkim"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dkim: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dkim_domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dkim_domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dkim_signature"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dkim_signature: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dmarc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dmarc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dmarc_override"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dmarc_override: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dmarc_policy"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dmarc_policy: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["spf"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("spf: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Enrichment represents the OCSF Enrichment object.
-// The Enrichment object provides inline enrichment data for specific attributes of interest within an event. It serves as a mechanism to enhance or supplement the information associated with the event by adding additional relevant details or context.
-type Enrichment struct {
-	Data     any     `mapstructure:"data"`
-	Name     *string `mapstructure:"name"`
-	Provider *string `mapstructure:"provider,omitempty"`
-	Type     *string `mapstructure:"type,omitempty"`
-	Value    *string `mapstructure:"value"`
+// validateEndpoint checks required fields, constraints, and enum values.
+func validateEndpoint(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["hostname"]
+		_, ok1 := data["instance_uid"]
+		_, ok2 := data["interface_name"]
+		_, ok3 := data["interface_uid"]
+		_, ok4 := data["ip"]
+		_, ok5 := data["name"]
+		_, ok6 := data["uid"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 && !ok5 && !ok6 {
+			errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["instance_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 40 {
+				errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexIPT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("ip: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 32 {
+				errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexMACT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("mac: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["subnet_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vlan_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vpc_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["zone"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hw_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDeviceHwInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("hw_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["location"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLocation(m); err != nil {
+				errs = append(errs, fmt.Errorf("location: %w", err))
+			}
+		}
+	}
+	if v, ok := data["os"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOS(m); err != nil {
+				errs = append(errs, fmt.Errorf("os: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Enrichment.
-func (o *Enrichment) Validate() error {
+// validateEndpointConnection checks required fields, constraints, and enum values.
+func validateEndpointConnection(data map[string]any) error {
 	var errs []error
-	if o.Data == nil {
+	{
+		_, ok0 := data["code"]
+		_, ok1 := data["network_endpoint"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [code, network_endpoint] must be set"))
+		}
+	}
+	if v, ok := data["network_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("network_endpoint: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateEnrichment checks required fields, constraints, and enum values.
+func validateEnrichment(data map[string]any) error {
+	var errs []error
+	if _, ok := data["data"]; !ok {
 		errs = append(errs, errors.New("data is required"))
 	}
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Value == nil {
+	if _, ok := data["value"]; !ok {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Epss represents the OCSF EPSS object.
-// The Exploit Prediction Scoring System (EPSS) object describes the estimated probability a vulnerability will be exploited. EPSS is a community-driven effort to combine descriptive information about vulnerabilities (CVEs) with evidence of actual exploitation in-the-wild. (EPSS).
-type Epss struct {
-	CreatedTime *int64   `mapstructure:"created_time,omitempty"`
-	Percentile  *float64 `mapstructure:"percentile,omitempty"`
-	Score       *string  `mapstructure:"score"`
-	Version     *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Epss.
-func (o *Epss) Validate() error {
+// validateEpss checks required fields, constraints, and enum values.
+func validateEpss(data map[string]any) error {
 	var errs []error
-	if o.Score == nil {
+	if _, ok := data["score"]; !ok {
 		errs = append(errs, errors.New("score is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Evidences represents the OCSF Evidence Artifacts object.
-// A collection of evidence artifacts associated to the activity/activities that triggered a security detection.
-type Evidences struct {
-	Actor          *Actor                 `mapstructure:"actor,omitempty"`
-	API            *API                   `mapstructure:"api,omitempty"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Data           any                    `mapstructure:"data,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
-	File           *File                  `mapstructure:"file,omitempty"`
-	Process        *Process               `mapstructure:"process,omitempty"`
-	Query          *DNSQuery              `mapstructure:"query,omitempty"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Evidences.
-func (o *Evidences) Validate() error {
-	var errs []error
-	if o.Actor == nil && o.API == nil && o.ConnectionInfo == nil && o.Data == nil && o.DstEndpoint == nil && o.File == nil && o.Process == nil && o.Query == nil && o.SrcEndpoint == nil {
-		errs = append(errs, errors.New("at least one of [actor, api, connection_info, data, dst_endpoint, file, process, query, src_endpoint] must be set"))
+	if v, ok := data["score"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("score: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Extension represents the OCSF Schema Extension object.
-// The OCSF Schema Extension object provides detailed information about the schema extension used to construct the event. The schema extensions are registered in the extensions.md file.
-type Extension struct {
-	Name    *string `mapstructure:"name"`
-	UID     *string `mapstructure:"uid"`
-	Version *string `mapstructure:"version"`
+// validateEvidences checks required fields, constraints, and enum values.
+func validateEvidences(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["actor"]
+		_, ok1 := data["api"]
+		_, ok2 := data["connection_info"]
+		_, ok3 := data["data"]
+		_, ok4 := data["dst_endpoint"]
+		_, ok5 := data["file"]
+		_, ok6 := data["process"]
+		_, ok7 := data["query"]
+		_, ok8 := data["src_endpoint"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 && !ok5 && !ok6 && !ok7 && !ok8 {
+			errs = append(errs, errors.New("at least one of [actor, api, connection_info, data, dst_endpoint, file, process, query, src_endpoint] must be set"))
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["api"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAPI(m); err != nil {
+				errs = append(errs, fmt.Errorf("api: %w", err))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["query"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDNSQuery(m); err != nil {
+				errs = append(errs, fmt.Errorf("query: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Extension.
-func (o *Extension) Validate() error {
+// validateExtension checks required fields, constraints, and enum values.
+func validateExtension(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Feature represents the OCSF Feature object.
-// The Feature object provides information about the software product feature that generated a specific event. It encompasses details related to the capabilities, components, user interface (UI) design, and performance upgrades associated with the feature.
-type Feature struct {
-	Name    *string `mapstructure:"name,omitempty"`
-	UID     *string `mapstructure:"uid,omitempty"`
-	Version *string `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Feature.
-func (o *Feature) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// File represents the OCSF File object.
-// The File object represents the metadata associated with a file stored in a computer system. It encompasses information about the file itself, including its attributes, properties, and organizational details. Defined by D3FEND d3f:File.
-type File struct {
-	AccessedTime       *int64            `mapstructure:"accessed_time,omitempty"`
-	Accessor           *User             `mapstructure:"accessor,omitempty"`
-	Attributes         *int              `mapstructure:"attributes,omitempty"`
-	CompanyName        *string           `mapstructure:"company_name,omitempty"`
-	Confidentiality    *string           `mapstructure:"confidentiality,omitempty"`
-	ConfidentialityID  *int              `mapstructure:"confidentiality_id,omitempty"`
-	CreatedTime        *int64            `mapstructure:"created_time,omitempty"`
-	Creator            *User             `mapstructure:"creator,omitempty"`
-	Desc               *string           `mapstructure:"desc,omitempty"`
-	Hashes             []Fingerprint     `mapstructure:"hashes,omitempty"`
-	IsSystem           *bool             `mapstructure:"is_system,omitempty"`
-	MimeType           *string           `mapstructure:"mime_type,omitempty"`
-	ModifiedTime       *int64            `mapstructure:"modified_time,omitempty"`
-	Modifier           *User             `mapstructure:"modifier,omitempty"`
-	Name               *string           `mapstructure:"name"`
-	Owner              *User             `mapstructure:"owner,omitempty"`
-	ParentFolder       *string           `mapstructure:"parent_folder,omitempty"`
-	Path               *string           `mapstructure:"path,omitempty"`
-	Product            *Product          `mapstructure:"product,omitempty"`
-	SecurityDescriptor *string           `mapstructure:"security_descriptor,omitempty"`
-	Signature          *DigitalSignature `mapstructure:"signature,omitempty"`
-	Size               *int64            `mapstructure:"size,omitempty"`
-	Type               *string           `mapstructure:"type,omitempty"`
-	TypeID             *int              `mapstructure:"type_id"`
-	UID                *string           `mapstructure:"uid,omitempty"`
-	Version            *string           `mapstructure:"version,omitempty"`
-	Xattributes        *Object           `mapstructure:"xattributes,omitempty"`
+// validateFeature checks required fields, constraints, and enum values.
+func validateFeature(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for File.
-func (o *File) Validate() error {
+// validateFile checks required fields, constraints, and enum values.
+func validateFile(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
+	if v, ok := data["confidentiality_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["company_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("company_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidentiality"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidentiality: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mime_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("mime_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["parent_folder"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("parent_folder: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["security_descriptor"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("security_descriptor: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["accessor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("accessor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["creator"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("creator: %w", err))
+			}
+		}
+	}
+	if v, ok := data["hashes"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateFingerprint(m); err != nil {
+						errs = append(errs, fmt.Errorf("hashes[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["modifier"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("modifier: %w", err))
+			}
+		}
+	}
+	if v, ok := data["owner"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("owner: %w", err))
+			}
+		}
+	}
+	if v, ok := data["product"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("product: %w", err))
+			}
+		}
+	}
+	if v, ok := data["signature"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDigitalSignature(m); err != nil {
+				errs = append(errs, fmt.Errorf("signature: %w", err))
+			}
+		}
+	}
+	if v, ok := data["xattributes"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("xattributes: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Finding represents the OCSF Finding object.
-// The Finding object describes metadata related to a security finding generated by a security tool or system.
-type Finding struct {
-	CreatedTime    *int64         `mapstructure:"created_time,omitempty"`
-	Desc           *string        `mapstructure:"desc,omitempty"`
-	FirstSeenTime  *int64         `mapstructure:"first_seen_time,omitempty"`
-	LastSeenTime   *int64         `mapstructure:"last_seen_time,omitempty"`
-	ModifiedTime   *int64         `mapstructure:"modified_time,omitempty"`
-	ProductUID     *string        `mapstructure:"product_uid,omitempty"`
-	RelatedEvents  []RelatedEvent `mapstructure:"related_events,omitempty"`
-	Remediation    *Remediation   `mapstructure:"remediation,omitempty"`
-	SrcURL         *string        `mapstructure:"src_url,omitempty"`
-	SupportingData any            `mapstructure:"supporting_data,omitempty"`
-	Title          *string        `mapstructure:"title"`
-	Types          []string       `mapstructure:"types,omitempty"`
-	UID            *string        `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for Finding.
-func (o *Finding) Validate() error {
+// validateFinding checks required fields, constraints, and enum values.
+func validateFinding(data map[string]any) error {
 	var errs []error
-	if o.Title == nil {
+	if _, ok := data["title"]; !ok {
 		errs = append(errs, errors.New("title is required"))
 	}
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["product_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["related_events"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateRelatedEvent(m); err != nil {
+						errs = append(errs, fmt.Errorf("related_events[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// FindingInfo represents the OCSF Finding Information object.
-// The Finding Information object describes metadata related to a security finding generated by a security tool or system.
-type FindingInfo struct {
-	Analytic         *Analytic        `mapstructure:"analytic,omitempty"`
-	Attacks          []Attack         `mapstructure:"attacks,omitempty"`
-	CreatedTime      *int64           `mapstructure:"created_time,omitempty"`
-	DataSources      []string         `mapstructure:"data_sources,omitempty"`
-	Desc             *string          `mapstructure:"desc,omitempty"`
-	FirstSeenTime    *int64           `mapstructure:"first_seen_time,omitempty"`
-	KillChain        []KillChainPhase `mapstructure:"kill_chain,omitempty"`
-	LastSeenTime     *int64           `mapstructure:"last_seen_time,omitempty"`
-	ModifiedTime     *int64           `mapstructure:"modified_time,omitempty"`
-	ProductUID       *string          `mapstructure:"product_uid,omitempty"`
-	RelatedAnalytics []Analytic       `mapstructure:"related_analytics,omitempty"`
-	RelatedEvents    []RelatedEvent   `mapstructure:"related_events,omitempty"`
-	SrcURL           *string          `mapstructure:"src_url,omitempty"`
-	Title            *string          `mapstructure:"title"`
-	Types            []string         `mapstructure:"types,omitempty"`
-	UID              *string          `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for FindingInfo.
-func (o *FindingInfo) Validate() error {
+// validateFindingInfo checks required fields, constraints, and enum values.
+func validateFindingInfo(data map[string]any) error {
 	var errs []error
-	if o.Title == nil {
+	if _, ok := data["title"]; !ok {
 		errs = append(errs, errors.New("title is required"))
 	}
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["product_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["analytic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAnalytic(m); err != nil {
+				errs = append(errs, fmt.Errorf("analytic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["attacks"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAttack(m); err != nil {
+						errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["kill_chain"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKillChainPhase(m); err != nil {
+						errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["related_analytics"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAnalytic(m); err != nil {
+						errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["related_events"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateRelatedEvent(m); err != nil {
+						errs = append(errs, fmt.Errorf("related_events[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Fingerprint represents the OCSF Fingerprint object.
-// The Fingerprint object provides detailed information about a digital fingerprint, which is a compact representation of data used to identify a longer piece of information, such as a public key or file content. It contains the algorithm and value of the fingerprint, enabling efficient and reliable identification of the associated data.
-type Fingerprint struct {
-	Algorithm   *string `mapstructure:"algorithm,omitempty"`
-	AlgorithmID *int    `mapstructure:"algorithm_id"`
-	Value       *string `mapstructure:"value"`
-}
-
-// Validate checks required fields, constraints, and enum values for Fingerprint.
-func (o *Fingerprint) Validate() error {
+// validateFingerprint checks required fields, constraints, and enum values.
+func validateFingerprint(data map[string]any) error {
 	var errs []error
-	if o.AlgorithmID == nil {
+	if _, ok := data["algorithm_id"]; !ok {
 		errs = append(errs, errors.New("algorithm_id is required"))
 	}
-	if o.Value == nil {
+	if _, ok := data["value"]; !ok {
 		errs = append(errs, errors.New("value is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// FirewallRule represents the OCSF Firewall Rule object.
-// The Firewall Rule object represents a specific rule within a firewall policy or event. It contains information about a rule's configuration, properties, and associated actions that define how network traffic is handled by the firewall.
-type FirewallRule struct {
-	Category      *string  `mapstructure:"category,omitempty"`
-	Condition     *string  `mapstructure:"condition,omitempty"`
-	Desc          *string  `mapstructure:"desc,omitempty"`
-	Duration      *int     `mapstructure:"duration,omitempty"`
-	MatchDetails  []string `mapstructure:"match_details,omitempty"`
-	MatchLocation *string  `mapstructure:"match_location,omitempty"`
-	Name          *string  `mapstructure:"name,omitempty"`
-	RateLimit     *int     `mapstructure:"rate_limit,omitempty"`
-	Sensitivity   *string  `mapstructure:"sensitivity,omitempty"`
-	Type          *string  `mapstructure:"type,omitempty"`
-	UID           *string  `mapstructure:"uid,omitempty"`
-	Version       *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for FirewallRule.
-func (o *FirewallRule) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["algorithm_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["algorithm"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 64 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 64", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Group represents the OCSF Group object.
-// The Group object represents a collection or association of entities, such as users, policies, or devices. It serves as a logical grouping mechanism to organize and manage entities with similar characteristics or permissions within a system or organization.
-type Group struct {
-	Desc       *string  `mapstructure:"desc,omitempty"`
-	Domain     *string  `mapstructure:"domain,omitempty"`
-	Name       *string  `mapstructure:"name,omitempty"`
-	Privileges []string `mapstructure:"privileges,omitempty"`
-	Type       *string  `mapstructure:"type,omitempty"`
-	UID        *string  `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Group.
-func (o *Group) Validate() error {
+// validateFirewallRule checks required fields, constraints, and enum values.
+func validateFirewallRule(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["category"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["condition"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("condition: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["match_location"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("match_location: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["sensitivity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("sensitivity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Hassh represents the OCSF HASSH object.
-// The HASSH object contains SSH network fingerprinting values for specific client/server implementations. It provides a standardized way of identifying and categorizing SSH connections based on their unique characteristics and behavior.
-type Hassh struct {
-	Algorithm   *string      `mapstructure:"algorithm,omitempty"`
-	Fingerprint *Fingerprint `mapstructure:"fingerprint"`
+// validateGroup checks required fields, constraints, and enum values.
+func validateGroup(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Hassh.
-func (o *Hassh) Validate() error {
+// validateHassh checks required fields, constraints, and enum values.
+func validateHassh(data map[string]any) error {
 	var errs []error
-	if o.Fingerprint == nil {
+	if _, ok := data["fingerprint"]; !ok {
 		errs = append(errs, errors.New("fingerprint is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// HTTPCookie represents the OCSF HTTP Cookie object.
-// The HTTP Cookie object, also known as a web cookie or browser cookie, contains details and values pertaining to a small piece of data that a server sends to a user's web browser. This data is then stored by the browser and sent back to the server with subsequent requests, allowing the server to remember and track certain information about the user's browsing session or preferences.
-type HTTPCookie struct {
-	Domain         *string `mapstructure:"domain,omitempty"`
-	ExpirationTime *int64  `mapstructure:"expiration_time,omitempty"`
-	HTTPOnly       *bool   `mapstructure:"http_only,omitempty"`
-	IsHTTPOnly     *bool   `mapstructure:"is_http_only,omitempty"`
-	IsSecure       *bool   `mapstructure:"is_secure,omitempty"`
-	Name           *string `mapstructure:"name"`
-	Path           *string `mapstructure:"path,omitempty"`
-	Samesite       *string `mapstructure:"samesite,omitempty"`
-	Secure         *bool   `mapstructure:"secure,omitempty"`
-	Value          *string `mapstructure:"value"`
-}
-
-// Validate checks required fields, constraints, and enum values for HTTPCookie.
-func (o *HTTPCookie) Validate() error {
-	var errs []error
-	if o.Name == nil {
-		errs = append(errs, errors.New("name is required"))
+	if v, ok := data["algorithm"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.Value == nil {
-		errs = append(errs, errors.New("value is required"))
-	}
-	return errors.Join(errs...)
-}
-
-// HTTPHeader represents the OCSF HTTP Header object.
-// TThe HTTP Header object represents the headers sent in an HTTP request or response. HTTP headers are key-value pairs that convey additional information about the HTTP message, including details about the content, caching, authentication, encoding, and other aspects of the communication.
-type HTTPHeader struct {
-	Name  *string `mapstructure:"name"`
-	Value *string `mapstructure:"value"`
-}
-
-// Validate checks required fields, constraints, and enum values for HTTPHeader.
-func (o *HTTPHeader) Validate() error {
-	var errs []error
-	if o.Name == nil {
-		errs = append(errs, errors.New("name is required"))
-	}
-	if o.Value == nil {
-		errs = append(errs, errors.New("value is required"))
-	}
-	return errors.Join(errs...)
-}
-
-// HTTPRequest represents the OCSF HTTP Request object.
-// The HTTP Request object represents the attributes of a request made to a web server. It encapsulates the details and metadata associated with an HTTP request, including the request method, headers, URL, query parameters, body content, and other relevant information.
-type HTTPRequest struct {
-	Args          *string      `mapstructure:"args,omitempty"`
-	HTTPHeaders   []HTTPHeader `mapstructure:"http_headers,omitempty"`
-	HTTPMethod    *string      `mapstructure:"http_method,omitempty"`
-	Length        *int         `mapstructure:"length,omitempty"`
-	Referrer      *string      `mapstructure:"referrer,omitempty"`
-	UID           *string      `mapstructure:"uid,omitempty"`
-	URL           *URL         `mapstructure:"url,omitempty"`
-	UserAgent     *string      `mapstructure:"user_agent,omitempty"`
-	Version       *string      `mapstructure:"version,omitempty"`
-	XForwardedFor []string     `mapstructure:"x_forwarded_for,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for HTTPRequest.
-func (o *HTTPRequest) Validate() error {
-	var errs []error
-	if o.HTTPMethod != nil {
-		switch *o.HTTPMethod {
-		case "CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "TRACE":
-		default:
-			errs = append(errs, fmt.Errorf("http_method: invalid value %q", *o.HTTPMethod))
+	if v, ok := data["fingerprint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFingerprint(m); err != nil {
+				errs = append(errs, fmt.Errorf("fingerprint: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// HTTPResponse represents the OCSF HTTP Response object.
-// The HTTP Response object contains detailed information about the response sent from a web server to the requester. It encompasses attributes and metadata that describe the response status, headers, body content, and other relevant information.
-type HTTPResponse struct {
-	Code        *int         `mapstructure:"code"`
-	ContentType *string      `mapstructure:"content_type,omitempty"`
-	HTTPHeaders []HTTPHeader `mapstructure:"http_headers,omitempty"`
-	Latency     *int         `mapstructure:"latency,omitempty"`
-	Length      *int         `mapstructure:"length,omitempty"`
-	Message     *string      `mapstructure:"message,omitempty"`
-	Status      *string      `mapstructure:"status,omitempty"`
+// validateHTTPCookie checks required fields, constraints, and enum values.
+func validateHTTPCookie(data map[string]any) error {
+	var errs []error
+	if _, ok := data["name"]; !ok {
+		errs = append(errs, errors.New("name is required"))
+	}
+	if _, ok := data["value"]; !ok {
+		errs = append(errs, errors.New("value is required"))
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["samesite"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("samesite: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for HTTPResponse.
-func (o *HTTPResponse) Validate() error {
+// validateHTTPHeader checks required fields, constraints, and enum values.
+func validateHTTPHeader(data map[string]any) error {
 	var errs []error
-	if o.Code == nil {
+	if _, ok := data["name"]; !ok {
+		errs = append(errs, errors.New("name is required"))
+	}
+	if _, ok := data["value"]; !ok {
+		errs = append(errs, errors.New("value is required"))
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateHTTPRequest checks required fields, constraints, and enum values.
+func validateHTTPRequest(data map[string]any) error {
+	var errs []error
+	if v, ok := data["http_method"]; ok {
+		if strVal, ok := v.(string); ok {
+			switch strVal {
+			case "CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "TRACE":
+			default:
+				errs = append(errs, fmt.Errorf("http_method: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["args"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("args: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["http_method"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("http_method: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["referrer"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("referrer: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["user_agent"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("user_agent: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["http_headers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateHTTPHeader(m); err != nil {
+						errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["url"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateURL(m); err != nil {
+				errs = append(errs, fmt.Errorf("url: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateHTTPResponse checks required fields, constraints, and enum values.
+func validateHTTPResponse(data map[string]any) error {
+	var errs []error
+	if _, ok := data["code"]; !ok {
 		errs = append(errs, errors.New("code is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Idp represents the OCSF Identity Provider object.
-// The Identity Provider object contains detailed information about a provider responsible for creating, maintaining, and managing identity information while offering authentication services to applications. An Identity Provider (IdP) serves as a trusted authority that verifies the identity of users and issues authentication tokens or assertions to enable secure access to applications or services.
-type Idp struct {
-	Name *string `mapstructure:"name,omitempty"`
-	UID  *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Idp.
-func (o *Idp) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["content_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("content_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["http_headers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateHTTPHeader(m); err != nil {
+						errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Image represents the OCSF Image object.
-// The Image object provides a description of a specific Virtual Machine (VM) or Container image. Defined by D3FEND d3f:ContainerImage.
-type Image struct {
-	Labels []string `mapstructure:"labels,omitempty"`
-	Name   *string  `mapstructure:"name,omitempty"`
-	Path   *string  `mapstructure:"path,omitempty"`
-	Tag    *string  `mapstructure:"tag,omitempty"`
-	UID    *string  `mapstructure:"uid"`
+// validateIdp checks required fields, constraints, and enum values.
+func validateIdp(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Image.
-func (o *Image) Validate() error {
+// validateImage checks required fields, constraints, and enum values.
+func validateImage(data map[string]any) error {
 	var errs []error
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["tag"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("tag: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Job represents the OCSF Job object.
-// The Job object provides information about a scheduled job or task, including its name, command line, and state. It encompasses attributes that describe the properties and status of the scheduled job.
-type Job struct {
-	CmdLine     *string `mapstructure:"cmd_line,omitempty"`
-	CreatedTime *int64  `mapstructure:"created_time,omitempty"`
-	Desc        *string `mapstructure:"desc,omitempty"`
-	File        *File   `mapstructure:"file"`
-	LastRunTime *int64  `mapstructure:"last_run_time,omitempty"`
-	Name        *string `mapstructure:"name"`
-	NextRunTime *int64  `mapstructure:"next_run_time,omitempty"`
-	RunState    *string `mapstructure:"run_state,omitempty"`
-	RunStateID  *int    `mapstructure:"run_state_id,omitempty"`
-	User        *User   `mapstructure:"user,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Job.
-func (o *Job) Validate() error {
+// validateJob checks required fields, constraints, and enum values.
+func validateJob(data map[string]any) error {
 	var errs []error
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if v, ok := data["run_state_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("run_state_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["cmd_line"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cmd_line: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["run_state"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("run_state: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// KbArticle represents the OCSF KB Article object.
-// The KB Article object contains metadata that describes the patch or update.
-type KbArticle struct {
-	Bulletin       *string  `mapstructure:"bulletin,omitempty"`
-	Classification *string  `mapstructure:"classification,omitempty"`
-	CreatedTime    *int64   `mapstructure:"created_time,omitempty"`
-	IsSuperseded   *bool    `mapstructure:"is_superseded,omitempty"`
-	OS             *OS      `mapstructure:"os,omitempty"`
-	Product        *Product `mapstructure:"product,omitempty"`
-	Severity       *string  `mapstructure:"severity,omitempty"`
-	Size           *int64   `mapstructure:"size,omitempty"`
-	SrcURL         *string  `mapstructure:"src_url,omitempty"`
-	Title          *string  `mapstructure:"title,omitempty"`
-	UID            *string  `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for KbArticle.
-func (o *KbArticle) Validate() error {
+// validateKbArticle checks required fields, constraints, and enum values.
+func validateKbArticle(data map[string]any) error {
 	var errs []error
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if v, ok := data["bulletin"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("bulletin: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["classification"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("classification: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["os"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOS(m); err != nil {
+				errs = append(errs, fmt.Errorf("os: %w", err))
+			}
+		}
+	}
+	if v, ok := data["product"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("product: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Kernel represents the OCSF Kernel Resource object.
-// The Kernel Resource object provides information about a specific kernel resource, including its name and type. It describes essential attributes associated with a resource managed by the kernel of an operating system. Defined by D3FEND d3f:Kernel.
-type Kernel struct {
-	IsSystem   *bool   `mapstructure:"is_system,omitempty"`
-	Name       *string `mapstructure:"name"`
-	Path       *string `mapstructure:"path,omitempty"`
-	SystemCall *string `mapstructure:"system_call,omitempty"`
-	Type       *string `mapstructure:"type,omitempty"`
-	TypeID     *int    `mapstructure:"type_id"`
-}
-
-// Validate checks required fields, constraints, and enum values for Kernel.
-func (o *Kernel) Validate() error {
+// validateKernel checks required fields, constraints, and enum values.
+func validateKernel(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// KernelDriver represents the OCSF Kernel Extension object.
-// The Kernel Extension object describes a kernel driver that has been loaded or unloaded into the operating system (OS) kernel. Defined by D3FEND d3f:KernelModule.
-type KernelDriver struct {
-	File *File `mapstructure:"file"`
-}
-
-// Validate checks required fields, constraints, and enum values for KernelDriver.
-func (o *KernelDriver) Validate() error {
-	var errs []error
-	if o.File == nil {
-		errs = append(errs, errors.New("file is required"))
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["system_call"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("system_call: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// KeyboardInfo represents the OCSF Keyboard Information object.
-// The Keyboard Information object contains details and attributes related to a computer or device keyboard. It encompasses information that describes the characteristics, capabilities, and configuration of the keyboard.
-type KeyboardInfo struct {
-	FunctionKeys    *int    `mapstructure:"function_keys,omitempty"`
-	Ime             *string `mapstructure:"ime,omitempty"`
-	KeyboardLayout  *string `mapstructure:"keyboard_layout,omitempty"`
-	KeyboardSubtype *int    `mapstructure:"keyboard_subtype,omitempty"`
-	KeyboardType    *string `mapstructure:"keyboard_type,omitempty"`
-}
-
-// KillChainPhase represents the OCSF Kill Chain Phase object.
-// The Kill Chain Phase object represents a single phase of a cyber attack, including the initial reconnaissance and planning stages up to the final objective of the attacker. It provides a detailed description of each phase and its associated activities within the broader context of a cyber attack. See Cyber Kill Chain®.
-type KillChainPhase struct {
-	Phase   *string `mapstructure:"phase,omitempty"`
-	PhaseID *int    `mapstructure:"phase_id"`
-}
-
-// Validate checks required fields, constraints, and enum values for KillChainPhase.
-func (o *KillChainPhase) Validate() error {
+// validateKernelDriver checks required fields, constraints, and enum values.
+func validateKernelDriver(data map[string]any) error {
 	var errs []error
-	if o.PhaseID == nil {
+	if _, ok := data["file"]; !ok {
+		errs = append(errs, errors.New("file is required"))
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateKeyboardInfo checks required fields, constraints, and enum values.
+func validateKeyboardInfo(data map[string]any) error {
+	var errs []error
+	if v, ok := data["ime"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("ime: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["keyboard_layout"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("keyboard_layout: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["keyboard_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("keyboard_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateKillChainPhase checks required fields, constraints, and enum values.
+func validateKillChainPhase(data map[string]any) error {
+	var errs []error
+	if _, ok := data["phase_id"]; !ok {
 		errs = append(errs, errors.New("phase_id is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// LDAPPerson represents the OCSF LDAP Person object.
-// The additional LDAP attributes that describe a person.
-type LDAPPerson struct {
-	CostCenter     *string   `mapstructure:"cost_center,omitempty"`
-	CreatedTime    *int64    `mapstructure:"created_time,omitempty"`
-	DeletedTime    *int64    `mapstructure:"deleted_time,omitempty"`
-	EmailAddrs     []string  `mapstructure:"email_addrs,omitempty"`
-	EmployeeUID    *string   `mapstructure:"employee_uid,omitempty"`
-	GivenName      *string   `mapstructure:"given_name,omitempty"`
-	HireTime       *int64    `mapstructure:"hire_time,omitempty"`
-	JobTitle       *string   `mapstructure:"job_title,omitempty"`
-	Labels         []string  `mapstructure:"labels,omitempty"`
-	LastLoginTime  *int64    `mapstructure:"last_login_time,omitempty"`
-	LDAPCn         *string   `mapstructure:"ldap_cn,omitempty"`
-	LDAPDn         *string   `mapstructure:"ldap_dn,omitempty"`
-	LeaveTime      *int64    `mapstructure:"leave_time,omitempty"`
-	Location       *Location `mapstructure:"location,omitempty"`
-	Manager        *User     `mapstructure:"manager,omitempty"`
-	ModifiedTime   *int64    `mapstructure:"modified_time,omitempty"`
-	OfficeLocation *string   `mapstructure:"office_location,omitempty"`
-	Surname        *string   `mapstructure:"surname,omitempty"`
-}
-
-// LoadBalancer represents the OCSF Load Balancer object.
-// The load balancer object describes the load balancer entity and contains additional information regarding the distribution of traffic across a network.
-type LoadBalancer struct {
-	Classification      *string              `mapstructure:"classification,omitempty"`
-	Code                *int                 `mapstructure:"code,omitempty"`
-	DstEndpoint         *NetworkEndpoint     `mapstructure:"dst_endpoint,omitempty"`
-	EndpointConnections []EndpointConnection `mapstructure:"endpoint_connections,omitempty"`
-	ErrorMessage        *string              `mapstructure:"error_message,omitempty"`
-	Message             *string              `mapstructure:"message,omitempty"`
-	Metrics             []Metric             `mapstructure:"metrics,omitempty"`
-	Name                *string              `mapstructure:"name,omitempty"`
-	StatusDetail        *string              `mapstructure:"status_detail,omitempty"`
-	UID                 *string              `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for LoadBalancer.
-func (o *LoadBalancer) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["phase_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("phase_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["phase"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("phase: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Location represents the OCSF Geo Location object.
-// The Geo Location object describes a geographical location, usually associated with an IP address. Defined by D3FEND d3f:PhysicalLocation.
-type Location struct {
-	City         *string   `mapstructure:"city,omitempty"`
-	Continent    *string   `mapstructure:"continent,omitempty"`
-	Coordinates  []float64 `mapstructure:"coordinates,omitempty"`
-	Country      *string   `mapstructure:"country,omitempty"`
-	Desc         *string   `mapstructure:"desc,omitempty"`
-	IsOnPremises *bool     `mapstructure:"is_on_premises,omitempty"`
-	Isp          *string   `mapstructure:"isp,omitempty"`
-	PostalCode   *string   `mapstructure:"postal_code,omitempty"`
-	Provider     *string   `mapstructure:"provider,omitempty"`
-	Region       *string   `mapstructure:"region,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Location.
-func (o *Location) Validate() error {
+// validateLDAPPerson checks required fields, constraints, and enum values.
+func validateLDAPPerson(data map[string]any) error {
 	var errs []error
-	if o.City == nil && len(o.Coordinates) == 0 && o.Country == nil && o.PostalCode == nil && o.Region == nil {
-		errs = append(errs, errors.New("at least one of [city, coordinates, country, postal_code, region] must be set"))
+	if v, ok := data["cost_center"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cost_center: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["employee_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("employee_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["given_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("given_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["job_title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("job_title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ldap_cn"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("ldap_cn: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ldap_dn"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("ldap_dn: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["office_location"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("office_location: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["surname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("surname: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["location"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLocation(m); err != nil {
+				errs = append(errs, fmt.Errorf("location: %w", err))
+			}
+		}
+	}
+	if v, ok := data["manager"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("manager: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Logger represents the OCSF Logger object.
-// The Logger object represents the device and product where events are stored with times for receipt and transmission. This may be at the source device where the event occurred, a remote scanning device, intermediate hops, or the ultimate destination.
-type Logger struct {
-	Device       *Device  `mapstructure:"device,omitempty"`
-	LogLevel     *string  `mapstructure:"log_level,omitempty"`
-	LogName      *string  `mapstructure:"log_name,omitempty"`
-	LogProvider  *string  `mapstructure:"log_provider,omitempty"`
-	LogVersion   *string  `mapstructure:"log_version,omitempty"`
-	LoggedTime   *int64   `mapstructure:"logged_time,omitempty"`
-	Name         *string  `mapstructure:"name,omitempty"`
-	Product      *Product `mapstructure:"product,omitempty"`
-	TransmitTime *int64   `mapstructure:"transmit_time,omitempty"`
-	UID          *string  `mapstructure:"uid,omitempty"`
-	Version      *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Logger.
-func (o *Logger) Validate() error {
+// validateLoadBalancer checks required fields, constraints, and enum values.
+func validateLoadBalancer(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["classification"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("classification: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["error_message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("error_message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["endpoint_connections"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEndpointConnection(m); err != nil {
+						errs = append(errs, fmt.Errorf("endpoint_connections[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metrics"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateMetric(m); err != nil {
+						errs = append(errs, fmt.Errorf("metrics[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Malware represents the OCSF Malware object.
-// The Malware object describes the classification of known malicious software, which is intentionally designed to cause damage to a computer, server, client, or computer network.
-type Malware struct {
-	ClassificationIds []int    `mapstructure:"classification_ids"`
-	Classifications   []string `mapstructure:"classifications,omitempty"`
-	Cves              []CVE    `mapstructure:"cves,omitempty"`
-	Name              *string  `mapstructure:"name,omitempty"`
-	Path              *string  `mapstructure:"path,omitempty"`
-	Provider          *string  `mapstructure:"provider,omitempty"`
-	UID               *string  `mapstructure:"uid,omitempty"`
+// validateLocation checks required fields, constraints, and enum values.
+func validateLocation(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["city"]
+		_, ok1 := data["coordinates"]
+		_, ok2 := data["country"]
+		_, ok3 := data["postal_code"]
+		_, ok4 := data["region"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 {
+			errs = append(errs, errors.New("at least one of [city, coordinates, country, postal_code, region] must be set"))
+		}
+	}
+	if v, ok := data["city"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("city: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["continent"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("continent: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["country"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("country: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["isp"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("isp: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["postal_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("postal_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["region"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for Malware.
-func (o *Malware) Validate() error {
+// validateLogger checks required fields, constraints, and enum values.
+func validateLogger(data map[string]any) error {
 	var errs []error
-	if len(o.ClassificationIds) == 0 {
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["log_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["product"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("product: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateMalware checks required fields, constraints, and enum values.
+func validateMalware(data map[string]any) error {
+	var errs []error
+	if _, ok := data["classification_ids"]; !ok {
 		errs = append(errs, errors.New("classification_ids is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["cves"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateCVE(m); err != nil {
+						errs = append(errs, fmt.Errorf("cves[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// ManagedEntity represents the OCSF Managed Entity object.
-// The Managed Entity object describes the type and version of an entity, such as a policy or configuration.
-type ManagedEntity struct {
-	Data    any     `mapstructure:"data,omitempty"`
-	Name    *string `mapstructure:"name,omitempty"`
-	Type    *string `mapstructure:"type,omitempty"`
-	UID     *string `mapstructure:"uid,omitempty"`
-	Version *string `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ManagedEntity.
-func (o *ManagedEntity) Validate() error {
+// validateManagedEntity checks required fields, constraints, and enum values.
+func validateManagedEntity(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Metadata represents the OCSF Metadata object.
-// The Metadata object describes the metadata associated with the event. Defined by D3FEND d3f:Metadata.
-type Metadata struct {
-	CorrelationUID *string     `mapstructure:"correlation_uid,omitempty"`
-	EventCode      *string     `mapstructure:"event_code,omitempty"`
-	Extension      *Extension  `mapstructure:"extension,omitempty"`
-	Extensions     []Extension `mapstructure:"extensions,omitempty"`
-	Labels         []string    `mapstructure:"labels,omitempty"`
-	LogLevel       *string     `mapstructure:"log_level,omitempty"`
-	LogName        *string     `mapstructure:"log_name,omitempty"`
-	LogProvider    *string     `mapstructure:"log_provider,omitempty"`
-	LogVersion     *string     `mapstructure:"log_version,omitempty"`
-	LoggedTime     *int64      `mapstructure:"logged_time,omitempty"`
-	Loggers        []Logger    `mapstructure:"loggers,omitempty"`
-	ModifiedTime   *int64      `mapstructure:"modified_time,omitempty"`
-	OriginalTime   *string     `mapstructure:"original_time,omitempty"`
-	ProcessedTime  *int64      `mapstructure:"processed_time,omitempty"`
-	Product        *Product    `mapstructure:"product"`
-	Profiles       []string    `mapstructure:"profiles,omitempty"`
-	Sequence       *int        `mapstructure:"sequence,omitempty"`
-	TenantUID      *string     `mapstructure:"tenant_uid,omitempty"`
-	UID            *string     `mapstructure:"uid,omitempty"`
-	Version        *string     `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for Metadata.
-func (o *Metadata) Validate() error {
+// validateMetadata checks required fields, constraints, and enum values.
+func validateMetadata(data map[string]any) error {
 	var errs []error
-	if o.Product == nil {
+	if _, ok := data["product"]; !ok {
 		errs = append(errs, errors.New("product is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
+	}
+	if v, ok := data["correlation_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("correlation_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["event_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("event_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["log_version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("log_version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["original_time"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("original_time: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["tenant_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("tenant_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["extension"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateExtension(m); err != nil {
+				errs = append(errs, fmt.Errorf("extension: %w", err))
+			}
+		}
+	}
+	if v, ok := data["extensions"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateExtension(m); err != nil {
+						errs = append(errs, fmt.Errorf("extensions[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["loggers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateLogger(m); err != nil {
+						errs = append(errs, fmt.Errorf("loggers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["product"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("product: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Metric represents the OCSF Metric object.
-// The Metric object defines a simple name/value pair entity for a metric.
-type Metric struct {
-	Name  *string `mapstructure:"name"`
-	Value *string `mapstructure:"value"`
-}
-
-// Validate checks required fields, constraints, and enum values for Metric.
-func (o *Metric) Validate() error {
+// validateMetric checks required fields, constraints, and enum values.
+func validateMetric(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Value == nil {
+	if _, ok := data["value"]; !ok {
 		errs = append(errs, errors.New("value is required"))
 	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Module represents the OCSF Module object.
-// The Module object describes the load attributes of a module.
-type Module struct {
-	BaseAddress  *string `mapstructure:"base_address,omitempty"`
-	File         *File   `mapstructure:"file,omitempty"`
-	FunctionName *string `mapstructure:"function_name,omitempty"`
-	LoadType     *string `mapstructure:"load_type,omitempty"`
-	LoadTypeID   *int    `mapstructure:"load_type_id"`
-	StartAddress *string `mapstructure:"start_address,omitempty"`
-	Type         *string `mapstructure:"type,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Module.
-func (o *Module) Validate() error {
+// validateModule checks required fields, constraints, and enum values.
+func validateModule(data map[string]any) error {
 	var errs []error
-	if o.LoadTypeID == nil {
+	if _, ok := data["load_type_id"]; !ok {
 		errs = append(errs, errors.New("load_type_id is required"))
 	}
+	if v, ok := data["load_type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("load_type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["base_address"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("base_address: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["function_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("function_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["load_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("load_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["start_address"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("start_address: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// NetworkConnectionInfo represents the OCSF Network Connection Information object.
-// The Network Connection Information object describes characteristics of a network connection. Defined by D3FEND d3f:NetworkSession.
-type NetworkConnectionInfo struct {
-	Boundary      *string  `mapstructure:"boundary,omitempty"`
-	BoundaryID    *int     `mapstructure:"boundary_id,omitempty"`
-	Direction     *string  `mapstructure:"direction,omitempty"`
-	DirectionID   *int     `mapstructure:"direction_id"`
-	ProtocolName  *string  `mapstructure:"protocol_name,omitempty"`
-	ProtocolNum   *int     `mapstructure:"protocol_num,omitempty"`
-	ProtocolVer   *string  `mapstructure:"protocol_ver,omitempty"`
-	ProtocolVerID *int     `mapstructure:"protocol_ver_id,omitempty"`
-	Session       *Session `mapstructure:"session,omitempty"`
-	TCPFlags      *int     `mapstructure:"tcp_flags,omitempty"`
-	UID           *string  `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for NetworkConnectionInfo.
-func (o *NetworkConnectionInfo) Validate() error {
+// validateNetworkConnectionInfo checks required fields, constraints, and enum values.
+func validateNetworkConnectionInfo(data map[string]any) error {
 	var errs []error
-	if o.DirectionID == nil {
+	if _, ok := data["direction_id"]; !ok {
 		errs = append(errs, errors.New("direction_id is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// NetworkEndpoint represents the OCSF Network Endpoint object.
-// The Network Endpoint object describes characteristics of a network endpoint. These can be a source or destination of a network connection.
-type NetworkEndpoint struct {
-	Domain          *string       `mapstructure:"domain,omitempty"`
-	Hostname        *string       `mapstructure:"hostname,omitempty"`
-	HwInfo          *DeviceHwInfo `mapstructure:"hw_info,omitempty"`
-	InstanceUID     *string       `mapstructure:"instance_uid,omitempty"`
-	InterfaceName   *string       `mapstructure:"interface_name,omitempty"`
-	InterfaceUID    *string       `mapstructure:"interface_uid,omitempty"`
-	IntermediateIps []string      `mapstructure:"intermediate_ips,omitempty"`
-	IP              *string       `mapstructure:"ip,omitempty"`
-	Location        *Location     `mapstructure:"location,omitempty"`
-	MAC             *string       `mapstructure:"mac,omitempty"`
-	Name            *string       `mapstructure:"name,omitempty"`
-	OS              *OS           `mapstructure:"os,omitempty"`
-	Port            *int          `mapstructure:"port,omitempty"`
-	ProxyEndpoint   *NetworkProxy `mapstructure:"proxy_endpoint,omitempty"`
-	SubnetUID       *string       `mapstructure:"subnet_uid,omitempty"`
-	SvcName         *string       `mapstructure:"svc_name,omitempty"`
-	Type            *string       `mapstructure:"type,omitempty"`
-	TypeID          *int          `mapstructure:"type_id,omitempty"`
-	UID             *string       `mapstructure:"uid,omitempty"`
-	VlanUID         *string       `mapstructure:"vlan_uid,omitempty"`
-	VpcUID          *string       `mapstructure:"vpc_uid,omitempty"`
-	Zone            *string       `mapstructure:"zone,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for NetworkEndpoint.
-func (o *NetworkEndpoint) Validate() error {
-	var errs []error
-	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
+	if v, ok := data["boundary_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("boundary_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["direction_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("direction_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["protocol_ver_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 4, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("protocol_ver_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["boundary"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("boundary: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["direction"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("direction: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["protocol_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("protocol_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["protocol_ver"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["session"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSession(m); err != nil {
+				errs = append(errs, fmt.Errorf("session: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// NetworkInterface represents the OCSF Network Interface object.
-// The Network Interface object describes the type and associated attributes of a network interface.
-type NetworkInterface struct {
-	Hostname     *string `mapstructure:"hostname,omitempty"`
-	IP           *string `mapstructure:"ip,omitempty"`
-	MAC          *string `mapstructure:"mac,omitempty"`
-	Name         *string `mapstructure:"name,omitempty"`
-	Namespace    *string `mapstructure:"namespace,omitempty"`
-	SubnetPrefix *int    `mapstructure:"subnet_prefix,omitempty"`
-	Type         *string `mapstructure:"type,omitempty"`
-	TypeID       *int    `mapstructure:"type_id"`
-	UID          *string `mapstructure:"uid,omitempty"`
+// validateNetworkEndpoint checks required fields, constraints, and enum values.
+func validateNetworkEndpoint(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["hostname"]
+		_, ok1 := data["instance_uid"]
+		_, ok2 := data["interface_name"]
+		_, ok3 := data["interface_uid"]
+		_, ok4 := data["ip"]
+		_, ok5 := data["name"]
+		_, ok6 := data["svc_name"]
+		_, ok7 := data["uid"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 && !ok5 && !ok6 && !ok7 {
+			errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["instance_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 40 {
+				errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexIPT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("ip: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 32 {
+				errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexMACT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("mac: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["port"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			if intVal < 0 || intVal > 65535 {
+				errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", intVal))
+			}
+		}
+	}
+	if v, ok := data["subnet_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["svc_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vlan_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vpc_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["zone"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hw_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDeviceHwInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("hw_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["location"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLocation(m); err != nil {
+				errs = append(errs, fmt.Errorf("location: %w", err))
+			}
+		}
+	}
+	if v, ok := data["os"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOS(m); err != nil {
+				errs = append(errs, fmt.Errorf("os: %w", err))
+			}
+		}
+	}
+	if v, ok := data["proxy_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for NetworkInterface.
-func (o *NetworkInterface) Validate() error {
+// validateNetworkInterface checks required fields, constraints, and enum values.
+func validateNetworkInterface(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Hostname == nil && o.IP == nil && o.MAC == nil && o.Name == nil {
-		errs = append(errs, errors.New("at least one of [hostname, ip, mac, name] must be set"))
+	{
+		_, ok0 := data["hostname"]
+		_, ok1 := data["ip"]
+		_, ok2 := data["mac"]
+		_, ok3 := data["name"]
+		if !ok0 && !ok1 && !ok2 && !ok3 {
+			errs = append(errs, errors.New("at least one of [hostname, ip, mac, name] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 40 {
+				errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexIPT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("ip: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 32 {
+				errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexMACT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("mac: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["namespace"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("namespace: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// NetworkProxy represents the OCSF Network Proxy Endpoint object.
-// The network proxy endpoint object describes a proxy server, which acts as an intermediary between a client requesting a resource and the server providing that resource. Defined by D3FEND d3f:ProxyServer.
-type NetworkProxy struct {
-	Domain          *string       `mapstructure:"domain,omitempty"`
-	Hostname        *string       `mapstructure:"hostname,omitempty"`
-	HwInfo          *DeviceHwInfo `mapstructure:"hw_info,omitempty"`
-	InstanceUID     *string       `mapstructure:"instance_uid,omitempty"`
-	InterfaceName   *string       `mapstructure:"interface_name,omitempty"`
-	InterfaceUID    *string       `mapstructure:"interface_uid,omitempty"`
-	IntermediateIps []string      `mapstructure:"intermediate_ips,omitempty"`
-	IP              *string       `mapstructure:"ip,omitempty"`
-	Location        *Location     `mapstructure:"location,omitempty"`
-	MAC             *string       `mapstructure:"mac,omitempty"`
-	Name            *string       `mapstructure:"name,omitempty"`
-	OS              *OS           `mapstructure:"os,omitempty"`
-	Port            *int          `mapstructure:"port,omitempty"`
-	ProxyEndpoint   *NetworkProxy `mapstructure:"proxy_endpoint,omitempty"`
-	SubnetUID       *string       `mapstructure:"subnet_uid,omitempty"`
-	SvcName         *string       `mapstructure:"svc_name,omitempty"`
-	Type            *string       `mapstructure:"type,omitempty"`
-	TypeID          *int          `mapstructure:"type_id,omitempty"`
-	UID             *string       `mapstructure:"uid,omitempty"`
-	VlanUID         *string       `mapstructure:"vlan_uid,omitempty"`
-	VpcUID          *string       `mapstructure:"vpc_uid,omitempty"`
-	Zone            *string       `mapstructure:"zone,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for NetworkProxy.
-func (o *NetworkProxy) Validate() error {
+// validateNetworkProxy checks required fields, constraints, and enum values.
+func validateNetworkProxy(data map[string]any) error {
 	var errs []error
-	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
+	{
+		_, ok0 := data["hostname"]
+		_, ok1 := data["instance_uid"]
+		_, ok2 := data["interface_name"]
+		_, ok3 := data["interface_uid"]
+		_, ok4 := data["ip"]
+		_, ok5 := data["name"]
+		_, ok6 := data["svc_name"]
+		_, ok7 := data["uid"]
+		if !ok0 && !ok1 && !ok2 && !ok3 && !ok4 && !ok5 && !ok6 && !ok7 {
+			errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["instance_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("instance_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["interface_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("interface_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 40 {
+				errs = append(errs, fmt.Errorf("ip: length %d exceeds max 40", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ip"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexIPT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("ip: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 32 {
+				errs = append(errs, fmt.Errorf("mac: length %d exceeds max 32", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["mac"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexMACT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("mac: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["port"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			if intVal < 0 || intVal > 65535 {
+				errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", intVal))
+			}
+		}
+	}
+	if v, ok := data["subnet_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subnet_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["svc_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vlan_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vlan_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vpc_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["zone"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["hw_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDeviceHwInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("hw_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["location"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLocation(m); err != nil {
+				errs = append(errs, fmt.Errorf("location: %w", err))
+			}
+		}
+	}
+	if v, ok := data["os"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOS(m); err != nil {
+				errs = append(errs, fmt.Errorf("os: %w", err))
+			}
+		}
+	}
+	if v, ok := data["proxy_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// NetworkTraffic represents the OCSF Network Traffic object.
-// The Network Traffic object describes characteristics of network traffic. Network traffic refers to data moving across a network at a given point of time. Defined by D3FEND d3f:NetworkTraffic.
-type NetworkTraffic struct {
-	Bytes      *int64 `mapstructure:"bytes,omitempty"`
-	BytesIn    *int64 `mapstructure:"bytes_in,omitempty"`
-	BytesOut   *int64 `mapstructure:"bytes_out,omitempty"`
-	Chunks     *int64 `mapstructure:"chunks,omitempty"`
-	ChunksIn   *int64 `mapstructure:"chunks_in,omitempty"`
-	ChunksOut  *int64 `mapstructure:"chunks_out,omitempty"`
-	Packets    *int64 `mapstructure:"packets,omitempty"`
-	PacketsIn  *int64 `mapstructure:"packets_in,omitempty"`
-	PacketsOut *int64 `mapstructure:"packets_out,omitempty"`
-}
-
-// Object represents the OCSF Object object.
-// An unordered collection of attributes. It defines a set of attributes available in all objects. It can be also used as a generic object to log objects that are not otherwise defined by the schema.
-type Object struct {
-}
-
-// Observable represents the OCSF Observable object.
-// The observable object is a pivot element that contains related information found in many places in the event.
-type Observable struct {
-	Name       *string     `mapstructure:"name"`
-	Reputation *Reputation `mapstructure:"reputation,omitempty"`
-	Type       *string     `mapstructure:"type,omitempty"`
-	TypeID     *int        `mapstructure:"type_id"`
-	Value      *string     `mapstructure:"value,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Observable.
-func (o *Observable) Validate() error {
+// validateNetworkTraffic checks required fields, constraints, and enum values.
+func validateNetworkTraffic(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	return errors.Join(errs...)
+}
+
+// validateObject checks required fields, constraints, and enum values.
+func validateObject(data map[string]any) error {
+	var errs []error
+	return errors.Join(errs...)
+}
+
+// validateObservable checks required fields, constraints, and enum values.
+func validateObservable(data map[string]any) error {
+	var errs []error
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Organization represents the OCSF Organization object.
-// The Organization object describes characteristics of an organization or company and its division if any.
-type Organization struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	OuName *string `mapstructure:"ou_name,omitempty"`
-	OuUID  *string `mapstructure:"ou_uid,omitempty"`
-	UID    *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Organization.
-func (o *Organization) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["value"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["reputation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateReputation(m); err != nil {
+				errs = append(errs, fmt.Errorf("reputation: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// OS represents the OCSF Operating System (OS) object.
-// The Operating System (OS) object describes characteristics of an OS, such as Linux or Windows. Defined by D3FEND d3f:OperatingSystem.
-type OS struct {
-	Build   *string `mapstructure:"build,omitempty"`
-	Country *string `mapstructure:"country,omitempty"`
-	CpeName *string `mapstructure:"cpe_name,omitempty"`
-	CPUBits *int    `mapstructure:"cpu_bits,omitempty"`
-	Edition *string `mapstructure:"edition,omitempty"`
-	Lang    *string `mapstructure:"lang,omitempty"`
-	Name    *string `mapstructure:"name"`
-	SpName  *string `mapstructure:"sp_name,omitempty"`
-	SpVer   *int    `mapstructure:"sp_ver,omitempty"`
-	Type    *string `mapstructure:"type,omitempty"`
-	TypeID  *int    `mapstructure:"type_id"`
-	Version *string `mapstructure:"version,omitempty"`
+// validateOrganization checks required fields, constraints, and enum values.
+func validateOrganization(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ou_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("ou_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["ou_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("ou_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for OS.
-func (o *OS) Validate() error {
+// validateOS checks required fields, constraints, and enum values.
+func validateOS(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 99, 100, 101, 200, 201, 300, 301, 302, 400, 401, 402:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["build"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("build: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["country"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("country: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["cpe_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["edition"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("edition: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["lang"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("lang: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["sp_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("sp_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Package represents the OCSF Software Package object.
-// The Software Package object describes details about a software package. Defined by D3FEND d3f:SoftwarePackage.
-type Package struct {
-	Architecture *string `mapstructure:"architecture,omitempty"`
-	Epoch        *int    `mapstructure:"epoch,omitempty"`
-	License      *string `mapstructure:"license,omitempty"`
-	Name         *string `mapstructure:"name"`
-	Purl         *string `mapstructure:"purl,omitempty"`
-	Release      *string `mapstructure:"release,omitempty"`
-	Version      *string `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for Package.
-func (o *Package) Validate() error {
+// validatePackage checks required fields, constraints, and enum values.
+func validatePackage(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if v, ok := data["architecture"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("architecture: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["license"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("license: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["purl"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("purl: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["release"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("release: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// PeripheralDevice represents the OCSF Peripheral Device object.
-// The peripheral device object describes the identity, vendor and model of a peripheral device.
-type PeripheralDevice struct {
-	Class        *string `mapstructure:"class"`
-	Model        *string `mapstructure:"model,omitempty"`
-	Name         *string `mapstructure:"name"`
-	SerialNumber *string `mapstructure:"serial_number,omitempty"`
-	UID          *string `mapstructure:"uid,omitempty"`
-	VendorName   *string `mapstructure:"vendor_name,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for PeripheralDevice.
-func (o *PeripheralDevice) Validate() error {
+// validatePeripheralDevice checks required fields, constraints, and enum values.
+func validatePeripheralDevice(data map[string]any) error {
 	var errs []error
-	if o.Class == nil {
+	if _, ok := data["class"]; !ok {
 		errs = append(errs, errors.New("class is required"))
 	}
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["class"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["model"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("model: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["serial_number"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vendor_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Policy represents the OCSF Policy object.
-// The Policy object describes the policies that are applicable. Policy attributes provide traceability to the operational state of the security product at the time that the event was captured, facilitating forensics, troubleshooting, and policy tuning/adjustments.
-type Policy struct {
-	Desc    *string `mapstructure:"desc,omitempty"`
-	Group   *Group  `mapstructure:"group,omitempty"`
-	Name    *string `mapstructure:"name,omitempty"`
-	UID     *string `mapstructure:"uid,omitempty"`
-	Version *string `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Policy.
-func (o *Policy) Validate() error {
+// validatePolicy checks required fields, constraints, and enum values.
+func validatePolicy(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Process represents the OCSF Process object.
-// The Process object describes a running instance of a launched program. Defined by D3FEND d3f:Process.
-type Process struct {
-	CmdLine        *string  `mapstructure:"cmd_line,omitempty"`
-	CreatedTime    *int64   `mapstructure:"created_time,omitempty"`
-	File           *File    `mapstructure:"file,omitempty"`
-	Integrity      *string  `mapstructure:"integrity,omitempty"`
-	IntegrityID    *int     `mapstructure:"integrity_id,omitempty"`
-	Lineage        []string `mapstructure:"lineage,omitempty"`
-	LoadedModules  []string `mapstructure:"loaded_modules,omitempty"`
-	Name           *string  `mapstructure:"name,omitempty"`
-	ParentProcess  *Process `mapstructure:"parent_process,omitempty"`
-	Pid            *int     `mapstructure:"pid,omitempty"`
-	Sandbox        *string  `mapstructure:"sandbox,omitempty"`
-	Session        *Session `mapstructure:"session,omitempty"`
-	TerminatedTime *int64   `mapstructure:"terminated_time,omitempty"`
-	Tid            *int     `mapstructure:"tid,omitempty"`
-	UID            *string  `mapstructure:"uid,omitempty"`
-	User           *User    `mapstructure:"user,omitempty"`
-	Xattributes    *Object  `mapstructure:"xattributes,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Process.
-func (o *Process) Validate() error {
+// validateProcess checks required fields, constraints, and enum values.
+func validateProcess(data map[string]any) error {
 	var errs []error
-	if o.Pid == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [pid, uid] must be set"))
+	{
+		_, ok0 := data["pid"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [pid, uid] must be set"))
+		}
+	}
+	if v, ok := data["integrity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("integrity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["cmd_line"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cmd_line: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["integrity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("integrity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["sandbox"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("sandbox: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["parent_process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("parent_process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["session"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSession(m); err != nil {
+				errs = append(errs, fmt.Errorf("session: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
+		}
+	}
+	if v, ok := data["xattributes"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("xattributes: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Product represents the OCSF Product object.
-// The Product object describes characteristics of a software product.
-type Product struct {
-	CpeName    *string  `mapstructure:"cpe_name,omitempty"`
-	Feature    *Feature `mapstructure:"feature,omitempty"`
-	Lang       *string  `mapstructure:"lang,omitempty"`
-	Name       *string  `mapstructure:"name,omitempty"`
-	Path       *string  `mapstructure:"path,omitempty"`
-	UID        *string  `mapstructure:"uid,omitempty"`
-	URLString  *string  `mapstructure:"url_string,omitempty"`
-	VendorName *string  `mapstructure:"vendor_name"`
-	Version    *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Product.
-func (o *Product) Validate() error {
+// validateProduct checks required fields, constraints, and enum values.
+func validateProduct(data map[string]any) error {
 	var errs []error
-	if o.VendorName == nil {
+	if _, ok := data["vendor_name"]; !ok {
 		errs = append(errs, errors.New("vendor_name is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["cpe_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cpe_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["lang"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("lang: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vendor_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["feature"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFeature(m); err != nil {
+				errs = append(errs, fmt.Errorf("feature: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// QueryInfo represents the OCSF Query Information object.
-// The query info object holds information related to data access within a datastore. To access, manipulate, delete, or retrieve data from a datastore, a query must be written using a specific syntax.
-type QueryInfo struct {
-	Bytes       *int64  `mapstructure:"bytes,omitempty"`
-	Data        any     `mapstructure:"data,omitempty"`
-	Name        *string `mapstructure:"name,omitempty"`
-	QueryString *string `mapstructure:"query_string"`
-	QueryTime   *int64  `mapstructure:"query_time,omitempty"`
-	UID         *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for QueryInfo.
-func (o *QueryInfo) Validate() error {
+// validateQueryInfo checks required fields, constraints, and enum values.
+func validateQueryInfo(data map[string]any) error {
 	var errs []error
-	if o.QueryString == nil {
+	if _, ok := data["query_string"]; !ok {
 		errs = append(errs, errors.New("query_string is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["query_string"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("query_string: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// RelatedEvent represents the OCSF Related Event object.
-// The Related Event object describes an event related to a finding or detection as identified by the security product.
-type RelatedEvent struct {
-	Attacks     []Attack         `mapstructure:"attacks,omitempty"`
-	KillChain   []KillChainPhase `mapstructure:"kill_chain,omitempty"`
-	Observables []Observable     `mapstructure:"observables,omitempty"`
-	ProductUID  *string          `mapstructure:"product_uid,omitempty"`
-	Type        *string          `mapstructure:"type,omitempty"`
-	TypeUID     *int64           `mapstructure:"type_uid,omitempty"`
-	UID         *string          `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for RelatedEvent.
-func (o *RelatedEvent) Validate() error {
+// validateRelatedEvent checks required fields, constraints, and enum values.
+func validateRelatedEvent(data map[string]any) error {
 	var errs []error
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if v, ok := data["product_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("product_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["attacks"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAttack(m); err != nil {
+						errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["kill_chain"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKillChainPhase(m); err != nil {
+						errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Remediation represents the OCSF Remediation object.
-// The Remediation object describes the recommended remediation steps to address identified issue(s).
-type Remediation struct {
-	Desc          *string     `mapstructure:"desc"`
-	KbArticleList []KbArticle `mapstructure:"kb_article_list,omitempty"`
-	KbArticles    []string    `mapstructure:"kb_articles,omitempty"`
-	References    []string    `mapstructure:"references,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Remediation.
-func (o *Remediation) Validate() error {
+// validateRemediation checks required fields, constraints, and enum values.
+func validateRemediation(data map[string]any) error {
 	var errs []error
-	if o.Desc == nil {
+	if _, ok := data["desc"]; !ok {
 		errs = append(errs, errors.New("desc is required"))
 	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["kb_article_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKbArticle(m); err != nil {
+						errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Reputation represents the OCSF Reputation object.
-// The Reputation object describes the reputation/risk score of an entity (e.g. device, user, domain).
-type Reputation struct {
-	BaseScore *float64 `mapstructure:"base_score"`
-	Provider  *string  `mapstructure:"provider,omitempty"`
-	Score     *string  `mapstructure:"score,omitempty"`
-	ScoreID   *int     `mapstructure:"score_id"`
-}
-
-// Validate checks required fields, constraints, and enum values for Reputation.
-func (o *Reputation) Validate() error {
+// validateReputation checks required fields, constraints, and enum values.
+func validateReputation(data map[string]any) error {
 	var errs []error
-	if o.BaseScore == nil {
+	if _, ok := data["base_score"]; !ok {
 		errs = append(errs, errors.New("base_score is required"))
 	}
-	if o.ScoreID == nil {
+	if _, ok := data["score_id"]; !ok {
 		errs = append(errs, errors.New("score_id is required"))
 	}
+	if v, ok := data["score_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("score_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["provider"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("provider: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["score"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("score: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Request represents the OCSF Request Elements object.
-// The Request Elements object describes characteristics of an API request.
-type Request struct {
-	Containers []Container `mapstructure:"containers,omitempty"`
-	Data       any         `mapstructure:"data,omitempty"`
-	Flags      []string    `mapstructure:"flags,omitempty"`
-	UID        *string     `mapstructure:"uid"`
-}
-
-// Validate checks required fields, constraints, and enum values for Request.
-func (o *Request) Validate() error {
+// validateRequest checks required fields, constraints, and enum values.
+func validateRequest(data map[string]any) error {
 	var errs []error
-	if o.UID == nil {
+	if _, ok := data["uid"]; !ok {
 		errs = append(errs, errors.New("uid is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// ResourceDetails represents the OCSF Resource Details object.
-// The Resource Details object describes details about resources that were affected by the activity/event.
-type ResourceDetails struct {
-	Criticality *string  `mapstructure:"criticality,omitempty"`
-	Data        any      `mapstructure:"data,omitempty"`
-	Group       *Group   `mapstructure:"group,omitempty"`
-	Labels      []string `mapstructure:"labels,omitempty"`
-	Name        *string  `mapstructure:"name,omitempty"`
-	Namespace   *string  `mapstructure:"namespace,omitempty"`
-	Owner       *User    `mapstructure:"owner,omitempty"`
-	Type        *string  `mapstructure:"type,omitempty"`
-	UID         *string  `mapstructure:"uid,omitempty"`
-	Version     *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ResourceDetails.
-func (o *ResourceDetails) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["containers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateContainer(m); err != nil {
+						errs = append(errs, fmt.Errorf("containers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Response represents the OCSF Response Elements object.
-// The Response Elements object describes characteristics of an API response.
-type Response struct {
-	Code         *int        `mapstructure:"code,omitempty"`
-	Containers   []Container `mapstructure:"containers,omitempty"`
-	Data         any         `mapstructure:"data,omitempty"`
-	Error        *string     `mapstructure:"error,omitempty"`
-	ErrorMessage *string     `mapstructure:"error_message,omitempty"`
-	Flags        []string    `mapstructure:"flags,omitempty"`
-	Message      *string     `mapstructure:"message,omitempty"`
-}
-
-// RpcInterface represents the OCSF RPC Interface object.
-// The RPC Interface represents the remote procedure call interface used in the DCE/RPC session.
-type RpcInterface struct {
-	AckReason *int    `mapstructure:"ack_reason,omitempty"`
-	AckResult *int    `mapstructure:"ack_result,omitempty"`
-	Uuid      *string `mapstructure:"uuid"`
-	Version   *string `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for RpcInterface.
-func (o *RpcInterface) Validate() error {
+// validateResourceDetails checks required fields, constraints, and enum values.
+func validateResourceDetails(data map[string]any) error {
 	var errs []error
-	if o.Uuid == nil {
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["criticality"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("criticality: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["namespace"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("namespace: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
+			}
+		}
+	}
+	if v, ok := data["owner"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("owner: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateResponse checks required fields, constraints, and enum values.
+func validateResponse(data map[string]any) error {
+	var errs []error
+	if v, ok := data["error"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("error: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["error_message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("error_message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["containers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateContainer(m); err != nil {
+						errs = append(errs, fmt.Errorf("containers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateRpcInterface checks required fields, constraints, and enum values.
+func validateRpcInterface(data map[string]any) error {
+	var errs []error
+	if _, ok := data["uuid"]; !ok {
 		errs = append(errs, errors.New("uuid is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// Rule represents the OCSF Rule object.
-// The Rule object describes characteristics of a rule associated with a policy or an event.
-type Rule struct {
-	Category *string `mapstructure:"category,omitempty"`
-	Desc     *string `mapstructure:"desc,omitempty"`
-	Name     *string `mapstructure:"name,omitempty"`
-	Type     *string `mapstructure:"type,omitempty"`
-	UID      *string `mapstructure:"uid,omitempty"`
-	Version  *string `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Rule.
-func (o *Rule) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["uuid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexUuidT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("uuid: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// San represents the OCSF Subject Alternative Name object.
-// The Subject Alternative name (SAN) object describes a SAN secured by a digital certificate
-type San struct {
-	Name *string `mapstructure:"name"`
-	Type *string `mapstructure:"type"`
+// validateRule checks required fields, constraints, and enum values.
+func validateRule(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["category"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for San.
-func (o *San) Validate() error {
+// validateSan checks required fields, constraints, and enum values.
+func validateSan(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Type == nil {
+	if _, ok := data["type"]; !ok {
 		errs = append(errs, errors.New("type is required"))
 	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// Scan represents the OCSF Scan object.
-// The Scan object describes characteristics of a proactive scan.
-type Scan struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	Type   *string `mapstructure:"type,omitempty"`
-	TypeID *int    `mapstructure:"type_id"`
-	UID    *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Scan.
-func (o *Scan) Validate() error {
+// validateScan checks required fields, constraints, and enum values.
+func validateScan(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// SecurityState represents the OCSF Security State object.
-// The Security State object describes the security related state of a managed entity.
-type SecurityState struct {
-	State   *string `mapstructure:"state,omitempty"`
-	StateID *int    `mapstructure:"state_id,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for SecurityState.
-func (o *SecurityState) Validate() error {
+// validateSecurityState checks required fields, constraints, and enum values.
+func validateSecurityState(data map[string]any) error {
 	var errs []error
-	return errors.Join(errs...)
-}
-
-// Service represents the OCSF Service object.
-// The Service object describes characteristics of a service, e.g. AWS EC2.
-type Service struct {
-	Labels  []string `mapstructure:"labels,omitempty"`
-	Name    *string  `mapstructure:"name,omitempty"`
-	UID     *string  `mapstructure:"uid,omitempty"`
-	Version *string  `mapstructure:"version,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Service.
-func (o *Service) Validate() error {
-	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["state_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 99:
+			default:
+				errs = append(errs, fmt.Errorf("state_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["state"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Session represents the OCSF Session object.
-// The Session object describes details about an authenticated session. e.g. Session Creation Time, Session Issuer. Defined by D3FEND d3f:Session.
-type Session struct {
-	Count            *int    `mapstructure:"count,omitempty"`
-	CreatedTime      *int64  `mapstructure:"created_time,omitempty"`
-	CredentialUID    *string `mapstructure:"credential_uid,omitempty"`
-	ExpirationReason *string `mapstructure:"expiration_reason,omitempty"`
-	ExpirationTime   *int64  `mapstructure:"expiration_time,omitempty"`
-	IsMFA            *bool   `mapstructure:"is_mfa,omitempty"`
-	IsRemote         *bool   `mapstructure:"is_remote,omitempty"`
-	IsVPN            *bool   `mapstructure:"is_vpn,omitempty"`
-	Issuer           *string `mapstructure:"issuer,omitempty"`
-	Terminal         *string `mapstructure:"terminal,omitempty"`
-	UID              *string `mapstructure:"uid,omitempty"`
-	UIDAlt           *string `mapstructure:"uid_alt,omitempty"`
-	Uuid             *string `mapstructure:"uuid,omitempty"`
-}
-
-// SubTechnique represents the OCSF Sub Technique object.
-// The Sub Technique object describes the sub technique ID and/or name associated to an attack, as defined by ATT&CK MatrixTM.
-type SubTechnique struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	SrcURL *string `mapstructure:"src_url,omitempty"`
-	UID    *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for SubTechnique.
-func (o *SubTechnique) Validate() error {
+// validateService checks required fields, constraints, and enum values.
+func validateService(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Table represents the OCSF Table object.
-// The table object represents a table within a structured relational database or datastore, which contains columns and rows of data that are able to be create, updated, deleted and queried.
-type Table struct {
-	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
-	Desc         *string `mapstructure:"desc,omitempty"`
-	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
-	Name         *string `mapstructure:"name,omitempty"`
-	Size         *int64  `mapstructure:"size,omitempty"`
-	UID          *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Table.
-func (o *Table) Validate() error {
+// validateSession checks required fields, constraints, and enum values.
+func validateSession(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	if v, ok := data["credential_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("credential_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["expiration_reason"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("expiration_reason: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["issuer"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("issuer: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["terminal"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("terminal: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid_alt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uuid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexUuidT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("uuid: invalid value %q", strVal))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Tactic represents the OCSF Tactic object.
-// The Tactic object describes the tactic ID and/or name that is associated to an attack, as defined by ATT&CK MatrixTM.
-type Tactic struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	SrcURL *string `mapstructure:"src_url,omitempty"`
-	UID    *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Tactic.
-func (o *Tactic) Validate() error {
+// validateSubTechnique checks required fields, constraints, and enum values.
+func validateSubTechnique(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Technique represents the OCSF Technique object.
-// The Technique object describes the technique ID and/or name associated to an attack, as defined by ATT&CK MatrixTM.
-type Technique struct {
-	Name   *string `mapstructure:"name,omitempty"`
-	SrcURL *string `mapstructure:"src_url,omitempty"`
-	UID    *string `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Technique.
-func (o *Technique) Validate() error {
+// validateTable checks required fields, constraints, and enum values.
+func validateTable(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["groups"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateGroup(m); err != nil {
+						errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+					}
+				}
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// TLS represents the OCSF Transport Layer Security (TLS) object.
-// The Transport Layer Security (TLS) object describes the negotiated TLS protocol used for secure communications over an establish network connection.
-type TLS struct {
-	Alert            *int           `mapstructure:"alert,omitempty"`
-	Certificate      *Certificate   `mapstructure:"certificate,omitempty"`
-	CertificateChain []string       `mapstructure:"certificate_chain,omitempty"`
-	Cipher           *string        `mapstructure:"cipher,omitempty"`
-	ClientCiphers    []string       `mapstructure:"client_ciphers,omitempty"`
-	ExtensionList    []TLSExtension `mapstructure:"extension_list,omitempty"`
-	HandshakeDur     *int           `mapstructure:"handshake_dur,omitempty"`
-	Ja3Hash          *Fingerprint   `mapstructure:"ja3_hash,omitempty"`
-	Ja3sHash         *Fingerprint   `mapstructure:"ja3s_hash,omitempty"`
-	KeyLength        *int           `mapstructure:"key_length,omitempty"`
-	Sans             []San          `mapstructure:"sans,omitempty"`
-	ServerCiphers    []string       `mapstructure:"server_ciphers,omitempty"`
-	Sni              *string        `mapstructure:"sni,omitempty"`
-	TLSExtensionList []TLSExtension `mapstructure:"tls_extension_list,omitempty"`
-	Version          *string        `mapstructure:"version"`
+// validateTactic checks required fields, constraints, and enum values.
+func validateTactic(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for TLS.
-func (o *TLS) Validate() error {
+// validateTechnique checks required fields, constraints, and enum values.
+func validateTechnique(data map[string]any) error {
 	var errs []error
-	if o.Version == nil {
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateTLS checks required fields, constraints, and enum values.
+func validateTLS(data map[string]any) error {
+	var errs []error
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if v, ok := data["cipher"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cipher: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["sni"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("sni: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["certificate"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCertificate(m); err != nil {
+				errs = append(errs, fmt.Errorf("certificate: %w", err))
+			}
+		}
+	}
+	if v, ok := data["extension_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateTLSExtension(m); err != nil {
+						errs = append(errs, fmt.Errorf("extension_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["ja3_hash"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFingerprint(m); err != nil {
+				errs = append(errs, fmt.Errorf("ja3_hash: %w", err))
+			}
+		}
+	}
+	if v, ok := data["ja3s_hash"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFingerprint(m); err != nil {
+				errs = append(errs, fmt.Errorf("ja3s_hash: %w", err))
+			}
+		}
+	}
+	if v, ok := data["sans"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateSan(m); err != nil {
+						errs = append(errs, fmt.Errorf("sans[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["tls_extension_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateTLSExtension(m); err != nil {
+						errs = append(errs, fmt.Errorf("tls_extension_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// TLSExtension represents the OCSF TLS Extension object.
-// The TLS Extension object describes additional attributes that extend the base Transport Layer Security (TLS) object.
-type TLSExtension struct {
-	Data   any     `mapstructure:"data,omitempty"`
-	Type   *string `mapstructure:"type,omitempty"`
-	TypeID *int    `mapstructure:"type_id"`
-}
-
-// Validate checks required fields, constraints, and enum values for TLSExtension.
-func (o *TLSExtension) Validate() error {
+// validateTLSExtension checks required fields, constraints, and enum values.
+func validateTLSExtension(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	return errors.Join(errs...)
-}
-
-// URL represents the OCSF Uniform Resource Locator object.
-// The Uniform Resource Locator(URL) object describes the characteristics of a URL. Defined in RFC 1738 and by D3FEND d3f:URL.
-type URL struct {
-	Categories   []string `mapstructure:"categories,omitempty"`
-	CategoryIds  []int    `mapstructure:"category_ids,omitempty"`
-	Hostname     *string  `mapstructure:"hostname,omitempty"`
-	Path         *string  `mapstructure:"path,omitempty"`
-	Port         *int     `mapstructure:"port,omitempty"`
-	QueryString  *string  `mapstructure:"query_string,omitempty"`
-	ResourceType *string  `mapstructure:"resource_type,omitempty"`
-	Scheme       *string  `mapstructure:"scheme,omitempty"`
-	Subdomain    *string  `mapstructure:"subdomain,omitempty"`
-	URLString    *string  `mapstructure:"url_string,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for URL.
-func (o *URL) Validate() error {
-	var errs []error
-	if o.Path == nil && o.URLString == nil {
-		errs = append(errs, errors.New("at least one of [path, url_string] must be set"))
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 5, 10, 13, 14, 15, 16, 18, 19, 20, 21, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// User represents the OCSF User object.
-// The User object describes the characteristics of a user/person or a security principal. Defined by D3FEND d3f:UserAccount.
-type User struct {
-	Account       *Account      `mapstructure:"account,omitempty"`
-	CredentialUID *string       `mapstructure:"credential_uid,omitempty"`
-	Domain        *string       `mapstructure:"domain,omitempty"`
-	EmailAddr     *string       `mapstructure:"email_addr,omitempty"`
-	FullName      *string       `mapstructure:"full_name,omitempty"`
-	Groups        []Group       `mapstructure:"groups,omitempty"`
-	LDAPPerson    *LDAPPerson   `mapstructure:"ldap_person,omitempty"`
-	Name          *string       `mapstructure:"name,omitempty"`
-	Org           *Organization `mapstructure:"org,omitempty"`
-	Type          *string       `mapstructure:"type,omitempty"`
-	TypeID        *int          `mapstructure:"type_id,omitempty"`
-	UID           *string       `mapstructure:"uid,omitempty"`
-	UIDAlt        *string       `mapstructure:"uid_alt,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for User.
-func (o *User) Validate() error {
+// validateURL checks required fields, constraints, and enum values.
+func validateURL(data map[string]any) error {
 	var errs []error
-	if o.Account == nil && o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [account, name, uid] must be set"))
+	{
+		_, ok0 := data["path"]
+		_, ok1 := data["url_string"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [path, url_string] must be set"))
+		}
+	}
+	if v, ok := data["hostname"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexHostnameT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hostname: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["port"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			if intVal < 0 || intVal > 65535 {
+				errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", intVal))
+			}
+		}
+	}
+	if v, ok := data["query_string"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("query_string: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["resource_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("resource_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["scheme"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("scheme: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["subdomain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("subdomain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// Vulnerability represents the OCSF Vulnerability Details object.
-// The vulnerability is an unintended characteristic of a computing component or system configuration that multiplies the risk of an adverse event or a loss occurring either due to accidental exposure, deliberate attack, or conflict with new system components.
-type Vulnerability struct {
-	AffectedCode           []AffectedCode    `mapstructure:"affected_code,omitempty"`
-	AffectedPackages       []AffectedPackage `mapstructure:"affected_packages,omitempty"`
-	CVE                    *CVE              `mapstructure:"cve,omitempty"`
-	Cwe                    *Cwe              `mapstructure:"cwe,omitempty"`
-	Desc                   *string           `mapstructure:"desc,omitempty"`
-	FirstSeenTime          *int64            `mapstructure:"first_seen_time,omitempty"`
-	FixAvailable           *bool             `mapstructure:"fix_available,omitempty"`
-	IsExploitAvailable     *bool             `mapstructure:"is_exploit_available,omitempty"`
-	IsFixAvailable         *bool             `mapstructure:"is_fix_available,omitempty"`
-	KbArticleList          []KbArticle       `mapstructure:"kb_article_list,omitempty"`
-	KbArticles             []string          `mapstructure:"kb_articles,omitempty"`
-	LastSeenTime           *int64            `mapstructure:"last_seen_time,omitempty"`
-	Packages               []Package         `mapstructure:"packages,omitempty"`
-	References             []string          `mapstructure:"references,omitempty"`
-	RelatedVulnerabilities []string          `mapstructure:"related_vulnerabilities,omitempty"`
-	Remediation            *Remediation      `mapstructure:"remediation,omitempty"`
-	Severity               *string           `mapstructure:"severity,omitempty"`
-	Title                  *string           `mapstructure:"title,omitempty"`
-	VendorName             *string           `mapstructure:"vendor_name,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for Vulnerability.
-func (o *Vulnerability) Validate() error {
+// validateUser checks required fields, constraints, and enum values.
+func validateUser(data map[string]any) error {
 	var errs []error
-	if o.CVE == nil && o.Cwe == nil {
-		errs = append(errs, errors.New("at least one of [cve, cwe] must be set"))
+	{
+		_, ok0 := data["account"]
+		_, ok1 := data["name"]
+		_, ok2 := data["uid"]
+		if !ok0 && !ok1 && !ok2 {
+			errs = append(errs, errors.New("at least one of [account, name, uid] must be set"))
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["credential_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("credential_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["domain"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("domain: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["email_addr"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexEmailT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("email_addr: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["full_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("full_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid_alt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["account"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAccount(m); err != nil {
+				errs = append(errs, fmt.Errorf("account: %w", err))
+			}
+		}
+	}
+	if v, ok := data["groups"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateGroup(m); err != nil {
+						errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["ldap_person"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateLDAPPerson(m); err != nil {
+				errs = append(errs, fmt.Errorf("ldap_person: %w", err))
+			}
+		}
+	}
+	if v, ok := data["org"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateOrganization(m); err != nil {
+				errs = append(errs, fmt.Errorf("org: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// WebResource represents the OCSF Web Resource object.
-// The Web Resource object describes characteristics of a web resource that was affected by the activity/event.
-type WebResource struct {
-	Data      any      `mapstructure:"data,omitempty"`
-	Desc      *string  `mapstructure:"desc,omitempty"`
-	Labels    []string `mapstructure:"labels,omitempty"`
-	Name      *string  `mapstructure:"name,omitempty"`
-	Type      *string  `mapstructure:"type,omitempty"`
-	UID       *string  `mapstructure:"uid,omitempty"`
-	URLString *string  `mapstructure:"url_string,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WebResource.
-func (o *WebResource) Validate() error {
+// validateVulnerability checks required fields, constraints, and enum values.
+func validateVulnerability(data map[string]any) error {
 	var errs []error
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["cve"]
+		_, ok1 := data["cwe"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [cve, cwe] must be set"))
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["title"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("title: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["vendor_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["affected_code"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAffectedCode(m); err != nil {
+						errs = append(errs, fmt.Errorf("affected_code[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["affected_packages"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAffectedPackage(m); err != nil {
+						errs = append(errs, fmt.Errorf("affected_packages[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["cve"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCVE(m); err != nil {
+				errs = append(errs, fmt.Errorf("cve: %w", err))
+			}
+		}
+	}
+	if v, ok := data["cwe"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCwe(m); err != nil {
+				errs = append(errs, fmt.Errorf("cwe: %w", err))
+			}
+		}
+	}
+	if v, ok := data["kb_article_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKbArticle(m); err != nil {
+						errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["packages"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validatePackage(m); err != nil {
+						errs = append(errs, fmt.Errorf("packages[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinRegKey represents the OCSF Registry Key object.
-// The registry key object describes a Windows registry key. Defined by D3FEND d3f:WindowsRegistryKey.
-type WinRegKey struct {
-	IsSystem           *bool   `mapstructure:"is_system,omitempty"`
-	ModifiedTime       *int64  `mapstructure:"modified_time,omitempty"`
-	Path               *string `mapstructure:"path"`
-	SecurityDescriptor *string `mapstructure:"security_descriptor,omitempty"`
+// validateWebResource checks required fields, constraints, and enum values.
+func validateWebResource(data map[string]any) error {
+	var errs []error
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
-// Validate checks required fields, constraints, and enum values for WinRegKey.
-func (o *WinRegKey) Validate() error {
+// validateWinRegKey checks required fields, constraints, and enum values.
+func validateWinRegKey(data map[string]any) error {
 	var errs []error
-	if o.Path == nil {
+	if _, ok := data["path"]; !ok {
 		errs = append(errs, errors.New("path is required"))
 	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["security_descriptor"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("security_descriptor: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// WinRegValue represents the OCSF Registry Value object.
-// The registry value object describes a Windows registry value.
-type WinRegValue struct {
-	Data         any     `mapstructure:"data,omitempty"`
-	IsDefault    *bool   `mapstructure:"is_default,omitempty"`
-	IsSystem     *bool   `mapstructure:"is_system,omitempty"`
-	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
-	Name         *string `mapstructure:"name"`
-	Path         *string `mapstructure:"path"`
-	Type         *string `mapstructure:"type,omitempty"`
-	TypeID       *int    `mapstructure:"type_id,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinRegValue.
-func (o *WinRegValue) Validate() error {
+// validateWinRegValue checks required fields, constraints, and enum values.
+func validateWinRegValue(data map[string]any) error {
 	var errs []error
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.Path == nil {
+	if _, ok := data["path"]; !ok {
 		errs = append(errs, errors.New("path is required"))
 	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["path"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("path: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	return errors.Join(errs...)
 }
 
-// WinWinResource represents the OCSF Windows Resource object.
-// The Windows resource object describes a resource object managed by Windows, such as mutant or timer.
-type WinWinResource struct {
-	Data    any      `mapstructure:"data,omitempty"`
-	Details *string  `mapstructure:"details,omitempty"`
-	Labels  []string `mapstructure:"labels,omitempty"`
-	Name    *string  `mapstructure:"name,omitempty"`
-	SvcName *string  `mapstructure:"svc_name,omitempty"`
-	Type    *string  `mapstructure:"type,omitempty"`
-	TypeID  *int     `mapstructure:"type_id"`
-	UID     *string  `mapstructure:"uid,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinWinResource.
-func (o *WinWinResource) Validate() error {
+// validateWinWinResource checks required fields, constraints, and enum values.
+func validateWinWinResource(data map[string]any) error {
 	var errs []error
-	if o.TypeID == nil {
+	if _, ok := data["type_id"]; !ok {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.Name == nil && o.UID == nil {
-		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	{
+		_, ok0 := data["name"]
+		_, ok1 := data["uid"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+		}
 	}
-	return errors.Join(errs...)
-}
-
-// AccountChange represents the OCSF Account Change event class (UID: 3001).
-// Account Change events report when specific user account management tasks are performed, such as a user/role being created, changed, deleted, renamed, disabled, enabled, locked out or unlocked.
-type AccountChange struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor           `mapstructure:"actor,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	Policy         *Policy          `mapstructure:"policy,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	User           *User            `mapstructure:"user"`
-	UserResult     *User            `mapstructure:"user_result,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for AccountChange.
-func (o *AccountChange) Validate() error {
-	var errs []error
-	if o.ActivityID == nil {
-		errs = append(errs, errors.New("activity_id is required"))
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
 	}
-	if o.CategoryUID == nil {
-		errs = append(errs, errors.New("category_uid is required"))
+	if v, ok := data["details"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("details: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.ClassUID == nil {
-		errs = append(errs, errors.New("class_uid is required"))
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.Metadata == nil {
-		errs = append(errs, errors.New("metadata is required"))
+	if v, ok := data["svc_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("svc_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.SeverityID == nil {
-		errs = append(errs, errors.New("severity_id is required"))
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
 	}
-	if o.Time == nil {
-		errs = append(errs, errors.New("time is required"))
-	}
-	if o.TypeUID == nil {
-		errs = append(errs, errors.New("type_uid is required"))
-	}
-	if o.User == nil {
-		errs = append(errs, errors.New("user is required"))
-	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300100, 300101, 300102, 300103, 300104, 300105, 300106, 300107, 300108, 300109, 300110, 300111, 300199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(strVal)))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// APIActivity represents the OCSF API Activity event class (UID: 6003).
-// API events describe general CRUD (Create, Read, Update, Delete) API activities, e.g. (AWS Cloudtrail)
-type APIActivity struct {
-	ActivityID     *int              `mapstructure:"activity_id"`
-	ActivityName   *string           `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor            `mapstructure:"actor"`
-	API            *API              `mapstructure:"api"`
-	CategoryName   *string           `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int              `mapstructure:"category_uid"`
-	ClassName      *string           `mapstructure:"class_name,omitempty"`
-	ClassUID       *int              `mapstructure:"class_uid"`
-	Count          *int              `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint  `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int              `mapstructure:"duration,omitempty"`
-	EndTime        *int64            `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment      `mapstructure:"enrichments,omitempty"`
-	HTTPRequest    *HTTPRequest      `mapstructure:"http_request,omitempty"`
-	Message        *string           `mapstructure:"message,omitempty"`
-	Metadata       *Metadata         `mapstructure:"metadata"`
-	Observables    []Observable      `mapstructure:"observables,omitempty"`
-	RawData        *string           `mapstructure:"raw_data,omitempty"`
-	Resources      []ResourceDetails `mapstructure:"resources,omitempty"`
-	Severity       *string           `mapstructure:"severity,omitempty"`
-	SeverityID     *int              `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint  `mapstructure:"src_endpoint"`
-	StartTime      *int64            `mapstructure:"start_time,omitempty"`
-	Status         *string           `mapstructure:"status,omitempty"`
-	StatusCode     *string           `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string           `mapstructure:"status_detail,omitempty"`
-	StatusID       *int              `mapstructure:"status_id,omitempty"`
-	Time           *int64            `mapstructure:"time"`
-	TimezoneOffset *int              `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string           `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64            `mapstructure:"type_uid"`
-	Unmapped       *Object           `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for APIActivity.
-func (o *APIActivity) Validate() error {
+// validateAccountChange checks required fields, constraints, and enum values.
+func validateAccountChange(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["category_uid"]; !ok {
+		errs = append(errs, errors.New("category_uid is required"))
+	}
+	if _, ok := data["class_uid"]; !ok {
+		errs = append(errs, errors.New("class_uid is required"))
+	}
+	if _, ok := data["metadata"]; !ok {
+		errs = append(errs, errors.New("metadata is required"))
+	}
+	if _, ok := data["severity_id"]; !ok {
+		errs = append(errs, errors.New("severity_id is required"))
+	}
+	if _, ok := data["time"]; !ok {
+		errs = append(errs, errors.New("time is required"))
+	}
+	if _, ok := data["type_uid"]; !ok {
+		errs = append(errs, errors.New("type_uid is required"))
+	}
+	if _, ok := data["user"]; !ok {
+		errs = append(errs, errors.New("user is required"))
+	}
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300100, 300101, 300102, 300103, 300104, 300105, 300106, 300107, 300108, 300109, 300110, 300111, 300199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["policy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validatePolicy(m); err != nil {
+				errs = append(errs, fmt.Errorf("policy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user_result"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user_result: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateAPIActivity checks required fields, constraints, and enum values.
+func validateAPIActivity(data map[string]any) error {
+	var errs []error
+	if _, ok := data["activity_id"]; !ok {
+		errs = append(errs, errors.New("activity_id is required"))
+	}
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.API == nil {
+	if _, ok := data["api"]; !ok {
 		errs = append(errs, errors.New("api is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600300, 600301, 600302, 600303, 600304, 600399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600300, 600301, 600302, 600303, 600304, 600399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["api"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAPI(m); err != nil {
+				errs = append(errs, fmt.Errorf("api: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["resources"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateResourceDetails(m); err != nil {
+						errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ApplicationLifecycle represents the OCSF Application Lifecycle event class (UID: 6002).
-// Application Lifecycle events report installation, removal, start, stop of an application or service.
-type ApplicationLifecycle struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	App            *Product     `mapstructure:"app"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ApplicationLifecycle.
-func (o *ApplicationLifecycle) Validate() error {
+// validateApplicationLifecycle checks required fields, constraints, and enum values.
+func validateApplicationLifecycle(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.App == nil {
+	if _, ok := data["app"]; !ok {
 		errs = append(errs, errors.New("app is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600200, 600201, 600202, 600203, 600204, 600299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600200, 600201, 600202, 600203, 600204, 600299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProduct(m); err != nil {
+				errs = append(errs, fmt.Errorf("app: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// Authentication represents the OCSF Authentication event class (UID: 3002).
-// Authentication events report authentication session activities such as user attempts a logon or logoff, successfully or otherwise.
-type Authentication struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor           `mapstructure:"actor,omitempty"`
-	AuthProtocol   *string          `mapstructure:"auth_protocol,omitempty"`
-	AuthProtocolID *int             `mapstructure:"auth_protocol_id,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	Certificate    *Certificate     `mapstructure:"certificate,omitempty"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
-	IsCleartext    *bool            `mapstructure:"is_cleartext,omitempty"`
-	IsMFA          *bool            `mapstructure:"is_mfa,omitempty"`
-	IsNewLogon     *bool            `mapstructure:"is_new_logon,omitempty"`
-	IsRemote       *bool            `mapstructure:"is_remote,omitempty"`
-	LogonProcess   *Process         `mapstructure:"logon_process,omitempty"`
-	LogonType      *string          `mapstructure:"logon_type,omitempty"`
-	LogonTypeID    *int             `mapstructure:"logon_type_id,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Service        *Service         `mapstructure:"service,omitempty"`
-	Session        *Session         `mapstructure:"session,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	User           *User            `mapstructure:"user"`
-}
-
-// Validate checks required fields, constraints, and enum values for Authentication.
-func (o *Authentication) Validate() error {
+// validateAuthentication checks required fields, constraints, and enum values.
+func validateAuthentication(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.User == nil {
+	if _, ok := data["user"]; !ok {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.DstEndpoint == nil && o.Service == nil {
-		errs = append(errs, errors.New("at least one of [dst_endpoint, service] must be set"))
+	{
+		_, ok0 := data["dst_endpoint"]
+		_, ok1 := data["service"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [dst_endpoint, service] must be set"))
+		}
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300200, 300201, 300202, 300203, 300204, 300205, 300299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["auth_protocol_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("auth_protocol_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["logon_type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 99:
+			default:
+				errs = append(errs, fmt.Errorf("logon_type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300200, 300201, 300202, 300203, 300204, 300205, 300299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["auth_protocol"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("auth_protocol: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["logon_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("logon_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["certificate"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCertificate(m); err != nil {
+				errs = append(errs, fmt.Errorf("certificate: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["logon_process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("logon_process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["service"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateService(m); err != nil {
+				errs = append(errs, fmt.Errorf("service: %w", err))
+			}
+		}
+	}
+	if v, ok := data["session"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSession(m); err != nil {
+				errs = append(errs, fmt.Errorf("session: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// AuthorizeSession represents the OCSF Authorize Session event class (UID: 3003).
-// Authorize Session events report privileges or groups assigned to a new user session, usually at login time.
-type AuthorizeSession struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	Group          *Group           `mapstructure:"group,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	Privileges     []string         `mapstructure:"privileges,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Session        *Session         `mapstructure:"session,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	User           *User            `mapstructure:"user"`
-}
-
-// Validate checks required fields, constraints, and enum values for AuthorizeSession.
-func (o *AuthorizeSession) Validate() error {
+// validateAuthorizeSession checks required fields, constraints, and enum values.
+func validateAuthorizeSession(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.User == nil {
+	if _, ok := data["user"]; !ok {
 		errs = append(errs, errors.New("user is required"))
 	}
 	{
 		count := 0
-		if o.Group != nil {
+		if _, ok := data["group"]; ok {
 			count++
 		}
-		if len(o.Privileges) > 0 {
+		if _, ok := data["privileges"]; ok {
 			count++
 		}
 		if count != 1 {
 			errs = append(errs, fmt.Errorf("exactly one of [group, privileges] must be set, got %d", count))
 		}
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300300, 300301, 300302, 300399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300300, 300301, 300302, 300399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["session"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateSession(m); err != nil {
+				errs = append(errs, fmt.Errorf("session: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// BaseEvent represents the OCSF Base Event object.
-// The base event is a generic and concrete event. It also defines a set of attributes available in most event classes. As a generic event that does not belong to any event category, it could be used to log events that are not otherwise defined by the schema.
-type BaseEvent struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for BaseEvent.
-func (o *BaseEvent) Validate() error {
+// validateBaseEvent checks required fields, constraints, and enum values.
+func validateBaseEvent(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 0, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ComplianceFinding represents the OCSF Compliance Finding event class (UID: 2003).
-// Compliance Finding events describe results of evaluations performed against resources, to check compliance with various Industry Frameworks or Security Standards such as NIST SP 800-53, CIS AWS Foundations Benchmark v1.4.0, ISO/IEC 27001 etc.
-type ComplianceFinding struct {
-	ActivityID      *int             `mapstructure:"activity_id"`
-	ActivityName    *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName    *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID     *int             `mapstructure:"category_uid"`
-	ClassName       *string          `mapstructure:"class_name,omitempty"`
-	ClassUID        *int             `mapstructure:"class_uid"`
-	Comment         *string          `mapstructure:"comment,omitempty"`
-	Compliance      *Compliance      `mapstructure:"compliance"`
-	Confidence      *string          `mapstructure:"confidence,omitempty"`
-	ConfidenceID    *int             `mapstructure:"confidence_id,omitempty"`
-	ConfidenceScore *int             `mapstructure:"confidence_score,omitempty"`
-	Count           *int             `mapstructure:"count,omitempty"`
-	Duration        *int             `mapstructure:"duration,omitempty"`
-	EndTime         *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments     []Enrichment     `mapstructure:"enrichments,omitempty"`
-	FindingInfo     *FindingInfo     `mapstructure:"finding_info"`
-	Message         *string          `mapstructure:"message,omitempty"`
-	Metadata        *Metadata        `mapstructure:"metadata"`
-	Observables     []Observable     `mapstructure:"observables,omitempty"`
-	RawData         *string          `mapstructure:"raw_data,omitempty"`
-	Remediation     *Remediation     `mapstructure:"remediation,omitempty"`
-	Resource        *ResourceDetails `mapstructure:"resource,omitempty"`
-	Severity        *string          `mapstructure:"severity,omitempty"`
-	SeverityID      *int             `mapstructure:"severity_id"`
-	StartTime       *int64           `mapstructure:"start_time,omitempty"`
-	Status          *string          `mapstructure:"status,omitempty"`
-	StatusCode      *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail    *string          `mapstructure:"status_detail,omitempty"`
-	StatusID        *int             `mapstructure:"status_id,omitempty"`
-	Time            *int64           `mapstructure:"time"`
-	TimezoneOffset  *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName        *string          `mapstructure:"type_name,omitempty"`
-	TypeUID         *int64           `mapstructure:"type_uid"`
-	Unmapped        *Object          `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ComplianceFinding.
-func (o *ComplianceFinding) Validate() error {
+// validateComplianceFinding checks required fields, constraints, and enum values.
+func validateComplianceFinding(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Compliance == nil {
+	if _, ok := data["compliance"]; !ok {
 		errs = append(errs, errors.New("compliance is required"))
 	}
-	if o.FindingInfo == nil {
+	if _, ok := data["finding_info"]; !ok {
 		errs = append(errs, errors.New("finding_info is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 200300, 200301, 200302, 200303, 200399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["confidence_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 200300, 200301, 200302, 200303, 200399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["comment"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidence"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["compliance"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCompliance(m); err != nil {
+				errs = append(errs, fmt.Errorf("compliance: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["finding_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFindingInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("finding_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
+	}
+	if v, ok := data["resource"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResourceDetails(m); err != nil {
+				errs = append(errs, fmt.Errorf("resource: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ConfigState represents the OCSF Device Config State event class (UID: 5002).
-// Device Config State events report device configuration data and CIS Benchmark results.
-type ConfigState struct {
-	ActivityID         *int                `mapstructure:"activity_id"`
-	ActivityName       *string             `mapstructure:"activity_name,omitempty"`
-	Actor              *Actor              `mapstructure:"actor,omitempty"`
-	CategoryName       *string             `mapstructure:"category_name,omitempty"`
-	CategoryUID        *int                `mapstructure:"category_uid"`
-	CisBenchmarkResult *CisBenchmarkResult `mapstructure:"cis_benchmark_result,omitempty"`
-	ClassName          *string             `mapstructure:"class_name,omitempty"`
-	ClassUID           *int                `mapstructure:"class_uid"`
-	Count              *int                `mapstructure:"count,omitempty"`
-	Device             *Device             `mapstructure:"device"`
-	Duration           *int                `mapstructure:"duration,omitempty"`
-	EndTime            *int64              `mapstructure:"end_time,omitempty"`
-	Enrichments        []Enrichment        `mapstructure:"enrichments,omitempty"`
-	Message            *string             `mapstructure:"message,omitempty"`
-	Metadata           *Metadata           `mapstructure:"metadata"`
-	Observables        []Observable        `mapstructure:"observables,omitempty"`
-	RawData            *string             `mapstructure:"raw_data,omitempty"`
-	Severity           *string             `mapstructure:"severity,omitempty"`
-	SeverityID         *int                `mapstructure:"severity_id"`
-	StartTime          *int64              `mapstructure:"start_time,omitempty"`
-	Status             *string             `mapstructure:"status,omitempty"`
-	StatusCode         *string             `mapstructure:"status_code,omitempty"`
-	StatusDetail       *string             `mapstructure:"status_detail,omitempty"`
-	StatusID           *int                `mapstructure:"status_id,omitempty"`
-	Time               *int64              `mapstructure:"time"`
-	TimezoneOffset     *int                `mapstructure:"timezone_offset,omitempty"`
-	TypeName           *string             `mapstructure:"type_name,omitempty"`
-	TypeUID            *int64              `mapstructure:"type_uid"`
-	Unmapped           *Object             `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ConfigState.
-func (o *ConfigState) Validate() error {
+// validateConfigState checks required fields, constraints, and enum values.
+func validateConfigState(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 500200, 500201, 500202, 500299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 500200, 500201, 500202, 500299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["cis_benchmark_result"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCisBenchmarkResult(m); err != nil {
+				errs = append(errs, fmt.Errorf("cis_benchmark_result: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// DatastoreActivity represents the OCSF Datastore Activity event class (UID: 6005).
-// Datastore events describe general activities (Read, Update, Query, Delete, etc.) which affect datastores or data within those datastores, e.g. (AWS RDS, AWS S3).
-type DatastoreActivity struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor           `mapstructure:"actor"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Database       *Database        `mapstructure:"database,omitempty"`
-	Databucket     *Databucket      `mapstructure:"databucket,omitempty"`
-	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	QueryInfo      *QueryInfo       `mapstructure:"query_info,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Table          *Table           `mapstructure:"table,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	Type           *string          `mapstructure:"type,omitempty"`
-	TypeID         *int             `mapstructure:"type_id,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DatastoreActivity.
-func (o *DatastoreActivity) Validate() error {
+// validateDatastoreActivity checks required fields, constraints, and enum values.
+func validateDatastoreActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.Database == nil && o.Databucket == nil && o.Table == nil {
-		errs = append(errs, errors.New("at least one of [database, databucket, table] must be set"))
+	{
+		_, ok0 := data["database"]
+		_, ok1 := data["databucket"]
+		_, ok2 := data["table"]
+		if !ok0 && !ok1 && !ok2 {
+			errs = append(errs, errors.New("at least one of [database, databucket, table] must be set"))
+		}
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600500, 600501, 600502, 600503, 600504, 600505, 600506, 600507, 600599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600500, 600501, 600502, 600503, 600504, 600505, 600506, 600507, 600599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["database"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDatabase(m); err != nil {
+				errs = append(errs, fmt.Errorf("database: %w", err))
+			}
+		}
+	}
+	if v, ok := data["databucket"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDatabucket(m); err != nil {
+				errs = append(errs, fmt.Errorf("databucket: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["query_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateQueryInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("query_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["table"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTable(m); err != nil {
+				errs = append(errs, fmt.Errorf("table: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// DetectionFinding represents the OCSF Detection Finding event class (UID: 2004).
-// A Detection Finding describes detections or alerts generated by security products using correlation engines, detection engines or other methodologies. Note: if the product is a security control, the security_control profile should be applied and its attacks information should be duplicated into the finding_info object.
-type DetectionFinding struct {
-	ActivityID      *int              `mapstructure:"activity_id"`
-	ActivityName    *string           `mapstructure:"activity_name,omitempty"`
-	CategoryName    *string           `mapstructure:"category_name,omitempty"`
-	CategoryUID     *int              `mapstructure:"category_uid"`
-	ClassName       *string           `mapstructure:"class_name,omitempty"`
-	ClassUID        *int              `mapstructure:"class_uid"`
-	Comment         *string           `mapstructure:"comment,omitempty"`
-	Confidence      *string           `mapstructure:"confidence,omitempty"`
-	ConfidenceID    *int              `mapstructure:"confidence_id,omitempty"`
-	ConfidenceScore *int              `mapstructure:"confidence_score,omitempty"`
-	Count           *int              `mapstructure:"count,omitempty"`
-	Duration        *int              `mapstructure:"duration,omitempty"`
-	EndTime         *int64            `mapstructure:"end_time,omitempty"`
-	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
-	Evidences       []Evidences       `mapstructure:"evidences,omitempty"`
-	FindingInfo     *FindingInfo      `mapstructure:"finding_info"`
-	Impact          *string           `mapstructure:"impact,omitempty"`
-	ImpactID        *int              `mapstructure:"impact_id,omitempty"`
-	ImpactScore     *int              `mapstructure:"impact_score,omitempty"`
-	Message         *string           `mapstructure:"message,omitempty"`
-	Metadata        *Metadata         `mapstructure:"metadata"`
-	Observables     []Observable      `mapstructure:"observables,omitempty"`
-	RawData         *string           `mapstructure:"raw_data,omitempty"`
-	Remediation     *Remediation      `mapstructure:"remediation,omitempty"`
-	Resources       []ResourceDetails `mapstructure:"resources,omitempty"`
-	RiskLevel       *string           `mapstructure:"risk_level,omitempty"`
-	RiskLevelID     *int              `mapstructure:"risk_level_id,omitempty"`
-	RiskScore       *int              `mapstructure:"risk_score,omitempty"`
-	Severity        *string           `mapstructure:"severity,omitempty"`
-	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *int64            `mapstructure:"start_time,omitempty"`
-	Status          *string           `mapstructure:"status,omitempty"`
-	StatusCode      *string           `mapstructure:"status_code,omitempty"`
-	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
-	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *int64            `mapstructure:"time"`
-	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
-	TypeName        *string           `mapstructure:"type_name,omitempty"`
-	TypeUID         *int64            `mapstructure:"type_uid"`
-	Unmapped        *Object           `mapstructure:"unmapped,omitempty"`
-	Vulnerabilities []Vulnerability   `mapstructure:"vulnerabilities,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DetectionFinding.
-func (o *DetectionFinding) Validate() error {
+// validateDetectionFinding checks required fields, constraints, and enum values.
+func validateDetectionFinding(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.FindingInfo == nil {
+	if _, ok := data["finding_info"]; !ok {
 		errs = append(errs, errors.New("finding_info is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 200400, 200401, 200402, 200403, 200499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["confidence_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["impact_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("impact_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["risk_level_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4:
+			default:
+				errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 200400, 200401, 200402, 200403, 200499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["comment"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidence"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["impact"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["risk_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["evidences"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEvidences(m); err != nil {
+						errs = append(errs, fmt.Errorf("evidences[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["finding_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFindingInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("finding_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["remediation"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRemediation(m); err != nil {
+				errs = append(errs, fmt.Errorf("remediation: %w", err))
+			}
+		}
+	}
+	if v, ok := data["resources"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateResourceDetails(m); err != nil {
+						errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["vulnerabilities"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateVulnerability(m); err != nil {
+						errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+					}
+				}
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// DeviceConfigStateChange represents the OCSF Device Config State Change event class (UID: 5019).
-// Device Config State Change events report state changes that impact the security of the device.
-type DeviceConfigStateChange struct {
-	ActivityID          *int            `mapstructure:"activity_id"`
-	ActivityName        *string         `mapstructure:"activity_name,omitempty"`
-	Actor               *Actor          `mapstructure:"actor,omitempty"`
-	CategoryName        *string         `mapstructure:"category_name,omitempty"`
-	CategoryUID         *int            `mapstructure:"category_uid"`
-	ClassName           *string         `mapstructure:"class_name,omitempty"`
-	ClassUID            *int            `mapstructure:"class_uid"`
-	Count               *int            `mapstructure:"count,omitempty"`
-	Device              *Device         `mapstructure:"device"`
-	Duration            *int            `mapstructure:"duration,omitempty"`
-	EndTime             *int64          `mapstructure:"end_time,omitempty"`
-	Enrichments         []Enrichment    `mapstructure:"enrichments,omitempty"`
-	Message             *string         `mapstructure:"message,omitempty"`
-	Metadata            *Metadata       `mapstructure:"metadata"`
-	Observables         []Observable    `mapstructure:"observables,omitempty"`
-	PrevSecurityLevel   *string         `mapstructure:"prev_security_level,omitempty"`
-	PrevSecurityLevelID *int            `mapstructure:"prev_security_level_id,omitempty"`
-	PrevSecurityStates  []SecurityState `mapstructure:"prev_security_states,omitempty"`
-	RawData             *string         `mapstructure:"raw_data,omitempty"`
-	SecurityLevel       *string         `mapstructure:"security_level,omitempty"`
-	SecurityLevelID     *int            `mapstructure:"security_level_id,omitempty"`
-	SecurityStates      []SecurityState `mapstructure:"security_states,omitempty"`
-	Severity            *string         `mapstructure:"severity,omitempty"`
-	SeverityID          *int            `mapstructure:"severity_id"`
-	StartTime           *int64          `mapstructure:"start_time,omitempty"`
-	Status              *string         `mapstructure:"status,omitempty"`
-	StatusCode          *string         `mapstructure:"status_code,omitempty"`
-	StatusDetail        *string         `mapstructure:"status_detail,omitempty"`
-	StatusID            *int            `mapstructure:"status_id,omitempty"`
-	Time                *int64          `mapstructure:"time"`
-	TimezoneOffset      *int            `mapstructure:"timezone_offset,omitempty"`
-	TypeName            *string         `mapstructure:"type_name,omitempty"`
-	TypeUID             *int64          `mapstructure:"type_uid"`
-	Unmapped            *Object         `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DeviceConfigStateChange.
-func (o *DeviceConfigStateChange) Validate() error {
+// validateDeviceConfigStateChange checks required fields, constraints, and enum values.
+func validateDeviceConfigStateChange(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 501900, 501901, 501902, 501999:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5019:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["prev_security_level_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("prev_security_level_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["security_level_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("security_level_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 501900, 501901, 501902, 501999:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["prev_security_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("prev_security_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["security_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("security_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["prev_security_states"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateSecurityState(m); err != nil {
+						errs = append(errs, fmt.Errorf("prev_security_states[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["security_states"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateSecurityState(m); err != nil {
+						errs = append(errs, fmt.Errorf("security_states[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// DhcpActivity represents the OCSF DHCP Activity event class (UID: 4004).
-// DHCP Activity events report MAC to IP assignment via DHCP from a client or server.
-type DhcpActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	IsRenewal      *bool                  `mapstructure:"is_renewal,omitempty"`
-	LeaseDur       *int                   `mapstructure:"lease_dur,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Relay          *NetworkInterface      `mapstructure:"relay,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TransactionUID *string                `mapstructure:"transaction_uid,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DhcpActivity.
-func (o *DhcpActivity) Validate() error {
+// validateDhcpActivity checks required fields, constraints, and enum values.
+func validateDhcpActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400400, 400401, 400402, 400403, 400404, 400405, 400406, 400407, 400408, 400409, 400499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400400, 400401, 400402, 400403, 400404, 400405, 400406, 400407, 400408, 400409, 400499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["transaction_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("transaction_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["relay"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkInterface(m); err != nil {
+				errs = append(errs, fmt.Errorf("relay: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// DNSActivity represents the OCSF DNS Activity event class (UID: 4003).
-// DNS Activity events report DNS queries and answers as seen on the network.
-type DNSActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	Answers        []DNSAnswer            `mapstructure:"answers,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	Query          *DNSQuery              `mapstructure:"query,omitempty"`
-	QueryTime      *int64                 `mapstructure:"query_time,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Rcode          *string                `mapstructure:"rcode,omitempty"`
-	RcodeID        *int                   `mapstructure:"rcode_id,omitempty"`
-	ResponseTime   *int64                 `mapstructure:"response_time,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for DNSActivity.
-func (o *DNSActivity) Validate() error {
+// validateDNSActivity checks required fields, constraints, and enum values.
+func validateDNSActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400300, 400301, 400302, 400306, 400399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["rcode_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 99:
+			default:
+				errs = append(errs, fmt.Errorf("rcode_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400300, 400301, 400302, 400306, 400399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["rcode"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("rcode: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["answers"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateDNSAnswer(m); err != nil {
+						errs = append(errs, fmt.Errorf("answers[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["query"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDNSQuery(m); err != nil {
+				errs = append(errs, fmt.Errorf("query: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// EmailActivity represents the OCSF Email Activity event class (UID: 4009).
-// Email events report activities of emails.
-type EmailActivity struct {
-	ActivityID     *int             `mapstructure:"activity_id,omitempty"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	Attempt        *int             `mapstructure:"attempt,omitempty"`
-	Banner         *string          `mapstructure:"banner,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Direction      *string          `mapstructure:"direction,omitempty"`
-	DirectionID    *int             `mapstructure:"direction_id"`
-	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	Email          *Email           `mapstructure:"email"`
-	EmailAuth      *EmailAuth       `mapstructure:"email_auth,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	SmtpHello      *string          `mapstructure:"smtp_hello,omitempty"`
-	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for EmailActivity.
-func (o *EmailActivity) Validate() error {
+// validateEmailActivity checks required fields, constraints, and enum values.
+func validateEmailActivity(data map[string]any) error {
 	var errs []error
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DirectionID == nil {
+	if _, ok := data["direction_id"]; !ok {
 		errs = append(errs, errors.New("direction_id is required"))
 	}
-	if o.Email == nil {
+	if _, ok := data["email"]; !ok {
 		errs = append(errs, errors.New("email is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400900, 400901, 400902, 400903, 400999:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4009:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["direction_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("direction_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400900, 400901, 400902, 400903, 400999:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["banner"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("banner: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["direction"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("direction: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["smtp_hello"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("smtp_hello: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["email"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateEmail(m); err != nil {
+				errs = append(errs, fmt.Errorf("email: %w", err))
+			}
+		}
+	}
+	if v, ok := data["email_auth"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateEmailAuth(m); err != nil {
+				errs = append(errs, fmt.Errorf("email_auth: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// EmailFileActivity represents the OCSF Email File Activity event class (UID: 4011).
-// Email File Activity events report files within emails.
-type EmailFileActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id,omitempty"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EmailUID       *string      `mapstructure:"email_uid"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	File           *File        `mapstructure:"file"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for EmailFileActivity.
-func (o *EmailFileActivity) Validate() error {
+// validateEmailFileActivity checks required fields, constraints, and enum values.
+func validateEmailFileActivity(data map[string]any) error {
 	var errs []error
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.EmailUID == nil {
+	if _, ok := data["email_uid"]; !ok {
 		errs = append(errs, errors.New("email_uid is required"))
 	}
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 401100, 401101, 401102, 401103, 401199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4011:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 401100, 401101, 401102, 401103, 401199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["email_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("email_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// EmailURLActivity represents the OCSF Email URL Activity event class (UID: 4012).
-// Email URL Activity events report URLs within an email.
-type EmailURLActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id,omitempty"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EmailUID       *string      `mapstructure:"email_uid"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-	URL            *URL         `mapstructure:"url"`
-}
-
-// Validate checks required fields, constraints, and enum values for EmailURLActivity.
-func (o *EmailURLActivity) Validate() error {
+// validateEmailURLActivity checks required fields, constraints, and enum values.
+func validateEmailURLActivity(data map[string]any) error {
 	var errs []error
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.EmailUID == nil {
+	if _, ok := data["email_uid"]; !ok {
 		errs = append(errs, errors.New("email_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.URL == nil {
+	if _, ok := data["url"]; !ok {
 		errs = append(errs, errors.New("url is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 401200, 401201, 401202, 401203, 401299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4012:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 401200, 401201, 401202, 401203, 401299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["email_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("email_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["url"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateURL(m); err != nil {
+				errs = append(errs, fmt.Errorf("url: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// EntityManagement represents the OCSF Entity Management event class (UID: 3004).
-// Entity Management events report activity by a managed client, a micro service, or a user at a management console. The activity can be a create, read, update, and delete operation on a managed entity.
-type EntityManagement struct {
-	ActivityID     *int           `mapstructure:"activity_id"`
-	ActivityName   *string        `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string        `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int           `mapstructure:"category_uid"`
-	ClassName      *string        `mapstructure:"class_name,omitempty"`
-	ClassUID       *int           `mapstructure:"class_uid"`
-	Comment        *string        `mapstructure:"comment,omitempty"`
-	Count          *int           `mapstructure:"count,omitempty"`
-	Duration       *int           `mapstructure:"duration,omitempty"`
-	EndTime        *int64         `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment   `mapstructure:"enrichments,omitempty"`
-	Entity         *ManagedEntity `mapstructure:"entity"`
-	EntityResult   *ManagedEntity `mapstructure:"entity_result,omitempty"`
-	Message        *string        `mapstructure:"message,omitempty"`
-	Metadata       *Metadata      `mapstructure:"metadata"`
-	Observables    []Observable   `mapstructure:"observables,omitempty"`
-	RawData        *string        `mapstructure:"raw_data,omitempty"`
-	Severity       *string        `mapstructure:"severity,omitempty"`
-	SeverityID     *int           `mapstructure:"severity_id"`
-	StartTime      *int64         `mapstructure:"start_time,omitempty"`
-	Status         *string        `mapstructure:"status,omitempty"`
-	StatusCode     *string        `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string        `mapstructure:"status_detail,omitempty"`
-	StatusID       *int           `mapstructure:"status_id,omitempty"`
-	Time           *int64         `mapstructure:"time"`
-	TimezoneOffset *int           `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string        `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64         `mapstructure:"type_uid"`
-	Unmapped       *Object        `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for EntityManagement.
-func (o *EntityManagement) Validate() error {
+// validateEntityManagement checks required fields, constraints, and enum values.
+func validateEntityManagement(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Entity == nil {
+	if _, ok := data["entity"]; !ok {
 		errs = append(errs, errors.New("entity is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300400, 300401, 300402, 300403, 300404, 300499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300400, 300401, 300402, 300403, 300404, 300499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["comment"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["entity"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateManagedEntity(m); err != nil {
+				errs = append(errs, fmt.Errorf("entity: %w", err))
+			}
+		}
+	}
+	if v, ok := data["entity_result"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateManagedEntity(m); err != nil {
+				errs = append(errs, fmt.Errorf("entity_result: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// FileActivity represents the OCSF File System Activity event class (UID: 1001).
-// File System Activity events report when a process performs an action on a file or folder.
-type FileActivity struct {
-	AccessMask     *int         `mapstructure:"access_mask,omitempty"`
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Component      *string      `mapstructure:"component,omitempty"`
-	ConnectionUID  *string      `mapstructure:"connection_uid,omitempty"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	CreateMask     *string      `mapstructure:"create_mask,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	File           *File        `mapstructure:"file"`
-	FileDiff       *string      `mapstructure:"file_diff,omitempty"`
-	FileResult     *File        `mapstructure:"file_result,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for FileActivity.
-func (o *FileActivity) Validate() error {
+// validateFileActivity checks required fields, constraints, and enum values.
+func validateFileActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100100, 100101, 100102, 100103, 100104, 100105, 100106, 100107, 100108, 100109, 100110, 100111, 100112, 100113, 100114, 100199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100100, 100101, 100102, 100103, 100104, 100105, 100106, 100107, 100108, 100109, 100110, 100111, 100112, 100113, 100114, 100199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["component"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("component: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("connection_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["create_mask"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("create_mask: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["file_diff"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("file_diff: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["file_result"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file_result: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// FileHosting represents the OCSF File Hosting Activity event class (UID: 6006).
-// File Hosting Activity events report the actions taken by file management applications, including file sharing servers like Sharepoint and services such as Box, MS OneDrive, or Google Drive.
-type FileHosting struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor                 `mapstructure:"actor"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	ExpirationTime *int64                 `mapstructure:"expiration_time,omitempty"`
-	File           *File                  `mapstructure:"file"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for FileHosting.
-func (o *FileHosting) Validate() error {
+// validateFileHosting checks required fields, constraints, and enum values.
+func validateFileHosting(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600600, 600601, 600602, 600603, 600604, 600605, 600606, 600607, 600608, 600609, 600610, 600611, 600612, 600613, 600614, 600615, 600616, 600699:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6006:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600600, 600601, 600602, 600603, 600604, 600605, 600606, 600607, 600608, 600609, 600610, 600611, 600612, 600613, 600614, 600615, 600616, 600699:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// FtpActivity represents the OCSF FTP Activity event class (UID: 4008).
-// File Transfer Protocol (FTP) Activity events report file transfers between a server and a client as seen on the network.
-type FtpActivity struct {
-	ActivityID       *int                   `mapstructure:"activity_id"`
-	ActivityName     *string                `mapstructure:"activity_name,omitempty"`
-	AppName          *string                `mapstructure:"app_name,omitempty"`
-	CategoryName     *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID      *int                   `mapstructure:"category_uid"`
-	ClassName        *string                `mapstructure:"class_name,omitempty"`
-	ClassUID         *int                   `mapstructure:"class_uid"`
-	Codes            []int                  `mapstructure:"codes,omitempty"`
-	Command          *string                `mapstructure:"command,omitempty"`
-	CommandResponses []string               `mapstructure:"command_responses,omitempty"`
-	ConnectionInfo   *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count            *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint      *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration         *int                   `mapstructure:"duration,omitempty"`
-	EndTime          *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments      []Enrichment           `mapstructure:"enrichments,omitempty"`
-	Message          *string                `mapstructure:"message,omitempty"`
-	Metadata         *Metadata              `mapstructure:"metadata"`
-	Name             *string                `mapstructure:"name,omitempty"`
-	Observables      []Observable           `mapstructure:"observables,omitempty"`
-	Port             *int                   `mapstructure:"port,omitempty"`
-	Proxy            *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData          *string                `mapstructure:"raw_data,omitempty"`
-	Severity         *string                `mapstructure:"severity,omitempty"`
-	SeverityID       *int                   `mapstructure:"severity_id"`
-	SrcEndpoint      *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime        *int64                 `mapstructure:"start_time,omitempty"`
-	Status           *string                `mapstructure:"status,omitempty"`
-	StatusCode       *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail     *string                `mapstructure:"status_detail,omitempty"`
-	StatusID         *int                   `mapstructure:"status_id,omitempty"`
-	Time             *int64                 `mapstructure:"time"`
-	TimezoneOffset   *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS              *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic          *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	Type             *string                `mapstructure:"type,omitempty"`
-	TypeName         *string                `mapstructure:"type_name,omitempty"`
-	TypeUID          *int64                 `mapstructure:"type_uid"`
-	Unmapped         *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for FtpActivity.
-func (o *FtpActivity) Validate() error {
+// validateFtpActivity checks required fields, constraints, and enum values.
+func validateFtpActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400800, 400801, 400802, 400803, 400804, 400805, 400806, 400899:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4008:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400800, 400801, 400802, 400803, 400804, 400805, 400806, 400899:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["command"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["port"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			if intVal < 0 || intVal > 65535 {
+				errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", intVal))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// GroupManagement represents the OCSF Group Management event class (UID: 3006).
-// Group Management events report management updates to a group, including updates to membership and permissions.
-type GroupManagement struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	Group          *Group           `mapstructure:"group"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	Privileges     []string         `mapstructure:"privileges,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Resource       *ResourceDetails `mapstructure:"resource,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	User           *User            `mapstructure:"user,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for GroupManagement.
-func (o *GroupManagement) Validate() error {
+// validateGroupManagement checks required fields, constraints, and enum values.
+func validateGroupManagement(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Group == nil {
+	if _, ok := data["group"]; !ok {
 		errs = append(errs, errors.New("group is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if len(o.Privileges) == 0 && o.User == nil {
-		errs = append(errs, errors.New("at least one of [privileges, user] must be set"))
+	{
+		_, ok0 := data["privileges"]
+		_, ok1 := data["user"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [privileges, user] must be set"))
+		}
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300600, 300601, 300602, 300603, 300604, 300605, 300606, 300699:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3006:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300600, 300601, 300602, 300603, 300604, 300605, 300606, 300699:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["resource"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResourceDetails(m); err != nil {
+				errs = append(errs, fmt.Errorf("resource: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// HTTPActivity represents the OCSF HTTP Activity event class (UID: 4002).
-// HTTP Activity events report HTTP connection and traffic information.
-type HTTPActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	HTTPCookies    []HTTPCookie           `mapstructure:"http_cookies,omitempty"`
-	HTTPRequest    *HTTPRequest           `mapstructure:"http_request"`
-	HTTPResponse   *HTTPResponse          `mapstructure:"http_response"`
-	HTTPStatus     *int                   `mapstructure:"http_status,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for HTTPActivity.
-func (o *HTTPActivity) Validate() error {
+// validateHTTPActivity checks required fields, constraints, and enum values.
+func validateHTTPActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.HTTPRequest == nil {
+	if _, ok := data["http_request"]; !ok {
 		errs = append(errs, errors.New("http_request is required"))
 	}
-	if o.HTTPResponse == nil {
+	if _, ok := data["http_response"]; !ok {
 		errs = append(errs, errors.New("http_response is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400200, 400201, 400202, 400203, 400204, 400205, 400206, 400207, 400208, 400299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400200, 400201, 400202, 400203, 400204, 400205, 400206, 400207, 400208, 400299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_cookies"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateHTTPCookie(m); err != nil {
+						errs = append(errs, fmt.Errorf("http_cookies[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["http_response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// IncidentFinding represents the OCSF Incident Finding event class (UID: 2005).
-// An Incident Finding reports the creation, update, or closure of security incidents as a result of detections and/or analytics.
-type IncidentFinding struct {
-	ActivityID        *int          `mapstructure:"activity_id"`
-	ActivityName      *string       `mapstructure:"activity_name,omitempty"`
-	Assignee          *User         `mapstructure:"assignee,omitempty"`
-	AssigneeGroup     *Group        `mapstructure:"assignee_group,omitempty"`
-	Attacks           []Attack      `mapstructure:"attacks,omitempty"`
-	CategoryName      *string       `mapstructure:"category_name,omitempty"`
-	CategoryUID       *int          `mapstructure:"category_uid"`
-	ClassName         *string       `mapstructure:"class_name,omitempty"`
-	ClassUID          *int          `mapstructure:"class_uid"`
-	Comment           *string       `mapstructure:"comment,omitempty"`
-	Confidence        *string       `mapstructure:"confidence,omitempty"`
-	ConfidenceID      *int          `mapstructure:"confidence_id,omitempty"`
-	ConfidenceScore   *int          `mapstructure:"confidence_score,omitempty"`
-	Count             *int          `mapstructure:"count,omitempty"`
-	Desc              *string       `mapstructure:"desc,omitempty"`
-	Duration          *int          `mapstructure:"duration,omitempty"`
-	EndTime           *int64        `mapstructure:"end_time,omitempty"`
-	Enrichments       []Enrichment  `mapstructure:"enrichments,omitempty"`
-	FindingInfoList   []FindingInfo `mapstructure:"finding_info_list"`
-	Impact            *string       `mapstructure:"impact,omitempty"`
-	ImpactID          *int          `mapstructure:"impact_id,omitempty"`
-	ImpactScore       *int          `mapstructure:"impact_score,omitempty"`
-	IsSuspectedBreach *bool         `mapstructure:"is_suspected_breach,omitempty"`
-	Message           *string       `mapstructure:"message,omitempty"`
-	Metadata          *Metadata     `mapstructure:"metadata"`
-	Observables       []Observable  `mapstructure:"observables,omitempty"`
-	Priority          *int          `mapstructure:"priority,omitempty"`
-	PriorityID        *int          `mapstructure:"priority_id,omitempty"`
-	RawData           *string       `mapstructure:"raw_data,omitempty"`
-	Severity          *string       `mapstructure:"severity,omitempty"`
-	SeverityID        *int          `mapstructure:"severity_id"`
-	SrcURL            *string       `mapstructure:"src_url,omitempty"`
-	StartTime         *int64        `mapstructure:"start_time,omitempty"`
-	Status            *string       `mapstructure:"status,omitempty"`
-	StatusCode        *string       `mapstructure:"status_code,omitempty"`
-	StatusDetail      *string       `mapstructure:"status_detail,omitempty"`
-	StatusID          *int          `mapstructure:"status_id"`
-	Time              *int64        `mapstructure:"time"`
-	TimezoneOffset    *int          `mapstructure:"timezone_offset,omitempty"`
-	TypeName          *string       `mapstructure:"type_name,omitempty"`
-	TypeUID           *int64        `mapstructure:"type_uid"`
-	Unmapped          *Object       `mapstructure:"unmapped,omitempty"`
-	Verdict           *string       `mapstructure:"verdict,omitempty"`
-	VerdictID         *int          `mapstructure:"verdict_id,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for IncidentFinding.
-func (o *IncidentFinding) Validate() error {
+// validateIncidentFinding checks required fields, constraints, and enum values.
+func validateIncidentFinding(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if len(o.FindingInfoList) == 0 {
+	if _, ok := data["finding_info_list"]; !ok {
 		errs = append(errs, errors.New("finding_info_list is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.StatusID == nil {
+	if _, ok := data["status_id"]; !ok {
 		errs = append(errs, errors.New("status_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.Assignee == nil && o.AssigneeGroup == nil {
-		errs = append(errs, errors.New("at least one of [assignee, assignee_group] must be set"))
+	{
+		_, ok0 := data["assignee"]
+		_, ok1 := data["assignee_group"]
+		if !ok0 && !ok1 {
+			errs = append(errs, errors.New("at least one of [assignee, assignee_group] must be set"))
+		}
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 200500, 200501, 200502, 200503, 200599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["confidence_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["impact_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("impact_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["priority_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("priority_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 200500, 200501, 200502, 200503, 200599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["verdict_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("verdict_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["comment"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidence"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["desc"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("desc: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["impact"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["verdict"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("verdict: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["assignee"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("assignee: %w", err))
+			}
+		}
+	}
+	if v, ok := data["assignee_group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("assignee_group: %w", err))
+			}
+		}
+	}
+	if v, ok := data["attacks"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAttack(m); err != nil {
+						errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["finding_info_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateFindingInfo(m); err != nil {
+						errs = append(errs, fmt.Errorf("finding_info_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// InventoryInfo represents the OCSF Device Inventory Info event class (UID: 5001).
-// Device Inventory Info events report device inventory data that is either logged or proactively collected. For example, when collecting device information from a CMDB or running a network sweep of connected devices.
-type InventoryInfo struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for InventoryInfo.
-func (o *InventoryInfo) Validate() error {
+// validateInventoryInfo checks required fields, constraints, and enum values.
+func validateInventoryInfo(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 500100, 500101, 500102, 500199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 500100, 500101, 500102, 500199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// KernelActivity represents the OCSF Kernel Activity event class (UID: 1003).
-// Kernel Activity events report when an process creates, reads, or deletes a kernel resource.
-type KernelActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Kernel         *Kernel      `mapstructure:"kernel"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for KernelActivity.
-func (o *KernelActivity) Validate() error {
+// validateKernelActivity checks required fields, constraints, and enum values.
+func validateKernelActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Kernel == nil {
+	if _, ok := data["kernel"]; !ok {
 		errs = append(errs, errors.New("kernel is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100300, 100301, 100302, 100303, 100304, 100399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100300, 100301, 100302, 100303, 100304, 100399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["kernel"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateKernel(m); err != nil {
+				errs = append(errs, fmt.Errorf("kernel: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// KernelExtension represents the OCSF Kernel Extension Activity event class (UID: 1002).
-// Kernel Extension events report when a driver/extension is loaded or unloaded into the kernel
-type KernelExtension struct {
-	ActivityID     *int          `mapstructure:"activity_id"`
-	ActivityName   *string       `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor        `mapstructure:"actor"`
-	CategoryName   *string       `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int          `mapstructure:"category_uid"`
-	ClassName      *string       `mapstructure:"class_name,omitempty"`
-	ClassUID       *int          `mapstructure:"class_uid"`
-	Count          *int          `mapstructure:"count,omitempty"`
-	Device         *Device       `mapstructure:"device"`
-	Driver         *KernelDriver `mapstructure:"driver"`
-	Duration       *int          `mapstructure:"duration,omitempty"`
-	EndTime        *int64        `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment  `mapstructure:"enrichments,omitempty"`
-	Message        *string       `mapstructure:"message,omitempty"`
-	Metadata       *Metadata     `mapstructure:"metadata"`
-	Observables    []Observable  `mapstructure:"observables,omitempty"`
-	RawData        *string       `mapstructure:"raw_data,omitempty"`
-	Severity       *string       `mapstructure:"severity,omitempty"`
-	SeverityID     *int          `mapstructure:"severity_id"`
-	StartTime      *int64        `mapstructure:"start_time,omitempty"`
-	Status         *string       `mapstructure:"status,omitempty"`
-	StatusCode     *string       `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string       `mapstructure:"status_detail,omitempty"`
-	StatusID       *int          `mapstructure:"status_id,omitempty"`
-	Time           *int64        `mapstructure:"time"`
-	TimezoneOffset *int          `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string       `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64        `mapstructure:"type_uid"`
-	Unmapped       *Object       `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for KernelExtension.
-func (o *KernelExtension) Validate() error {
+// validateKernelExtension checks required fields, constraints, and enum values.
+func validateKernelExtension(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Driver == nil {
+	if _, ok := data["driver"]; !ok {
 		errs = append(errs, errors.New("driver is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100200, 100201, 100202, 100299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100200, 100201, 100202, 100299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["driver"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateKernelDriver(m); err != nil {
+				errs = append(errs, fmt.Errorf("driver: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// MemoryActivity represents the OCSF Memory Activity event class (UID: 1004).
-// Memory Activity events report when a process has memory allocated, read/modified, or other manipulation activities - such as a buffer overflow or turning off data execution protection (DEP).
-type MemoryActivity struct {
-	ActivityID           *int         `mapstructure:"activity_id"`
-	ActivityName         *string      `mapstructure:"activity_name,omitempty"`
-	Actor                *Actor       `mapstructure:"actor"`
-	ActualPermissions    *int         `mapstructure:"actual_permissions,omitempty"`
-	BaseAddress          *string      `mapstructure:"base_address,omitempty"`
-	CategoryName         *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID          *int         `mapstructure:"category_uid"`
-	ClassName            *string      `mapstructure:"class_name,omitempty"`
-	ClassUID             *int         `mapstructure:"class_uid"`
-	Count                *int         `mapstructure:"count,omitempty"`
-	Device               *Device      `mapstructure:"device"`
-	Duration             *int         `mapstructure:"duration,omitempty"`
-	EndTime              *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments          []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message              *string      `mapstructure:"message,omitempty"`
-	Metadata             *Metadata    `mapstructure:"metadata"`
-	Observables          []Observable `mapstructure:"observables,omitempty"`
-	Process              *Process     `mapstructure:"process"`
-	RawData              *string      `mapstructure:"raw_data,omitempty"`
-	RequestedPermissions *int         `mapstructure:"requested_permissions,omitempty"`
-	Severity             *string      `mapstructure:"severity,omitempty"`
-	SeverityID           *int         `mapstructure:"severity_id"`
-	Size                 *int64       `mapstructure:"size,omitempty"`
-	StartTime            *int64       `mapstructure:"start_time,omitempty"`
-	Status               *string      `mapstructure:"status,omitempty"`
-	StatusCode           *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail         *string      `mapstructure:"status_detail,omitempty"`
-	StatusID             *int         `mapstructure:"status_id,omitempty"`
-	Time                 *int64       `mapstructure:"time"`
-	TimezoneOffset       *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName             *string      `mapstructure:"type_name,omitempty"`
-	TypeUID              *int64       `mapstructure:"type_uid"`
-	Unmapped             *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for MemoryActivity.
-func (o *MemoryActivity) Validate() error {
+// validateMemoryActivity checks required fields, constraints, and enum values.
+func validateMemoryActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.Process == nil {
+	if _, ok := data["process"]; !ok {
 		errs = append(errs, errors.New("process is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100400, 100401, 100402, 100403, 100404, 100405, 100406, 100407, 100408, 100499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100400, 100401, 100402, 100403, 100404, 100405, 100406, 100407, 100408, 100499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["base_address"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("base_address: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ModuleActivity represents the OCSF Module Activity event class (UID: 1005).
-// Module Activity events report when a process loads or unloads the module.
-type ModuleActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Module         *Module      `mapstructure:"module"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ModuleActivity.
-func (o *ModuleActivity) Validate() error {
+// validateModuleActivity checks required fields, constraints, and enum values.
+func validateModuleActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.Module == nil {
+	if _, ok := data["module"]; !ok {
 		errs = append(errs, errors.New("module is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100500, 100501, 100502, 100599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100500, 100501, 100502, 100599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["module"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateModule(m); err != nil {
+				errs = append(errs, fmt.Errorf("module: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// NetworkActivity represents the OCSF Network Activity event class (UID: 4001).
-// Network Activity events report network connection and traffic activity.
-type NetworkActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-	URL            *URL                   `mapstructure:"url,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for NetworkActivity.
-func (o *NetworkActivity) Validate() error {
+// validateNetworkActivity checks required fields, constraints, and enum values.
+func validateNetworkActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400100, 400101, 400102, 400103, 400104, 400105, 400106, 400199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400100, 400101, 400102, 400103, 400104, 400105, 400106, 400199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["url"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateURL(m); err != nil {
+				errs = append(errs, fmt.Errorf("url: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// NetworkFileActivity represents the OCSF Network File Activity event class (UID: 4010).
-// Network File Activity events report file activities traversing the network, including file storage services such as Box, MS OneDrive, or Google Drive.
-type NetworkFileActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	ExpirationTime *int64                 `mapstructure:"expiration_time,omitempty"`
-	File           *File                  `mapstructure:"file"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for NetworkFileActivity.
-func (o *NetworkFileActivity) Validate() error {
+// validateNetworkFileActivity checks required fields, constraints, and enum values.
+func validateNetworkFileActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.File == nil {
+	if _, ok := data["file"]; !ok {
 		errs = append(errs, errors.New("file is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 401000, 401001, 401002, 401003, 401004, 401005, 401006, 401007, 401008, 401009, 401010, 401011, 401012, 401013, 401014, 401015, 401016, 401099:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4010:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 401000, 401001, 401002, 401003, 401004, 401005, 401006, 401007, 401008, 401009, 401010, 401011, 401012, 401013, 401014, 401015, 401016, 401099:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// NtpActivity represents the OCSF NTP Activity event class (UID: 4013).
-// The Network Time Protocol (NTP) Activity events report instances of remote clients synchronizing their clocks with an NTP server, as observed on the network.
-type NtpActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	Delay          *int                   `mapstructure:"delay,omitempty"`
-	Dispersion     *int                   `mapstructure:"dispersion,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	Precision      *int                   `mapstructure:"precision,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Stratum        *string                `mapstructure:"stratum,omitempty"`
-	StratumID      *int                   `mapstructure:"stratum_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-	Version        *string                `mapstructure:"version"`
-}
-
-// Validate checks required fields, constraints, and enum values for NtpActivity.
-func (o *NtpActivity) Validate() error {
+// validateNtpActivity checks required fields, constraints, and enum values.
+func validateNtpActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.Version == nil {
+	if _, ok := data["version"]; !ok {
 		errs = append(errs, errors.New("version is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 401300, 401301, 401302, 401303, 401304, 401305, 401306, 401307, 401399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4013:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["stratum_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 16, 17, 99:
+			default:
+				errs = append(errs, fmt.Errorf("stratum_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 401300, 401301, 401302, 401303, 401304, 401305, 401306, 401307, 401399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["stratum"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("stratum: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["version"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// PatchState represents the OCSF Operating System Patch State event class (UID: 5004).
-// Operating System Patch State reports the installation of an OS patch to a device and any associated knowledgebase articles.
-type PatchState struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	KbArticleList  []KbArticle  `mapstructure:"kb_article_list,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for PatchState.
-func (o *PatchState) Validate() error {
+// validatePatchState checks required fields, constraints, and enum values.
+func validatePatchState(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 500400, 500401, 500402, 500499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 500400, 500401, 500402, 500499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["kb_article_list"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKbArticle(m); err != nil {
+						errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ProcessActivity represents the OCSF Process Activity event class (UID: 1007).
-// Process Activity events report when a process launches, injects, opens or terminates another process, successful or otherwise.
-type ProcessActivity struct {
-	ActivityID           *int         `mapstructure:"activity_id"`
-	ActivityName         *string      `mapstructure:"activity_name,omitempty"`
-	Actor                *Actor       `mapstructure:"actor"`
-	ActualPermissions    *int         `mapstructure:"actual_permissions,omitempty"`
-	CategoryName         *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID          *int         `mapstructure:"category_uid"`
-	ClassName            *string      `mapstructure:"class_name,omitempty"`
-	ClassUID             *int         `mapstructure:"class_uid"`
-	Count                *int         `mapstructure:"count,omitempty"`
-	Device               *Device      `mapstructure:"device"`
-	Duration             *int         `mapstructure:"duration,omitempty"`
-	EndTime              *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments          []Enrichment `mapstructure:"enrichments,omitempty"`
-	ExitCode             *int         `mapstructure:"exit_code,omitempty"`
-	InjectionType        *string      `mapstructure:"injection_type,omitempty"`
-	InjectionTypeID      *int         `mapstructure:"injection_type_id,omitempty"`
-	Message              *string      `mapstructure:"message,omitempty"`
-	Metadata             *Metadata    `mapstructure:"metadata"`
-	Module               *Module      `mapstructure:"module,omitempty"`
-	Observables          []Observable `mapstructure:"observables,omitempty"`
-	Process              *Process     `mapstructure:"process"`
-	RawData              *string      `mapstructure:"raw_data,omitempty"`
-	RequestedPermissions *int         `mapstructure:"requested_permissions,omitempty"`
-	Severity             *string      `mapstructure:"severity,omitempty"`
-	SeverityID           *int         `mapstructure:"severity_id"`
-	StartTime            *int64       `mapstructure:"start_time,omitempty"`
-	Status               *string      `mapstructure:"status,omitempty"`
-	StatusCode           *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail         *string      `mapstructure:"status_detail,omitempty"`
-	StatusID             *int         `mapstructure:"status_id,omitempty"`
-	Time                 *int64       `mapstructure:"time"`
-	TimezoneOffset       *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName             *string      `mapstructure:"type_name,omitempty"`
-	TypeUID              *int64       `mapstructure:"type_uid"`
-	Unmapped             *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ProcessActivity.
-func (o *ProcessActivity) Validate() error {
+// validateProcessActivity checks required fields, constraints, and enum values.
+func validateProcessActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.Process == nil {
+	if _, ok := data["process"]; !ok {
 		errs = append(errs, errors.New("process is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100700, 100701, 100702, 100703, 100704, 100705, 100799:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1007:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["injection_type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("injection_type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100700, 100701, 100702, 100703, 100704, 100705, 100799:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["injection_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("injection_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["module"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateModule(m); err != nil {
+				errs = append(errs, fmt.Errorf("module: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// RDPActivity represents the OCSF RDP Activity event class (UID: 4005).
-// Remote Desktop Protocol (RDP) Activity events report remote client connections to a server as seen on the network.
-type RDPActivity struct {
-	ActivityID       *int                   `mapstructure:"activity_id"`
-	ActivityName     *string                `mapstructure:"activity_name,omitempty"`
-	AppName          *string                `mapstructure:"app_name,omitempty"`
-	Capabilities     []string               `mapstructure:"capabilities,omitempty"`
-	CategoryName     *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID      *int                   `mapstructure:"category_uid"`
-	CertificateChain []string               `mapstructure:"certificate_chain,omitempty"`
-	ClassName        *string                `mapstructure:"class_name,omitempty"`
-	ClassUID         *int                   `mapstructure:"class_uid"`
-	ConnectionInfo   *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count            *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint      *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration         *int                   `mapstructure:"duration,omitempty"`
-	EndTime          *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments      []Enrichment           `mapstructure:"enrichments,omitempty"`
-	IdentifierCookie *string                `mapstructure:"identifier_cookie,omitempty"`
-	Message          *string                `mapstructure:"message,omitempty"`
-	Metadata         *Metadata              `mapstructure:"metadata"`
-	Observables      []Observable           `mapstructure:"observables,omitempty"`
-	ProtocolVer      *string                `mapstructure:"protocol_ver,omitempty"`
-	Proxy            *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData          *string                `mapstructure:"raw_data,omitempty"`
-	RemoteDisplay    *Display               `mapstructure:"remote_display,omitempty"`
-	Request          *Request               `mapstructure:"request,omitempty"`
-	Response         *Response              `mapstructure:"response,omitempty"`
-	Severity         *string                `mapstructure:"severity,omitempty"`
-	SeverityID       *int                   `mapstructure:"severity_id"`
-	SrcEndpoint      *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime        *int64                 `mapstructure:"start_time,omitempty"`
-	Status           *string                `mapstructure:"status,omitempty"`
-	StatusCode       *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail     *string                `mapstructure:"status_detail,omitempty"`
-	StatusID         *int                   `mapstructure:"status_id,omitempty"`
-	Time             *int64                 `mapstructure:"time"`
-	TimezoneOffset   *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS              *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic          *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName         *string                `mapstructure:"type_name,omitempty"`
-	TypeUID          *int64                 `mapstructure:"type_uid"`
-	Unmapped         *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for RDPActivity.
-func (o *RDPActivity) Validate() error {
+// validateRDPActivity checks required fields, constraints, and enum values.
+func validateRDPActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400500, 400501, 400502, 400503, 400504, 400505, 400506, 400599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400500, 400501, 400502, 400503, 400504, 400505, 400506, 400599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["identifier_cookie"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("identifier_cookie: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["protocol_ver"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["remote_display"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDisplay(m); err != nil {
+				errs = append(errs, fmt.Errorf("remote_display: %w", err))
+			}
+		}
+	}
+	if v, ok := data["request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ScanActivity represents the OCSF Scan Activity event class (UID: 6007).
-// Scan events report the start, completion, and results of a scan job. The scan event includes the number of items that were scanned and the number of detections that were resolved.
-type ScanActivity struct {
-	ActivityID       *int         `mapstructure:"activity_id"`
-	ActivityName     *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName     *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID      *int         `mapstructure:"category_uid"`
-	ClassName        *string      `mapstructure:"class_name,omitempty"`
-	ClassUID         *int         `mapstructure:"class_uid"`
-	CommandUID       *string      `mapstructure:"command_uid,omitempty"`
-	Count            *int         `mapstructure:"count,omitempty"`
-	Duration         *int         `mapstructure:"duration,omitempty"`
-	EndTime          *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments      []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message          *string      `mapstructure:"message,omitempty"`
-	Metadata         *Metadata    `mapstructure:"metadata"`
-	NumDetections    *int         `mapstructure:"num_detections,omitempty"`
-	NumFiles         *int         `mapstructure:"num_files,omitempty"`
-	NumFolders       *int         `mapstructure:"num_folders,omitempty"`
-	NumNetworkItems  *int         `mapstructure:"num_network_items,omitempty"`
-	NumProcesses     *int         `mapstructure:"num_processes,omitempty"`
-	NumRegistryItems *int         `mapstructure:"num_registry_items,omitempty"`
-	NumResolutions   *int         `mapstructure:"num_resolutions,omitempty"`
-	NumSkippedItems  *int         `mapstructure:"num_skipped_items,omitempty"`
-	NumTrustedItems  *int         `mapstructure:"num_trusted_items,omitempty"`
-	Observables      []Observable `mapstructure:"observables,omitempty"`
-	Policy           *Policy      `mapstructure:"policy,omitempty"`
-	RawData          *string      `mapstructure:"raw_data,omitempty"`
-	Scan             *Scan        `mapstructure:"scan"`
-	ScheduleUID      *string      `mapstructure:"schedule_uid,omitempty"`
-	Severity         *string      `mapstructure:"severity,omitempty"`
-	SeverityID       *int         `mapstructure:"severity_id"`
-	StartTime        *int64       `mapstructure:"start_time,omitempty"`
-	Status           *string      `mapstructure:"status,omitempty"`
-	StatusCode       *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail     *string      `mapstructure:"status_detail,omitempty"`
-	StatusID         *int         `mapstructure:"status_id,omitempty"`
-	Time             *int64       `mapstructure:"time"`
-	TimezoneOffset   *int         `mapstructure:"timezone_offset,omitempty"`
-	Total            *int         `mapstructure:"total,omitempty"`
-	TypeName         *string      `mapstructure:"type_name,omitempty"`
-	TypeUID          *int64       `mapstructure:"type_uid"`
-	Unmapped         *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ScanActivity.
-func (o *ScanActivity) Validate() error {
+// validateScanActivity checks required fields, constraints, and enum values.
+func validateScanActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.Scan == nil {
+	if _, ok := data["scan"]; !ok {
 		errs = append(errs, errors.New("scan is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600700, 600701, 600702, 600703, 600704, 600705, 600706, 600707, 600708, 600709, 600710, 600799:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6007:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600700, 600701, 600702, 600703, 600704, 600705, 600706, 600707, 600708, 600709, 600710, 600799:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["command_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("command_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["schedule_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("schedule_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["policy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validatePolicy(m); err != nil {
+				errs = append(errs, fmt.Errorf("policy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["scan"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateScan(m); err != nil {
+				errs = append(errs, fmt.Errorf("scan: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// ScheduledJobActivity represents the OCSF Scheduled Job Activity event class (UID: 1006).
-// Scheduled Job Activity events report activities related to scheduled jobs or tasks.
-type ScheduledJobActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Job            *Job         `mapstructure:"job"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for ScheduledJobActivity.
-func (o *ScheduledJobActivity) Validate() error {
+// validateScheduledJobActivity checks required fields, constraints, and enum values.
+func validateScheduledJobActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Job == nil {
+	if _, ok := data["job"]; !ok {
 		errs = append(errs, errors.New("job is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 100600, 100601, 100602, 100603, 100604, 100605, 100606, 100699:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1006:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 100600, 100601, 100602, 100603, 100604, 100605, 100606, 100699:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["job"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateJob(m); err != nil {
+				errs = append(errs, fmt.Errorf("job: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// SecurityFinding represents the OCSF Security Finding event class (UID: 2001).
-// Security Finding events describe findings, detections, anomalies, alerts and/or actions performed by security products
-type SecurityFinding struct {
-	ActivityID      *int              `mapstructure:"activity_id"`
-	ActivityName    *string           `mapstructure:"activity_name,omitempty"`
-	Analytic        *Analytic         `mapstructure:"analytic,omitempty"`
-	Attacks         []Attack          `mapstructure:"attacks,omitempty"`
-	CategoryName    *string           `mapstructure:"category_name,omitempty"`
-	CategoryUID     *int              `mapstructure:"category_uid"`
-	CisCsc          []CisCsc          `mapstructure:"cis_csc,omitempty"`
-	ClassName       *string           `mapstructure:"class_name,omitempty"`
-	ClassUID        *int              `mapstructure:"class_uid"`
-	Compliance      *Compliance       `mapstructure:"compliance,omitempty"`
-	Confidence      *string           `mapstructure:"confidence,omitempty"`
-	ConfidenceID    *int              `mapstructure:"confidence_id,omitempty"`
-	ConfidenceScore *int              `mapstructure:"confidence_score,omitempty"`
-	Count           *int              `mapstructure:"count,omitempty"`
-	DataSources     []string          `mapstructure:"data_sources,omitempty"`
-	Duration        *int              `mapstructure:"duration,omitempty"`
-	EndTime         *int64            `mapstructure:"end_time,omitempty"`
-	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
-	Evidence        any               `mapstructure:"evidence,omitempty"`
-	Finding         *Finding          `mapstructure:"finding"`
-	Impact          *string           `mapstructure:"impact,omitempty"`
-	ImpactID        *int              `mapstructure:"impact_id,omitempty"`
-	ImpactScore     *int              `mapstructure:"impact_score,omitempty"`
-	KillChain       []KillChainPhase  `mapstructure:"kill_chain,omitempty"`
-	Malware         []Malware         `mapstructure:"malware,omitempty"`
-	Message         *string           `mapstructure:"message,omitempty"`
-	Metadata        *Metadata         `mapstructure:"metadata"`
-	Nist            []string          `mapstructure:"nist,omitempty"`
-	Observables     []Observable      `mapstructure:"observables,omitempty"`
-	Process         *Process          `mapstructure:"process,omitempty"`
-	RawData         *string           `mapstructure:"raw_data,omitempty"`
-	Resources       []ResourceDetails `mapstructure:"resources,omitempty"`
-	RiskLevel       *string           `mapstructure:"risk_level,omitempty"`
-	RiskLevelID     *int              `mapstructure:"risk_level_id,omitempty"`
-	RiskScore       *int              `mapstructure:"risk_score,omitempty"`
-	Severity        *string           `mapstructure:"severity,omitempty"`
-	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *int64            `mapstructure:"start_time,omitempty"`
-	State           *string           `mapstructure:"state,omitempty"`
-	StateID         *int              `mapstructure:"state_id"`
-	Status          *string           `mapstructure:"status,omitempty"`
-	StatusCode      *string           `mapstructure:"status_code,omitempty"`
-	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
-	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *int64            `mapstructure:"time"`
-	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
-	TypeName        *string           `mapstructure:"type_name,omitempty"`
-	TypeUID         *int64            `mapstructure:"type_uid"`
-	Unmapped        *Object           `mapstructure:"unmapped,omitempty"`
-	Vulnerabilities []Vulnerability   `mapstructure:"vulnerabilities,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for SecurityFinding.
-func (o *SecurityFinding) Validate() error {
+// validateSecurityFinding checks required fields, constraints, and enum values.
+func validateSecurityFinding(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Finding == nil {
+	if _, ok := data["finding"]; !ok {
 		errs = append(errs, errors.New("finding is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.StateID == nil {
+	if _, ok := data["state_id"]; !ok {
 		errs = append(errs, errors.New("state_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 200100, 200101, 200102, 200103, 200199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["confidence_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["impact_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("impact_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["risk_level_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4:
+			default:
+				errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["state_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("state_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 200100, 200101, 200102, 200103, 200199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidence"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["impact"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("impact: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["risk_level"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("risk_level: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["state"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("state: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["analytic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAnalytic(m); err != nil {
+				errs = append(errs, fmt.Errorf("analytic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["attacks"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAttack(m); err != nil {
+						errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["cis_csc"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateCisCsc(m); err != nil {
+						errs = append(errs, fmt.Errorf("cis_csc[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["compliance"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCompliance(m); err != nil {
+				errs = append(errs, fmt.Errorf("compliance: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["finding"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFinding(m); err != nil {
+				errs = append(errs, fmt.Errorf("finding: %w", err))
+			}
+		}
+	}
+	if v, ok := data["kill_chain"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateKillChainPhase(m); err != nil {
+						errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["malware"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateMalware(m); err != nil {
+						errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["process"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateProcess(m); err != nil {
+				errs = append(errs, fmt.Errorf("process: %w", err))
+			}
+		}
+	}
+	if v, ok := data["resources"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateResourceDetails(m); err != nil {
+						errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["vulnerabilities"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateVulnerability(m); err != nil {
+						errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+					}
+				}
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// SmbActivity represents the OCSF SMB Activity event class (UID: 4006).
-// Server Message Block (SMB) Protocol Activity events report client/server connections sharing resources within the network.
-type SmbActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ClientDialects []string               `mapstructure:"client_dialects,omitempty"`
-	Command        *string                `mapstructure:"command,omitempty"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DceRpc         *DceRpc                `mapstructure:"dce_rpc,omitempty"`
-	Dialect        *string                `mapstructure:"dialect,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	File           *File                  `mapstructure:"file,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	OpenType       *string                `mapstructure:"open_type,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	Response       *Response              `mapstructure:"response,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	Share          *string                `mapstructure:"share,omitempty"`
-	ShareType      *string                `mapstructure:"share_type,omitempty"`
-	ShareTypeID    *int                   `mapstructure:"share_type_id,omitempty"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TreeUID        *string                `mapstructure:"tree_uid,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for SmbActivity.
-func (o *SmbActivity) Validate() error {
+// validateSmbActivity checks required fields, constraints, and enum values.
+func validateSmbActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400600, 400601, 400602, 400603, 400604, 400605, 400606, 400699:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4006:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["share_type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("share_type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400600, 400601, 400602, 400603, 400604, 400605, 400606, 400699:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["command"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("command: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dialect"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("dialect: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["open_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("open_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["share"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("share: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["share_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("share_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["tree_uid"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("tree_uid: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dce_rpc"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDceRpc(m); err != nil {
+				errs = append(errs, fmt.Errorf("dce_rpc: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["file"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFile(m); err != nil {
+				errs = append(errs, fmt.Errorf("file: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// SSHActivity represents the OCSF SSH Activity event class (UID: 4007).
-// SSH Activity events report remote client connections to a server using the Secure Shell (SSH) Protocol.
-type SSHActivity struct {
-	ActivityID     *int                   `mapstructure:"activity_id"`
-	ActivityName   *string                `mapstructure:"activity_name,omitempty"`
-	AppName        *string                `mapstructure:"app_name,omitempty"`
-	AuthType       *string                `mapstructure:"auth_type,omitempty"`
-	AuthTypeID     *int                   `mapstructure:"auth_type_id,omitempty"`
-	CategoryName   *string                `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int                   `mapstructure:"category_uid"`
-	ClassName      *string                `mapstructure:"class_name,omitempty"`
-	ClassUID       *int                   `mapstructure:"class_uid"`
-	ClientHassh    *Hassh                 `mapstructure:"client_hassh,omitempty"`
-	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info,omitempty"`
-	Count          *int                   `mapstructure:"count,omitempty"`
-	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint"`
-	Duration       *int                   `mapstructure:"duration,omitempty"`
-	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	Message        *string                `mapstructure:"message,omitempty"`
-	Metadata       *Metadata              `mapstructure:"metadata"`
-	Observables    []Observable           `mapstructure:"observables,omitempty"`
-	ProtocolVer    *string                `mapstructure:"protocol_ver,omitempty"`
-	Proxy          *NetworkProxy          `mapstructure:"proxy,omitempty"`
-	RawData        *string                `mapstructure:"raw_data,omitempty"`
-	ServerHassh    *Hassh                 `mapstructure:"server_hassh,omitempty"`
-	Severity       *string                `mapstructure:"severity,omitempty"`
-	SeverityID     *int                   `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
-	Status         *string                `mapstructure:"status,omitempty"`
-	StatusCode     *string                `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
-	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *int64                 `mapstructure:"time"`
-	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS                   `mapstructure:"tls,omitempty"`
-	Traffic        *NetworkTraffic        `mapstructure:"traffic,omitempty"`
-	TypeName       *string                `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64                 `mapstructure:"type_uid"`
-	Unmapped       *Object                `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for SSHActivity.
-func (o *SSHActivity) Validate() error {
+// validateSSHActivity checks required fields, constraints, and enum values.
+func validateSSHActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.DstEndpoint == nil {
+	if _, ok := data["dst_endpoint"]; !ok {
 		errs = append(errs, errors.New("dst_endpoint is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.SrcEndpoint == nil {
+	if _, ok := data["src_endpoint"]; !ok {
 		errs = append(errs, errors.New("src_endpoint is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 400700, 400701, 400702, 400703, 400704, 400705, 400706, 400799:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["auth_type_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("auth_type_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 4007:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 400700, 400701, 400702, 400703, 400704, 400705, 400706, 400799:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["app_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("app_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["auth_type"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("auth_type: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["protocol_ver"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("protocol_ver: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["client_hassh"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHassh(m); err != nil {
+				errs = append(errs, fmt.Errorf("client_hassh: %w", err))
+			}
+		}
+	}
+	if v, ok := data["connection_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkConnectionInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("connection_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["server_hassh"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHassh(m); err != nil {
+				errs = append(errs, fmt.Errorf("server_hassh: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["traffic"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkTraffic(m); err != nil {
+				errs = append(errs, fmt.Errorf("traffic: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// UserAccess represents the OCSF User Access Management event class (UID: 3005).
-// User Access Management events report management updates to a user's privileges.
-type UserAccess struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	Privileges     []string         `mapstructure:"privileges"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Resource       *ResourceDetails `mapstructure:"resource,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	User           *User            `mapstructure:"user"`
-}
-
-// Validate checks required fields, constraints, and enum values for UserAccess.
-func (o *UserAccess) Validate() error {
+// validateUserAccess checks required fields, constraints, and enum values.
+func validateUserAccess(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if len(o.Privileges) == 0 {
+	if _, ok := data["privileges"]; !ok {
 		errs = append(errs, errors.New("privileges is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.User == nil {
+	if _, ok := data["user"]; !ok {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 300500, 300501, 300502, 300599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 3005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 300500, 300501, 300502, 300599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["resource"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResourceDetails(m); err != nil {
+				errs = append(errs, fmt.Errorf("resource: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// UserInventory represents the OCSF User Inventory Info event class (UID: 5003).
-// User Inventory Info events report user inventory data that is either logged or proactively collected. For example, when collecting user information from Active Directory entries.
-type UserInventory struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-	User           *User        `mapstructure:"user"`
-}
-
-// Validate checks required fields, constraints, and enum values for UserInventory.
-func (o *UserInventory) Validate() error {
+// validateUserInventory checks required fields, constraints, and enum values.
+func validateUserInventory(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.User == nil {
+	if _, ok := data["user"]; !ok {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 500300, 500301, 500302, 500399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 500300, 500301, 500302, 500399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["user"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateUser(m); err != nil {
+				errs = append(errs, fmt.Errorf("user: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// VulnerabilityFinding represents the OCSF Vulnerability Finding event class (UID: 2002).
-// The Vulnerability Finding event is a notification about weakness in an information system, system security procedures, internal controls, or implementation that could be exploited or triggered by a threat source.
-type VulnerabilityFinding struct {
-	ActivityID      *int             `mapstructure:"activity_id"`
-	ActivityName    *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName    *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID     *int             `mapstructure:"category_uid"`
-	ClassName       *string          `mapstructure:"class_name,omitempty"`
-	ClassUID        *int             `mapstructure:"class_uid"`
-	Comment         *string          `mapstructure:"comment,omitempty"`
-	Confidence      *string          `mapstructure:"confidence,omitempty"`
-	ConfidenceID    *int             `mapstructure:"confidence_id,omitempty"`
-	ConfidenceScore *int             `mapstructure:"confidence_score,omitempty"`
-	Count           *int             `mapstructure:"count,omitempty"`
-	Duration        *int             `mapstructure:"duration,omitempty"`
-	EndTime         *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments     []Enrichment     `mapstructure:"enrichments,omitempty"`
-	FindingInfo     *FindingInfo     `mapstructure:"finding_info"`
-	Message         *string          `mapstructure:"message,omitempty"`
-	Metadata        *Metadata        `mapstructure:"metadata"`
-	Observables     []Observable     `mapstructure:"observables,omitempty"`
-	RawData         *string          `mapstructure:"raw_data,omitempty"`
-	Resource        *ResourceDetails `mapstructure:"resource,omitempty"`
-	Severity        *string          `mapstructure:"severity,omitempty"`
-	SeverityID      *int             `mapstructure:"severity_id"`
-	StartTime       *int64           `mapstructure:"start_time,omitempty"`
-	Status          *string          `mapstructure:"status,omitempty"`
-	StatusCode      *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail    *string          `mapstructure:"status_detail,omitempty"`
-	StatusID        *int             `mapstructure:"status_id,omitempty"`
-	Time            *int64           `mapstructure:"time"`
-	TimezoneOffset  *int             `mapstructure:"timezone_offset,omitempty"`
-	TypeName        *string          `mapstructure:"type_name,omitempty"`
-	TypeUID         *int64           `mapstructure:"type_uid"`
-	Unmapped        *Object          `mapstructure:"unmapped,omitempty"`
-	Vulnerabilities []Vulnerability  `mapstructure:"vulnerabilities"`
-}
-
-// Validate checks required fields, constraints, and enum values for VulnerabilityFinding.
-func (o *VulnerabilityFinding) Validate() error {
+// validateVulnerabilityFinding checks required fields, constraints, and enum values.
+func validateVulnerabilityFinding(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.FindingInfo == nil {
+	if _, ok := data["finding_info"]; !ok {
 		errs = append(errs, errors.New("finding_info is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if len(o.Vulnerabilities) == 0 {
+	if _, ok := data["vulnerabilities"]; !ok {
 		errs = append(errs, errors.New("vulnerabilities is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 200200, 200201, 200202, 200203, 200299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 2002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["confidence_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 99:
+			default:
+				errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 200200, 200201, 200202, 200203, 200299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["comment"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("comment: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["confidence"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("confidence: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["finding_info"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateFindingInfo(m); err != nil {
+				errs = append(errs, fmt.Errorf("finding_info: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["resource"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateResourceDetails(m); err != nil {
+				errs = append(errs, fmt.Errorf("resource: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["vulnerabilities"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateVulnerability(m); err != nil {
+						errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+					}
+				}
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WebResourceAccessActivity represents the OCSF Web Resource Access Activity event class (UID: 6004).
-// Web Resource Access Activity events describe successful/failed attempts to access a web resource over HTTP.
-type WebResourceAccessActivity struct {
-	ActivityID     *int             `mapstructure:"activity_id"`
-	ActivityName   *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int             `mapstructure:"category_uid"`
-	ClassName      *string          `mapstructure:"class_name,omitempty"`
-	ClassUID       *int             `mapstructure:"class_uid"`
-	Count          *int             `mapstructure:"count,omitempty"`
-	Duration       *int             `mapstructure:"duration,omitempty"`
-	EndTime        *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
-	HTTPRequest    *HTTPRequest     `mapstructure:"http_request"`
-	HTTPResponse   *HTTPResponse    `mapstructure:"http_response,omitempty"`
-	Message        *string          `mapstructure:"message,omitempty"`
-	Metadata       *Metadata        `mapstructure:"metadata"`
-	Observables    []Observable     `mapstructure:"observables,omitempty"`
-	Proxy          *NetworkProxy    `mapstructure:"proxy,omitempty"`
-	RawData        *string          `mapstructure:"raw_data,omitempty"`
-	Severity       *string          `mapstructure:"severity,omitempty"`
-	SeverityID     *int             `mapstructure:"severity_id"`
-	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *int64           `mapstructure:"start_time,omitempty"`
-	Status         *string          `mapstructure:"status,omitempty"`
-	StatusCode     *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
-	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *int64           `mapstructure:"time"`
-	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
-	TLS            *TLS             `mapstructure:"tls,omitempty"`
-	TypeName       *string          `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64           `mapstructure:"type_uid"`
-	Unmapped       *Object          `mapstructure:"unmapped,omitempty"`
-	WebResources   []WebResource    `mapstructure:"web_resources"`
-}
-
-// Validate checks required fields, constraints, and enum values for WebResourceAccessActivity.
-func (o *WebResourceAccessActivity) Validate() error {
+// validateWebResourceAccessActivity checks required fields, constraints, and enum values.
+func validateWebResourceAccessActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.HTTPRequest == nil {
+	if _, ok := data["http_request"]; !ok {
 		errs = append(errs, errors.New("http_request is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if len(o.WebResources) == 0 {
+	if _, ok := data["web_resources"]; !ok {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600400, 600401, 600402, 600403, 600404, 600499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600400, 600401, 600402, 600403, 600404, 600499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["http_response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["proxy"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkProxy(m); err != nil {
+				errs = append(errs, fmt.Errorf("proxy: %w", err))
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["web_resources"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateWebResource(m); err != nil {
+						errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+					}
+				}
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WebResourcesActivity represents the OCSF Web Resources Activity event class (UID: 6001).
-// Web Resources Activity events describe actions executed on a set of Web Resources.
-type WebResourcesActivity struct {
-	ActivityID         *int             `mapstructure:"activity_id"`
-	ActivityName       *string          `mapstructure:"activity_name,omitempty"`
-	CategoryName       *string          `mapstructure:"category_name,omitempty"`
-	CategoryUID        *int             `mapstructure:"category_uid"`
-	ClassName          *string          `mapstructure:"class_name,omitempty"`
-	ClassUID           *int             `mapstructure:"class_uid"`
-	Count              *int             `mapstructure:"count,omitempty"`
-	DstEndpoint        *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
-	Duration           *int             `mapstructure:"duration,omitempty"`
-	EndTime            *int64           `mapstructure:"end_time,omitempty"`
-	Enrichments        []Enrichment     `mapstructure:"enrichments,omitempty"`
-	HTTPRequest        *HTTPRequest     `mapstructure:"http_request,omitempty"`
-	HTTPResponse       *HTTPResponse    `mapstructure:"http_response,omitempty"`
-	Message            *string          `mapstructure:"message,omitempty"`
-	Metadata           *Metadata        `mapstructure:"metadata"`
-	Observables        []Observable     `mapstructure:"observables,omitempty"`
-	RawData            *string          `mapstructure:"raw_data,omitempty"`
-	Severity           *string          `mapstructure:"severity,omitempty"`
-	SeverityID         *int             `mapstructure:"severity_id"`
-	SrcEndpoint        *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *int64           `mapstructure:"start_time,omitempty"`
-	Status             *string          `mapstructure:"status,omitempty"`
-	StatusCode         *string          `mapstructure:"status_code,omitempty"`
-	StatusDetail       *string          `mapstructure:"status_detail,omitempty"`
-	StatusID           *int             `mapstructure:"status_id,omitempty"`
-	Time               *int64           `mapstructure:"time"`
-	TimezoneOffset     *int             `mapstructure:"timezone_offset,omitempty"`
-	TLS                *TLS             `mapstructure:"tls,omitempty"`
-	TypeName           *string          `mapstructure:"type_name,omitempty"`
-	TypeUID            *int64           `mapstructure:"type_uid"`
-	Unmapped           *Object          `mapstructure:"unmapped,omitempty"`
-	WebResources       []WebResource    `mapstructure:"web_resources"`
-	WebResourcesResult []WebResource    `mapstructure:"web_resources_result,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WebResourcesActivity.
-func (o *WebResourcesActivity) Validate() error {
+// validateWebResourcesActivity checks required fields, constraints, and enum values.
+func validateWebResourcesActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if len(o.WebResources) == 0 {
+	if _, ok := data["web_resources"]; !ok {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 600100, 600101, 600102, 600103, 600104, 600105, 600106, 600107, 600108, 600199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 6001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 600100, 600101, 600102, 600103, 600104, 600105, 600106, 600107, 600108, 600199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["dst_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["http_request"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPRequest(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_request: %w", err))
+			}
+		}
+	}
+	if v, ok := data["http_response"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateHTTPResponse(m); err != nil {
+				errs = append(errs, fmt.Errorf("http_response: %w", err))
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["src_endpoint"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateNetworkEndpoint(m); err != nil {
+				errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+			}
+		}
+	}
+	if v, ok := data["tls"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateTLS(m); err != nil {
+				errs = append(errs, fmt.Errorf("tls: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["web_resources"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateWebResource(m); err != nil {
+						errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["web_resources_result"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateWebResource(m); err != nil {
+						errs = append(errs, fmt.Errorf("web_resources_result[%d]: %w", i, err))
+					}
+				}
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinPrefetchInfo represents the OCSF Prefetch Info event class (UID: 205019).
-// Prefetch Info events report information about Windows prefetch files.
-type WinPrefetchInfo struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	LastRunTime    *int64       `mapstructure:"last_run_time,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Name           *string      `mapstructure:"name"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	RunCount       *int         `mapstructure:"run_count,omitempty"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinPrefetchInfo.
-func (o *WinPrefetchInfo) Validate() error {
+// validateWinPrefetchInfo checks required fields, constraints, and enum values.
+func validateWinPrefetchInfo(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.Name == nil {
+	if _, ok := data["name"]; !ok {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20501900, 20501901, 20501902, 20501903, 20501904, 20501905, 20501999:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 205019:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20501900, 20501901, 20501902, 20501903, 20501904, 20501905, 20501999:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinRegistryKeyActivity represents the OCSF Registry Key Activity event class (UID: 201001).
-// Registry Key Activity events report when a process performs an action on a Windows registry key.
-type WinRegistryKeyActivity struct {
-	AccessMask     *int         `mapstructure:"access_mask,omitempty"`
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	CreateMask     *string      `mapstructure:"create_mask,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	OpenMask       *int         `mapstructure:"open_mask,omitempty"`
-	PrevRegKey     *WinRegKey   `mapstructure:"prev_reg_key,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	RegKey         *WinRegKey   `mapstructure:"reg_key"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinRegistryKeyActivity.
-func (o *WinRegistryKeyActivity) Validate() error {
+// validateWinRegistryKeyActivity checks required fields, constraints, and enum values.
+func validateWinRegistryKeyActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.RegKey == nil {
+	if _, ok := data["reg_key"]; !ok {
 		errs = append(errs, errors.New("reg_key is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20100100, 20100101, 20100102, 20100103, 20100104, 20100105, 20100106, 20100107, 20100108, 20100109, 20100199:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 201001:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20100100, 20100101, 20100102, 20100103, 20100104, 20100105, 20100106, 20100107, 20100108, 20100109, 20100199:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["create_mask"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("create_mask: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["prev_reg_key"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegKey(m); err != nil {
+				errs = append(errs, fmt.Errorf("prev_reg_key: %w", err))
+			}
+		}
+	}
+	if v, ok := data["reg_key"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegKey(m); err != nil {
+				errs = append(errs, fmt.Errorf("reg_key: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinRegistryKeyInfo represents the OCSF Registry Key Info event class (UID: 205004).
-// Registry Key Info events report information about discovered Windows registry keys.
-type WinRegistryKeyInfo struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	RegKey         *WinRegKey   `mapstructure:"reg_key"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinRegistryKeyInfo.
-func (o *WinRegistryKeyInfo) Validate() error {
+// validateWinRegistryKeyInfo checks required fields, constraints, and enum values.
+func validateWinRegistryKeyInfo(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.RegKey == nil {
+	if _, ok := data["reg_key"]; !ok {
 		errs = append(errs, errors.New("reg_key is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20500400, 20500401, 20500402, 20500403, 20500404, 20500405, 20500499:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 205004:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20500400, 20500401, 20500402, 20500403, 20500404, 20500405, 20500499:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["reg_key"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegKey(m); err != nil {
+				errs = append(errs, fmt.Errorf("reg_key: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinRegistryValueActivity represents the OCSF Registry Value Activity event class (UID: 201002).
-// Registry Value Activity events reports when a process performs an action on a Windows registry value.
-type WinRegistryValueActivity struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor       `mapstructure:"actor"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Device         *Device      `mapstructure:"device"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	PrevRegValue   *WinRegValue `mapstructure:"prev_reg_value,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	RegValue       *WinRegValue `mapstructure:"reg_value"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinRegistryValueActivity.
-func (o *WinRegistryValueActivity) Validate() error {
+// validateWinRegistryValueActivity checks required fields, constraints, and enum values.
+func validateWinRegistryValueActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.RegValue == nil {
+	if _, ok := data["reg_value"]; !ok {
 		errs = append(errs, errors.New("reg_value is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20100200, 20100201, 20100202, 20100203, 20100204, 20100299:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 201002:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20100200, 20100201, 20100202, 20100203, 20100204, 20100299:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["prev_reg_value"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegValue(m); err != nil {
+				errs = append(errs, fmt.Errorf("prev_reg_value: %w", err))
+			}
+		}
+	}
+	if v, ok := data["reg_value"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegValue(m); err != nil {
+				errs = append(errs, fmt.Errorf("reg_value: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinRegistryValueInfo represents the OCSF Registry Value Info event class (UID: 205005).
-// Registry Value Info events report information about discovered Windows registry values.
-type WinRegistryValueInfo struct {
-	ActivityID     *int         `mapstructure:"activity_id"`
-	ActivityName   *string      `mapstructure:"activity_name,omitempty"`
-	CategoryName   *string      `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int         `mapstructure:"category_uid"`
-	ClassName      *string      `mapstructure:"class_name,omitempty"`
-	ClassUID       *int         `mapstructure:"class_uid"`
-	Count          *int         `mapstructure:"count,omitempty"`
-	Duration       *int         `mapstructure:"duration,omitempty"`
-	EndTime        *int64       `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	Message        *string      `mapstructure:"message,omitempty"`
-	Metadata       *Metadata    `mapstructure:"metadata"`
-	Observables    []Observable `mapstructure:"observables,omitempty"`
-	RawData        *string      `mapstructure:"raw_data,omitempty"`
-	RegValue       *WinRegValue `mapstructure:"reg_value"`
-	Severity       *string      `mapstructure:"severity,omitempty"`
-	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *int64       `mapstructure:"start_time,omitempty"`
-	Status         *string      `mapstructure:"status,omitempty"`
-	StatusCode     *string      `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
-	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *int64       `mapstructure:"time"`
-	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string      `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64       `mapstructure:"type_uid"`
-	Unmapped       *Object      `mapstructure:"unmapped,omitempty"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinRegistryValueInfo.
-func (o *WinRegistryValueInfo) Validate() error {
+// validateWinRegistryValueInfo checks required fields, constraints, and enum values.
+func validateWinRegistryValueInfo(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.RegValue == nil {
+	if _, ok := data["reg_value"]; !ok {
 		errs = append(errs, errors.New("reg_value is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20500500, 20500501, 20500502, 20500503, 20500504, 20500505, 20500599:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 5:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 205005:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20500500, 20500501, 20500502, 20500503, 20500504, 20500505, 20500599:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["reg_value"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinRegValue(m); err != nil {
+				errs = append(errs, fmt.Errorf("reg_value: %w", err))
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// WinResourceActivity represents the OCSF Windows Resource Activity event class (UID: 201003).
-// Windows Resource Activity events report when a process accesses a Windows managed resource object, successful or otherwise.
-type WinResourceActivity struct {
-	ActivityID     *int            `mapstructure:"activity_id"`
-	ActivityName   *string         `mapstructure:"activity_name,omitempty"`
-	Actor          *Actor          `mapstructure:"actor"`
-	CategoryName   *string         `mapstructure:"category_name,omitempty"`
-	CategoryUID    *int            `mapstructure:"category_uid"`
-	ClassName      *string         `mapstructure:"class_name,omitempty"`
-	ClassUID       *int            `mapstructure:"class_uid"`
-	Count          *int            `mapstructure:"count,omitempty"`
-	Device         *Device         `mapstructure:"device"`
-	Duration       *int            `mapstructure:"duration,omitempty"`
-	EndTime        *int64          `mapstructure:"end_time,omitempty"`
-	Enrichments    []Enrichment    `mapstructure:"enrichments,omitempty"`
-	Message        *string         `mapstructure:"message,omitempty"`
-	Metadata       *Metadata       `mapstructure:"metadata"`
-	Observables    []Observable    `mapstructure:"observables,omitempty"`
-	RawData        *string         `mapstructure:"raw_data,omitempty"`
-	Severity       *string         `mapstructure:"severity,omitempty"`
-	SeverityID     *int            `mapstructure:"severity_id"`
-	StartTime      *int64          `mapstructure:"start_time,omitempty"`
-	Status         *string         `mapstructure:"status,omitempty"`
-	StatusCode     *string         `mapstructure:"status_code,omitempty"`
-	StatusDetail   *string         `mapstructure:"status_detail,omitempty"`
-	StatusID       *int            `mapstructure:"status_id,omitempty"`
-	Time           *int64          `mapstructure:"time"`
-	TimezoneOffset *int            `mapstructure:"timezone_offset,omitempty"`
-	TypeName       *string         `mapstructure:"type_name,omitempty"`
-	TypeUID        *int64          `mapstructure:"type_uid"`
-	Unmapped       *Object         `mapstructure:"unmapped,omitempty"`
-	WinResource    *WinWinResource `mapstructure:"win_resource"`
-}
-
-// Validate checks required fields, constraints, and enum values for WinResourceActivity.
-func (o *WinResourceActivity) Validate() error {
+// validateWinResourceActivity checks required fields, constraints, and enum values.
+func validateWinResourceActivity(data map[string]any) error {
 	var errs []error
-	if o.ActivityID == nil {
+	if _, ok := data["activity_id"]; !ok {
 		errs = append(errs, errors.New("activity_id is required"))
 	}
-	if o.Actor == nil {
+	if _, ok := data["actor"]; !ok {
 		errs = append(errs, errors.New("actor is required"))
 	}
-	if o.CategoryUID == nil {
+	if _, ok := data["category_uid"]; !ok {
 		errs = append(errs, errors.New("category_uid is required"))
 	}
-	if o.ClassUID == nil {
+	if _, ok := data["class_uid"]; !ok {
 		errs = append(errs, errors.New("class_uid is required"))
 	}
-	if o.Device == nil {
+	if _, ok := data["device"]; !ok {
 		errs = append(errs, errors.New("device is required"))
 	}
-	if o.Metadata == nil {
+	if _, ok := data["metadata"]; !ok {
 		errs = append(errs, errors.New("metadata is required"))
 	}
-	if o.SeverityID == nil {
+	if _, ok := data["severity_id"]; !ok {
 		errs = append(errs, errors.New("severity_id is required"))
 	}
-	if o.Time == nil {
+	if _, ok := data["time"]; !ok {
 		errs = append(errs, errors.New("time is required"))
 	}
-	if o.TypeUID == nil {
+	if _, ok := data["type_uid"]; !ok {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.WinResource == nil {
+	if _, ok := data["win_resource"]; !ok {
 		errs = append(errs, errors.New("win_resource is required"))
 	}
-	if o.TypeUID != nil {
-		switch *o.TypeUID {
-		case 20100300, 20100301, 20100399:
-		default:
-			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+	if v, ok := data["activity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 99:
+			default:
+				errs = append(errs, fmt.Errorf("activity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["category_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 1:
+			default:
+				errs = append(errs, fmt.Errorf("category_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["class_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 201003:
+			default:
+				errs = append(errs, fmt.Errorf("class_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["severity_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 99:
+			default:
+				errs = append(errs, fmt.Errorf("severity_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["status_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 99:
+			default:
+				errs = append(errs, fmt.Errorf("status_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["type_uid"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 20100300, 20100301, 20100399:
+			default:
+				errs = append(errs, fmt.Errorf("type_uid: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["activity_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("activity_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["category_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("category_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["class_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("class_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["message"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("message: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["raw_data"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("raw_data: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["severity"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("severity: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_code"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_code: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["status_detail"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("status_detail: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["type_name"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	if v, ok := data["enrichments"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateEnrichment(m); err != nil {
+						errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["metadata"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateMetadata(m); err != nil {
+				errs = append(errs, fmt.Errorf("metadata: %w", err))
+			}
+		}
+	}
+	if v, ok := data["observables"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateObservable(m); err != nil {
+						errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["unmapped"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateObject(m); err != nil {
+				errs = append(errs, fmt.Errorf("unmapped: %w", err))
+			}
+		}
+	}
+	if v, ok := data["win_resource"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateWinWinResource(m); err != nil {
+				errs = append(errs, fmt.Errorf("win_resource: %w", err))
+			}
 		}
 	}
 	return errors.Join(errs...)
@@ -6328,310 +17966,113 @@ const (
 	ClassUIDWinResourceActivity       = 201003
 )
 
-// ValidateClass decodes data into the OCSF event class identified by classUID
-// and runs validation on the resulting struct.
+// ValidateClass validates data against the OCSF event class identified by classUID.
 func ValidateClass(classUID int, data any) error {
+	m, ok := data.(map[string]any)
+	if !ok {
+		return fmt.Errorf("expected map[string]any, got %T", data)
+	}
 	switch classUID {
 	case ClassUIDAccountChange:
-		var obj AccountChange
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateAccountChange(m)
 	case ClassUIDAPIActivity:
-		var obj APIActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateAPIActivity(m)
 	case ClassUIDApplicationLifecycle:
-		var obj ApplicationLifecycle
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateApplicationLifecycle(m)
 	case ClassUIDAuthentication:
-		var obj Authentication
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateAuthentication(m)
 	case ClassUIDAuthorizeSession:
-		var obj AuthorizeSession
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateAuthorizeSession(m)
 	case ClassUIDBaseEvent:
-		var obj BaseEvent
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateBaseEvent(m)
 	case ClassUIDComplianceFinding:
-		var obj ComplianceFinding
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateComplianceFinding(m)
 	case ClassUIDConfigState:
-		var obj ConfigState
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateConfigState(m)
 	case ClassUIDDatastoreActivity:
-		var obj DatastoreActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateDatastoreActivity(m)
 	case ClassUIDDetectionFinding:
-		var obj DetectionFinding
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateDetectionFinding(m)
 	case ClassUIDDeviceConfigStateChange:
-		var obj DeviceConfigStateChange
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateDeviceConfigStateChange(m)
 	case ClassUIDDhcpActivity:
-		var obj DhcpActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateDhcpActivity(m)
 	case ClassUIDDNSActivity:
-		var obj DNSActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateDNSActivity(m)
 	case ClassUIDEmailActivity:
-		var obj EmailActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateEmailActivity(m)
 	case ClassUIDEmailFileActivity:
-		var obj EmailFileActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateEmailFileActivity(m)
 	case ClassUIDEmailURLActivity:
-		var obj EmailURLActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateEmailURLActivity(m)
 	case ClassUIDEntityManagement:
-		var obj EntityManagement
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateEntityManagement(m)
 	case ClassUIDFileActivity:
-		var obj FileActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateFileActivity(m)
 	case ClassUIDFileHosting:
-		var obj FileHosting
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateFileHosting(m)
 	case ClassUIDFtpActivity:
-		var obj FtpActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateFtpActivity(m)
 	case ClassUIDGroupManagement:
-		var obj GroupManagement
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateGroupManagement(m)
 	case ClassUIDHTTPActivity:
-		var obj HTTPActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateHTTPActivity(m)
 	case ClassUIDIncidentFinding:
-		var obj IncidentFinding
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateIncidentFinding(m)
 	case ClassUIDInventoryInfo:
-		var obj InventoryInfo
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateInventoryInfo(m)
 	case ClassUIDKernelActivity:
-		var obj KernelActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateKernelActivity(m)
 	case ClassUIDKernelExtension:
-		var obj KernelExtension
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateKernelExtension(m)
 	case ClassUIDMemoryActivity:
-		var obj MemoryActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateMemoryActivity(m)
 	case ClassUIDModuleActivity:
-		var obj ModuleActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateModuleActivity(m)
 	case ClassUIDNetworkActivity:
-		var obj NetworkActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateNetworkActivity(m)
 	case ClassUIDNetworkFileActivity:
-		var obj NetworkFileActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateNetworkFileActivity(m)
 	case ClassUIDNtpActivity:
-		var obj NtpActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateNtpActivity(m)
 	case ClassUIDPatchState:
-		var obj PatchState
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validatePatchState(m)
 	case ClassUIDProcessActivity:
-		var obj ProcessActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateProcessActivity(m)
 	case ClassUIDRDPActivity:
-		var obj RDPActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateRDPActivity(m)
 	case ClassUIDScanActivity:
-		var obj ScanActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateScanActivity(m)
 	case ClassUIDScheduledJobActivity:
-		var obj ScheduledJobActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateScheduledJobActivity(m)
 	case ClassUIDSecurityFinding:
-		var obj SecurityFinding
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateSecurityFinding(m)
 	case ClassUIDSmbActivity:
-		var obj SmbActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateSmbActivity(m)
 	case ClassUIDSSHActivity:
-		var obj SSHActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateSSHActivity(m)
 	case ClassUIDUserAccess:
-		var obj UserAccess
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateUserAccess(m)
 	case ClassUIDUserInventory:
-		var obj UserInventory
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateUserInventory(m)
 	case ClassUIDVulnerabilityFinding:
-		var obj VulnerabilityFinding
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateVulnerabilityFinding(m)
 	case ClassUIDWebResourceAccessActivity:
-		var obj WebResourceAccessActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWebResourceAccessActivity(m)
 	case ClassUIDWebResourcesActivity:
-		var obj WebResourcesActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWebResourcesActivity(m)
 	case ClassUIDWinPrefetchInfo:
-		var obj WinPrefetchInfo
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinPrefetchInfo(m)
 	case ClassUIDWinRegistryKeyActivity:
-		var obj WinRegistryKeyActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinRegistryKeyActivity(m)
 	case ClassUIDWinRegistryKeyInfo:
-		var obj WinRegistryKeyInfo
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinRegistryKeyInfo(m)
 	case ClassUIDWinRegistryValueActivity:
-		var obj WinRegistryValueActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinRegistryValueActivity(m)
 	case ClassUIDWinRegistryValueInfo:
-		var obj WinRegistryValueInfo
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinRegistryValueInfo(m)
 	case ClassUIDWinResourceActivity:
-		var obj WinResourceActivity
-		if err := mapstructure.Decode(data, &obj); err != nil {
-			return fmt.Errorf("decoding class: %w", err)
-		}
-		return obj.Validate()
+		return validateWinResourceActivity(m)
 	default:
 		return fmt.Errorf("unknown class UID: %d", classUID)
 	}
@@ -6650,252 +18091,252 @@ var classFieldReqs = map[int]*fieldReqs{
 	ClassUIDAccountChange: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid", "user"},
 		objectFields: map[string]string{"actor": "actor", "enrichments": "enrichment", "http_request": "http_request", "metadata": "metadata", "observables": "observable", "policy": "policy", "src_endpoint": "network_endpoint", "unmapped": "object", "user": "user", "user_result": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDAPIActivity: {
 		required:     []string{"activity_id", "actor", "api", "category_uid", "class_uid", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "api": "api", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "http_request": "http_request", "metadata": "metadata", "observables": "observable", "resources": "resource_details", "src_endpoint": "network_endpoint", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDApplicationLifecycle: {
 		required:     []string{"activity_id", "app", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"app": "product", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDAuthentication: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid", "user"},
 		objectFields: map[string]string{"actor": "actor", "certificate": "certificate", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "http_request": "http_request", "logon_process": "process", "metadata": "metadata", "observables": "observable", "service": "service", "session": "session", "src_endpoint": "network_endpoint", "unmapped": "object", "user": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "auth_protocol": "string", "auth_protocol_id": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "is_cleartext": "boolean", "is_mfa": "boolean", "is_new_logon": "boolean", "is_remote": "boolean", "logon_type": "string", "logon_type_id": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "auth_protocol": "string", "auth_protocol_id": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "is_cleartext": "boolean", "is_mfa": "boolean", "is_new_logon": "boolean", "is_remote": "boolean", "logon_type": "string", "logon_type_id": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 		atLeastOne:   [][]string{{"dst_endpoint", "service"}},
 	},
 	ClassUIDAuthorizeSession: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid", "user"},
 		objectFields: map[string]string{"dst_endpoint": "network_endpoint", "enrichments": "enrichment", "group": "group", "metadata": "metadata", "observables": "observable", "session": "session", "unmapped": "object", "user": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 		justOne:      [][]string{{"group", "privileges"}},
 	},
 	ClassUIDComplianceFinding: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "compliance", "finding_info", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"compliance": "compliance", "enrichments": "enrichment", "finding_info": "finding_info", "metadata": "metadata", "observables": "observable", "remediation": "remediation", "resource": "resource_details", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDConfigState: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "device", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "cis_benchmark_result": "cis_benchmark_result", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDDatastoreActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "database": "database", "databucket": "databucket", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "http_request": "http_request", "metadata": "metadata", "observables": "observable", "query_info": "query_info", "src_endpoint": "network_endpoint", "table": "table", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type": "string", "type_id": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type": "string", "type_id": "integer", "type_name": "string", "type_uid": "long"},
 		atLeastOne:   [][]string{{"database", "databucket", "table"}},
 	},
 	ClassUIDDetectionFinding: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "finding_info", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "evidences": "evidences", "finding_info": "finding_info", "metadata": "metadata", "observables": "observable", "remediation": "remediation", "resources": "resource_details", "unmapped": "object", "vulnerabilities": "vulnerability"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "string", "impact": "string", "impact_id": "integer", "impact_score": "integer", "message": "string", "raw_data": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "impact": "string", "impact_id": "integer", "impact_score": "integer", "message": "string", "raw_data": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDDeviceConfigStateChange: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "device", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "prev_security_states": "security_state", "security_states": "security_state", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "prev_security_level": "string", "prev_security_level_id": "integer", "raw_data": "string", "security_level": "string", "security_level_id": "integer", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "prev_security_level": "string", "prev_security_level_id": "integer", "raw_data": "string", "security_level": "string", "security_level_id": "integer", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDDhcpActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "relay": "network_interface", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "is_renewal": "boolean", "lease_dur": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "transaction_uid": "string", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "is_renewal": "boolean", "lease_dur": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "transaction_uid": "string", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDDNSActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"answers": "dns_answer", "connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "query": "dns_query", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "query_time": "string", "raw_data": "string", "rcode": "string", "rcode_id": "integer", "response_time": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "query_time": "timestamp", "raw_data": "string", "rcode": "string", "rcode_id": "integer", "response_time": "timestamp", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDEmailActivity: {
 		required:     []string{"category_uid", "class_uid", "direction_id", "email", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"dst_endpoint": "network_endpoint", "email": "email", "email_auth": "email_auth", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "src_endpoint": "network_endpoint", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "attempt": "integer", "banner": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "direction": "string", "direction_id": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "smtp_hello": "string", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "attempt": "integer", "banner": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "direction": "string", "direction_id": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "smtp_hello": "string", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDEmailFileActivity: {
 		required:     []string{"category_uid", "class_uid", "email_uid", "file", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "file": "file", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "email_uid": "string", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "email_uid": "string", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDEmailURLActivity: {
 		required:     []string{"category_uid", "class_uid", "email_uid", "metadata", "severity_id", "time", "type_uid", "url"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object", "url": "url"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "email_uid": "string", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "email_uid": "string", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDEntityManagement: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "entity", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "entity": "managed_entity", "entity_result": "managed_entity", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDFileActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "file", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "file": "file", "file_result": "file", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"access_mask": "integer", "activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "component": "string", "connection_uid": "string", "count": "integer", "create_mask": "string", "duration": "integer", "end_time": "string", "file_diff": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"access_mask": "integer", "activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "component": "string", "connection_uid": "string", "count": "integer", "create_mask": "string", "duration": "integer", "end_time": "timestamp", "file_diff": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDFileHosting: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "file", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "file": "file", "metadata": "metadata", "observables": "observable", "src_endpoint": "network_endpoint", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "expiration_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "expiration_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDFtpActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "codes": "integer", "command": "string", "command_responses": "string", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "name": "string", "port": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type": "string", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "codes": "integer", "command": "string", "command_responses": "string", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "name": "string", "port": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type": "string", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDGroupManagement: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "group", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "group": "group", "metadata": "metadata", "observables": "observable", "resource": "resource_details", "unmapped": "object", "user": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 		atLeastOne:   [][]string{{"privileges", "user"}},
 	},
 	ClassUIDHTTPActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "http_request", "http_response", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "http_cookies": "http_cookie", "http_request": "http_request", "http_response": "http_response", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "http_status": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "http_status": "integer", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDIncidentFinding: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "finding_info_list", "metadata", "severity_id", "status_id", "time", "type_uid"},
 		objectFields: map[string]string{"assignee": "user", "assignee_group": "group", "attacks": "attack", "enrichments": "enrichment", "finding_info_list": "finding_info", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "desc": "string", "duration": "integer", "end_time": "string", "impact": "string", "impact_id": "integer", "impact_score": "integer", "is_suspected_breach": "boolean", "message": "string", "priority": "integer", "priority_id": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "src_url": "string", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long", "verdict": "string", "verdict_id": "integer"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "desc": "string", "duration": "integer", "end_time": "timestamp", "impact": "string", "impact_id": "integer", "impact_score": "integer", "is_suspected_breach": "boolean", "message": "string", "priority": "integer", "priority_id": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "src_url": "string", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long", "verdict": "string", "verdict_id": "integer"},
 		atLeastOne:   [][]string{{"assignee", "assignee_group"}},
 	},
 	ClassUIDInventoryInfo: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "device", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDKernelActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "kernel", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "kernel": "kernel", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDKernelExtension: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "driver", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "driver": "kernel_driver", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDMemoryActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "process", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "process": "process", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "actual_permissions": "integer", "base_address": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "requested_permissions": "integer", "severity": "string", "severity_id": "integer", "size": "long", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "actual_permissions": "integer", "base_address": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "requested_permissions": "integer", "severity": "string", "severity_id": "integer", "size": "long", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDModuleActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "module", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "module": "module", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDNetworkActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object", "url": "url"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDNetworkFileActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "file", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "file": "file", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "expiration_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "expiration_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDNtpActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid", "version"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "delay": "integer", "dispersion": "integer", "duration": "integer", "end_time": "string", "message": "string", "precision": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "stratum": "string", "stratum_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long", "version": "string"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "delay": "integer", "dispersion": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "precision": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "stratum": "string", "stratum_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long", "version": "string"},
 	},
 	ClassUIDPatchState: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "device", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"device": "device", "enrichments": "enrichment", "kb_article_list": "kb_article", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDProcessActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "process", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "module": "module", "observables": "observable", "process": "process", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "actual_permissions": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "exit_code": "integer", "injection_type": "string", "injection_type_id": "integer", "message": "string", "raw_data": "string", "requested_permissions": "integer", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "actual_permissions": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "exit_code": "integer", "injection_type": "string", "injection_type_id": "integer", "message": "string", "raw_data": "string", "requested_permissions": "integer", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDRDPActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "remote_display": "display", "request": "request", "response": "response", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "capabilities": "string", "category_name": "string", "category_uid": "integer", "certificate_chain": "string", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "identifier_cookie": "string", "message": "string", "protocol_ver": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "capabilities": "string", "category_name": "string", "category_uid": "integer", "certificate_chain": "string", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "identifier_cookie": "string", "message": "string", "protocol_ver": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDScanActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "scan", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "policy": "policy", "scan": "scan", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "command_uid": "string", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "num_detections": "integer", "num_files": "integer", "num_folders": "integer", "num_network_items": "integer", "num_processes": "integer", "num_registry_items": "integer", "num_resolutions": "integer", "num_skipped_items": "integer", "num_trusted_items": "integer", "raw_data": "string", "schedule_uid": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "total": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "command_uid": "string", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "num_detections": "integer", "num_files": "integer", "num_folders": "integer", "num_network_items": "integer", "num_processes": "integer", "num_registry_items": "integer", "num_resolutions": "integer", "num_skipped_items": "integer", "num_trusted_items": "integer", "raw_data": "string", "schedule_uid": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "total": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDScheduledJobActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "device", "job", "metadata", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "job": "job", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDSecurityFinding: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "finding", "metadata", "severity_id", "state_id", "time", "type_uid"},
 		objectFields: map[string]string{"analytic": "analytic", "attacks": "attack", "cis_csc": "cis_csc", "compliance": "compliance", "enrichments": "enrichment", "finding": "finding", "kill_chain": "kill_chain_phase", "malware": "malware", "metadata": "metadata", "observables": "observable", "process": "process", "resources": "resource_details", "unmapped": "object", "vulnerabilities": "vulnerability"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "data_sources": "string", "duration": "integer", "end_time": "string", "impact": "string", "impact_id": "integer", "impact_score": "integer", "message": "string", "nist": "string", "raw_data": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "severity": "string", "severity_id": "integer", "start_time": "string", "state": "string", "state_id": "integer", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "data_sources": "string", "duration": "integer", "end_time": "timestamp", "impact": "string", "impact_id": "integer", "impact_score": "integer", "message": "string", "nist": "string", "raw_data": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "state": "string", "state_id": "integer", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDSmbActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"connection_info": "network_connection_info", "dce_rpc": "dce_rpc", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "file": "file", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "response": "response", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "client_dialects": "string", "command": "string", "count": "integer", "dialect": "string", "duration": "integer", "end_time": "string", "message": "string", "open_type": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "share": "string", "share_type": "string", "share_type_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "tree_uid": "string", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "client_dialects": "string", "command": "string", "count": "integer", "dialect": "string", "duration": "integer", "end_time": "timestamp", "message": "string", "open_type": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "share": "string", "share_type": "string", "share_type_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "tree_uid": "string", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDSSHActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "dst_endpoint", "metadata", "severity_id", "src_endpoint", "time", "type_uid"},
 		objectFields: map[string]string{"client_hassh": "hassh", "connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "server_hassh": "hassh", "src_endpoint": "network_endpoint", "tls": "tls", "traffic": "network_traffic", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "auth_type": "string", "auth_type_id": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "protocol_ver": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "app_name": "string", "auth_type": "string", "auth_type_id": "integer", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "protocol_ver": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDUserAccess: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "privileges", "severity_id", "time", "type_uid", "user"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "resource": "resource_details", "unmapped": "object", "user": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "privileges": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDUserInventory: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid", "user"},
 		objectFields: map[string]string{"actor": "actor", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object", "user": "user"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDVulnerabilityFinding: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "finding_info", "metadata", "severity_id", "time", "type_uid", "vulnerabilities"},
 		objectFields: map[string]string{"enrichments": "enrichment", "finding_info": "finding_info", "metadata": "metadata", "observables": "observable", "resource": "resource_details", "unmapped": "object", "vulnerabilities": "vulnerability"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "comment": "string", "confidence": "string", "confidence_id": "integer", "confidence_score": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWebResourceAccessActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "http_request", "metadata", "severity_id", "time", "type_uid", "web_resources"},
 		objectFields: map[string]string{"enrichments": "enrichment", "http_request": "http_request", "http_response": "http_response", "metadata": "metadata", "observables": "observable", "proxy": "network_proxy", "src_endpoint": "network_endpoint", "tls": "tls", "unmapped": "object", "web_resources": "web_resource"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWebResourcesActivity: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "severity_id", "time", "type_uid", "web_resources"},
 		objectFields: map[string]string{"dst_endpoint": "network_endpoint", "enrichments": "enrichment", "http_request": "http_request", "http_response": "http_response", "metadata": "metadata", "observables": "observable", "src_endpoint": "network_endpoint", "tls": "tls", "unmapped": "object", "web_resources": "web_resource", "web_resources_result": "web_resource"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinPrefetchInfo: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "name", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "last_run_time": "string", "message": "string", "name": "string", "raw_data": "string", "run_count": "integer", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "last_run_time": "timestamp", "message": "string", "name": "string", "raw_data": "string", "run_count": "integer", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinRegistryKeyActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "reg_key", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "prev_reg_key": "win/reg_key", "reg_key": "win/reg_key", "unmapped": "object"},
-		fieldTypes:   map[string]string{"access_mask": "integer", "activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "create_mask": "string", "duration": "integer", "end_time": "string", "message": "string", "open_mask": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"access_mask": "integer", "activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "create_mask": "string", "duration": "integer", "end_time": "timestamp", "message": "string", "open_mask": "integer", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinRegistryKeyInfo: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "reg_key", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "reg_key": "win/reg_key", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinRegistryValueActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "reg_value", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "prev_reg_value": "win/reg_value", "reg_value": "win/reg_value", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinRegistryValueInfo: {
 		required:     []string{"activity_id", "category_uid", "class_uid", "metadata", "reg_value", "severity_id", "time", "type_uid"},
 		objectFields: map[string]string{"enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "reg_value": "win/reg_value", "unmapped": "object"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 	ClassUIDWinResourceActivity: {
 		required:     []string{"activity_id", "actor", "category_uid", "class_uid", "device", "metadata", "severity_id", "time", "type_uid", "win_resource"},
 		objectFields: map[string]string{"actor": "actor", "device": "device", "enrichments": "enrichment", "metadata": "metadata", "observables": "observable", "unmapped": "object", "win_resource": "win/win_resource"},
-		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "string", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "string", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "string", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
+		fieldTypes:   map[string]string{"activity_id": "integer", "activity_name": "string", "category_name": "string", "category_uid": "integer", "class_name": "string", "class_uid": "integer", "count": "integer", "duration": "integer", "end_time": "timestamp", "message": "string", "raw_data": "string", "severity": "string", "severity_id": "integer", "start_time": "timestamp", "status": "string", "status_code": "string", "status_detail": "string", "status_id": "integer", "time": "timestamp", "timezone_offset": "integer", "type_name": "string", "type_uid": "long"},
 	},
 }
 
@@ -6942,7 +18383,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"certificate": {
 		required:     []string{"fingerprints", "issuer", "serial_number"},
 		objectFields: map[string]string{"fingerprints": "fingerprint"},
-		fieldTypes:   map[string]string{"created_time": "string", "expiration_time": "string", "issuer": "string", "serial_number": "string", "subject": "string", "uid": "string", "version": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "expiration_time": "timestamp", "issuer": "string", "serial_number": "string", "subject": "string", "uid": "string", "version": "string"},
 	},
 	"cis_benchmark": {
 		required:     []string{"name"},
@@ -6979,7 +18420,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"cve": {
 		required:     []string{"uid"},
 		objectFields: map[string]string{"cvss": "cvss", "cwe": "cwe", "epss": "epss", "product": "product"},
-		fieldTypes:   map[string]string{"created_time": "string", "cwe_uid": "string", "cwe_url": "string", "desc": "string", "modified_time": "string", "references": "string", "title": "string", "type": "string", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "cwe_uid": "string", "cwe_url": "string", "desc": "string", "modified_time": "timestamp", "references": "string", "title": "string", "type": "string", "uid": "string"},
 	},
 	"cvss": {
 		required:     []string{"base_score", "version"},
@@ -6993,13 +18434,13 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"database": {
 		required:     []string{"type_id"},
 		objectFields: map[string]string{"groups": "group"},
-		fieldTypes:   map[string]string{"created_time": "string", "desc": "string", "modified_time": "string", "name": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "desc": "string", "modified_time": "timestamp", "name": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string"},
 		atLeastOne:   [][]string{{"name", "uid"}},
 	},
 	"databucket": {
 		required:     []string{"type_id"},
 		objectFields: map[string]string{"file": "file", "groups": "group"},
-		fieldTypes:   map[string]string{"created_time": "string", "desc": "string", "modified_time": "string", "name": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "desc": "string", "modified_time": "timestamp", "name": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string"},
 		atLeastOne:   [][]string{{"name", "uid"}},
 	},
 	"dce_rpc": {
@@ -7010,7 +18451,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"device": {
 		required:     []string{"type_id"},
 		objectFields: map[string]string{"groups": "group", "hw_info": "device_hw_info", "image": "image", "location": "location", "network_interfaces": "network_interface", "org": "organization", "os": "os"},
-		fieldTypes:   map[string]string{"autoscale_uid": "string", "created_time": "string", "desc": "string", "domain": "string", "first_seen_time": "string", "hostname": "string", "hypervisor": "string", "imei": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "ip": "string", "is_compliant": "boolean", "is_managed": "boolean", "is_personal": "boolean", "is_trusted": "boolean", "last_seen_time": "string", "mac": "string", "modified_time": "string", "name": "string", "region": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "subnet": "string", "subnet_uid": "string", "type": "string", "type_id": "integer", "uid": "string", "uid_alt": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
+		fieldTypes:   map[string]string{"autoscale_uid": "string", "created_time": "timestamp", "desc": "string", "domain": "string", "first_seen_time": "timestamp", "hostname": "string", "hypervisor": "string", "imei": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "ip": "string", "is_compliant": "boolean", "is_managed": "boolean", "is_personal": "boolean", "is_trusted": "boolean", "last_seen_time": "timestamp", "mac": "string", "modified_time": "timestamp", "name": "string", "region": "string", "risk_level": "string", "risk_level_id": "integer", "risk_score": "integer", "subnet": "string", "subnet_uid": "string", "type": "string", "type_id": "integer", "uid": "string", "uid_alt": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
 		atLeastOne:   [][]string{{"hostname", "instance_uid", "interface_name", "interface_uid", "ip", "name", "uid"}},
 	},
 	"device_hw_info": {
@@ -7020,7 +18461,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"digital_signature": {
 		required:     []string{"algorithm_id"},
 		objectFields: map[string]string{"certificate": "certificate", "digest": "fingerprint"},
-		fieldTypes:   map[string]string{"algorithm": "string", "algorithm_id": "integer", "created_time": "string", "developer_uid": "string"},
+		fieldTypes:   map[string]string{"algorithm": "string", "algorithm_id": "integer", "created_time": "timestamp", "developer_uid": "string"},
 	},
 	"display": {
 		fieldTypes: map[string]string{"color_depth": "integer", "physical_height": "integer", "physical_orientation": "integer", "physical_width": "integer", "scale_factor": "integer"},
@@ -7056,7 +18497,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"epss": {
 		required:   []string{"score"},
-		fieldTypes: map[string]string{"created_time": "string", "percentile": "float", "score": "string", "version": "string"},
+		fieldTypes: map[string]string{"created_time": "timestamp", "percentile": "float", "score": "string", "version": "string"},
 	},
 	"evidences": {
 		objectFields: map[string]string{"actor": "actor", "api": "api", "connection_info": "network_connection_info", "dst_endpoint": "network_endpoint", "file": "file", "process": "process", "query": "dns_query", "src_endpoint": "network_endpoint"},
@@ -7073,17 +18514,17 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"file": {
 		required:     []string{"name", "type_id"},
 		objectFields: map[string]string{"accessor": "user", "creator": "user", "hashes": "fingerprint", "modifier": "user", "owner": "user", "product": "product", "signature": "digital_signature", "xattributes": "object"},
-		fieldTypes:   map[string]string{"accessed_time": "string", "attributes": "integer", "company_name": "string", "confidentiality": "string", "confidentiality_id": "integer", "created_time": "string", "desc": "string", "is_system": "boolean", "mime_type": "string", "modified_time": "string", "name": "string", "parent_folder": "string", "path": "string", "security_descriptor": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string", "version": "string"},
+		fieldTypes:   map[string]string{"accessed_time": "timestamp", "attributes": "integer", "company_name": "string", "confidentiality": "string", "confidentiality_id": "integer", "created_time": "timestamp", "desc": "string", "is_system": "boolean", "mime_type": "string", "modified_time": "timestamp", "name": "string", "parent_folder": "string", "path": "string", "security_descriptor": "string", "size": "long", "type": "string", "type_id": "integer", "uid": "string", "version": "string"},
 	},
 	"finding": {
 		required:     []string{"title", "uid"},
 		objectFields: map[string]string{"related_events": "related_event", "remediation": "remediation"},
-		fieldTypes:   map[string]string{"created_time": "string", "desc": "string", "first_seen_time": "string", "last_seen_time": "string", "modified_time": "string", "product_uid": "string", "src_url": "string", "title": "string", "types": "string", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "desc": "string", "first_seen_time": "timestamp", "last_seen_time": "timestamp", "modified_time": "timestamp", "product_uid": "string", "src_url": "string", "title": "string", "types": "string", "uid": "string"},
 	},
 	"finding_info": {
 		required:     []string{"title", "uid"},
 		objectFields: map[string]string{"analytic": "analytic", "attacks": "attack", "kill_chain": "kill_chain_phase", "related_analytics": "analytic", "related_events": "related_event"},
-		fieldTypes:   map[string]string{"created_time": "string", "data_sources": "string", "desc": "string", "first_seen_time": "string", "last_seen_time": "string", "modified_time": "string", "product_uid": "string", "src_url": "string", "title": "string", "types": "string", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "data_sources": "string", "desc": "string", "first_seen_time": "timestamp", "last_seen_time": "timestamp", "modified_time": "timestamp", "product_uid": "string", "src_url": "string", "title": "string", "types": "string", "uid": "string"},
 	},
 	"fingerprint": {
 		required:   []string{"algorithm_id", "value"},
@@ -7104,7 +18545,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"http_cookie": {
 		required:   []string{"name", "value"},
-		fieldTypes: map[string]string{"domain": "string", "expiration_time": "string", "http_only": "boolean", "is_http_only": "boolean", "is_secure": "boolean", "name": "string", "path": "string", "samesite": "string", "secure": "boolean", "value": "string"},
+		fieldTypes: map[string]string{"domain": "string", "expiration_time": "timestamp", "http_only": "boolean", "is_http_only": "boolean", "is_secure": "boolean", "name": "string", "path": "string", "samesite": "string", "secure": "boolean", "value": "string"},
 	},
 	"http_header": {
 		required:   []string{"name", "value"},
@@ -7130,12 +18571,12 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"job": {
 		required:     []string{"file", "name"},
 		objectFields: map[string]string{"file": "file", "user": "user"},
-		fieldTypes:   map[string]string{"cmd_line": "string", "created_time": "string", "desc": "string", "last_run_time": "string", "name": "string", "next_run_time": "string", "run_state": "string", "run_state_id": "integer"},
+		fieldTypes:   map[string]string{"cmd_line": "string", "created_time": "timestamp", "desc": "string", "last_run_time": "timestamp", "name": "string", "next_run_time": "timestamp", "run_state": "string", "run_state_id": "integer"},
 	},
 	"kb_article": {
 		required:     []string{"uid"},
 		objectFields: map[string]string{"os": "os", "product": "product"},
-		fieldTypes:   map[string]string{"bulletin": "string", "classification": "string", "created_time": "string", "is_superseded": "boolean", "severity": "string", "size": "long", "src_url": "string", "title": "string", "uid": "string"},
+		fieldTypes:   map[string]string{"bulletin": "string", "classification": "string", "created_time": "timestamp", "is_superseded": "boolean", "severity": "string", "size": "long", "src_url": "string", "title": "string", "uid": "string"},
 	},
 	"kernel": {
 		required:   []string{"name", "type_id"},
@@ -7154,7 +18595,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"ldap_person": {
 		objectFields: map[string]string{"location": "location", "manager": "user"},
-		fieldTypes:   map[string]string{"cost_center": "string", "created_time": "string", "deleted_time": "string", "email_addrs": "string", "employee_uid": "string", "given_name": "string", "hire_time": "string", "job_title": "string", "labels": "string", "last_login_time": "string", "ldap_cn": "string", "ldap_dn": "string", "leave_time": "string", "modified_time": "string", "office_location": "string", "surname": "string"},
+		fieldTypes:   map[string]string{"cost_center": "string", "created_time": "timestamp", "deleted_time": "timestamp", "email_addrs": "string", "employee_uid": "string", "given_name": "string", "hire_time": "timestamp", "job_title": "string", "labels": "string", "last_login_time": "timestamp", "ldap_cn": "string", "ldap_dn": "string", "leave_time": "timestamp", "modified_time": "timestamp", "office_location": "string", "surname": "string"},
 	},
 	"load_balancer": {
 		objectFields: map[string]string{"dst_endpoint": "network_endpoint", "endpoint_connections": "endpoint_connection", "metrics": "metric"},
@@ -7167,7 +18608,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"logger": {
 		objectFields: map[string]string{"device": "device", "product": "product"},
-		fieldTypes:   map[string]string{"log_level": "string", "log_name": "string", "log_provider": "string", "log_version": "string", "logged_time": "string", "name": "string", "transmit_time": "string", "uid": "string", "version": "string"},
+		fieldTypes:   map[string]string{"log_level": "string", "log_name": "string", "log_provider": "string", "log_version": "string", "logged_time": "timestamp", "name": "string", "transmit_time": "timestamp", "uid": "string", "version": "string"},
 		atLeastOne:   [][]string{{"name", "uid"}},
 	},
 	"malware": {
@@ -7183,7 +18624,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	"metadata": {
 		required:     []string{"product", "version"},
 		objectFields: map[string]string{"extension": "extension", "extensions": "extension", "loggers": "logger", "product": "product"},
-		fieldTypes:   map[string]string{"correlation_uid": "string", "event_code": "string", "labels": "string", "log_level": "string", "log_name": "string", "log_provider": "string", "log_version": "string", "logged_time": "string", "modified_time": "string", "original_time": "string", "processed_time": "string", "profiles": "string", "sequence": "integer", "tenant_uid": "string", "uid": "string", "version": "string"},
+		fieldTypes:   map[string]string{"correlation_uid": "string", "event_code": "string", "labels": "string", "log_level": "string", "log_name": "string", "log_provider": "string", "log_version": "string", "logged_time": "timestamp", "modified_time": "timestamp", "original_time": "string", "processed_time": "timestamp", "profiles": "string", "sequence": "integer", "tenant_uid": "string", "uid": "string", "version": "string"},
 	},
 	"metric": {
 		required:   []string{"name", "value"},
@@ -7201,7 +18642,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"network_endpoint": {
 		objectFields: map[string]string{"hw_info": "device_hw_info", "location": "location", "os": "os", "proxy_endpoint": "network_proxy"},
-		fieldTypes:   map[string]string{"domain": "string", "hostname": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "intermediate_ips": "string", "ip": "string", "mac": "string", "name": "string", "port": "string", "subnet_uid": "string", "svc_name": "string", "type": "string", "type_id": "integer", "uid": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
+		fieldTypes:   map[string]string{"domain": "string", "hostname": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "intermediate_ips": "string", "ip": "string", "mac": "string", "name": "string", "port": "integer", "subnet_uid": "string", "svc_name": "string", "type": "string", "type_id": "integer", "uid": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
 		atLeastOne:   [][]string{{"hostname", "instance_uid", "interface_name", "interface_uid", "ip", "name", "svc_name", "uid"}},
 	},
 	"network_interface": {
@@ -7211,7 +18652,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"network_proxy": {
 		objectFields: map[string]string{"hw_info": "device_hw_info", "location": "location", "os": "os", "proxy_endpoint": "network_proxy"},
-		fieldTypes:   map[string]string{"domain": "string", "hostname": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "intermediate_ips": "string", "ip": "string", "mac": "string", "name": "string", "port": "string", "subnet_uid": "string", "svc_name": "string", "type": "string", "type_id": "integer", "uid": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
+		fieldTypes:   map[string]string{"domain": "string", "hostname": "string", "instance_uid": "string", "interface_name": "string", "interface_uid": "string", "intermediate_ips": "string", "ip": "string", "mac": "string", "name": "string", "port": "integer", "subnet_uid": "string", "svc_name": "string", "type": "string", "type_id": "integer", "uid": "string", "vlan_uid": "string", "vpc_uid": "string", "zone": "string"},
 		atLeastOne:   [][]string{{"hostname", "instance_uid", "interface_name", "interface_uid", "ip", "name", "svc_name", "uid"}},
 	},
 	"network_traffic": {
@@ -7246,7 +18687,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"process": {
 		objectFields: map[string]string{"file": "file", "parent_process": "process", "session": "session", "user": "user", "xattributes": "object"},
-		fieldTypes:   map[string]string{"cmd_line": "string", "created_time": "string", "integrity": "string", "integrity_id": "integer", "lineage": "string", "loaded_modules": "string", "name": "string", "pid": "integer", "sandbox": "string", "terminated_time": "string", "tid": "integer", "uid": "string"},
+		fieldTypes:   map[string]string{"cmd_line": "string", "created_time": "timestamp", "integrity": "string", "integrity_id": "integer", "lineage": "string", "loaded_modules": "string", "name": "string", "pid": "integer", "sandbox": "string", "terminated_time": "timestamp", "tid": "integer", "uid": "string"},
 		atLeastOne:   [][]string{{"pid", "uid"}},
 	},
 	"product": {
@@ -7257,7 +18698,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"query_info": {
 		required:   []string{"query_string"},
-		fieldTypes: map[string]string{"bytes": "long", "name": "string", "query_string": "string", "query_time": "string", "uid": "string"},
+		fieldTypes: map[string]string{"bytes": "long", "name": "string", "query_string": "string", "query_time": "timestamp", "uid": "string"},
 		atLeastOne: [][]string{{"name", "uid"}},
 	},
 	"related_event": {
@@ -7313,7 +18754,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 		atLeastOne: [][]string{{"name", "uid"}},
 	},
 	"session": {
-		fieldTypes: map[string]string{"count": "integer", "created_time": "string", "credential_uid": "string", "expiration_reason": "string", "expiration_time": "string", "is_mfa": "boolean", "is_remote": "boolean", "is_vpn": "boolean", "issuer": "string", "terminal": "string", "uid": "string", "uid_alt": "string", "uuid": "string"},
+		fieldTypes: map[string]string{"count": "integer", "created_time": "timestamp", "credential_uid": "string", "expiration_reason": "string", "expiration_time": "timestamp", "is_mfa": "boolean", "is_remote": "boolean", "is_vpn": "boolean", "issuer": "string", "terminal": "string", "uid": "string", "uid_alt": "string", "uuid": "string"},
 	},
 	"sub_technique": {
 		fieldTypes: map[string]string{"name": "string", "src_url": "string", "uid": "string"},
@@ -7321,7 +18762,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"table": {
 		objectFields: map[string]string{"groups": "group"},
-		fieldTypes:   map[string]string{"created_time": "string", "desc": "string", "modified_time": "string", "name": "string", "size": "long", "uid": "string"},
+		fieldTypes:   map[string]string{"created_time": "timestamp", "desc": "string", "modified_time": "timestamp", "name": "string", "size": "long", "uid": "string"},
 		atLeastOne:   [][]string{{"name", "uid"}},
 	},
 	"tactic": {
@@ -7342,7 +18783,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 		fieldTypes: map[string]string{"type": "string", "type_id": "integer"},
 	},
 	"url": {
-		fieldTypes: map[string]string{"categories": "string", "category_ids": "integer", "hostname": "string", "path": "string", "port": "string", "query_string": "string", "resource_type": "string", "scheme": "string", "subdomain": "string", "url_string": "string"},
+		fieldTypes: map[string]string{"categories": "string", "category_ids": "integer", "hostname": "string", "path": "string", "port": "integer", "query_string": "string", "resource_type": "string", "scheme": "string", "subdomain": "string", "url_string": "string"},
 		atLeastOne: [][]string{{"path", "url_string"}},
 	},
 	"user": {
@@ -7352,7 +18793,7 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"vulnerability": {
 		objectFields: map[string]string{"affected_code": "affected_code", "affected_packages": "affected_package", "cve": "cve", "cwe": "cwe", "kb_article_list": "kb_article", "packages": "package", "remediation": "remediation"},
-		fieldTypes:   map[string]string{"desc": "string", "first_seen_time": "string", "fix_available": "boolean", "is_exploit_available": "boolean", "is_fix_available": "boolean", "kb_articles": "string", "last_seen_time": "string", "references": "string", "related_vulnerabilities": "string", "severity": "string", "title": "string", "vendor_name": "string"},
+		fieldTypes:   map[string]string{"desc": "string", "first_seen_time": "timestamp", "fix_available": "boolean", "is_exploit_available": "boolean", "is_fix_available": "boolean", "kb_articles": "string", "last_seen_time": "timestamp", "references": "string", "related_vulnerabilities": "string", "severity": "string", "title": "string", "vendor_name": "string"},
 		atLeastOne:   [][]string{{"cve", "cwe"}},
 	},
 	"web_resource": {
@@ -7361,11 +18802,11 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 	"win/reg_key": {
 		required:   []string{"path"},
-		fieldTypes: map[string]string{"is_system": "boolean", "modified_time": "string", "path": "string", "security_descriptor": "string"},
+		fieldTypes: map[string]string{"is_system": "boolean", "modified_time": "timestamp", "path": "string", "security_descriptor": "string"},
 	},
 	"win/reg_value": {
 		required:   []string{"name", "path"},
-		fieldTypes: map[string]string{"is_default": "boolean", "is_system": "boolean", "modified_time": "string", "name": "string", "path": "string", "type": "string", "type_id": "integer"},
+		fieldTypes: map[string]string{"is_default": "boolean", "is_system": "boolean", "modified_time": "timestamp", "name": "string", "path": "string", "type": "string", "type_id": "integer"},
 	},
 	"win/win_resource": {
 		required:   []string{"type_id"},
