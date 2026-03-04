@@ -25,6 +25,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Metrics Generation Processor            | [metricsgenerationprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.146.0/processor/metricsgenerationprocessor/README.md)       |
 | Metric Stats Processor                  | [metricstatsprocessor](../processor/metricstatsprocessor/README.md)                                                                                                |
 | Metrics Transform Processor             | [metricstransformprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.146.0/processor/metricstransformprocessor/README.md)         |
+| OCSF Standardization Processor          | [ocsfstandardizationprocessor](../processor/ocsfstandardizationprocessor/README.md)                                                                                |
 | Probabilistic Sampling Processor        | [probabilisticsamplerprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.146.0/processor/probabilisticsamplerprocessor/README.md) |
 | Redaction Processor                     | [redactionprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.146.0/processor/redactionprocessor/README.md)                       |
 | Random Failure Processor                | [randomfailureprocessor](../processor/randomfailureprocessor/README.md)                                                                                            |
