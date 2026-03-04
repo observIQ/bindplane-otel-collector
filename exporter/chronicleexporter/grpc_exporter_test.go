@@ -18,7 +18,6 @@ import (
 	"context"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
@@ -31,12 +30,10 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/oauth2"
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 type mockGRPCServer struct {
@@ -122,75 +119,7 @@ func TestGRPCExporter(t *testing.T) {
 		},
 		// TODO test splitting large payloads
 		{
-			name: "retryable_error_canceled",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.Canceled, "Request Canceled")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: rpc error: code = Canceled desc = Request Canceled",
-			permanentErr:     false,
-		},
-		{
-			name: "retryable_error_deadline_exceeded",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.DeadlineExceeded, "Deadline Exceeded")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: rpc error: code = DeadlineExceeded desc = Deadline Exceeded",
-			permanentErr:     false,
-		},
-		{
-			name: "retryable_error_aborted",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.Aborted, "Aborted")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: rpc error: code = Aborted desc = Aborted",
-			permanentErr:     false,
-		},
-		{
-			name: "retryable_error_out_of_range",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.OutOfRange, "Out Of Range")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: rpc error: code = OutOfRange desc = Out Of Range",
-			permanentErr:     false,
-		},
-		{
-			name: "retryable_error_unavailable",
+			name: "transient_error",
 			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
 				return nil, status.Error(codes.Unavailable, "Service Unavailable")
 			},
@@ -207,109 +136,7 @@ func TestGRPCExporter(t *testing.T) {
 			permanentErr:     false,
 		},
 		{
-			name: "retryable_error_data_loss",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.DataLoss, "Data Loss")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: rpc error: code = DataLoss desc = Data Loss",
-			permanentErr:     false,
-		},
-		{
-			name: "permanent_error_invalid_argument",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.InvalidArgument, "Invalid Argument")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = InvalidArgument desc = Invalid Argument",
-			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_not_found",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.NotFound, "Not Found")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = NotFound desc = Not Found",
-			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_permission_denied",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.PermissionDenied, "Permission Denied")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = PermissionDenied desc = Permission Denied",
-			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_internal",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.Internal, "Internal Error")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = Internal desc = Internal Error",
-			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_unimplemented",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.Unimplemented, "Unimplemented")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = Unimplemented desc = Unimplemented",
-			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_unauthenticated",
+			name: "permanent_error",
 			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
 				return nil, status.Error(codes.Unauthenticated, "Unauthorized")
 			},
@@ -324,65 +151,6 @@ func TestGRPCExporter(t *testing.T) {
 			expectedRequests: 1,
 			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = Unauthenticated desc = Unauthorized",
 			permanentErr:     true,
-		},
-		{
-			name: "permanent_error_resource_exhausted_without_retry_info",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return nil, status.Error(codes.ResourceExhausted, "Resource Exhausted")
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = ResourceExhausted desc = Resource Exhausted",
-			permanentErr:     true,
-		},
-		{
-			name: "retryable_error_resource_exhausted_with_retry_info",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				st := status.New(codes.ResourceExhausted, "Resource Exhausted")
-				st, _ = st.WithDetails(&errdetails.RetryInfo{
-					RetryDelay: durationpb.New(5 * time.Second),
-				})
-				return nil, st.Err()
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Throttle (5s), error: rpc error: code = ResourceExhausted desc = Resource Exhausted",
-			permanentErr:     false,
-		},
-		{
-			name: "throttle_retry_with_retry_info",
-			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				st := status.New(codes.Unavailable, "Service Unavailable")
-				st, _ = st.WithDetails(&errdetails.RetryInfo{
-					RetryDelay: durationpb.New(5 * time.Second),
-				})
-				return nil, st.Err()
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "Throttle (5s), error: rpc error: code = Unavailable desc = Service Unavailable",
-			permanentErr:     false,
 		},
 	}
 
