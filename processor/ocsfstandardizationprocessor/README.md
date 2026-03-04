@@ -1,10 +1,16 @@
 # OCSF Standardization Processor
 
+**Status: Alpha**
+
 This processor is used to create JSON OCSF compliant log bodies from OTEL logs.
 
 ## Supported pipelines
 
 - Logs
+
+## Limitations
+
+- OCSF profile validation is not currently supported. Profile fields can still be mapped, but they will not be validated against profile schemas.
 
 ## How it works
 
@@ -18,6 +24,7 @@ The following options may be configured:
 | -- | -- | -- | -- | -- |
 | `ocsf_version` | string | | Yes | The OCSF schema version. Supported: `1.0.0` through `1.7.0`. |
 | `event_mappings` | []EventMapping | `[]` | No | List of event mappings that define how logs are transformed. |
+| `runtime_validation` | bool | `true` | No | Enables runtime OCSF validation of mapped log bodies. When enabled, logs that do not conform to the OCSF schema (missing required fields, invalid enum values, regex/range constraint violations) are dropped. |
 
 ### EventMapping
 
@@ -67,3 +74,23 @@ processors:
           - from: 'body["action"]'
             to: "action"
 ```
+
+## Benchmarks
+
+Processing 100 Authentication (class 3002) log records per iteration with 22 field mappings, filter expressions, type coercion (timestamps, integers, booleans), and regex validation (IP addresses).
+
+**100 logs per batch:**
+
+| Benchmark | ns/op | B/op | allocs/op |
+| -- | -- | -- | -- |
+| ValidationEnabled | 1,113,682 | 1,042,327 | 19,733 |
+| ValidationDisabled | 767,687 | 980,329 | 19,701 |
+
+**Per log:**
+
+| Benchmark | μs/log | B/log | allocs/log |
+| -- | -- | -- | -- |
+| ValidationEnabled | ~11.1 | ~10,423 | ~197 |
+| ValidationDisabled | ~7.7 | ~9,803 | ~197 |
+
+*Measured on Apple M4 Pro, Go 1.25, 5 iterations averaged.*

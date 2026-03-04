@@ -25,13 +25,14 @@ import (
 )
 
 var (
-	errInvalidConfigType = errors.New("config is not of type removeemptyvaluesprocessor.Config")
+	// errInvalidConfigType is returned when the configuration is not of the expected type.
+	errInvalidConfigType = errors.New("config is not of type ocsfstandardizationprocessor.Config")
 	// componentType is the value of the "type" key in configuration.
 	componentType = component.MustNewType("ocsf_standardization")
 )
 
 const (
-	stability = component.StabilityLevelDevelopment
+	stability = component.StabilityLevelAlpha
 )
 
 var (
