@@ -32,7 +32,7 @@ var (
 )
 
 const (
-	stability = component.StabilityLevelDevelopment
+	stability = component.StabilityLevelAlpha
 )
 
 var (
