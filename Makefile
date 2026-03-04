@@ -235,6 +235,7 @@ gosec:
 	  -exclude-dir=receiver/sapnetweaverreceiver \
 	  -exclude-dir=extension/bindplaneextension \
 	  -exclude-dir=processor/snapshotprocessor \
+	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=exporter/chronicleexporter/protos/api \
@@ -247,6 +248,7 @@ gosec:
 	cd extension/bindplaneextension; gosec ./...
 	cd processor/snapshotprocessor; gosec ./...
 	cd receiver/sapnetweaverreceiver; gosec ./...
+	cd processor/ocsfstandardizationprocessor; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks

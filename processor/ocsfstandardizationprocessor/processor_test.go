@@ -23,6 +23,49 @@ import (
 	"go.uber.org/zap"
 )
 
+// accountChangeInputBody returns a log body with all fields needed to produce
+// a valid AccountChange (3001) event when used with accountChangeFieldMappings.
+func accountChangeInputBody() map[string]any {
+	return map[string]any{
+		"activity": 1,
+		"category": 3,
+		"severity": 1,
+		"time":     int64(1234567890),
+		"type":     300101,
+		"user": map[string]any{
+			"type_id": 1,
+			"name":    "testuser",
+		},
+		"product": map[string]any{
+			"vendor_name": "test-vendor",
+			"name":        "test-product",
+		},
+	}
+}
+
+// accountChangeExpectedBody returns the expected output body for a valid AccountChange event.
+func accountChangeExpectedBody(version string) map[string]any {
+	return map[string]any{
+		"class_uid":    int64(3001),
+		"activity_id":  int64(1),
+		"category_uid": int64(3),
+		"severity_id":  int64(1),
+		"time":         int64(1234567890),
+		"type_uid":     int64(300101),
+		"user": map[string]any{
+			"type_id": int64(1),
+			"name":    "testuser",
+		},
+		"metadata": map[string]any{
+			"version": version,
+			"product": map[string]any{
+				"vendor_name": "test-vendor",
+				"name":        "test-product",
+			},
+		},
+	}
+}
+
 func TestProcessLogs(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -35,95 +78,75 @@ func TestProcessLogs(t *testing.T) {
 		{
 			name: "basic field mapping",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.src", To: "dst_endpoint.ip"},
-							{From: "body.msg", To: "message"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "body.msg", To: "message"},
+						),
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"src": "10.0.0.1",
-					"msg": "test message",
-				})
+				body := accountChangeInputBody()
+				body["msg"] = "test message"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"dst_endpoint": map[string]any{
-					"ip": "10.0.0.1",
-				},
-				"message": "test message",
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["message"] = "test message"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "filter matches",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						Filter:  `body.type == "auth"`,
-						ClassID: 3002,
-						FieldMappings: []FieldMapping{
-							{From: "body.user", To: "actor.user.name"},
-						},
+						Filter:        `body.match == "yes"`,
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"type": "auth",
-					"user": "admin",
-				})
+				body := accountChangeInputBody()
+				body["match"] = "yes"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(3002),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"actor": map[string]any{
-					"user": map[string]any{
-						"name": "admin",
-					},
-				},
-			},
+			expectedBody:  accountChangeExpectedBody("1.0.0"),
 			expectedCount: 1,
 		},
 		{
 			name: "filter does not match - drops log",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						Filter:  `body.type == "auth"`,
-						ClassID: 3002,
-						FieldMappings: []FieldMapping{
-							{From: "body.user", To: "actor.user.name"},
-						},
+						Filter:        `body.match == "yes"`,
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"type": "network",
-					"user": "admin",
-				})
+				body := accountChangeInputBody()
+				body["match"] = "no"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
 				return ld
 			},
 			expectDropped: true,
@@ -131,13 +154,18 @@ func TestProcessLogs(t *testing.T) {
 		{
 			name: "default value used when from is missing",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 4001,
+						ClassID: 3001,
 						FieldMappings: []FieldMapping{
-							{To: "severity_id", Default: 1},
-							{From: "body.msg", To: "message"},
+							{To: "activity_id", Default: 99},
+							{From: "body.category", To: "category_uid"},
+							{From: "body.severity", To: "severity_id"},
+							{From: "body.time", To: "time"},
+							{From: "body.type", To: "type_uid"},
+							{From: "body.user", To: "user"},
+							{From: "body.product", To: "metadata.product"},
 						},
 					},
 				},
@@ -145,130 +173,111 @@ func TestProcessLogs(t *testing.T) {
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"msg": "hello",
-				})
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(4001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"severity_id": int64(1),
-				"message":     "hello",
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["activity_id"] = int64(99)
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "default value used when from expression evaluates to nil",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 4001,
-						FieldMappings: []FieldMapping{
-							{From: "body.missing_field", To: "status", Default: "unknown"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "body.missing_field", To: "status", Default: "unknown"},
+						),
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"msg": "hello",
-				})
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(4001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"status": "unknown",
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["status"] = "unknown"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "no filter matches all logs",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_7_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 2001,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "message"},
-						},
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"msg": "catch all",
-				})
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(2001),
-				"metadata": map[string]any{
-					"version": "1.7.0",
-				},
-				"message": "catch all",
-			},
+			expectedBody:  accountChangeExpectedBody("1.0.0"),
 			expectedCount: 1,
 		},
 		{
 			name: "first matching event mapping wins",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
 						Filter:  "true",
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "message"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "body.msg", To: "message"},
+						),
 					},
 					{
 						Filter:  "true",
-						ClassID: 2002,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "other"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "body.msg", To: "raw_data"},
+						),
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"msg": "test",
-				})
+				body := accountChangeInputBody()
+				body["msg"] = "test"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"message": "test",
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["message"] = "test"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "resource attributes accessible in filter",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						Filter:  `resource.host == "web-01"`,
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "message"},
-						},
+						Filter:        `resource.host == "web-01"`,
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
@@ -277,31 +286,22 @@ func TestProcessLogs(t *testing.T) {
 				rl := ld.ResourceLogs().AppendEmpty()
 				rl.Resource().Attributes().PutStr("host", "web-01")
 				record := rl.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{
-					"msg": "from web-01",
-				})
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"message": "from web-01",
-			},
+			expectedBody:  accountChangeExpectedBody("1.0.0"),
 			expectedCount: 1,
 		},
 		{
 			name: "drops empty resource and scope logs after filtering",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						Filter:  `body.keep == true`,
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "message"},
-						},
+						Filter:        `body.keep == true`,
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
@@ -310,74 +310,60 @@ func TestProcessLogs(t *testing.T) {
 				// First resource - all logs will be dropped
 				rl1 := ld.ResourceLogs().AppendEmpty()
 				record1 := rl1.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record1.Body().SetEmptyMap().FromRaw(map[string]any{
-					"keep": false,
-					"msg":  "drop me",
-				})
+				body1 := accountChangeInputBody()
+				body1["keep"] = false
+				err := record1.Body().SetEmptyMap().FromRaw(body1)
+				require.NoError(t, err)
 				// Second resource - log will be kept
 				rl2 := ld.ResourceLogs().AppendEmpty()
 				record2 := rl2.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record2.Body().SetEmptyMap().FromRaw(map[string]any{
-					"keep": true,
-					"msg":  "keep me",
-				})
+				body2 := accountChangeInputBody()
+				body2["keep"] = true
+				err = record2.Body().SetEmptyMap().FromRaw(body2)
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"message": "keep me",
-			},
+			expectedBody:  accountChangeExpectedBody("1.0.0"),
 			expectedCount: 1,
 		},
 		{
 			name: "maps from attributes",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "attributes.service", To: "metadata.product.name"},
-							{From: "attributes.env", To: "metadata.product.env"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "attributes.service", To: "message"},
+						),
 					},
 				},
 			},
 			inputLogs: func() plog.Logs {
 				ld := plog.NewLogs()
 				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetStr("some log")
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				record.Attributes().PutStr("service", "auth-api")
-				record.Attributes().PutStr("env", "production")
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-					"product": map[string]any{
-						"name": "auth-api",
-						"env":  "production",
-					},
-				},
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["message"] = "auth-api"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "maps from resource attributes",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "resource.host", To: "device.hostname"},
-							{From: "resource.os", To: "device.os.name"},
-							{From: "body.msg", To: "message"},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "resource.host", To: "message"},
+						),
 					},
 				},
 			},
@@ -385,39 +371,31 @@ func TestProcessLogs(t *testing.T) {
 				ld := plog.NewLogs()
 				rl := ld.ResourceLogs().AppendEmpty()
 				rl.Resource().Attributes().PutStr("host", "web-01")
-				rl.Resource().Attributes().PutStr("os", "linux")
 				record := rl.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{"msg": "test"})
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(1001),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"device": map[string]any{
-					"hostname": "web-01",
-					"os": map[string]any{
-						"name": "linux",
-					},
-				},
-				"message": "test",
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["message"] = "web-01"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "maps from mixed sources",
 			config: &Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 3002,
-						FieldMappings: []FieldMapping{
-							{From: "resource.host", To: "device.hostname"},
-							{From: "attributes.user_agent", To: "http_request.user_agent"},
-							{From: "body.src_ip", To: "src_endpoint.ip"},
-							{To: "category_uid", Default: 3},
-						},
+						ClassID: 3001,
+						FieldMappings: append(accountChangeFieldMappings,
+							FieldMapping{From: "resource.host", To: "device.hostname"},
+							FieldMapping{From: "attributes.user_agent", To: "http_request.user_agent"},
+							FieldMapping{From: "body.src_ip", To: "src_endpoint.ip"},
+							FieldMapping{To: "status", Default: "active"},
+						),
 					},
 				},
 			},
@@ -426,32 +404,27 @@ func TestProcessLogs(t *testing.T) {
 				rl := ld.ResourceLogs().AppendEmpty()
 				rl.Resource().Attributes().PutStr("host", "proxy-01")
 				record := rl.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record.Body().SetEmptyMap().FromRaw(map[string]any{"src_ip": "192.168.1.1"})
+				body := accountChangeInputBody()
+				body["src_ip"] = "192.168.1.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
 				record.Attributes().PutStr("user_agent", "Mozilla/5.0")
 				return ld
 			},
-			expectedBody: map[string]any{
-				"class_uid": int64(3002),
-				"metadata": map[string]any{
-					"version": "1.3.0",
-				},
-				"device": map[string]any{
-					"hostname": "proxy-01",
-				},
-				"http_request": map[string]any{
-					"user_agent": "Mozilla/5.0",
-				},
-				"src_endpoint": map[string]any{
-					"ip": "192.168.1.1",
-				},
-				"category_uid": int64(3),
-			},
+			expectedBody: func() map[string]any {
+				expected := accountChangeExpectedBody("1.0.0")
+				expected["device"] = map[string]any{"hostname": "proxy-01"}
+				expected["http_request"] = map[string]any{"user_agent": "Mozilla/5.0"}
+				expected["src_endpoint"] = map[string]any{"ip": "192.168.1.1"}
+				expected["status"] = "active"
+				return expected
+			}(),
 			expectedCount: 1,
 		},
 		{
 			name: "no event mappings drops all logs",
 			config: &Config{
-				OCSFVersion:   OCSFVersion1_3_0,
+				OCSFVersion:   OCSFVersion1_0_0,
 				EventMappings: []EventMapping{},
 			},
 			inputLogs: func() plog.Logs {
@@ -481,6 +454,286 @@ func TestProcessLogs(t *testing.T) {
 			body := result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body()
 			require.Equal(t, tt.expectedBody, body.Map().AsRaw())
 		})
+	}
+}
+
+func TestProcessLogsValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		eventMappings []EventMapping
+		inputLogs     func() plog.Logs
+		expectDropped bool
+	}{
+		{
+			name: "valid body passes validation",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "missing required fields drops log",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: []FieldMapping{
+						{From: "body.msg", To: "message"},
+					},
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				err := record.Body().SetEmptyMap().FromRaw(map[string]any{"msg": "test"})
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "unknown class UID drops log",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       9999,
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "invalid regex drops log - bad email",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.email", To: "user.email_addr"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["email"] = "not-an-email"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid regex passes - valid email",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.email", To: "user.email_addr"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["email"] = "user@example.com"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "invalid regex drops log - bad IP",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "not-an-ip"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid regex passes - valid IP",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "192.168.1.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "range violation drops log - port too high",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = 70000
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "range violation drops log - port negative",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = -1
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid range passes - port in range",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = 8080
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "maxlen violation drops log - IP too long",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				// IP max_len is 40; provide a string longer than 40 chars
+				body["ip"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "maxlen violation drops log - MAC too long",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.mac", To: "src_endpoint.mac"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "10.0.0.1"
+				// MAC max_len is 32; provide a string longer than 32 chars
+				body["mac"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+	}
+
+	for _, version := range OCSFVersions {
+		for _, tt := range tests {
+			t.Run(string(version)+"/"+tt.name, func(t *testing.T) {
+				cfg := &Config{
+					OCSFVersion:   version,
+					EventMappings: tt.eventMappings,
+				}
+				processor, err := newOCSFStandardizationProcessor(zap.NewNop(), cfg)
+				require.NoError(t, err)
+
+				result, err := processor.processLogs(context.Background(), tt.inputLogs())
+				require.NoError(t, err)
+
+				if tt.expectDropped {
+					require.Equal(t, 0, countLogRecords(result), "expected all logs to be dropped")
+				} else {
+					require.Equal(t, 1, countLogRecords(result))
+				}
+			})
+		}
 	}
 }
 
