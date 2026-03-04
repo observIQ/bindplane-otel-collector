@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/lookupprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/maskprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor"
+	"github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor"
@@ -78,6 +79,7 @@ var defaultProcessors = []processor.Factory{
 	maskprocessor.NewFactory(),
 	memorylimiterprocessor.NewFactory(),
 	metricextractprocessor.NewFactory(),
+	ocsfstandardizationprocessor.NewFactory(),
 	metricsgenerationprocessor.NewFactory(),
 	metricstatsprocessor.NewFactory(),
 	metricstransformprocessor.NewFactory(),
