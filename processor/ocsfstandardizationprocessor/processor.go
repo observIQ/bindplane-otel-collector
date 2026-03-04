@@ -45,9 +45,10 @@ type compiledEventMapping struct {
 }
 
 type ocsfStandardizationProcessor struct {
-	logger        *zap.Logger
-	ocsfVersion   OCSFVersion
-	eventMappings []compiledEventMapping
+	logger            *zap.Logger
+	ocsfVersion       OCSFVersion
+	eventMappings     []compiledEventMapping
+	runtimeValidation bool
 }
 
 func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfStandardizationProcessor, error) {
@@ -85,10 +86,16 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 		compiled = append(compiled, compiledEventMap)
 	}
 
+	runtimeValidation := true
+	if config.RuntimeValidation != nil {
+		runtimeValidation = *config.RuntimeValidation
+	}
+
 	return &ocsfStandardizationProcessor{
-		logger:        logger,
-		ocsfVersion:   config.OCSFVersion,
-		eventMappings: compiled,
+		logger:            logger,
+		ocsfVersion:       config.OCSFVersion,
+		eventMappings:     compiled,
+		runtimeValidation: runtimeValidation,
 	}, nil
 }
 
@@ -171,17 +178,23 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 				continue
 			}
 
+			if typeName := osp.lookupFieldType(eventMapping.classID, fieldMapping.to); typeName != "" {
+				value = coerceType(value, typeName)
+			}
+
 			setNestedValue(newBody, fieldMapping.to, value)
 		}
 
 		// Validate the body is a valid OCSF log
-		err := osp.validateBody(eventMapping.classID, newBody)
-		if err != nil {
-			osp.logger.Error("mapped log does not conform to OCSF spec",
-				zap.Error(err),
-				zap.Int("class_id", eventMapping.classID),
-			)
-			return false
+		if osp.runtimeValidation {
+			err := osp.validateBody(eventMapping.classID, newBody)
+			if err != nil {
+				osp.logger.Error("mapped log does not conform to OCSF spec",
+					zap.Error(err),
+					zap.Int("class_id", eventMapping.classID),
+				)
+				return false
+			}
 		}
 
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {
@@ -208,6 +221,30 @@ func setNestedValue(body map[string]any, path string, value any) {
 		body = next
 	}
 	body[parts[len(parts)-1]] = value
+}
+
+// lookupFieldType returns the expected OCSF type for a field path in a given class.
+func (osp *ocsfStandardizationProcessor) lookupFieldType(classUID int, fieldPath string) string {
+	switch osp.ocsfVersion {
+	case OCSFVersion1_0_0:
+		return v100.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_1_0:
+		return v110.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_2_0:
+		return v120.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_3_0:
+		return v130.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_4_0:
+		return v140.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_5_0:
+		return v150.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_6_0:
+		return v160.LookupFieldType(classUID, fieldPath)
+	case OCSFVersion1_7_0:
+		return v170.LookupFieldType(classUID, fieldPath)
+	default:
+		return ""
+	}
 }
 
 // validateBody validates the log body is a valid OCSF log.
