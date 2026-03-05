@@ -320,7 +320,7 @@ typedef struct _TDH_CONTEXT {
 */
 
 type TdhContext struct {
-	ParameterValue uint32
+	ParameterValue uint64
 	ParameterType  TdhContextType
 	ParameterSize  uint32
 }
