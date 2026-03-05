@@ -151,6 +151,8 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return nil
 	}
 
+	le.logger.Warn("Received error response from webhook", zap.String("status", response.Status))
+
 	statusErr := errors.New(response.Status)
 	shouldRetry, retryDelay := exporterutils.ShouldRetryHTTP(response)
 	if shouldRetry {
