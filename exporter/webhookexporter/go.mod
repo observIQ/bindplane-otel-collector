@@ -3,6 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/webhookexporter
 go 1.25.7
 
 require (
+	github.com/observiq/bindplane-otel-collector/internal/exporterutils v1.94.2
 	github.com/observiq/bindplane-otel-collector/version v1.94.2
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.52.0
@@ -13,6 +14,7 @@ require (
 	go.opentelemetry.io/collector/config/configretry v1.52.0
 	go.opentelemetry.io/collector/confmap v1.52.0
 	go.opentelemetry.io/collector/consumer v1.52.0
+	go.opentelemetry.io/collector/consumer/consumererror v0.146.1
 	go.opentelemetry.io/collector/exporter v1.52.0
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.146.1
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.146.1
@@ -57,7 +59,6 @@ require (
 	go.opentelemetry.io/collector/config/confignet v1.52.0 // indirect
 	go.opentelemetry.io/collector/config/configtls v1.52.0 // indirect
 	go.opentelemetry.io/collector/confmap/xconfmap v0.146.1 // indirect
-	go.opentelemetry.io/collector/consumer/consumererror v0.146.1 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.146.1 // indirect
 	go.opentelemetry.io/collector/consumer/consumertest v0.146.1 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.146.1 // indirect
@@ -87,10 +88,12 @@ require (
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/exporterutils => ../../internal/exporterutils
 
 replace github.com/observiq/bindplane-otel-collector/version => ../../version

@@ -521,6 +521,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.94.2 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.94.2 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.94.2 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/exporterutils v1.94.2 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
