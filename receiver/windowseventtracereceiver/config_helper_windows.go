@@ -16,7 +16,20 @@
 
 package windowseventtracereceiver
 
-import "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+import (
+	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"golang.org/x/sys/windows"
+)
+
+func validateProviderGUID(name string) error {
+	_, err := windows.GUIDFromString(name)
+	if err != nil {
+		return fmt.Errorf("provider %q looks like a GUID but is not valid; expected format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}", name)
+	}
+	return nil
+}
 
 func (l TraceLevelString) toTraceLevel() advapi32.TraceLevel {
 	switch l {
