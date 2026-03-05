@@ -18,13 +18,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/observiq/bindplane-otel-collector/internal/exporterutils"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -143,9 +147,17 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("failed to send request: method=%s, url=%s, body=%s, status=%s", request.Method, request.URL.String(), string(body), response.Status)
+	if response.StatusCode >= 200 && response.StatusCode < 300 {
+		return nil
 	}
 
-	return nil
+	statusErr := errors.New(response.Status)
+	shouldRetry, retryDelay := exporterutils.ShouldRetryHTTP(response)
+	if shouldRetry {
+		if retryDelay > 0 {
+			return exporterhelper.NewThrottleRetry(statusErr, retryDelay)
+		}
+		return statusErr
+	}
+	return consumererror.NewPermanent(statusErr)
 }
