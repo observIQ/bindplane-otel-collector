@@ -106,6 +106,11 @@ RestartSec=5s
 KillMode=process
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=${BDOT_CONFIG_HOME}
 [Install]
 WantedBy=multi-user.target
 EOF
