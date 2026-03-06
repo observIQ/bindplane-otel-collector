@@ -678,9 +678,32 @@ func (e *EventRecord) PointerSize() uint32 {
 	return 8
 }
 
+// EVENT_HEADER_EXTENDED_DATA_ITEM ExtType constants.
+// Values sourced from the Windows Rust bindings (windows-rs), which expose the full
+// set of constants from the Windows SDK evntcons.h header. The official C SDK docs page
+// (https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_header_extended_data_item)
+// only documents a subset of these values.
 const (
-	EventHeaderExtTypeRelatedActivityID = 0x0001
-	EventHeaderExtTypeSID               = 0x0002
+	EventHeaderExtTypeRelatedActivityID = 0x0001 // EVENT_EXTENDED_ITEM_RELATED_ACTIVITYID https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_RELATED_ACTIVITYID.html
+	EventHeaderExtTypeSID               = 0x0002 // SID of the logging user https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_SID.html
+	EventHeaderExtTypeTerminalSessionID = 0x0003 // EVENT_EXTENDED_ITEM_TS_ID https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_TS_ID.html
+	EventHeaderExtTypeInstanceInfo      = 0x0004 // EVENT_EXTENDED_ITEM_INSTANCE https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_INSTANCE_INFO.html
+	EventHeaderExtTypeStackTrace32      = 0x0005 // EVENT_EXTENDED_ITEM_STACK_TRACE32 https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_STACK_TRACE32.html
+	EventHeaderExtTypeStackTrace64      = 0x0006 // EVENT_EXTENDED_ITEM_STACK_TRACE64 https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_STACK_TRACE64.html
+	EventHeaderExtTypePEBSIndex         = 0x0007 // EVENT_EXTENDED_ITEM_PEBS_INDEX (Intel PEBS) https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_PEBS_INDEX.html
+	EventHeaderExtTypePMCCounters       = 0x0008 // EVENT_EXTENDED_ITEM_PMC_COUNTERS https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_PMC_COUNTERS.html
+	EventHeaderExtTypePSMKey            = 0x0009 // EVENT_HEADER_EXT_TYPE_PSM_KEY https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_PSM_KEY.html
+	EventHeaderExtTypeEventKey          = 0x000A // EVENT_EXTENDED_ITEM_EVENT_KEY https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_EVENT_KEY.html
+	EventHeaderExtTypeEventSchemaTL     = 0x000B // EVENT_HEADER_EXT_TYPE_EVENT_SCHEMA_TL https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_EVENT_SCHEMA_TL.html
+	EventHeaderExtTypeProvTraits        = 0x000C // EVENT_HEADER_EXT_TYPE_PROV_TRAITS https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_PROV_TRAITS.html
+	EventHeaderExtTypeProcessStartKey   = 0x000D // EVENT_EXTENDED_ITEM_PROCESS_START_KEY https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_PROCESS_START_KEY.html
+	EventHeaderExtTypeControlGUID       = 0x000E // EVENT_HEADER_EXT_TYPE_CONTROL_GUID https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_CONTROL_GUID.html
+	EventHeaderExtTypeQPCDelta          = 0x000F // EVENT_HEADER_EXT_TYPE_QPC_DELTA https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_QPC_DELTA.html
+	EventHeaderExtTypeContainerID       = 0x0010 // EVENT_HEADER_EXT_TYPE_CONTAINER_ID https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_CONTAINER_ID.html
+	EventHeaderExtTypeStackKey32        = 0x0011 // EVENT_EXTENDED_ITEM_STACK_KEY32 https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_STACK_KEY32.html
+	EventHeaderExtTypeStackKey64        = 0x0012 // EVENT_EXTENDED_ITEM_STACK_KEY64 https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_STACK_KEY64.html
+	// _MAX is a naming convention to indicate the maximum value for constant options for a field, in this case the ExtType field.
+	EventHeaderExtTypeMax = 0x0013 // upper-bound sentinel by convention (no associated data struct) https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_MAX.html
 )
 
 func (e *EventRecord) ExtendedDataItem(i uint16) *EventHeaderExtendedDataItem {

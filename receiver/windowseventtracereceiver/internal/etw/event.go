@@ -99,7 +99,7 @@ type Event struct {
 	EventData    map[string]any `json:"eventData,omitempty"`
 	UserData     map[string]any `json:"userData,omitempty"`
 	System       EventSystem    `json:"system"`
-	ExtendedData []string       `json:"extendedData,omitempty"`
+	ExtendedData map[string]any `json:"extendedData,omitempty"`
 	Security     EventSecurity  `json:"security,omitempty"`
 }
 
