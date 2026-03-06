@@ -325,6 +325,13 @@ nfpms:
           mode: 0750
           owner: root
           group: root
+      - src: scripts/sudoers/observiq-otel-collector
+        dst: /etc/sudoers.d/observiq-otel-collector
+        file_info:
+          mode: 0440
+          owner: root
+          group: root
+        type: config|noreplace
     scripts:
       preinstall: ./scripts/package/preinstall.sh
       postinstall: ./scripts/package/postinstall.sh
