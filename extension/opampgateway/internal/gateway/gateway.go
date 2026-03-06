@@ -210,10 +210,12 @@ func (g *Gateway) HandleUpstreamMessage(_ context.Context, connection *upstreamC
 	// forward the message to the downstream connection
 	msg := fmt.Sprintf("%s <= %s", conn.id, connection.id)
 	logDownstreamMessage(g.logger, msg, agentID, message.number, len(message.data), &m)
-	conn.send(message)
-	g.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionDownstream)
-	g.telemetry.OpampgatewayMessagesBytes.Add(context.Background(), int64(len(message.data)), directionDownstream)
-	return nil
+	err = conn.send(message)
+	if err == nil {
+		g.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionDownstream)
+		g.telemetry.OpampgatewayMessagesBytes.Add(context.Background(), int64(len(message.data)), directionDownstream)
+	}
+	return err
 }
 
 // HandleUpstreamError handles an error from an upstream connection.

@@ -16,6 +16,7 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -112,9 +113,14 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
-func (c *downstreamConnection) send(message *message) {
+func (c *downstreamConnection) send(message *message) error {
 	c.logger.Debug("sending message", zap.String("message", string(message.data)))
-	c.writeChan <- message
+	select {
+	case c.writeChan <- message:
+	case <-c.writerDone:
+		return errors.New("downstream connection closed")
+	}
+	return nil
 }
 
 func (c *downstreamConnection) close() error {
