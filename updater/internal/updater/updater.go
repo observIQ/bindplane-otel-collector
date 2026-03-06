@@ -75,6 +75,24 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 	}, nil
 }
 
+// readUserFromSystemdFile reads the systemd unit file and extracts the User value.
+func (u *Updater) readUserFromSystemdFile() (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("User=")) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, []byte("User=")))), nil
+		}
+	}
+
+	return "", errors.New("User not found in systemd unit file")
+}
+
 // readGroupFromSystemdFile reads the systemd unit file and extracts the Group value.
 func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	// #nosec G304 - systemdUnitFilePath is not user configurable, and comes
@@ -106,6 +124,12 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("create install directory: %w", err)
 	}
 
+	// Read the User value from the systemd unit file
+	user, err := u.readUserFromSystemdFile()
+	if err != nil {
+		return fmt.Errorf("read user from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+
 	// Read the Group value from the systemd unit file
 	group, err := u.readGroupFromSystemdFile()
 	if err != nil {
@@ -122,6 +146,7 @@ func (u *Updater) generateLinuxServiceFiles() error {
 	}
 
 	params := map[string]string{
+		"User":       user,
 		"Group":      group,
 		"InstallDir": installDir,
 	}
