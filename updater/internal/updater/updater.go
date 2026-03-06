@@ -113,6 +113,27 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", fmt.Errorf("Group not found in systemd unit file %s", u.installedSystemdUnitPath)
 }
 
+// readEnvironmentFromSystemdFile reads the systemd unit file and extracts
+// the value of the given Environment= key. Returns the value if found,
+// or an empty string if not found.
+func (u *Updater) readEnvironmentFromSystemdFile(key string) (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	prefix := []byte("Environment=" + key + "=")
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, prefix) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, prefix))), nil
+		}
+	}
+
+	return "", nil
+}
+
 // generateLinuxServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
 func (u *Updater) generateLinuxServiceFiles() error {
@@ -145,10 +166,30 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
+	// Read storage and log directories from the existing systemd unit file,
+	// falling back to defaults relative to the install directory.
+	storageDir, err := u.readEnvironmentFromSystemdFile("OIQ_OTEL_COLLECTOR_STORAGE")
+	if err != nil {
+		return fmt.Errorf("read storage dir from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+	if storageDir == "" {
+		storageDir = installDir + "/storage"
+	}
+
+	logDir, err := u.readEnvironmentFromSystemdFile("OIQ_OTEL_COLLECTOR_LOGS")
+	if err != nil {
+		return fmt.Errorf("read log dir from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+	if logDir == "" {
+		logDir = installDir + "/log"
+	}
+
 	params := map[string]string{
 		"User":       user,
 		"Group":      group,
 		"InstallDir": installDir,
+		"StorageDir": storageDir,
+		"LogDir":     logDir,
 	}
 
 	// Render the systemd service template with the Group value
