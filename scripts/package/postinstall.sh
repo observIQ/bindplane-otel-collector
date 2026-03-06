@@ -54,8 +54,8 @@ install() {
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Ensure updater is owned by root.
-    chown root:root "$stage_dir/updater"
+    # Updater is owned by the runtime user, matching all other installed files.
+    # Privileged operations use sudo via the sudoers drop-in.
 
     cp -r --preserve \
       "$stage_dir"/* \
