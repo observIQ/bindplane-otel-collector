@@ -26,6 +26,6 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
-ReadWritePaths=/opt/observiq-otel-collector
+ReadWritePaths=/opt/observiq-otel-collector /opt/observiq-otel-collector/storage /opt/observiq-otel-collector/log
 [Install]
 WantedBy=multi-user.target 

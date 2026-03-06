@@ -27,8 +27,8 @@ User={{.User}}
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
-Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
-Environment=OIQ_OTEL_COLLECTOR_LOGS={{.InstallDir}}/log
+Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.StorageDir}}
+Environment=OIQ_OTEL_COLLECTOR_LOGS={{.LogDir}}
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -44,7 +44,7 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
-ReadWritePaths={{.InstallDir}}
+ReadWritePaths={{.InstallDir}} {{.StorageDir}} {{.LogDir}}
 [Install]
 WantedBy=multi-user.target`
 
