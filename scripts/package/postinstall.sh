@@ -95,6 +95,7 @@ Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+Environment=OIQ_OTEL_COLLECTOR_LOGS=${BDOT_CONFIG_HOME}/log
 WorkingDirectory=${BDOT_CONFIG_HOME}
 ExecStart=${BDOT_CONFIG_HOME}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -106,6 +107,11 @@ RestartSec=5s
 KillMode=process
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=${BDOT_CONFIG_HOME}
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -217,6 +223,7 @@ PIDFILE=/var/run/"\$BINARY".pid
 # Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 export OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+export OIQ_OTEL_COLLECTOR_LOGS=${BDOT_CONFIG_HOME}/log
 
 RETVAL=0
 start() {
