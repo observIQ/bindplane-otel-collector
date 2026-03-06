@@ -18,6 +18,7 @@ package etw
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -127,7 +128,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	// System section
 	xmlBuilder.WriteString("  <System>\n")
 	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
-		providerName, providerGUID))
+		xmlEscape(providerName), providerGUID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
 		eventID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
@@ -135,9 +136,9 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
 		eventRecord.EventHeader.EventDescriptor.Level))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%s</Task>\n",
-		taskName))
+		xmlEscape(taskName)))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%s</Opcode>\n",
-		opcodeName))
+		xmlEscape(opcodeName)))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
 		eventRecord.EventHeader.EventDescriptor.Keyword))
 
@@ -154,9 +155,9 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Execution ProcessID=\"%d\" ThreadID=\"%d\"/>\n",
 		eventRecord.EventHeader.ProcessId, eventRecord.EventHeader.ThreadId))
 
-	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", channelName))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", xmlEscape(channelName)))
 
-	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", hostname))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", xmlEscape(hostname)))
 
 	if sid := eventRecord.SID(); sid != "" {
 		xmlBuilder.WriteString(fmt.Sprintf("    <Security UserID=\"%s\"/>\n", sid))
@@ -166,7 +167,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	// EventData section
 	xmlBuilder.WriteString("  <EventData>\n")
 	for key, value := range eventData {
-		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%v</Data>\n", key, value))
+		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%s</Data>\n", xmlEscape(key), xmlEscape(fmt.Sprintf("%v", value))))
 	}
 	xmlBuilder.WriteString("  </EventData>\n")
 
@@ -183,6 +184,14 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	case <-c.doneChan:
 		return 1
 	}
+}
+
+// xmlEscape returns s with XML special characters escaped so it is safe to
+// embed in element content or attribute values.
+func xmlEscape(s string) string {
+	var buf strings.Builder
+	xml.EscapeText(&buf, []byte(s)) //nolint:errcheck // strings.Builder never returns an error
+	return buf.String()
 }
 
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
