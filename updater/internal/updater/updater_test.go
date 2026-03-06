@@ -382,6 +382,18 @@ func checkFilePermissions(t *testing.T, filePath string, expectedPerm os.FileMod
 	require.Equal(t, expectedPerm, info.Mode().Perm())
 }
 
+func TestReadUserFromSystemdFile(t *testing.T) {
+	t.Run("Extract User from systemd unit file", func(t *testing.T) {
+		u := &Updater{
+			installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
+		}
+
+		user, err := u.readUserFromSystemdFile()
+		require.NoError(t, err)
+		require.Equal(t, "bdot", user)
+	})
+}
+
 func TestReadGroupFromSystemdFile(t *testing.T) {
 	t.Run("Extract Group from systemd unit file", func(t *testing.T) {
 		u := &Updater{
