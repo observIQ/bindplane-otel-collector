@@ -405,3 +405,27 @@ func TestReadGroupFromSystemdFile(t *testing.T) {
 		require.Equal(t, "bdot", group)
 	})
 }
+
+func TestReadEnvironmentFromSystemdFile(t *testing.T) {
+	u := &Updater{
+		installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
+	}
+
+	t.Run("Extract OIQ_OTEL_COLLECTOR_STORAGE", func(t *testing.T) {
+		val, err := u.readEnvironmentFromSystemdFile("OIQ_OTEL_COLLECTOR_STORAGE")
+		require.NoError(t, err)
+		require.Equal(t, "/opt/observiq-otel-collector/storage", val)
+	})
+
+	t.Run("Extract OIQ_OTEL_COLLECTOR_LOGS", func(t *testing.T) {
+		val, err := u.readEnvironmentFromSystemdFile("OIQ_OTEL_COLLECTOR_LOGS")
+		require.NoError(t, err)
+		require.Equal(t, "/opt/observiq-otel-collector/log", val)
+	})
+
+	t.Run("Missing key returns empty string", func(t *testing.T) {
+		val, err := u.readEnvironmentFromSystemdFile("NONEXISTENT_KEY")
+		require.NoError(t, err)
+		require.Equal(t, "", val)
+	})
+}
