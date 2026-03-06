@@ -18,6 +18,7 @@ package etw
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -46,8 +47,9 @@ type Consumer struct {
 	consumeRaw  bool
 	session     *Session
 
-	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
-	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
+	eventCallback      func(eventRecord *advapi32.EventRecord) uintptr
+	bufferCallback     func(buffer *advapi32.EventTraceLogfile) uintptr
+	getEventProperties func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error)
 
 	// Channel for received events
 	Events chan *Event
@@ -79,6 +81,7 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session
 	}
 	c.eventCallback = c.defaultEventCallback
 	c.bufferCallback = c.defaultBufferCallback
+	c.getEventProperties = GetEventProperties
 	c.session = session
 	return c
 }
@@ -112,7 +115,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 		providerName = provider.Name
 	}
 
-	eventData, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	eventData, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		return 1
@@ -127,7 +130,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	// System section
 	xmlBuilder.WriteString("  <System>\n")
 	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
-		providerName, providerGUID))
+		xmlEscape(providerName), providerGUID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
 		eventID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
@@ -135,9 +138,9 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
 		eventRecord.EventHeader.EventDescriptor.Level))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%s</Task>\n",
-		taskName))
+		xmlEscape(taskName)))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%s</Opcode>\n",
-		opcodeName))
+		xmlEscape(opcodeName)))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
 		eventRecord.EventHeader.EventDescriptor.Keyword))
 
@@ -154,9 +157,9 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Execution ProcessID=\"%d\" ThreadID=\"%d\"/>\n",
 		eventRecord.EventHeader.ProcessId, eventRecord.EventHeader.ThreadId))
 
-	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", channelName))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", xmlEscape(channelName)))
 
-	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", hostname))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", xmlEscape(hostname)))
 
 	if sid := eventRecord.SID(); sid != "" {
 		xmlBuilder.WriteString(fmt.Sprintf("    <Security UserID=\"%s\"/>\n", sid))
@@ -166,7 +169,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	// EventData section
 	xmlBuilder.WriteString("  <EventData>\n")
 	for key, value := range eventData {
-		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%v</Data>\n", key, value))
+		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%s</Data>\n", xmlEscape(key), xmlEscape(fmt.Sprintf("%v", value))))
 	}
 	xmlBuilder.WriteString("  </EventData>\n")
 
@@ -185,8 +188,16 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	}
 }
 
+// xmlEscape returns s with XML special characters escaped so it is safe to
+// embed in element content or attribute values.
+func xmlEscape(s string) string {
+	var buf strings.Builder
+	xml.EscapeText(&buf, []byte(s)) //nolint:errcheck // strings.Builder never returns an error
+	return buf.String()
+}
+
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
-	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	data, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		c.LostEvents++
