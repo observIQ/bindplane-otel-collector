@@ -28,6 +28,7 @@ Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
+Environment=OIQ_OTEL_COLLECTOR_LOGS={{.InstallDir}}/log
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -39,6 +40,11 @@ RestartSec=5s
 KillMode=process
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths={{.InstallDir}}
 [Install]
 WantedBy=multi-user.target`
 
@@ -115,6 +121,7 @@ PIDFILE=/var/run/"$BINARY".pid
 # Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
+export OIQ_OTEL_COLLECTOR_LOGS=/opt/observiq-otel-collector/log
 
 RETVAL=0
 start() {
