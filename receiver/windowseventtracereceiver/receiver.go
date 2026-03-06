@@ -251,9 +251,9 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 	}
 
 	if len(event.ExtendedData) > 0 {
-		extendedData := record.Body().Map().PutEmptySlice("extended_data")
-		for _, data := range event.ExtendedData {
-			extendedData.AppendEmpty().SetStr(data)
+		extendedData := record.Body().Map().PutEmptyMap("extended_data")
+		for k, v := range event.ExtendedData {
+			putAnyValue(extendedData, k, v)
 		}
 	}
 
