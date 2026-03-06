@@ -129,6 +129,7 @@ RestrictRealtime=yes
 LockPersonality=yes
 SystemCallArchitectures=native
 KeyringMode=private
+SystemCallFilter=@system-service @network-io
 [Install]
 WantedBy=multi-user.target
 EOF
