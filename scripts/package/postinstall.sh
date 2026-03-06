@@ -544,8 +544,21 @@ EOF
   chmod 0440 "$sudoers_file"
 }
 
+validate_sudoers() {
+  sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+  if [ -f "$sudoers_file" ]; then
+    if command -v visudo > /dev/null 2>&1; then
+      if ! visudo -cf "$sudoers_file" > /dev/null 2>&1; then
+        echo "WARNING: sudoers file $sudoers_file failed validation, removing"
+        rm -f "$sudoers_file"
+      fi
+    fi
+  fi
+}
+
 install
 install_service
 install_sudoers
 finish_permissions
+validate_sudoers
 manage_service
