@@ -104,6 +104,8 @@ StandardOutput=journal
 Restart=on-failure
 RestartSec=5s
 KillMode=process
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 [Install]
 WantedBy=multi-user.target
 EOF
