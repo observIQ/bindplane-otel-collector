@@ -117,7 +117,7 @@ func TestCollectExtendedData_PMCCounters(t *testing.T) {
 
 func TestCollectExtendedData_StackTrace32(t *testing.T) {
 	// struct: uint64 MatchId + uint32 Address[]
-	data := make([]byte, 16) // MatchId + two 32-bit addresses
+	data := make([]byte, 16)                   // MatchId + two 32-bit addresses
 	binary.LittleEndian.PutUint64(data[0:], 0) // MatchId (ignored)
 	binary.LittleEndian.PutUint32(data[8:], 0xdeadbeef)
 	binary.LittleEndian.PutUint32(data[12:], 0xcafe1234)
@@ -128,7 +128,7 @@ func TestCollectExtendedData_StackTrace32(t *testing.T) {
 
 func TestCollectExtendedData_StackTrace64(t *testing.T) {
 	// struct: uint64 MatchId + uint64 Address[]
-	data := make([]byte, 24) // MatchId + two 64-bit addresses
+	data := make([]byte, 24)                   // MatchId + two 64-bit addresses
 	binary.LittleEndian.PutUint64(data[0:], 0) // MatchId (ignored)
 	binary.LittleEndian.PutUint64(data[8:], 0x00007ff812345678)
 	binary.LittleEndian.PutUint64(data[16:], 0x00007ff8deadbeef)

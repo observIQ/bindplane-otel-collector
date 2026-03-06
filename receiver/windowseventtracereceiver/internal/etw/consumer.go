@@ -251,7 +251,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 			if item.DataSize >= 24 {
 				result["instance_info"] = map[string]any{
 					"instance_id":        fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr))),
-					"parent_instance_id": fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr+4))),
+					"parent_instance_id": fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr + 4))),
 					"parent_guid":        (*windows.GUID)(unsafe.Pointer(item.DataPtr + 8)).String(),
 				}
 			}
@@ -263,7 +263,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 				addrCount := (uint32(item.DataSize) - 8) / 4
 				addrs := make([]any, addrCount)
 				for j := uint32(0); j < addrCount; j++ {
-					addrs[j] = fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr+8+uintptr(j)*4)))
+					addrs[j] = fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr + 8 + uintptr(j)*4)))
 				}
 				result["stack_trace_32"] = addrs
 			}
@@ -275,7 +275,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 				addrCount := (uint32(item.DataSize) - 8) / 8
 				addrs := make([]any, addrCount)
 				for j := uint32(0); j < addrCount; j++ {
-					addrs[j] = fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr+8+uintptr(j)*8)))
+					addrs[j] = fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr + 8 + uintptr(j)*8)))
 				}
 				result["stack_trace_64"] = addrs
 			}
@@ -286,7 +286,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 			if counterCount := uint32(item.DataSize) / 8; counterCount > 0 {
 				counters := make([]any, counterCount)
 				for j := uint32(0); j < counterCount; j++ {
-					counters[j] = fmt.Sprintf("%d", *(*uint64)(unsafe.Pointer(item.DataPtr+uintptr(j)*8)))
+					counters[j] = fmt.Sprintf("%d", *(*uint64)(unsafe.Pointer(item.DataPtr + uintptr(j)*8)))
 				}
 				result["pmc_counters"] = counters
 			}
@@ -327,7 +327,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 			if item.DataSize >= 12 {
 				result["stack_key_32"] = map[string]any{
 					"match_id": fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr))),
-					"key":      fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr+8))),
+					"key":      fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr + 8))),
 				}
 			}
 
@@ -339,7 +339,7 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 			if item.DataSize >= 16 {
 				result["stack_key_64"] = map[string]any{
 					"match_id": fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr))),
-					"key":      fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr+8))),
+					"key":      fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr + 8))),
 				}
 			}
 
