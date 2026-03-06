@@ -502,7 +502,50 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+install_sudoers() {
+  # Generate the sudoers drop-in at install time so it reflects the configured
+  # runtime user (BDOT_USER), which may differ from the default on first
+  # install. Changing the runtime user after install is not supported.
+  sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+
+  echo "Installing sudoers drop-in to $sudoers_file"
+  mkdir -p "$(dirname "$sudoers_file")"
+
+  cat << EOF > "$sudoers_file"
+# Sudoers drop-in for the Bindplane Distribution for OpenTelemetry Collector.
+# Grants the collector's runtime user permission to manage the collector
+# service and install updated service files. Generated at install time for
+# runtime user "${BDOT_USER}".
+
+# Service management via systemctl
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl start observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl stop observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl status observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl enable observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl disable observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
+
+# Service file installation and ownership via install(1)/chown/chmod
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 -o root -g root * /usr/lib/systemd/system/observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/chown root\:${BDOT_GROUP} /usr/lib/systemd/system/observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/chmod 0640 /usr/lib/systemd/system/observiq-otel-collector.service
+
+# SysV service management
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector start
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector stop
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector restart
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector status
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector on
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector off
+EOF
+
+  chown root:root "$sudoers_file"
+  chmod 0440 "$sudoers_file"
+}
+
 install
 install_service
+install_sudoers
 finish_permissions
 manage_service
