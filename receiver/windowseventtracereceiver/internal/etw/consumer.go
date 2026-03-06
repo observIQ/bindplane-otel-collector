@@ -47,8 +47,9 @@ type Consumer struct {
 	consumeRaw  bool
 	session     *Session
 
-	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
-	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
+	eventCallback       func(eventRecord *advapi32.EventRecord) uintptr
+	bufferCallback      func(buffer *advapi32.EventTraceLogfile) uintptr
+	getEventProperties  func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error)
 
 	// Channel for received events
 	Events chan *Event
@@ -80,6 +81,7 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session
 	}
 	c.eventCallback = c.defaultEventCallback
 	c.bufferCallback = c.defaultBufferCallback
+	c.getEventProperties = GetEventProperties
 	c.session = session
 	return c
 }
@@ -113,7 +115,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 		providerName = provider.Name
 	}
 
-	eventData, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	eventData, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		return 1
@@ -195,7 +197,7 @@ func xmlEscape(s string) string {
 }
 
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
-	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	data, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		c.LostEvents++

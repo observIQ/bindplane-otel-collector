@@ -19,9 +19,7 @@ package etw
 import (
 	"encoding/xml"
 	"sync"
-	"syscall"
 	"testing"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,7 +119,6 @@ func TestXMLEscape_RoundTrip(t *testing.T) {
 	for _, input := range inputs {
 		t.Run(input, func(t *testing.T) {
 			escaped := xmlEscape(input)
-			// Wrap in an element and parse to verify it is valid XML.
 			doc := "<root>" + escaped + "</root>"
 			var result struct {
 				Value string `xml:",chardata"`
@@ -133,74 +130,65 @@ func TestXMLEscape_RoundTrip(t *testing.T) {
 	}
 }
 
-// TestRawEventCallback_StringOnly exercises rawEventCallback via the
-// EVENT_HEADER_FLAG_STRING_ONLY path, which bypasses TDH APIs and allows
-// unit testing on Windows without a real ETW session.
-//
-// This test focuses on verifying that event property values containing XML
-// special characters are correctly escaped in the output.
-func TestRawEventCallback_StringOnly(t *testing.T) {
+// TestRawEventCallback_XMLEscaping verifies that property values containing XML
+// special characters are escaped in the raw event output, preventing injection.
+func TestRawEventCallback_XMLEscaping(t *testing.T) {
 	tests := []struct {
 		name          string
-		userData      string
+		eventData     map[string]any
 		checkContains []string
 		checkAbsent   []string
 	}{
 		{
-			name:     "plain value is preserved",
-			userData: "hello world",
+			name:      "plain value is preserved",
+			eventData: map[string]any{"Message": "hello world"},
 			checkContains: []string{
-				`<Data Name="UserData">hello world</Data>`,
+				`<Data Name="Message">hello world</Data>`,
 			},
 		},
 		{
-			name:     "XML injection in value is escaped",
-			userData: `</EventData><Injected/>`,
+			name:      "XML injection in value is escaped",
+			eventData: map[string]any{"CommandLine": `</EventData><Injected/>`},
 			checkContains: []string{
-				`<Data Name="UserData">&lt;/EventData&gt;&lt;Injected/&gt;</Data>`,
+				`<Data Name="CommandLine">&lt;/EventData&gt;&lt;Injected/&gt;</Data>`,
 			},
-			// The literal unescaped injection must not appear.
 			checkAbsent: []string{
 				`</EventData><Injected/>`,
 			},
 		},
 		{
-			name:     "ampersand in value is escaped",
-			userData: `AT&T`,
+			name:      "ampersand in value is escaped",
+			eventData: map[string]any{"Company": `AT&T`},
 			checkContains: []string{
-				`<Data Name="UserData">AT&amp;T</Data>`,
+				`<Data Name="Company">AT&amp;T</Data>`,
 			},
 			checkAbsent: []string{"AT&T</Data>"},
 		},
 		{
-			name:     "command line with quotes is escaped",
-			userData: `cmd.exe /c echo "hello"`,
+			name:      "quotes in value are escaped",
+			eventData: map[string]any{"CommandLine": `cmd.exe /c echo "hello"`},
 			checkContains: []string{
-				`<Data Name="UserData">cmd.exe /c echo &#34;hello&#34;</Data>`,
+				`<Data Name="CommandLine">cmd.exe /c echo &#34;hello&#34;</Data>`,
 			},
 		},
 		{
-			name:     "output is structurally valid XML",
-			userData: `<bad & "tricky"> 'value'`,
-			// Verified by xml.Unmarshal in a separate assertion below.
+			name:      "special characters in property name are escaped",
+			eventData: map[string]any{`Key<Inject>`: "value"},
+			checkContains: []string{
+				`<Data Name="Key&lt;Inject&gt;">value</Data>`,
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Encode userData as UTF-16 and keep the backing array alive for
-			// the duration of the call so the GC cannot collect it.
-			utf16Data, err := syscall.UTF16FromString(tt.userData)
-			require.NoError(t, err)
+			consumer := newTestConsumer()
+			consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, error) {
+				return tt.eventData, nil
+			}
 
 			record := &advapi32.EventRecord{}
-			record.EventHeader.Flags = advapi32.EVENT_HEADER_FLAG_STRING_ONLY
-			record.UserData = uintptr(unsafe.Pointer(&utf16Data[0]))
-
-			consumer := newTestConsumer()
 			rc := consumer.rawEventCallback(record)
-
-			// rawEventCallback returns 0 on success, 1 on error.
 			assert.Equal(t, uintptr(0), rc)
 
 			event := <-consumer.Events
@@ -213,40 +201,27 @@ func TestRawEventCallback_StringOnly(t *testing.T) {
 				assert.NotContains(t, event.Raw, absent)
 			}
 
-			// Every output must be parseable as valid XML.
-			err = xml.Unmarshal([]byte(event.Raw), new(any))
+			// Every output must parse as valid XML.
+			err := xml.Unmarshal([]byte(event.Raw), new(any))
 			assert.NoError(t, err, "rawEventCallback output must be valid XML:\n%s", event.Raw)
 		})
 	}
 }
 
-// newTestConsumer returns a minimal Consumer suitable for unit tests.
-// It has a buffered Events channel so rawEventCallback does not block.
-func newTestConsumer() *Consumer {
-	return &Consumer{
-		Events:      make(chan *Event, 1),
-		doneChan:    make(chan struct{}),
-		wg:          &sync.WaitGroup{},
-		logger:      zap.NewNop(),
-		providerMap: map[string]*Provider{},
+// TestRawEventCallback_XMLStructure verifies that the System section fields
+// derived from EventHeader are correctly rendered.
+func TestRawEventCallback_XMLStructure(t *testing.T) {
+	consumer := newTestConsumer()
+	consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, error) {
+		return map[string]any{"Prop": "val"}, nil
 	}
-}
-
-// TestRawEventCallback_StringOnly_XMLStructure verifies the fixed structure of
-// the System section for a STRING_ONLY event.
-func TestRawEventCallback_StringOnly_XMLStructure(t *testing.T) {
-	utf16Data, err := syscall.UTF16FromString("test value")
-	require.NoError(t, err)
 
 	record := &advapi32.EventRecord{}
-	record.EventHeader.Flags = advapi32.EVENT_HEADER_FLAG_STRING_ONLY
 	record.EventHeader.EventDescriptor.Level = 3
 	record.EventHeader.EventDescriptor.Version = 2
 	record.EventHeader.ProcessId = 1234
 	record.EventHeader.ThreadId = 5678
-	record.UserData = uintptr(unsafe.Pointer(&utf16Data[0]))
 
-	consumer := newTestConsumer()
 	rc := consumer.rawEventCallback(record)
 	assert.Equal(t, uintptr(0), rc)
 
@@ -264,7 +239,18 @@ func TestRawEventCallback_StringOnly_XMLStructure(t *testing.T) {
 	assert.Contains(t, event.Raw, `ProcessID="1234"`)
 	assert.Contains(t, event.Raw, `ThreadID="5678"`)
 
-	// Verify the whole thing parses as valid XML.
-	err = xml.Unmarshal([]byte(event.Raw), new(any))
+	err := xml.Unmarshal([]byte(event.Raw), new(any))
 	assert.NoError(t, err, "output must be valid XML:\n%s", event.Raw)
+}
+
+// newTestConsumer returns a minimal Consumer for unit tests.
+// getEventProperties must be set before calling rawEventCallback.
+func newTestConsumer() *Consumer {
+	return &Consumer{
+		Events:      make(chan *Event, 1),
+		doneChan:    make(chan struct{}),
+		wg:          &sync.WaitGroup{},
+		logger:      zap.NewNop(),
+		providerMap: map[string]*Provider{},
+	}
 }
