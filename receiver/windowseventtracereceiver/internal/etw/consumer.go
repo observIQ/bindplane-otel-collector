@@ -47,9 +47,9 @@ type Consumer struct {
 	consumeRaw  bool
 	session     *Session
 
-	eventCallback       func(eventRecord *advapi32.EventRecord) uintptr
-	bufferCallback      func(buffer *advapi32.EventTraceLogfile) uintptr
-	getEventProperties  func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error)
+	eventCallback      func(eventRecord *advapi32.EventRecord) uintptr
+	bufferCallback     func(buffer *advapi32.EventTraceLogfile) uintptr
+	getEventProperties func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error)
 
 	// Channel for received events
 	Events chan *Event
