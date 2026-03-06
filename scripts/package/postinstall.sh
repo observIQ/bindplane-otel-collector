@@ -115,7 +115,20 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
-ReadWritePaths=${BDOT_CONFIG_HOME}
+ReadWritePaths=${BDOT_CONFIG_HOME} ${BDOT_STORAGE} ${BDOT_LOGS}
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+KeyringMode=private
 [Install]
 WantedBy=multi-user.target
 EOF
