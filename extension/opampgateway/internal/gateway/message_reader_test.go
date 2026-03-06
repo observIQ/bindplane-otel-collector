@@ -63,11 +63,11 @@ func TestMessageReaderLoopReceivesMessages(t *testing.T) {
 	clientConn := wsTestPair(t, func(conn *websocket.Conn) {
 		defer conn.Close()
 		<-serverReady
-		conn.WriteMessage(websocket.BinaryMessage, []byte("hello"))
-		conn.WriteMessage(websocket.BinaryMessage, []byte("world"))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("hello")))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("world")))
 		// close cleanly so the reader exits
-		conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		assert.NoError(t, conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")))
 		// wait for the client to read the close
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -108,9 +108,9 @@ func TestMessageReaderLoopStartingMessageNumber(t *testing.T) {
 	clientConn := wsTestPair(t, func(conn *websocket.Conn) {
 		defer conn.Close()
 		<-serverReady
-		conn.WriteMessage(websocket.BinaryMessage, []byte("msg"))
-		conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("msg")))
+		assert.NoError(t, conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")))
 		time.Sleep(100 * time.Millisecond)
 	})
 
@@ -183,8 +183,8 @@ func TestMessageReaderLoopConnectionClosed(t *testing.T) {
 		defer conn.Close()
 		<-serverReady
 		// close with normal closure
-		conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye"))
+		assert.NoError(t, conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")))
 		time.Sleep(100 * time.Millisecond)
 	})
 
@@ -210,7 +210,7 @@ func TestMessageReaderLoopOnMessageError(t *testing.T) {
 	clientConn := wsTestPair(t, func(conn *websocket.Conn) {
 		defer conn.Close()
 		<-serverReady
-		conn.WriteMessage(websocket.BinaryMessage, []byte("trigger"))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("trigger")))
 		time.Sleep(500 * time.Millisecond)
 	})
 
@@ -242,8 +242,8 @@ func TestMessageReaderLoopStopsAfterOnMessageError(t *testing.T) {
 		defer conn.Close()
 		<-serverReady
 		// send two messages; reader should stop after the first
-		conn.WriteMessage(websocket.BinaryMessage, []byte("first"))
-		conn.WriteMessage(websocket.BinaryMessage, []byte("second"))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("first")))
+		assert.NoError(t, conn.WriteMessage(websocket.BinaryMessage, []byte("second")))
 		time.Sleep(500 * time.Millisecond)
 	})
 
