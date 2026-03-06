@@ -355,6 +355,20 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 		// Compare the generated files with golden files
 		compareFiles(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), u.installedSystemdUnitPath)
 
+		generated := string(content)
+		// Verify user/group from golden file
+		require.Contains(t, generated, "User=bdot")
+		require.Contains(t, generated, "Group=bdot")
+		// Verify install dir is templated correctly
+		require.Contains(t, generated, fmt.Sprintf("WorkingDirectory=%s", installDir))
+		require.Contains(t, generated, fmt.Sprintf("Environment=OIQ_OTEL_COLLECTOR_HOME=%s", installDir))
+		// Verify storage/log dirs read from golden file
+		require.Contains(t, generated, "Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage")
+		require.Contains(t, generated, "Environment=OIQ_OTEL_COLLECTOR_LOGS=/opt/observiq-otel-collector/log")
+		// Verify hardening directives
+		require.Contains(t, generated, "ProtectSystem=strict")
+		require.Contains(t, generated, "NoNewPrivileges=yes")
+		require.Contains(t, generated, "SystemCallFilter=@system-service @network-io")
 		// Check file permissions
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector"), 0755)
