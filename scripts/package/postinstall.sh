@@ -25,8 +25,11 @@ set -e
 # The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
 
-# Whether or not to run the collector as an unprivileged user.
-: "${BDOT_UNPRIVILEGED:=false}"
+# Whether to run the collector as a non-root hardened service.
+# Set to "true" in /etc/default/observiq-otel-collector or
+# /etc/sysconfig/observiq-otel-collector to opt in.
+# Replaces the legacy BDOT_UNPRIVILEGED variable.
+: "${BDOT_HARDENED:=${BDOT_UNPRIVILEGED:-false}}"
 
 # Configurable runtime user/group
 : "${BDOT_USER:=bdot}"
@@ -86,6 +89,13 @@ install_systemd_service() {
 
   mkdir -p "$(dirname "$config_file")"
 
+  # Determine runtime user based on hardening opt-in
+  if [ "${BDOT_HARDENED}" = "true" ]; then
+    BDOT_RUNTIME_USER="${BDOT_USER}"
+  else
+    BDOT_RUNTIME_USER="root"
+  fi
+
   cat << EOF > "$config_file"
 [Unit]
 Description=observIQ's distribution of the OpenTelemetry collector
@@ -94,7 +104,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=5
 [Service]
 Type=simple
-User=root
+User=${BDOT_RUNTIME_USER}
 Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
@@ -144,15 +154,11 @@ EOF
     echo "Created systemd override directory at $override_dir"
   fi
 
-  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
-  # unprivileged user.
-  override_user_path="${override_dir}/10-package-customizations-username.conf"
-  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
-    cat << EOF > "${override_user_path}"
-[Service]
-User=${BDOT_USER}
-EOF
-    echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
+  # Clean up legacy BDOT_UNPRIVILEGED drop-in if it exists
+  legacy_override="${override_dir}/10-package-customizations-username.conf"
+  if [ -f "${legacy_override}" ]; then
+    rm -f "${legacy_override}"
+    echo "Removed legacy unprivileged user override at ${legacy_override}"
   fi
 }
 
