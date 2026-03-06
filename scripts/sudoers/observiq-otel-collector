@@ -1,0 +1,26 @@
+# Sudoers drop-in for the observIQ OpenTelemetry Collector.
+# Grants the collector's runtime user permission to manage the
+# collector service and install updated service files.
+#
+# This file should be installed to /etc/sudoers.d/observiq-otel-collector
+# with permissions 0440 owned by root:root.
+
+# Service management via systemctl
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl start observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl stop observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl restart observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl status observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl enable observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl disable observiq-otel-collector
+bdot ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
+
+# Service file installation via install(1)
+bdot ALL=(root) NOPASSWD: /usr/bin/install -m 0644 -o root -g root * /usr/lib/systemd/system/observiq-otel-collector.service
+
+# SysV service management
+bdot ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector start
+bdot ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector stop
+bdot ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector restart
+bdot ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector status
+bdot ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector on
+bdot ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector off
