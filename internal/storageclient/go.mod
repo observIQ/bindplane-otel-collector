@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/storageclient
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.146.0

@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/goccy/go-json v0.10.5

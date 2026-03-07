@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/google/go-cmp v0.7.0

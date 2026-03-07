@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/aws
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/aws/aws-lambda-go v1.52.0

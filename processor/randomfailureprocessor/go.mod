@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.146.0

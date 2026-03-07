@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/tools
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/client9/misspell v0.3.4

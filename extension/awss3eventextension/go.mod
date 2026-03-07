@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/extension/awss3eventextension
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
