@@ -190,10 +190,7 @@ func (hmr *hostMetricsReporter) collectHostMetrics() error {
 	if err != nil {
 		return fmt.Errorf("get cpu times: %w", err)
 	}
-	totalCPUTime := cpuTimes.User + cpuTimes.System
-
-	// convert to milliseconds
-	hmr.stats.ProcessCpuSeconds = int64(totalCPUTime * 1000)
+	hmr.stats.ProcessCpuSeconds = int64(cpuTimes.User + cpuTimes.System)
 
 	// Collect memory usage (RSS)
 	memInfo, err := proc.MemoryInfo()
