@@ -36,16 +36,13 @@ type hostMetricsReporter struct {
 	wg     sync.WaitGroup
 	send   sendMetricsFunc
 
-	mutex       sync.Mutex
-	agentID     []byte
-	customerID  []byte
-	exporterID  string
-	namespace   string
-	startTime   *timestamppb.Timestamp
-	stats       *api.AgentStatsEvent
-	logsDropped int64
-	logsSent    int64
-	licenseType string
+	mutex      sync.Mutex
+	agentID    []byte
+	exporterID string
+	source     *api.EventSource
+
+	startTime  *timestamppb.Timestamp
+	agentStats *api.AgentStatsEvent
 }
 
 type sendMetricsFunc func(context.Context, *api.BatchCreateEventsRequest) error
@@ -58,7 +55,6 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 
 	agentID := uuid.New()
 	if sid, ok := set.Resource.Attributes().Get(string(semconv.ServiceInstanceIDKey)); ok {
-		var err error
 		serviceID, err := uuid.Parse(sid.AsString())
 		if err != nil {
 			set.Logger.Error("Failed to parse service instance ID, using random ID", zap.String("service_instance_id", sid.AsString()), zap.Error(err))
@@ -68,21 +64,21 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 	}
 
 	now := timestamppb.Now()
-	return &hostMetricsReporter{
+	hmr := &hostMetricsReporter{
 		set:        set,
 		send:       send,
 		agentID:    agentID[:],
 		exporterID: exporterID,
-		startTime:  now,
-		customerID: customerID[:],
-		namespace:  cfg.Namespace,
-		stats: &api.AgentStatsEvent{
-			AgentId:         agentID[:],
-			WindowStartTime: now,
-			StartTime:       now,
+		source: &api.EventSource{
+			CustomerId:  customerID[:],
+			CollectorId: getCollectorID(cfg.LicenseType),
+			Namespace:   cfg.Namespace,
 		},
-		licenseType: cfg.LicenseType,
-	}, nil
+		startTime: now,
+	}
+
+	hmr.resetWindow(now)
+	return hmr, nil
 }
 
 func (hmr *hostMetricsReporter) start() {
@@ -107,48 +103,44 @@ func (hmr *hostMetricsReporter) start() {
 				if err != nil {
 					hmr.set.Logger.Error("Failed to collect host metrics", zap.Error(err))
 				}
-				request := hmr.getAndReset()
-				if err = hmr.send(ctx, request); err != nil {
+				request := hmr.buildRequest()
+				err = hmr.send(ctx, request)
+				if err != nil {
 					hmr.set.Logger.Error("Failed to upload host metrics", zap.Error(err))
+				} else {
+					hmr.resetWindow(timestamppb.Now())
 				}
 			}
 		}
 	}()
 }
 
-func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
+// buildRequest builds the create events request object
+func (hmr *hostMetricsReporter) buildRequest() *api.BatchCreateEventsRequest {
 	hmr.mutex.Lock()
 	defer hmr.mutex.Unlock()
 
 	now := timestamppb.Now()
 	batchID := uuid.New()
-	source := &api.EventSource{
-		CollectorId: []byte(getCollectorID(hmr.licenseType)),
-		Namespace:   hmr.namespace,
-		CustomerId:  hmr.customerID,
-	}
 
-	request := &api.BatchCreateEventsRequest{
+	return &api.BatchCreateEventsRequest{
 		Batch: &api.EventBatch{
 			Id:        batchID[:],
-			Source:    source,
+			Source:    hmr.source,
 			Type:      api.EventBatch_AGENT_STATS,
 			StartTime: hmr.startTime,
 			Events: []*api.Event{
 				{
 					Timestamp:      now,
 					CollectionTime: now,
-					Source:         source,
+					Source:         hmr.source,
 					Payload: &api.Event_AgentStats{
-						AgentStats: hmr.stats,
+						AgentStats: hmr.agentStats,
 					},
 				},
 			},
 		},
 	}
-
-	hmr.resetStats()
-	return request
 }
 
 func (hmr *hostMetricsReporter) shutdown() {
@@ -158,23 +150,7 @@ func (hmr *hostMetricsReporter) shutdown() {
 	}
 }
 
-func (hmr *hostMetricsReporter) resetStats() {
-	hmr.stats = &api.AgentStatsEvent{
-		ExporterStats: []*api.ExporterStats{
-			{
-				Name:          hmr.exporterID,
-				AcceptedSpans: hmr.logsSent,
-				RefusedSpans:  hmr.logsDropped,
-			},
-		},
-		AgentId:         hmr.agentID,
-		StartTime:       hmr.startTime,
-		WindowStartTime: timestamppb.Now(),
-	}
-	hmr.logsDropped = 0
-	hmr.logsSent = 0
-}
-
+// collectHostMetrics collects the host metrics and updates the agent stats object
 func (hmr *hostMetricsReporter) collectHostMetrics() error {
 	hmr.mutex.Lock()
 	defer hmr.mutex.Unlock()
@@ -190,14 +166,14 @@ func (hmr *hostMetricsReporter) collectHostMetrics() error {
 	if err != nil {
 		return fmt.Errorf("get cpu times: %w", err)
 	}
-	hmr.stats.ProcessCpuSeconds = int64(cpuTimes.User + cpuTimes.System)
+	hmr.agentStats.ProcessCpuSeconds = int64(cpuTimes.User + cpuTimes.System)
 
 	// Collect memory usage (RSS)
 	memInfo, err := proc.MemoryInfo()
 	if err != nil {
 		return fmt.Errorf("get memory info: %w", err)
 	}
-	hmr.stats.ProcessMemoryRss = int64(memInfo.RSS / 1024) // Convert bytes to kilobytes
+	hmr.agentStats.ProcessMemoryRss = int64(memInfo.RSS / 1024) // Convert bytes to kilobytes
 
 	// Calculate process uptime
 	startTimeMs, err := proc.CreateTime()
@@ -206,14 +182,40 @@ func (hmr *hostMetricsReporter) collectHostMetrics() error {
 	}
 	startTimeSec := startTimeMs / 1000
 	currentTimeSec := time.Now().Unix()
-	hmr.stats.ProcessUptime = currentTimeSec - startTimeSec
+	hmr.agentStats.ProcessUptime = currentTimeSec - startTimeSec
 
 	return nil
+}
+
+// resetWindow resets the agent stats object and sets the window start time
+func (hmr *hostMetricsReporter) resetWindow(windowStartTime *timestamppb.Timestamp) {
+	hmr.mutex.Lock()
+	defer hmr.mutex.Unlock()
+
+	hmr.agentStats = &api.AgentStatsEvent{
+		AgentId:         hmr.agentID,
+		StartTime:       hmr.startTime,
+		WindowStartTime: windowStartTime,
+		ExporterStats: []*api.ExporterStats{
+			{
+				Name: hmr.exporterID,
+			},
+		},
+	}
 }
 
 func (hmr *hostMetricsReporter) recordSent(count int64) {
 	hmr.mutex.Lock()
 	defer hmr.mutex.Unlock()
-	hmr.logsSent += count
-	hmr.stats.LastSuccessfulUploadTime = timestamppb.Now()
+
+	if len(hmr.agentStats.ExporterStats) == 0 {
+		hmr.agentStats.ExporterStats = []*api.ExporterStats{
+			{
+				Name: hmr.exporterID,
+			},
+		}
+	}
+
+	hmr.agentStats.ExporterStats[0].AcceptedSpans += count
+	hmr.agentStats.LastSuccessfulUploadTime = timestamppb.Now()
 }
