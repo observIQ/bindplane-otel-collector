@@ -427,7 +427,7 @@ var httpStatsEndpoint = func(cfg *Config, collectorID string) string {
 
 func baseEndpoint(cfg *Config) string {
 	var endpoint string
-	if cfg.IgnoreLocation {
+	if cfg.OverrideEndpoint {
 		endpoint = cfg.Endpoint
 	} else {
 		endpoint = fmt.Sprintf("%s-%s", cfg.Location, cfg.Endpoint)

@@ -591,12 +591,12 @@ func TestHTTPStatsEndpoint(t *testing.T) {
 		{
 			name: "custom API version and ignore location",
 			cfg: &Config{
-				Location:       "us",
-				Endpoint:       "my-endpoint.com",
-				Project:        "my-project",
-				CustomerID:     "my-customer-id",
-				APIVersion:     "v1beta",
-				IgnoreLocation: true,
+				Location:         "us",
+				Endpoint:         "my-endpoint.com",
+				Project:          "my-project",
+				CustomerID:       "my-customer-id",
+				APIVersion:       "v1beta",
+				OverrideEndpoint: true,
 			},
 			statsEndpoint:    "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
 			logTypesEndpoint: "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/logTypes",

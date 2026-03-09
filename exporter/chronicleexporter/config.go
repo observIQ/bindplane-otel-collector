@@ -110,10 +110,10 @@ type Config struct {
 	// LogErroredPayloads is a flag that determines whether or not to log errored payloads.
 	LogErroredPayloads bool `mapstructure:"log_errored_payloads"`
 
-	// IgnoreLocation determines whether or not to ignore the Location field when constructing the endpoint.
-	// This is useful for when the endpoint is a custom endpoint and the Location is not needed.
-	// We still need the Location field for the API call to Chronicle.
-	IgnoreLocation bool `mapstructure:"ignore_location"`
+	// OverrideEndpoint determines whether or not to ignore the Location field when constructing the endpoint.
+	// This is useful for when the endpoint is a custom endpoint and the Location field is not needed.
+	// We still need the Location field for the API call to Chronicle, but we don't want to use it in the endpoint.
+	OverrideEndpoint bool `mapstructure:"override_endpoint"`
 
 	// APIVersion is the version of the API to use. Default is "v1alpha".
 	APIVersion string `mapstructure:"api_version"`
@@ -143,6 +143,9 @@ func (cfg *Config) Validate() error {
 	}
 
 	if cfg.Protocol == protocolHTTPS {
+		if cfg.Location == "" {
+			return errors.New("location is required when protocol is https")
+		}
 		if cfg.Endpoint == "" {
 			return errors.New("endpoint is required when protocol is https")
 		}

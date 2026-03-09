@@ -101,6 +101,7 @@ func TestConfigValidate(t *testing.T) {
 				Forwarder:                 "forwarder_example",
 				Project:                   "project_example",
 				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
+				Location:                  "location_example",
 			},
 			expectedErr: "endpoint is required when protocol is https",
 		},
