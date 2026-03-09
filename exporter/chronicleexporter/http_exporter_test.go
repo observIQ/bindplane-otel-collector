@@ -550,18 +550,72 @@ func TestUploadStatsHTTP(t *testing.T) {
 }
 
 func TestHTTPStatsEndpoint(t *testing.T) {
-	cfg := &Config{
-		Location:   "us",
-		Endpoint:   "chronicle.googleapis.com",
-		Project:    "my-project",
-		CustomerID: "my-customer-id",
+	testCases := []struct {
+		name             string
+		cfg              *Config
+		baseEndpoint     string
+		statsEndpoint    string
+		logTypesEndpoint string
+		httpEndpoint     string
+		logType          string
+	}{
+		{
+			name: "default API version",
+			cfg: &Config{
+				Location:   "us",
+				Endpoint:   "chronicle.googleapis.com",
+				Project:    "my-project",
+				CustomerID: "my-customer-id",
+			},
+			statsEndpoint:    "https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+			logTypesEndpoint: "https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/logTypes",
+			baseEndpoint:     "https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id",
+			httpEndpoint:     "https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/logTypes/FAKE/logs:import",
+			logType:          "FAKE",
+		},
+		{
+			name: "custom API version",
+			cfg: &Config{
+				Location:   "us",
+				Endpoint:   "chronicle.googleapis.com",
+				Project:    "my-project",
+				CustomerID: "my-customer-id",
+				APIVersion: "v1beta",
+			},
+			statsEndpoint:    "https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+			logTypesEndpoint: "https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/logTypes",
+			baseEndpoint:     "https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id",
+			httpEndpoint:     "https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/logTypes/FAKE/logs:import",
+			logType:          "FAKE",
+		},
+		{
+			name: "custom API version and ignore location",
+			cfg: &Config{
+				Location:         "us",
+				Endpoint:         "my-endpoint.com",
+				Project:          "my-project",
+				CustomerID:       "my-customer-id",
+				APIVersion:       "v1beta",
+				OverrideEndpoint: true,
+			},
+			statsEndpoint:    "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+			logTypesEndpoint: "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/logTypes",
+			baseEndpoint:     "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id",
+			httpEndpoint:     "https://my-endpoint.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/logTypes/FAKE/logs:import",
+			logType:          "FAKE",
+		},
 	}
 
-	endpoint := httpStatsEndpoint(cfg, "collector-123")
-	require.Equal(t,
-		"https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
-		endpoint,
-	)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			endpoint := httpStatsEndpoint(tc.cfg, "collector-123")
+			require.Equal(t, tc.statsEndpoint, endpoint)
+			endpoint = getLogTypesEndpoint(tc.cfg)
+			require.Equal(t, tc.logTypesEndpoint, endpoint)
+			endpoint = baseEndpoint(tc.cfg)
+			require.Equal(t, tc.baseEndpoint, endpoint)
+		})
+	}
 }
 
 // TestHTTPExporterTelemetry tests the telemetry metrics functionality of the HTTP exporter
