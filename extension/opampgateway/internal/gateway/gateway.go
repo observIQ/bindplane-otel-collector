@@ -86,9 +86,9 @@ func (g *Gateway) Start(ctx context.Context, host component.Host, telemetrySetti
 }
 
 // Shutdown stops the gateway client and server.
-func (g *Gateway) Shutdown(_ context.Context) error {
-	g.client.Stop()
-	return g.server.Stop()
+func (g *Gateway) Shutdown(ctx context.Context) error {
+	g.client.Stop(ctx)
+	return g.server.Stop(ctx)
 }
 
 // --------------------------------------------------------------------------------------

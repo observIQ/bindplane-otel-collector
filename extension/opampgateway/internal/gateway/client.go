@@ -126,7 +126,7 @@ func (c *client) startClientConnections(ctx context.Context) {
 	}
 }
 
-func (c *client) Stop() {
+func (c *client) Stop(_ context.Context) {
 	if c.clientConnectionsCancel != nil {
 		c.clientConnectionsCancel()
 	}

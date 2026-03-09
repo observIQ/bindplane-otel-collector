@@ -140,12 +140,12 @@ func (s *server) Start(ctx context.Context, host component.Host, telemetrySettin
 }
 
 // Stop stops the HTTP Server.
-func (s *server) Stop() error {
+func (s *server) Stop(ctx context.Context) error {
 	// cancel the shutdown context to stop the existing connections
 	s.shutdownCancel()
 
 	// shutdown the http server
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	if s.httpServer != nil {
 		defer func() { s.httpServer = nil }()
