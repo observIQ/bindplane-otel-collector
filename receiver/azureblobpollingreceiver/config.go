@@ -16,7 +16,9 @@ package azureblobpollingreceiver //import "github.com/observiq/bindplane-otel-co
 
 import (
 	"errors"
+	"path"
 	"regexp"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -137,6 +139,13 @@ func (c *Config) Validate() error {
 			// valid
 		default:
 			return errors.New("telemetry_type must be one of: logs, metrics, traces")
+		}
+	}
+
+	// Validate root_folder glob pattern if it contains glob characters
+	if c.RootFolder != "" && strings.ContainsAny(c.RootFolder, "*?[") {
+		if _, err := path.Match(c.RootFolder, ""); err != nil {
+			return errors.New("root_folder contains an invalid glob pattern: " + err.Error())
 		}
 	}
 

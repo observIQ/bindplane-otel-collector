@@ -147,6 +147,30 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: nil,
 		},
+		{
+			desc: "Valid config with glob root_folder",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "linux/*",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+			},
+			expectErr: nil,
+		},
+		{
+			desc: "Invalid glob pattern in root_folder",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "linux/[invalid",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+			},
+			expectErr: errors.New("root_folder contains an invalid glob pattern"),
+		},
 	}
 
 	for _, tc := range testCases {

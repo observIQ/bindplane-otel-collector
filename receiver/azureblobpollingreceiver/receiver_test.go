@@ -16,6 +16,7 @@ package azureblobpollingreceiver //import "github.com/observiq/bindplane-otel-co
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -237,6 +238,163 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				errChan := args.Get(3).(chan error)
 				errChan <- context.Canceled
+			})
+
+		receiver.runPoll(ctx)
+
+		mockClient.AssertExpectations(t)
+	})
+}
+
+func TestPollingReceiver_GlobExpansion(t *testing.T) {
+	t.Run("Glob root_folder expands to matched directories", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Container:              "test-container",
+			RootFolder:             "linux/*",
+			PollInterval:           1 * time.Minute,
+			InitialLookback:        5 * time.Minute,
+			UseTimePatternAsPrefix: true,
+			TimePattern:            "{year}/{month}/{day}/{hour}",
+		}
+
+		mockClient := new(azureblob.MockBlobClient)
+		receiver := &pollingReceiver{
+			logger:          logger,
+			cfg:             cfg,
+			azureClient:     mockClient,
+			checkpoint:      NewPollingCheckpoint(),
+			pollInterval:    cfg.PollInterval,
+			initialLookback: cfg.InitialLookback,
+			mut:             &sync.Mutex{},
+			wg:              &sync.WaitGroup{},
+		}
+
+		ctx := context.Background()
+
+		// Mock ListPrefixes to return subdirectories
+		mockClient.On("ListPrefixes", mock.Anything, "test-container", "linux/").
+			Return([]string{"linux/auditd", "linux/logb", "linux/logc"}, nil)
+
+		// Mock StreamBlobs for each matched directory's time prefixes
+		mockClient.On("StreamBlobs", mock.Anything, "test-container", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				doneChan := args.Get(5).(chan struct{})
+				close(doneChan)
+			})
+
+		receiver.runPoll(ctx)
+
+		mockClient.AssertCalled(t, "ListPrefixes", mock.Anything, "test-container", "linux/")
+		mockClient.AssertExpectations(t)
+	})
+
+	t.Run("No glob skips ListPrefixes API call", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Container:       "test-container",
+			RootFolder:      "linux/auditd",
+			PollInterval:    1 * time.Minute,
+			InitialLookback: 5 * time.Minute,
+		}
+
+		mockClient := new(azureblob.MockBlobClient)
+		receiver := &pollingReceiver{
+			logger:          logger,
+			cfg:             cfg,
+			azureClient:     mockClient,
+			checkpoint:      NewPollingCheckpoint(),
+			pollInterval:    cfg.PollInterval,
+			initialLookback: cfg.InitialLookback,
+			mut:             &sync.Mutex{},
+			wg:              &sync.WaitGroup{},
+		}
+
+		ctx := context.Background()
+
+		// Only StreamBlobs should be called, NOT ListPrefixes
+		mockClient.On("StreamBlobs", mock.Anything, "test-container", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				doneChan := args.Get(5).(chan struct{})
+				close(doneChan)
+			})
+
+		receiver.runPoll(ctx)
+
+		mockClient.AssertNotCalled(t, "ListPrefixes", mock.Anything, mock.Anything, mock.Anything)
+		mockClient.AssertExpectations(t)
+	})
+
+	t.Run("Glob with zero matches scans nothing", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Container:       "test-container",
+			RootFolder:      "nonexistent/*",
+			PollInterval:    1 * time.Minute,
+			InitialLookback: 5 * time.Minute,
+		}
+
+		mockClient := new(azureblob.MockBlobClient)
+		receiver := &pollingReceiver{
+			logger:          logger,
+			cfg:             cfg,
+			azureClient:     mockClient,
+			checkpoint:      NewPollingCheckpoint(),
+			pollInterval:    cfg.PollInterval,
+			initialLookback: cfg.InitialLookback,
+			mut:             &sync.Mutex{},
+			wg:              &sync.WaitGroup{},
+		}
+
+		ctx := context.Background()
+
+		// ListPrefixes returns empty — no directories match
+		mockClient.On("ListPrefixes", mock.Anything, "test-container", "nonexistent/").
+			Return([]string{}, nil)
+
+		receiver.runPoll(ctx)
+
+		// StreamBlobs should NOT be called — zero matches means scan nothing
+		mockClient.AssertCalled(t, "ListPrefixes", mock.Anything, "test-container", "nonexistent/")
+		mockClient.AssertNotCalled(t, "StreamBlobs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		mockClient.AssertExpectations(t)
+	})
+
+	t.Run("ListPrefixes error falls back to literal root_folder", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Container:       "test-container",
+			RootFolder:      "linux/*",
+			PollInterval:    1 * time.Minute,
+			InitialLookback: 5 * time.Minute,
+		}
+
+		mockClient := new(azureblob.MockBlobClient)
+		receiver := &pollingReceiver{
+			logger:          logger,
+			cfg:             cfg,
+			azureClient:     mockClient,
+			checkpoint:      NewPollingCheckpoint(),
+			pollInterval:    cfg.PollInterval,
+			initialLookback: cfg.InitialLookback,
+			mut:             &sync.Mutex{},
+			wg:              &sync.WaitGroup{},
+		}
+
+		ctx := context.Background()
+
+		// ListPrefixes returns error
+		mockClient.On("ListPrefixes", mock.Anything, "test-container", "linux/").
+			Return([]string(nil), errors.New("network error"))
+
+		// StreamBlobs should be called with the literal root_folder as fallback
+		mockClient.On("StreamBlobs", mock.Anything, "test-container", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Run(func(args mock.Arguments) {
+				prefix := args.Get(2).(*string)
+				require.NotNil(t, prefix)
+				require.Equal(t, "linux/*", *prefix)
+				doneChan := args.Get(5).(chan struct{})
+				close(doneChan)
 			})
 
 		receiver.runPoll(ctx)

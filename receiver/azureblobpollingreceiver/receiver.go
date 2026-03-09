@@ -156,7 +156,7 @@ func (r *pollingReceiver) Start(ctx context.Context, host component.Host) error 
 	}
 	r.checkpoint = checkpoint
 
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	r.cancelFunc = cancel
 
 	go r.pollLoop(cancelCtx)
@@ -279,7 +279,7 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 
 func (r *pollingReceiver) pullBlobs(ctx context.Context, startingTime, endingTime time.Time, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo) {
 	// Determine prefixes to poll
-	prefixes := r.generatePrefixes(startingTime, endingTime)
+	prefixes := r.generatePrefixes(ctx, startingTime, endingTime)
 
 	// Stream blobs in a goroutine
 	go func() {
@@ -308,35 +308,104 @@ func (r *pollingReceiver) pullBlobs(ctx context.Context, startingTime, endingTim
 	}()
 }
 
-func (r *pollingReceiver) generatePrefixes(startingTime, endingTime time.Time) []*string {
-	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
-		// Generate prefixes based on time window
-		generated, err := generateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, r.cfg.RootFolder)
-		if err != nil {
-			r.logger.Error("Failed to generate time prefixes, falling back to root folder", zap.Error(err))
-			if r.cfg.RootFolder != "" {
-				return []*string{&r.cfg.RootFolder}
-			}
-			// we return a nil entry here to indicate that there is no prefix for this poll
-			// when there is no prefix, the StreamBlobs call will scan the entire container
-			return []*string{nil}
-		}
+func (r *pollingReceiver) generatePrefixes(ctx context.Context, startingTime, endingTime time.Time) []*string {
+	// Expand glob patterns in root_folder to discover actual directories.
+	// Returns nil when no root_folder is configured (scan everything),
+	// or an empty slice when a glob matched zero directories (scan nothing).
+	rootFolders := r.expandGlobRootFolders(ctx)
 
-		prefixes := []*string{}
-		for _, prefix := range generated {
-			innerPrefix := prefix
-			prefixes = append(prefixes, &innerPrefix)
-		}
-		return prefixes
+	if rootFolders != nil && len(rootFolders) == 0 {
+		// Glob matched zero directories — return empty to scan nothing
+		return []*string{}
 	}
 
-	if r.cfg.RootFolder != "" {
-		return []*string{&r.cfg.RootFolder}
+	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
+		var allPrefixes []*string
+		for _, root := range rootFolders {
+			prefixes := r.generatePrefixesForRoot(startingTime, endingTime, root)
+			allPrefixes = append(allPrefixes, prefixes...)
+		}
+		if len(allPrefixes) > 0 {
+			return allPrefixes
+		}
+		// we return a nil entry here to indicate that there is no prefix for this poll
+		// when there is no prefix, the StreamBlobs call will scan the entire container
+		return []*string{nil}
+	}
+
+	if len(rootFolders) > 0 {
+		prefixes := make([]*string, len(rootFolders))
+		for i := range rootFolders {
+			rootCopy := rootFolders[i]
+			prefixes[i] = &rootCopy
+		}
+		return prefixes
 	}
 
 	// we return a nil entry here to indicate that there is no prefix for this poll
 	// when there is no prefix, the StreamBlobs call will scan the entire container
 	return []*string{nil}
+}
+
+// expandGlobRootFolders expands glob patterns in root_folder by listing directory prefixes
+// from Azure. If root_folder contains no glob characters, returns it as-is with no API call.
+func (r *pollingReceiver) expandGlobRootFolders(ctx context.Context) []string {
+	if r.cfg.RootFolder == "" {
+		return nil
+	}
+
+	if !isGlobPattern(r.cfg.RootFolder) {
+		return []string{r.cfg.RootFolder}
+	}
+
+	staticPrefix, globPattern := splitGlobPrefix(r.cfg.RootFolder)
+
+	prefixes, err := r.azureClient.ListPrefixes(ctx, r.cfg.Container, staticPrefix)
+	if err != nil {
+		r.logger.Warn("Failed to list prefixes for glob expansion, falling back to literal root_folder",
+			zap.String("root_folder", r.cfg.RootFolder),
+			zap.Error(err))
+		return []string{r.cfg.RootFolder}
+	}
+
+	var matched []string
+	for _, p := range prefixes {
+		if matchGlob(globPattern, p) {
+			matched = append(matched, p)
+		}
+	}
+
+	if len(matched) == 0 {
+		r.logger.Warn("Glob pattern matched zero directories, no blobs will be scanned",
+			zap.String("root_folder", r.cfg.RootFolder),
+			zap.String("static_prefix", staticPrefix),
+			zap.Int("candidates", len(prefixes)))
+		return []string{}
+	}
+
+	r.logger.Info("Glob expanded root_folder",
+		zap.String("pattern", r.cfg.RootFolder),
+		zap.Strings("matched", matched))
+
+	return matched
+}
+
+// generatePrefixesForRoot generates time-based prefixes for a single root folder.
+func (r *pollingReceiver) generatePrefixesForRoot(startingTime, endingTime time.Time, rootFolder string) []*string {
+	generated, err := generateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, rootFolder)
+	if err != nil {
+		r.logger.Error("Failed to generate time prefixes, falling back to root folder",
+			zap.String("root_folder", rootFolder),
+			zap.Error(err))
+		return []*string{&rootFolder}
+	}
+
+	prefixes := make([]*string, len(generated))
+	for i, prefix := range generated {
+		p := prefix
+		prefixes[i] = &p
+	}
+	return prefixes
 }
 
 func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo, pollStartTime time.Time, startingTime, endingTime time.Time) {
