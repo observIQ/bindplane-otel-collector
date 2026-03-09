@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/extension/opampgateway
 
-go 1.24.11
+go 1.25.7
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
