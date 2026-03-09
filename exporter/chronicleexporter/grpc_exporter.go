@@ -188,11 +188,6 @@ func (exp *grpcExporter) countAndReportBatchBytes(ctx context.Context, payloads 
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
-	if exp.metrics != nil {
-		totalLogs := int64(len(request.GetBatch().GetEntries()))
-		defer exp.metrics.recordSent(totalLogs)
-	}
-
 	// Track request latency
 	start := time.Now()
 
