@@ -107,6 +107,7 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 | `pagination.offset_limit.offset_field_name` | string | | `false` | Query parameter name for offset |
 | `pagination.offset_limit.limit_field_name` | string | | `false` | Query parameter name for limit |
 | `pagination.offset_limit.starting_offset` | int | `0` | `false` | Starting offset value |
+| `pagination.offset_limit.next_offset_field_name` | string | | `false` | Response body field containing the next offset token/cursor. When set, the receiver extracts this value and uses it as the offset query parameter for the next request instead of a numeric offset. Supports dot notation for nested fields (e.g., `pagination.next_cursor`). When the field is empty, null, or missing, pagination is complete. |
 
 #### Page/Size Pagination
 
@@ -206,6 +207,38 @@ receivers:
       total_record_count_field: "total"
     storage: file_storage
 ```
+
+### Offset/Limit Pagination with Tokenized Offset
+
+Some APIs use offset-based pagination but return an opaque token or cursor in the response body instead of expecting a numeric offset. Use `next_offset_field_name` to extract the token from the response and pass it as the offset parameter in the next request.
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.example.com/logs"
+    response_field: "data"
+    max_poll_interval: 5m
+    auth_mode: bearer
+    bearer:
+      token: "your-token"
+    pagination:
+      mode: offset_limit
+      offset_limit:
+        offset_field_name: "offset"
+        limit_field_name: "limit"
+        next_offset_field_name: "next_offset"
+    storage: file_storage
+```
+
+This configuration works with API responses like:
+```json
+{
+  "data": [{"id": "1"}, {"id": "2"}],
+  "next_offset": "eyJvZmZzZXQiOjEwfQ=="
+}
+```
+
+The receiver uses `next_offset` as the `offset` query parameter in the next request. When `next_offset` is empty, null, or missing, pagination stops.
 
 ### OAuth2 Client Credentials Authentication
 

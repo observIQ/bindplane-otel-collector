@@ -25,8 +25,9 @@ import (
 // paginationState tracks the current state of pagination.
 type paginationState struct {
 	// For offset/limit pagination
-	CurrentOffset int `json:"current_offset,omitempty"`
-	Limit         int `json:"limit,omitempty"`
+	CurrentOffset      int    `json:"current_offset,omitempty"`
+	CurrentOffsetToken string `json:"current_offset_token,omitempty"`
+	Limit              int    `json:"limit,omitempty"`
 
 	// For page/size pagination
 	CurrentPage int `json:"current_page,omitempty"`
@@ -107,7 +108,11 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
 		if cfg.Pagination.OffsetLimit.OffsetFieldName != "" {
-			params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, fmt.Sprintf("%d", state.CurrentOffset))
+			if state.CurrentOffsetToken != "" {
+				params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, state.CurrentOffsetToken)
+			} else {
+				params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, fmt.Sprintf("%d", state.CurrentOffset))
+			}
 		}
 		if cfg.Pagination.OffsetLimit.LimitFieldName != "" {
 			params.Set(cfg.Pagination.OffsetLimit.LimitFieldName, fmt.Sprintf("%d", state.Limit))
@@ -181,6 +186,42 @@ func parsePaginationResponse(cfg *Config, response any, extractedData []map[stri
 
 // parseOffsetLimitResponse parses the response for offset/limit pagination.
 func parseOffsetLimitResponse(cfg *Config, response any, state *paginationState) (bool, error) {
+	// If NextOffsetFieldName is configured, use token-based offset extraction
+	if cfg.Pagination.OffsetLimit.NextOffsetFieldName != "" {
+		responseMap, ok := response.(map[string]any)
+		if !ok {
+			state.CurrentOffsetToken = ""
+			return false, nil
+		}
+
+		tokenVal, exists := getNestedField(responseMap, cfg.Pagination.OffsetLimit.NextOffsetFieldName)
+		if !exists || tokenVal == nil {
+			state.CurrentOffsetToken = ""
+			return false, nil
+		}
+
+		var tokenStr string
+		switch v := tokenVal.(type) {
+		case string:
+			tokenStr = v
+		case float64:
+			tokenStr = fmt.Sprintf("%v", v)
+		case int:
+			tokenStr = fmt.Sprintf("%d", v)
+		default:
+			tokenStr = fmt.Sprintf("%v", v)
+		}
+
+		if tokenStr == "" {
+			state.CurrentOffsetToken = ""
+			return false, nil
+		}
+
+		state.CurrentOffsetToken = tokenStr
+		state.PagesFetched++
+		return true, nil
+	}
+
 	// Try to extract total record count if configured
 	if cfg.Pagination.TotalRecordCountField != "" {
 		if responseMap, ok := response.(map[string]any); ok {
