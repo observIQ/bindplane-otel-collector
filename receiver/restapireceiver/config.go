@@ -246,7 +246,6 @@ type TimestampPagination struct {
 
 	// TimestampFieldName is the name of the field in each response item that contains the timestamp value.
 	// This is used to extract the timestamp from the last item for the next page.
-	// For Meraki API, this is typically "ts" (timestamp).
 	TimestampFieldName string `mapstructure:"timestamp_field_name"`
 
 	// TimestampFormat is the format for the timestamp query parameter.
