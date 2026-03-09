@@ -101,6 +101,10 @@ func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLev
 
 }
 
+func (s *Session) Stop(ctx context.Context) error {
+	return s.controller.Stop(ctx)
+}
+
 var providerMapOnce sync.Once
 var providers map[string]*Provider
 var providerErr error

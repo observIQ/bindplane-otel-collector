@@ -277,6 +277,11 @@ func (lr *logsReceiver) Shutdown(ctx context.Context) error {
 		}
 	}
 
+	err := lr.session.Stop(ctx)
+	if err != nil {
+		lr.logger.Error("Failed to stop session", zap.Error(err))
+	}
+
 	lr.wg.Wait()
 	return nil
 }

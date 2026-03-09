@@ -44,7 +44,6 @@ type Consumer struct {
 	sessionName string
 	providerMap map[string]*Provider
 	consumeRaw  bool
-	session     *Session
 
 	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
 	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
@@ -79,7 +78,6 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session
 	}
 	c.eventCallback = c.defaultEventCallback
 	c.bufferCallback = c.defaultBufferCallback
-	c.session = session
 	return c
 }
 
@@ -275,8 +273,7 @@ func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uin
 }
 
 type traceHandle struct {
-	handle  syscall.Handle
-	session *Session
+	handle syscall.Handle
 }
 
 // Start starts consuming events from all registered traces
@@ -303,8 +300,7 @@ func (c *Consumer) Start(_ context.Context) error {
 	}
 
 	c.traceHandle = &traceHandle{
-		handle:  handle,
-		session: c.session,
+		handle: handle,
 	}
 
 	if !isValidHandle(c.traceHandle.handle) {
@@ -358,8 +354,6 @@ func (c *Consumer) Stop(ctx context.Context) error {
 
 	close(c.doneChan)
 
-	var sessionToClose *Session
-
 	var lastErr error
 	th := c.traceHandle
 	if !isValidHandle(th.handle) {
@@ -369,19 +363,11 @@ func (c *Consumer) Stop(ctx context.Context) error {
 	c.logger.Info("Closing trace", zap.Uintptr("handle", uintptr(th.handle)))
 	// add a goroutine to close and wait until this trace is closed
 	c.wg.Add(1)
-	go c.waitForTraceToClose(ctx, th.handle, th.session)
-	sessionToClose = th.session
+	go c.waitForTraceToClose(ctx, th.handle)
 
 	c.logger.Debug("Waiting for processing to complete", zap.Time("start", time.Now()))
 	// Wait for processing to complete
 	c.wg.Wait()
-
-	if sessionToClose != nil {
-		err := sessionToClose.controller.Stop(ctx)
-		if err != nil {
-			c.logger.Error("session controller stop failed", zap.Error(err))
-		}
-	}
 
 	c.logger.Debug("Processing complete", zap.Time("end", time.Now()))
 	close(c.Events)
@@ -389,7 +375,7 @@ func (c *Consumer) Stop(ctx context.Context) error {
 	return lastErr
 }
 
-func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handle, session *Session) {
+func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handle) {
 	defer c.wg.Done()
 	jitter := 1
 	for {
