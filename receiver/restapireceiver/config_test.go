@@ -603,6 +603,69 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: `initial_timestamp "invalid-timestamp" could not be parsed`,
 		},
 		{
+			name: "valid timestamp pagination with epoch_s format",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_s",
+						InitialTimestamp:   "1704067200",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "valid timestamp pagination with epoch_ms format",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_ms",
+						InitialTimestamp:   "1704067200000",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "invalid epoch initial_timestamp (not numeric)",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_s",
+						InitialTimestamp:   "not-a-number",
+					},
+				},
+			},
+			expectedErr: "initial_timestamp \"not-a-number\" must be a numeric value when using epoch timestamp_format (epoch_s)",
+		},
+		{
 			name: "negative min_poll_interval",
 			config: &Config{
 				URL:      "https://api.example.com/data",

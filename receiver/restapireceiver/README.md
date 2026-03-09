@@ -123,16 +123,22 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 |-------|------|---------|----------|-------------|
 | `pagination.timestamp.param_name` | string | | `true` | Query parameter name for timestamp (e.g., "t0", "since", "after", "start_time") |
 | `pagination.timestamp.timestamp_field_name` | string | | `true` | Field name in each response item containing the timestamp (e.g., "ts", "timestamp") |
-| `pagination.timestamp.timestamp_format` | string | RFC3339 | `false` | Go time format string for the timestamp query parameter (e.g., "20060102150405" for YYYYMMDDHHMMSS) |
+| `pagination.timestamp.timestamp_format` | string | RFC3339 | `false` | Format for the timestamp query parameter. Accepts Go time format strings or epoch formats (see below) |
 | `pagination.timestamp.page_size_field_name` | string | | `false` | Query parameter name for page size (e.g., "perPage", "limit") |
 | `pagination.timestamp.page_size` | int | `100` | `false` | Page size to use |
-| `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from (RFC3339 format). If not set, starts from beginning |
+| `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from. For string formats, use RFC3339 (e.g., `2025-01-01T00:00:00Z`) or the configured `timestamp_format`. For epoch formats, use a numeric value (e.g., `1704067200`). If not set, starts from beginning |
 
 Common timestamp formats:
 - `2006-01-02T15:04:05Z07:00` - RFC3339 (default)
 - `20060102150405` - YYYYMMDDHHMMSS
 - `2006-01-02 15:04:05` - Date and time with space separator
 - `2006-01-02` - Date only
+
+Epoch timestamp formats (sends numeric values instead of formatted strings):
+- `epoch_s` - Unix epoch seconds (e.g., `1704067200`)
+- `epoch_ms` - Unix epoch milliseconds (e.g., `1704067200000`)
+- `epoch_us` - Unix epoch microseconds (e.g., `1704067200000000`)
+- `epoch_ns` - Unix epoch nanoseconds (e.g., `1704067200000000000`)
 
 ### Metrics Configuration
 
@@ -300,6 +306,37 @@ receivers:
         timestamp_format: "20060102150405"  # YYYYMMDDHHMMSS format
         initial_timestamp: "2025-01-01T00:00:00Z"
 ```
+
+### Timestamp Pagination with Epoch Format
+
+Some APIs expect timestamps as numeric epoch values (e.g., Unix seconds or milliseconds). Use `epoch_s`, `epoch_ms`, `epoch_us`, or `epoch_ns` as the `timestamp_format`:
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.example.com/events"
+    response_field: "events"
+    max_poll_interval: 5m
+    auth_mode: bearer
+    bearer:
+      token: "token"
+    pagination:
+      mode: timestamp
+      timestamp:
+        param_name: "since"
+        timestamp_field_name: "created_at"
+        timestamp_format: "epoch_s"          # sends ?since=1704067200
+        initial_timestamp: "1704067200"      # 2024-01-01T00:00:00Z
+        page_size_field_name: "limit"
+        page_size: 100
+    storage: file_storage
+
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol/storage
+```
+
+The receiver can also parse epoch timestamps from API responses (both integer and float values) regardless of the configured `timestamp_format`, so this works with APIs that return numeric timestamps in their response data.
 
 ### Metrics with Custom Field Mappings
 

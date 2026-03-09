@@ -71,16 +71,23 @@ func newPaginationState(cfg *Config) *paginationState {
 		// Set initial timestamp if provided, otherwise start from zero time.
 		// Config validation ensures the timestamp is parseable.
 		if cfg.Pagination.Timestamp.InitialTimestamp != "" {
-			// First try the user's configured format (they likely copied the timestamp from the API)
-			if cfg.Pagination.Timestamp.TimestampFormat != "" {
-				if t, err := time.Parse(cfg.Pagination.Timestamp.TimestampFormat, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
+			if isEpochFormat(cfg.Pagination.Timestamp.TimestampFormat) {
+				// Parse epoch numeric value
+				if t, err := parseEpochTimestamp(cfg.Pagination.Timestamp.InitialTimestamp, cfg.Pagination.Timestamp.TimestampFormat); err == nil {
 					state.CurrentTimestamp = t
 				}
-			}
-			// Fall back to RFC3339 (the default format)
-			if state.CurrentTimestamp.IsZero() {
-				if t, err := time.Parse(time.RFC3339, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
-					state.CurrentTimestamp = t
+			} else {
+				// First try the user's configured format (they likely copied the timestamp from the API)
+				if cfg.Pagination.Timestamp.TimestampFormat != "" {
+					if t, err := time.Parse(cfg.Pagination.Timestamp.TimestampFormat, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
+						state.CurrentTimestamp = t
+					}
+				}
+				// Fall back to RFC3339 (the default format)
+				if state.CurrentTimestamp.IsZero() {
+					if t, err := time.Parse(time.RFC3339, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
+						state.CurrentTimestamp = t
+					}
 				}
 			}
 		}
@@ -136,17 +143,33 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 				// 2. timestampFromData is true: The timestamp came from response data (not initial config),
 				//    meaning we've already fetched records up to this timestamp in a previous cycle
 				if state.PagesFetched > 0 || state.TimestampFromData {
-					// Increment by 1 microsecond to ensure we get items strictly after this timestamp.
-					// We use microsecond (not nanosecond) because most timestamp formats only preserve
-					// microsecond precision, so adding 1 nanosecond wouldn't change the formatted value.
-					timestampForRequest = timestampForRequest.Add(time.Microsecond)
+					// Increment by the minimum resolution of the configured format to avoid
+					// re-fetching the same record.
+					switch cfg.Pagination.Timestamp.TimestampFormat {
+					case epochSeconds:
+						timestampForRequest = timestampForRequest.Add(time.Second)
+					case epochMilliseconds:
+						timestampForRequest = timestampForRequest.Add(time.Millisecond)
+					case epochMicroseconds:
+						timestampForRequest = timestampForRequest.Add(time.Microsecond)
+					case epochNanoseconds:
+						timestampForRequest = timestampForRequest.Add(time.Nanosecond)
+					default:
+						// For string formats, increment by 1 microsecond since most formats
+						// preserve microsecond precision at best.
+						timestampForRequest = timestampForRequest.Add(time.Microsecond)
+					}
 				}
 				// Use configured format or default to RFC3339
 				format := cfg.Pagination.Timestamp.TimestampFormat
-				if format == "" {
-					format = time.RFC3339
+				if isEpochFormat(format) {
+					params.Set(cfg.Pagination.Timestamp.ParamName, formatTimestampEpoch(timestampForRequest, format))
+				} else {
+					if format == "" {
+						format = time.RFC3339
+					}
+					params.Set(cfg.Pagination.Timestamp.ParamName, timestampForRequest.Format(format))
 				}
-				params.Set(cfg.Pagination.Timestamp.ParamName, timestampForRequest.Format(format))
 			}
 		}
 

@@ -17,6 +17,7 @@ package restapireceiver
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -552,6 +553,142 @@ func TestNewPaginationState_PageSize_ZeroBased(t *testing.T) {
 	require.Equal(t, 0, state.CurrentPage)
 	require.Equal(t, 20, state.PageSize) // default
 	require.Equal(t, 0, state.CurrentOffset)
+}
+
+func TestBuildPaginationParams_Timestamp_EpochSeconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s",
+				PageSizeFieldName:  "limit",
+				PageSize:           100,
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         100,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600", params.Get("since"))
+	require.Equal(t, "100", params.Get("limit"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochMilliseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ms",
+				PageSizeFieldName:  "limit",
+				PageSize:           50,
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         50,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600000", params.Get("since"))
+	require.Equal(t, "50", params.Get("limit"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochSeconds_WithOffset(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s",
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp:  ts,
+		TimestampFromData: true, // should trigger +1s offset
+	}
+
+	params := buildPaginationParams(cfg, state)
+	// Should be 1 second after the stored timestamp
+	require.Equal(t, "1735689601", params.Get("since"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochMilliseconds_WithOffset(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ms",
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp:  ts,
+		TimestampFromData: true, // should trigger +1ms offset
+	}
+
+	params := buildPaginationParams(cfg, state)
+	// Should be 1 millisecond after the stored timestamp
+	require.Equal(t, "1735689600001", params.Get("since"))
+}
+
+func TestNewPaginationState_Timestamp_EpochSeconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s",
+				InitialTimestamp:   "1735689600",
+				PageSize:           100,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 100, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochMilliseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ms",
+				InitialTimestamp:   "1735689600000",
+				PageSize:           50,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 50, state.PageSize)
 }
 
 func TestParsePaginationResponse_WithDataArray(t *testing.T) {
