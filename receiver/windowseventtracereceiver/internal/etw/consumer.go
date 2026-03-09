@@ -38,7 +38,7 @@ var (
 // Consumer handles consuming ETW events from sessions
 type Consumer struct {
 	logger      *zap.Logger
-	traceHandle *traceHandle
+	traceHandle syscall.Handle
 	lastError   error
 	closed      bool
 	sessionName string
@@ -272,10 +272,6 @@ func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uin
 	}
 }
 
-type traceHandle struct {
-	handle syscall.Handle
-}
-
 // Start starts consuming events from all registered traces
 func (c *Consumer) Start(_ context.Context) error {
 	// persisting the logfile to avoid memory reallocation
@@ -299,16 +295,14 @@ func (c *Consumer) Start(_ context.Context) error {
 		return err
 	}
 
-	c.traceHandle = &traceHandle{
-		handle: handle,
-	}
+	c.traceHandle = handle
 
-	if !isValidHandle(c.traceHandle.handle) {
-		c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(c.traceHandle.handle)))
+	if !isValidHandle(handle) {
+		c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(c.traceHandle)))
 		return fmt.Errorf("invalid handle")
 	}
 
-	c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(c.traceHandle.handle)))
+	c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(c.traceHandle)))
 	c.wg.Add(1)
 
 	go func(handle syscall.Handle) {
@@ -341,7 +335,7 @@ func (c *Consumer) Start(_ context.Context) error {
 		if err != nil {
 			c.logger.Error("ProcessTrace failed", zap.Error(err))
 		}
-	}(c.traceHandle.handle)
+	}(c.traceHandle)
 
 	return nil
 }
@@ -355,15 +349,14 @@ func (c *Consumer) Stop(ctx context.Context) error {
 	close(c.doneChan)
 
 	var lastErr error
-	th := c.traceHandle
-	if !isValidHandle(th.handle) {
-		c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(th.handle)))
+	if !isValidHandle(c.traceHandle) {
+		c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(c.traceHandle)))
 		return fmt.Errorf("invalid handle")
 	}
-	c.logger.Info("Closing trace", zap.Uintptr("handle", uintptr(th.handle)))
+	c.logger.Info("Closing trace", zap.Uintptr("handle", uintptr(c.traceHandle)))
 	// add a goroutine to close and wait until this trace is closed
 	c.wg.Add(1)
-	go c.waitForTraceToClose(ctx, th.handle)
+	go c.waitForTraceToClose(ctx, c.traceHandle)
 
 	c.logger.Debug("Waiting for processing to complete", zap.Time("start", time.Now()))
 	// Wait for processing to complete
