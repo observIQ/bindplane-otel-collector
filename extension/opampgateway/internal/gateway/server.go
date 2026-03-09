@@ -149,8 +149,7 @@ func (s *server) Stop(ctx context.Context) error {
 	defer cancel()
 	if s.httpServer != nil {
 		defer func() { s.httpServer = nil }()
-		// This stops accepting new connections. TODO: close existing
-		// connections and wait them to be terminated.
+		// This stops accepting new connections.
 		err := s.httpServer.Shutdown(ctx)
 		if err != nil {
 			return err

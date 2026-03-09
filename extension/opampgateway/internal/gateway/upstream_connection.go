@@ -135,8 +135,6 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 		callbacks.OnError(ctx, c, err)
 	default:
 	}
-
-	// TODO: shutdown handler?
 }
 
 // send queues the message for writing and blocks until it has been written to
@@ -220,7 +218,6 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 			c.logger.Info("reader finished")
 		}()
 
-		// TODO: discard the next message if the connection is closed
 		nextMessage, err = c.writerLoop(writerCtx, conn, nextMessage)
 		if err != nil {
 			c.logger.Error("writer loop", zap.Error(err))
