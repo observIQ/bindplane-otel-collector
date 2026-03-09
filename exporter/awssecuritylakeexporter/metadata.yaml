@@ -1,0 +1,7 @@
+type: aws_security_lake
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
