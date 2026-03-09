@@ -113,9 +113,10 @@ type Config struct {
 	// OverrideEndpoint determines whether or not to ignore the Location field when constructing the endpoint.
 	// This is useful for when the endpoint is a custom endpoint and the Location field is not needed.
 	// We still need the Location field for the API call to Chronicle, but we don't want to use it in the endpoint.
+	// Only applies to HTTPS protocol.
 	OverrideEndpoint bool `mapstructure:"override_endpoint"`
 
-	// APIVersion is the version of the API to use. Default is "v1alpha".
+	// APIVersion is the version of the API to use. Default is "v1alpha". Only applies to HTTPS protocol.
 	APIVersion string `mapstructure:"api_version"`
 }
 
