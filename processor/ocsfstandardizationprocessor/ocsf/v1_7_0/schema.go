@@ -22619,6 +22619,7 @@ func (Schema) LookupFieldType(classUID int, fieldPath string) string {
 	return LookupFieldType(classUID, fieldPath)
 }
 
+// ValidateFieldCoverage checks that fieldPaths cover all required fields for the class identified by classUID.
 func (Schema) ValidateFieldCoverage(classUID int, fieldPaths []string) error {
 	return ValidateFieldCoverage(classUID, fieldPaths)
 }

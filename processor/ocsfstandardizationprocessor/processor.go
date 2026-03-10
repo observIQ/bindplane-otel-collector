@@ -34,7 +34,6 @@ type compiledEventMapping struct {
 	filter        *expr.Expression
 	classID       int
 	fieldMappings []compiledFieldMapping
-	typeUID       int64
 	categoryUID   int
 }
 
@@ -51,16 +50,10 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 	for _, eventMapping := range config.EventMappings {
 		fieldMappings := make([]compiledFieldMapping, 0, len(eventMapping.FieldMappings))
 
-		activityID := int(0)
-		categoryUID := int(0)
+		// categoryUID is the first number in the classUID
+		categoryUID := eventMapping.ClassID / 1000
 
 		for _, fieldMapping := range eventMapping.FieldMappings {
-			if fieldMapping.To == "activity_id" {
-				activityID = eventMapping.ClassID
-			}
-			if fieldMapping.To == "category_uid" {
-				categoryUID = eventMapping.ClassID
-			}
 			cfm := compiledFieldMapping{
 				to:           fieldMapping.To,
 				defaultValue: fieldMapping.Default,
@@ -78,7 +71,6 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 		compiledEventMap := compiledEventMapping{
 			classID:       eventMapping.ClassID,
 			fieldMappings: fieldMappings,
-			typeUID:       getTypeUID(eventMapping.ClassID, activityID),
 			categoryUID:   categoryUID,
 		}
 
@@ -155,7 +147,6 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 				"version": string(osp.ocsfVersion),
 			},
 			"category_uid": eventMapping.categoryUID,
-			"type_uid":     eventMapping.typeUID,
 		}
 
 		for _, fieldMapping := range eventMapping.fieldMappings {
@@ -190,6 +181,12 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 
 			if typeName := osp.schema.LookupFieldType(eventMapping.classID, fieldMapping.to); typeName != "" {
 				value = coerceType(value, typeName)
+			}
+
+			if fieldMapping.to == "activity_id" {
+				if activityID, ok := value.(int); ok {
+					newBody["type_uid"] = getTypeUID(eventMapping.classID, activityID)
+				}
 			}
 
 			setNestedValue(newBody, fieldMapping.to, value)
