@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -63,6 +64,11 @@ func encodeWSMessage(msg proto.Message) ([]byte, error) {
 	// Prepend the header (single zero byte)
 	header := make([]byte, binary.MaxVarintLen64)
 	n := binary.PutUvarint(header, wsMsgHeader)
+
+	// Prevent unlikely integer overflow
+	if n+len(data) > math.MaxInt {
+		return nil, errors.New("message too large to encode")
+	}
 
 	result := make([]byte, n+len(data))
 	copy(result, header[:n])
