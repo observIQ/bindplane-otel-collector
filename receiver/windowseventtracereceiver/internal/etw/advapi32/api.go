@@ -157,8 +157,12 @@ type EventTraceProperties struct {
 */
 
 func ControlTrace(handle *syscall.Handle, control uint32, instanceName *uint16, properties *EventTraceProperties) (errorCode syscall.Errno, err error) {
+	var handleID uintptr
+	if handle != nil {
+		handleID = uintptr(*handle)
+	}
 	r, _, err := controlTraceW.Call(
-		uintptr(unsafe.Pointer(handle)),
+		handleID,
 		uintptr(unsafe.Pointer(instanceName)),
 		uintptr(unsafe.Pointer(properties)),
 		uintptr(control),
