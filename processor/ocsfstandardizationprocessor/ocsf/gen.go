@@ -241,6 +241,9 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 	// Generate field coverage validation (config-time required field checks)
 	writeFieldCoverageValidation(&buf, schema, classNames)
 
+	// Generate Schema struct that implements the OCSFSchema interface
+	writeSchemaStruct(&buf)
+
 	outPath := filepath.Join(dir, "schema.go")
 
 	formatted, err := format.Source(buf.Bytes())
@@ -603,6 +606,28 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// writeSchemaStruct generates a Schema struct type with methods that delegate to the
+// package-level functions, allowing each version package to satisfy the OCSFSchema interface.
+func writeSchemaStruct(buf *bytes.Buffer) {
+	buf.WriteString(`// Schema implements the OCSFSchema interface for this version.
+type Schema struct{}
+
+// ValidateClass validates data against the OCSF event class identified by classUID.
+func (Schema) ValidateClass(classUID int, data any) error {
+	return ValidateClass(classUID, data)
+}
+
+// LookupFieldType returns the coercion type name for a field path in the given class.
+func (Schema) LookupFieldType(classUID int, fieldPath string) string {
+	return LookupFieldType(classUID, fieldPath)
+}
+
+func (Schema) ValidateFieldCoverage(classUID int, fieldPaths []string) error {
+	return ValidateFieldCoverage(classUID, fieldPaths)
+}
+`)
 }
 
 // writeFieldCoverageValidation generates the fieldReqs type, classFieldReqs/objectFieldReqs

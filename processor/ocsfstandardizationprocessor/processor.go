@@ -20,14 +20,6 @@ import (
 	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/expr"
-	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
-	v110 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
-	v120 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
-	v130 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_3_0"
-	v140 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_4_0"
-	v150 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_5_0"
-	v160 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_6_0"
-	v170 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -42,6 +34,8 @@ type compiledEventMapping struct {
 	filter        *expr.Expression
 	classID       int
 	fieldMappings []compiledFieldMapping
+	typeUID       int64
+	categoryUID   int
 }
 
 type ocsfStandardizationProcessor struct {
@@ -49,13 +43,24 @@ type ocsfStandardizationProcessor struct {
 	ocsfVersion       OCSFVersion
 	eventMappings     []compiledEventMapping
 	runtimeValidation bool
+	schema            OCSFSchema
 }
 
 func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfStandardizationProcessor, error) {
 	compiled := make([]compiledEventMapping, 0, len(config.EventMappings))
 	for _, eventMapping := range config.EventMappings {
 		fieldMappings := make([]compiledFieldMapping, 0, len(eventMapping.FieldMappings))
+
+		activityID := int(0)
+		categoryUID := int(0)
+
 		for _, fieldMapping := range eventMapping.FieldMappings {
+			if fieldMapping.To == "activity_id" {
+				activityID = eventMapping.ClassID
+			}
+			if fieldMapping.To == "category_uid" {
+				categoryUID = eventMapping.ClassID
+			}
 			cfm := compiledFieldMapping{
 				to:           fieldMapping.To,
 				defaultValue: fieldMapping.Default,
@@ -73,6 +78,8 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 		compiledEventMap := compiledEventMapping{
 			classID:       eventMapping.ClassID,
 			fieldMappings: fieldMappings,
+			typeUID:       getTypeUID(eventMapping.ClassID, activityID),
+			categoryUID:   categoryUID,
 		}
 
 		if eventMapping.Filter != "" {
@@ -96,6 +103,7 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 		ocsfVersion:       config.OCSFVersion,
 		eventMappings:     compiled,
 		runtimeValidation: runtimeValidation,
+		schema:            getOCSFSchema(config.OCSFVersion),
 	}, nil
 }
 
@@ -146,6 +154,8 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 			"metadata": map[string]any{
 				"version": string(osp.ocsfVersion),
 			},
+			"category_uid": eventMapping.categoryUID,
+			"type_uid":     eventMapping.typeUID,
 		}
 
 		for _, fieldMapping := range eventMapping.fieldMappings {
@@ -178,7 +188,7 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 				continue
 			}
 
-			if typeName := osp.lookupFieldType(eventMapping.classID, fieldMapping.to); typeName != "" {
+			if typeName := osp.schema.LookupFieldType(eventMapping.classID, fieldMapping.to); typeName != "" {
 				value = coerceType(value, typeName)
 			}
 
@@ -187,7 +197,7 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 
 		// Validate the body is a valid OCSF log
 		if osp.runtimeValidation {
-			err := osp.validateBody(eventMapping.classID, newBody)
+			err := osp.schema.ValidateClass(eventMapping.classID, newBody)
 			if err != nil {
 				osp.logger.Error("mapped log does not conform to OCSF spec",
 					zap.Error(err),
@@ -223,53 +233,6 @@ func setNestedValue(body map[string]any, path string, value any) {
 	body[parts[len(parts)-1]] = value
 }
 
-// lookupFieldType returns the expected OCSF type for a field path in a given class.
-func (osp *ocsfStandardizationProcessor) lookupFieldType(classUID int, fieldPath string) string {
-	switch osp.ocsfVersion {
-	case OCSFVersion1_0_0:
-		return v100.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_1_0:
-		return v110.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_2_0:
-		return v120.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_3_0:
-		return v130.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_4_0:
-		return v140.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_5_0:
-		return v150.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_6_0:
-		return v160.LookupFieldType(classUID, fieldPath)
-	case OCSFVersion1_7_0:
-		return v170.LookupFieldType(classUID, fieldPath)
-	default:
-		return ""
-	}
-}
-
-// validateBody validates the log body is a valid OCSF log.
-func (osp *ocsfStandardizationProcessor) validateBody(classUID int, body any) error {
-	var validateFunc func(classUID int, body any) error
-	switch osp.ocsfVersion {
-	case OCSFVersion1_0_0:
-		validateFunc = v100.ValidateClass
-	case OCSFVersion1_1_0:
-		validateFunc = v110.ValidateClass
-	case OCSFVersion1_2_0:
-		validateFunc = v120.ValidateClass
-	case OCSFVersion1_3_0:
-		validateFunc = v130.ValidateClass
-	case OCSFVersion1_4_0:
-		validateFunc = v140.ValidateClass
-	case OCSFVersion1_5_0:
-		validateFunc = v150.ValidateClass
-	case OCSFVersion1_6_0:
-		validateFunc = v160.ValidateClass
-	case OCSFVersion1_7_0:
-		validateFunc = v170.ValidateClass
-	default:
-		return fmt.Errorf("OCSF version %s is not supported", osp.ocsfVersion)
-	}
-
-	return validateFunc(classUID, body)
+func getTypeUID(classID int, activityID int) int64 {
+	return int64(classID)*100 + int64(activityID)
 }
