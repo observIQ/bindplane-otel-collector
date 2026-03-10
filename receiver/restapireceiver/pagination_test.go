@@ -600,7 +600,7 @@ func TestBuildPaginationParams_OffsetLimit_EmptyToken(t *testing.T) {
 	require.Equal(t, "10", params.Get("limit"))
 }
 
-func TestParseOffsetLimitResponse_TokenPresent(t *testing.T) {
+func TestParseOffsetLimitResponse_TokenPresent_FullPage(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
 			Mode: paginationModeOffsetLimit,
@@ -612,8 +612,14 @@ func TestParseOffsetLimitResponse_TokenPresent(t *testing.T) {
 		},
 	}
 
+	// Full page (10 items, limit 10) with a next token → hasMore=true
 	response := map[string]any{
-		"data":        []any{map[string]any{"id": "1"}},
+		"data": []any{
+			map[string]any{"id": "1"}, map[string]any{"id": "2"}, map[string]any{"id": "3"},
+			map[string]any{"id": "4"}, map[string]any{"id": "5"}, map[string]any{"id": "6"},
+			map[string]any{"id": "7"}, map[string]any{"id": "8"}, map[string]any{"id": "9"},
+			map[string]any{"id": "10"},
+		},
 		"next_offset": "abc123",
 	}
 
@@ -623,6 +629,56 @@ func TestParseOffsetLimitResponse_TokenPresent(t *testing.T) {
 	require.True(t, hasMore)
 	require.Equal(t, "abc123", state.CurrentOffsetToken)
 	require.Equal(t, 1, state.PagesFetched)
+}
+
+func TestParseOffsetLimitResponse_TokenPresent_PartialPage(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeOffsetLimit,
+			OffsetLimit: OffsetLimitPagination{
+				OffsetFieldName:     "offset",
+				LimitFieldName:      "limit",
+				NextOffsetFieldName: "next_offset",
+			},
+		},
+	}
+
+	// Partial page (1 item, limit 10) with a next token → hasMore=false, but token saved
+	response := map[string]any{
+		"data":        []any{map[string]any{"id": "1"}},
+		"next_offset": "abc123",
+	}
+
+	state := &paginationState{Limit: 10}
+	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	require.NoError(t, err)
+	require.False(t, hasMore)
+	require.Equal(t, "abc123", state.CurrentOffsetToken)
+	require.Equal(t, 1, state.PagesFetched)
+}
+
+func TestParseOffsetLimitResponse_TokenPresent_EmptyPage(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeOffsetLimit,
+			OffsetLimit: OffsetLimitPagination{
+				OffsetFieldName:     "offset",
+				LimitFieldName:      "limit",
+				NextOffsetFieldName: "next_offset",
+			},
+		},
+	}
+
+	// Empty page with a next token → hasMore=false, token still saved for next poll
+	response := map[string]any{
+		"next_offset": "bookmark123",
+	}
+
+	state := &paginationState{Limit: 10}
+	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	require.NoError(t, err)
+	require.False(t, hasMore)
+	require.Equal(t, "bookmark123", state.CurrentOffsetToken)
 }
 
 func TestParseOffsetLimitResponse_TokenEmpty(t *testing.T) {
@@ -709,7 +765,12 @@ func TestParseOffsetLimitResponse_TokenNested(t *testing.T) {
 	}
 
 	response := map[string]any{
-		"data": []any{map[string]any{"id": "1"}},
+		"data": []any{
+			map[string]any{"id": "1"}, map[string]any{"id": "2"}, map[string]any{"id": "3"},
+			map[string]any{"id": "4"}, map[string]any{"id": "5"}, map[string]any{"id": "6"},
+			map[string]any{"id": "7"}, map[string]any{"id": "8"}, map[string]any{"id": "9"},
+			map[string]any{"id": "10"},
+		},
 		"pagination": map[string]any{
 			"next_cursor": "cursor_xyz",
 		},
@@ -734,9 +795,16 @@ func TestParseOffsetLimitResponse_TokenNumeric(t *testing.T) {
 		},
 	}
 
+	fullPage := []any{
+		map[string]any{"id": "1"}, map[string]any{"id": "2"}, map[string]any{"id": "3"},
+		map[string]any{"id": "4"}, map[string]any{"id": "5"}, map[string]any{"id": "6"},
+		map[string]any{"id": "7"}, map[string]any{"id": "8"}, map[string]any{"id": "9"},
+		map[string]any{"id": "10"},
+	}
+
 	t.Run("float64", func(t *testing.T) {
 		response := map[string]any{
-			"data":        []any{map[string]any{"id": "1"}},
+			"data":        fullPage,
 			"next_offset": float64(42),
 		}
 		state := &paginationState{Limit: 10}
@@ -748,7 +816,7 @@ func TestParseOffsetLimitResponse_TokenNumeric(t *testing.T) {
 
 	t.Run("int", func(t *testing.T) {
 		response := map[string]any{
-			"data":        []any{map[string]any{"id": "1"}},
+			"data":        fullPage,
 			"next_offset": 99,
 		}
 		state := &paginationState{Limit: 10}

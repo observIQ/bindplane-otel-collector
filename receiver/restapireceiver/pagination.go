@@ -219,7 +219,12 @@ func parseOffsetLimitResponse(cfg *Config, response any, state *paginationState)
 
 		state.CurrentOffsetToken = tokenStr
 		state.PagesFetched++
-		return true, nil
+
+		// The token is a bookmark for resuming — always save it.
+		// But hasMore is determined by data count: a partial/empty page means
+		// we're caught up, even though the API returned a valid token.
+		dataCount := getDataCount(response)
+		return dataCount >= state.Limit, nil
 	}
 
 	// Try to extract total record count if configured
