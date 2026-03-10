@@ -25,6 +25,7 @@ import (
 	v170 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
 )
 
+// OCSFSchema is the interface for OCSF schema implementations.
 type OCSFSchema interface {
 	// ValidateClass validates the body of a class.
 	ValidateClass(classUID int, body any) error
