@@ -66,7 +66,7 @@ func encodeWSMessage(msg proto.Message) ([]byte, error) {
 	n := binary.PutUvarint(header, wsMsgHeader)
 
 	// Prevent unlikely integer overflow
-	if n+len(data) > math.MaxInt {
+	if len(data) > math.MaxInt-n {
 		return nil, errors.New("message too large to encode")
 	}
 
