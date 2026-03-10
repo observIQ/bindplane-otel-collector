@@ -16,16 +16,20 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter/internal/metadata"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
@@ -35,6 +39,7 @@ type googleCloudStorageExporter struct {
 	storageClient storageClient
 	logger        *zap.Logger
 	marshaler     marshaler
+	telemetry     *metadata.TelemetryBuilder
 }
 
 // newExporter creates a new Google Cloud Storage exporter
@@ -66,7 +71,7 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 
 	objectName := g.getObjectName("metrics")
 
-	return g.storageClient.UploadObject(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, buf)
 }
 
 // logsDataPusher pushes logs data to Google Cloud Storage
@@ -78,7 +83,7 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 
 	objectName := g.getObjectName("logs")
 
-	return g.storageClient.UploadObject(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, buf)
 }
 
 // tracesDataPusher pushes trace data to Google Cloud Storage
@@ -90,7 +95,62 @@ func (g *googleCloudStorageExporter) tracesDataPusher(ctx context.Context, td pt
 
 	objectName := g.getObjectName("traces")
 
-	return g.storageClient.UploadObject(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, buf)
+}
+
+// uploadAndRecord uploads the payload to GCS and records telemetry metrics.
+func (g *googleCloudStorageExporter) uploadAndRecord(ctx context.Context, objectName string, buf []byte) error {
+	bucketAttr := attribute.String("bucket", g.cfg.BucketName)
+	payloadSize := int64(len(buf))
+
+	g.telemetry.ExporterPayloadSize.Record(ctx, payloadSize,
+		metric.WithAttributes(
+			attribute.String("encoding", g.marshaler.Format()),
+			bucketAttr,
+		),
+	)
+
+	g.telemetry.ExporterUploadInflight.Add(ctx, 1,
+		metric.WithAttributes(bucketAttr),
+	)
+
+	start := time.Now()
+	uploadErr := g.storageClient.UploadObject(ctx, objectName, buf)
+
+	g.telemetry.ExporterUploadInflight.Add(ctx, -1,
+		metric.WithAttributes(bucketAttr),
+	)
+
+	g.telemetry.ExporterRequestDuration.Record(ctx, time.Since(start).Milliseconds(),
+		metric.WithAttributes(
+			attribute.String("error", classifyError(uploadErr)),
+			bucketAttr,
+			attribute.String("location", g.cfg.BucketLocation),
+		),
+	)
+
+	if uploadErr == nil {
+		g.telemetry.ExporterUploadBytesTotal.Add(ctx, payloadSize,
+			metric.WithAttributes(bucketAttr),
+		)
+	} else if errors.Is(uploadErr, context.DeadlineExceeded) {
+		g.telemetry.ExporterTimeoutTotal.Add(ctx, 1,
+			metric.WithAttributes(bucketAttr),
+		)
+	}
+
+	return uploadErr
+}
+
+// classifyError returns a string classification for the given error.
+func classifyError(err error) string {
+	if err == nil {
+		return "none"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	return "unknown"
 }
 
 // getObjectName formats the object name based on the configuration and current time stamp
