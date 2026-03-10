@@ -5,6 +5,8 @@ package mocks
 import (
 	context "context"
 
+	io "io"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -21,17 +23,17 @@ func (_m *MockStorageClient) EXPECT() *MockStorageClient_Expecter {
 	return &MockStorageClient_Expecter{mock: &_m.Mock}
 }
 
-// UploadObject provides a mock function with given fields: ctx, objectName, buffer
-func (_m *MockStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
-	ret := _m.Called(ctx, objectName, buffer)
+// UploadObject provides a mock function with given fields: ctx, objectName, reader
+func (_m *MockStorageClient) UploadObject(ctx context.Context, objectName string, reader io.Reader) error {
+	ret := _m.Called(ctx, objectName, reader)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadObject")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []byte) error); ok {
-		r0 = rf(ctx, objectName, buffer)
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader) error); ok {
+		r0 = rf(ctx, objectName, reader)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -47,14 +49,14 @@ type MockStorageClient_UploadObject_Call struct {
 // UploadObject is a helper method to define mock.On call
 //   - ctx context.Context
 //   - objectName string
-//   - buffer []byte
-func (_e *MockStorageClient_Expecter) UploadObject(ctx interface{}, objectName interface{}, buffer interface{}) *MockStorageClient_UploadObject_Call {
-	return &MockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, objectName, buffer)}
+//   - reader io.Reader
+func (_e *MockStorageClient_Expecter) UploadObject(ctx interface{}, objectName interface{}, reader interface{}) *MockStorageClient_UploadObject_Call {
+	return &MockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, objectName, reader)}
 }
 
-func (_c *MockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, objectName string, buffer []byte)) *MockStorageClient_UploadObject_Call {
+func (_c *MockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, objectName string, reader io.Reader)) *MockStorageClient_UploadObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].(io.Reader))
 	})
 	return _c
 }
@@ -64,7 +66,7 @@ func (_c *MockStorageClient_UploadObject_Call) Return(_a0 error) *MockStorageCli
 	return _c
 }
 
-func (_c *MockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, []byte) error) *MockStorageClient_UploadObject_Call {
+func (_c *MockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, io.Reader) error) *MockStorageClient_UploadObject_Call {
 	_c.Call.Return(run)
 	return _c
 }

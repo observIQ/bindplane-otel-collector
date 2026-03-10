@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"io"
 
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -28,14 +29,14 @@ import (
 //
 //go:generate mockery --name marshaler --output ./internal/mocks --with-expecter --filename mock_marshaler.go --structname MockMarshaler
 type marshaler interface {
-	// MarshalTraces returns the marshaled json traces data
-	MarshalTraces(td ptrace.Traces) ([]byte, error)
+	// MarshalTraces returns a reader for the marshaled json traces data
+	MarshalTraces(td ptrace.Traces) (io.Reader, error)
 
-	// MarshalLogs returns the marshaled json logs data
-	MarshalLogs(ld plog.Logs) ([]byte, error)
+	// MarshalLogs returns a reader for the marshaled json logs data
+	MarshalLogs(ld plog.Logs) (io.Reader, error)
 
-	// MarshalMetrics returns the marshaled json metrics data
-	MarshalMetrics(md pmetric.Metrics) ([]byte, error)
+	// MarshalMetrics returns a reader for the marshaled json metrics data
+	MarshalMetrics(md pmetric.Metrics) (io.Reader, error)
 
 	// Format returns the file format of the data this marshaler returns
 	Format() string
@@ -66,19 +67,31 @@ type baseMarshaler struct {
 	metricsMarshaler pmetric.Marshaler
 }
 
-// MarshalTraces returns the marshaled json traces data
-func (b *baseMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
-	return b.tracesMarshaler.MarshalTraces(td)
+// MarshalTraces returns a reader for the marshaled json traces data
+func (b *baseMarshaler) MarshalTraces(td ptrace.Traces) (io.Reader, error) {
+	data, err := b.tracesMarshaler.MarshalTraces(td)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }
 
-// MarshalLogs returns the marshaled json logs data
-func (b *baseMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
-	return b.logsMarshaler.MarshalLogs(ld)
+// MarshalLogs returns a reader for the marshaled json logs data
+func (b *baseMarshaler) MarshalLogs(ld plog.Logs) (io.Reader, error) {
+	data, err := b.logsMarshaler.MarshalLogs(ld)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }
 
-// MarshalMetrics returns the marshaled json metrics data
-func (b *baseMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
-	return b.metricsMarshaler.MarshalMetrics(md)
+// MarshalMetrics returns a reader for the marshaled json metrics data
+func (b *baseMarshaler) MarshalMetrics(md pmetric.Metrics) (io.Reader, error) {
+	data, err := b.metricsMarshaler.MarshalMetrics(md)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }
 
 // Format returns the file format of the data this marshaler returns
@@ -91,34 +104,31 @@ type gzipMarshaler struct {
 	base *baseMarshaler
 }
 
-// MarshalTraces returns the marshaled json traces data
-func (g *gzipMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
-	data, err := g.base.MarshalTraces(td)
+// MarshalTraces returns a reader for the gzip-compressed marshaled json traces data
+func (g *gzipMarshaler) MarshalTraces(td ptrace.Traces) (io.Reader, error) {
+	data, err := g.base.tracesMarshaler.MarshalTraces(td)
 	if err != nil {
 		return nil, fmt.Errorf("marshal traces: %w", err)
 	}
-
-	return g.compress(data)
+	return g.compressReader(data), nil
 }
 
-// MarshalLogs returns the marshaled json logs data
-func (g *gzipMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
-	data, err := g.base.MarshalLogs(ld)
+// MarshalLogs returns a reader for the gzip-compressed marshaled json logs data
+func (g *gzipMarshaler) MarshalLogs(ld plog.Logs) (io.Reader, error) {
+	data, err := g.base.logsMarshaler.MarshalLogs(ld)
 	if err != nil {
 		return nil, fmt.Errorf("marshal logs: %w", err)
 	}
-
-	return g.compress(data)
+	return g.compressReader(data), nil
 }
 
-// MarshalMetrics returns the marshaled json metrics data
-func (g *gzipMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
-	data, err := g.base.MarshalMetrics(md)
+// MarshalMetrics returns a reader for the gzip-compressed marshaled json metrics data
+func (g *gzipMarshaler) MarshalMetrics(md pmetric.Metrics) (io.Reader, error) {
+	data, err := g.base.metricsMarshaler.MarshalMetrics(md)
 	if err != nil {
 		return nil, fmt.Errorf("marshal metrics: %w", err)
 	}
-
-	return g.compress(data)
+	return g.compressReader(data), nil
 }
 
 // Format returns the file format of the data this marshaler returns
@@ -126,19 +136,22 @@ func (g *gzipMarshaler) Format() string {
 	return "json.gz"
 }
 
-// compress applies gzip compression to the data
-func (g *gzipMarshaler) compress(data []byte) ([]byte, error) {
-	var buf bytes.Buffer
-	writer := gzip.NewWriter(&buf)
-
-	_, err := writer.Write(data)
-	if err != nil {
-		return nil, fmt.Errorf("compress: %w", err)
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("close: %w", err)
-	}
-
-	return buf.Bytes(), nil
+// compressReader returns a reader that streams gzip-compressed data.
+// Compression runs in a goroutine, allowing the consumer to read
+// compressed bytes as they are produced.
+func (g *gzipMarshaler) compressReader(data []byte) io.Reader {
+	pr, pw := io.Pipe()
+	go func() {
+		gw := gzip.NewWriter(pw)
+		if _, err := gw.Write(data); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		if err := gw.Close(); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		pw.Close()
+	}()
+	return pr
 }

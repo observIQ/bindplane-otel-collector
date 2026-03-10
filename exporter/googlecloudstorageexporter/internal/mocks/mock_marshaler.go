@@ -3,6 +3,8 @@
 package mocks
 
 import (
+	io "io"
+
 	mock "github.com/stretchr/testify/mock"
 	plog "go.opentelemetry.io/collector/pdata/plog"
 
@@ -70,23 +72,23 @@ func (_c *MockMarshaler_Format_Call) RunAndReturn(run func() string) *MockMarsha
 }
 
 // MarshalLogs provides a mock function with given fields: ld
-func (_m *MockMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
+func (_m *MockMarshaler) MarshalLogs(ld plog.Logs) (io.Reader, error) {
 	ret := _m.Called(ld)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MarshalLogs")
 	}
 
-	var r0 []byte
+	var r0 io.Reader
 	var r1 error
-	if rf, ok := ret.Get(0).(func(plog.Logs) ([]byte, error)); ok {
+	if rf, ok := ret.Get(0).(func(plog.Logs) (io.Reader, error)); ok {
 		return rf(ld)
 	}
-	if rf, ok := ret.Get(0).(func(plog.Logs) []byte); ok {
+	if rf, ok := ret.Get(0).(func(plog.Logs) io.Reader); ok {
 		r0 = rf(ld)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+			r0 = ret.Get(0).(io.Reader)
 		}
 	}
 
@@ -117,34 +119,34 @@ func (_c *MockMarshaler_MarshalLogs_Call) Run(run func(ld plog.Logs)) *MockMarsh
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalLogs_Call) Return(_a0 []byte, _a1 error) *MockMarshaler_MarshalLogs_Call {
+func (_c *MockMarshaler_MarshalLogs_Call) Return(_a0 io.Reader, _a1 error) *MockMarshaler_MarshalLogs_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalLogs_Call) RunAndReturn(run func(plog.Logs) ([]byte, error)) *MockMarshaler_MarshalLogs_Call {
+func (_c *MockMarshaler_MarshalLogs_Call) RunAndReturn(run func(plog.Logs) (io.Reader, error)) *MockMarshaler_MarshalLogs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // MarshalMetrics provides a mock function with given fields: md
-func (_m *MockMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
+func (_m *MockMarshaler) MarshalMetrics(md pmetric.Metrics) (io.Reader, error) {
 	ret := _m.Called(md)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MarshalMetrics")
 	}
 
-	var r0 []byte
+	var r0 io.Reader
 	var r1 error
-	if rf, ok := ret.Get(0).(func(pmetric.Metrics) ([]byte, error)); ok {
+	if rf, ok := ret.Get(0).(func(pmetric.Metrics) (io.Reader, error)); ok {
 		return rf(md)
 	}
-	if rf, ok := ret.Get(0).(func(pmetric.Metrics) []byte); ok {
+	if rf, ok := ret.Get(0).(func(pmetric.Metrics) io.Reader); ok {
 		r0 = rf(md)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+			r0 = ret.Get(0).(io.Reader)
 		}
 	}
 
@@ -175,34 +177,34 @@ func (_c *MockMarshaler_MarshalMetrics_Call) Run(run func(md pmetric.Metrics)) *
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalMetrics_Call) Return(_a0 []byte, _a1 error) *MockMarshaler_MarshalMetrics_Call {
+func (_c *MockMarshaler_MarshalMetrics_Call) Return(_a0 io.Reader, _a1 error) *MockMarshaler_MarshalMetrics_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalMetrics_Call) RunAndReturn(run func(pmetric.Metrics) ([]byte, error)) *MockMarshaler_MarshalMetrics_Call {
+func (_c *MockMarshaler_MarshalMetrics_Call) RunAndReturn(run func(pmetric.Metrics) (io.Reader, error)) *MockMarshaler_MarshalMetrics_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // MarshalTraces provides a mock function with given fields: td
-func (_m *MockMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
+func (_m *MockMarshaler) MarshalTraces(td ptrace.Traces) (io.Reader, error) {
 	ret := _m.Called(td)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MarshalTraces")
 	}
 
-	var r0 []byte
+	var r0 io.Reader
 	var r1 error
-	if rf, ok := ret.Get(0).(func(ptrace.Traces) ([]byte, error)); ok {
+	if rf, ok := ret.Get(0).(func(ptrace.Traces) (io.Reader, error)); ok {
 		return rf(td)
 	}
-	if rf, ok := ret.Get(0).(func(ptrace.Traces) []byte); ok {
+	if rf, ok := ret.Get(0).(func(ptrace.Traces) io.Reader); ok {
 		r0 = rf(td)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+			r0 = ret.Get(0).(io.Reader)
 		}
 	}
 
@@ -233,12 +235,12 @@ func (_c *MockMarshaler_MarshalTraces_Call) Run(run func(td ptrace.Traces)) *Moc
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalTraces_Call) Return(_a0 []byte, _a1 error) *MockMarshaler_MarshalTraces_Call {
+func (_c *MockMarshaler_MarshalTraces_Call) Return(_a0 io.Reader, _a1 error) *MockMarshaler_MarshalTraces_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockMarshaler_MarshalTraces_Call) RunAndReturn(run func(ptrace.Traces) ([]byte, error)) *MockMarshaler_MarshalTraces_Call {
+func (_c *MockMarshaler_MarshalTraces_Call) RunAndReturn(run func(ptrace.Traces) (io.Reader, error)) *MockMarshaler_MarshalTraces_Call {
 	_c.Call.Return(run)
 	return _c
 }

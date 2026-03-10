@@ -17,6 +17,7 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"bytes"
 	"compress/gzip"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -31,27 +32,33 @@ func Test_baseMarshaler(t *testing.T) {
 	t.Run("Metrics Marshal", func(t *testing.T) {
 		t.Parallel()
 		md, expectedBytes := generateTestMetrics(t)
-		actualBytes, err := m.MarshalMetrics(md)
+		reader, err := m.MarshalMetrics(md)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, expectedBytes, actualBytes)
 	})
 
 	t.Run("Logs Marshal", func(t *testing.T) {
 		t.Parallel()
 		ld, expectedBytes := generateTestLogs(t)
-		actualBytes, err := m.MarshalLogs(ld)
+		reader, err := m.MarshalLogs(ld)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, expectedBytes, actualBytes)
 	})
 
 	t.Run("Trace Marshal", func(t *testing.T) {
 		t.Parallel()
 		td, expectedBytes := generateTestTraces(t)
-		actualBytes, err := m.MarshalTraces(td)
+		reader, err := m.MarshalTraces(td)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		require.Equal(t, expectedBytes, actualBytes)
 	})
 }
@@ -65,27 +72,33 @@ func Test_gzipMarshaler(t *testing.T) {
 	t.Run("Metrics Marshal", func(t *testing.T) {
 		t.Parallel()
 		md, inputBytes := generateTestMetrics(t)
-		actualBytes, err := m.MarshalMetrics(md)
+		reader, err := m.MarshalMetrics(md)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		verifyGZipCompress(t, inputBytes, actualBytes)
 	})
 
 	t.Run("Logs Marshal", func(t *testing.T) {
 		t.Parallel()
 		ld, inputBytes := generateTestLogs(t)
-		actualBytes, err := m.MarshalLogs(ld)
+		reader, err := m.MarshalLogs(ld)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		verifyGZipCompress(t, inputBytes, actualBytes)
 	})
 
 	t.Run("Trace Marshal", func(t *testing.T) {
 		t.Parallel()
 		td, inputBytes := generateTestTraces(t)
-		actualBytes, err := m.MarshalTraces(td)
+		reader, err := m.MarshalTraces(td)
 		require.NoError(t, err)
 
+		actualBytes, err := io.ReadAll(reader)
+		require.NoError(t, err)
 		verifyGZipCompress(t, inputBytes, actualBytes)
 	})
 }

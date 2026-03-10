@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -64,61 +65,64 @@ func (g *googleCloudStorageExporter) Capabilities() consumer.Capabilities {
 
 // metricsDataPusher pushes metrics data to Google Cloud Storage
 func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md pmetric.Metrics) error {
-	buf, err := g.marshaler.MarshalMetrics(md)
+	reader, err := g.marshaler.MarshalMetrics(md)
 	if err != nil {
 		return fmt.Errorf("marshal metrics: %w", err)
 	}
 
 	objectName := g.getObjectName("metrics")
 
-	return g.uploadAndRecord(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, reader)
 }
 
 // logsDataPusher pushes logs data to Google Cloud Storage
 func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
-	buf, err := g.marshaler.MarshalLogs(ld)
+	reader, err := g.marshaler.MarshalLogs(ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
 
 	objectName := g.getObjectName("logs")
 
-	return g.uploadAndRecord(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, reader)
 }
 
 // tracesDataPusher pushes trace data to Google Cloud Storage
 func (g *googleCloudStorageExporter) tracesDataPusher(ctx context.Context, td ptrace.Traces) error {
-	buf, err := g.marshaler.MarshalTraces(td)
+	reader, err := g.marshaler.MarshalTraces(td)
 	if err != nil {
 		return fmt.Errorf("marshal traces: %w", err)
 	}
 
 	objectName := g.getObjectName("traces")
 
-	return g.uploadAndRecord(ctx, objectName, buf)
+	return g.uploadAndRecord(ctx, objectName, reader)
 }
 
 // uploadAndRecord uploads the payload to GCS and records telemetry metrics.
-func (g *googleCloudStorageExporter) uploadAndRecord(ctx context.Context, objectName string, buf []byte) error {
+// A countingReader wraps the reader to measure bytes as they stream through.
+func (g *googleCloudStorageExporter) uploadAndRecord(ctx context.Context, objectName string, reader io.Reader) error {
 	bucketAttr := attribute.String("bucket", g.cfg.BucketName)
-	payloadSize := int64(len(buf))
-
-	g.telemetry.ExporterPayloadSize.Record(ctx, payloadSize,
-		metric.WithAttributes(
-			attribute.String("encoding", g.marshaler.Format()),
-			bucketAttr,
-		),
-	)
+	cr := &countingReader{reader: reader}
 
 	g.telemetry.ExporterUploadInflight.Add(ctx, 1,
 		metric.WithAttributes(bucketAttr),
 	)
 
 	start := time.Now()
-	uploadErr := g.storageClient.UploadObject(ctx, objectName, buf)
+	uploadErr := g.storageClient.UploadObject(ctx, objectName, cr)
 
 	g.telemetry.ExporterUploadInflight.Add(ctx, -1,
 		metric.WithAttributes(bucketAttr),
+	)
+
+	payloadSize := cr.bytesRead
+
+	g.telemetry.ExporterPayloadSize.Record(ctx, payloadSize,
+		metric.WithAttributes(
+			attribute.String("encoding", g.marshaler.Format()),
+			bucketAttr,
+		),
 	)
 
 	g.telemetry.ExporterRequestDuration.Record(ctx, time.Since(start).Milliseconds(),
@@ -140,6 +144,18 @@ func (g *googleCloudStorageExporter) uploadAndRecord(ctx context.Context, object
 	}
 
 	return uploadErr
+}
+
+// countingReader wraps an io.Reader and counts the total bytes read.
+type countingReader struct {
+	reader    io.Reader
+	bytesRead int64
+}
+
+func (cr *countingReader) Read(p []byte) (int, error) {
+	n, err := cr.reader.Read(p)
+	cr.bytesRead += int64(n)
+	return n, err
 }
 
 // classifyError returns a string classification for the given error.

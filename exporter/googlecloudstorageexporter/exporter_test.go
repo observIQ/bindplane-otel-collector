@@ -15,9 +15,11 @@
 package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"sync"
 	"testing"
@@ -45,6 +47,15 @@ func newTestTelemetryBuilder(t *testing.T, mp *sdkmetric.MeterProvider) *metadat
 	tb, err := metadata.NewTelemetryBuilder(settings)
 	require.NoError(t, err)
 	return tb
+}
+
+// mockUploadConsume returns a RunAndReturn function that consumes the reader and returns the given error.
+// This ensures the countingReader properly counts bytes during tests.
+func mockUploadConsume(returnErr error) func(context.Context, string, io.Reader) error {
+	return func(_ context.Context, _ string, r io.Reader) error {
+		_, _ = io.ReadAll(r)
+		return returnErr
+	}
 }
 
 func Test_exporter_Capabilities(t *testing.T) {
@@ -85,10 +96,11 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalMetrics(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalMetrics(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(errors.New("client")))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -100,10 +112,11 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalMetrics(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalMetrics(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(nil))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -133,7 +146,6 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, tc.expectedErr.Error())
 			}
-
 		})
 	}
 }
@@ -170,10 +182,11 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalLogs(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalLogs(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(errors.New("client")))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -185,10 +198,11 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalLogs(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalLogs(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(nil))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -218,7 +232,6 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, tc.expectedErr.Error())
 			}
-
 		})
 	}
 }
@@ -255,10 +268,11 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalTraces(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalTraces(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(errors.New("client")))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -270,10 +284,11 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 				mockStorageClient := mocks.NewMockStorageClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
-				mockMarshaler.EXPECT().MarshalTraces(input).Return(expectBuff, nil)
+				mockMarshaler.EXPECT().MarshalTraces(input).Return(bytes.NewReader(expectBuff), nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+					RunAndReturn(mockUploadConsume(nil))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -303,7 +318,6 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, tc.expectedErr.Error())
 			}
-
 		})
 	}
 }
@@ -438,9 +452,10 @@ func Test_logsDataPusher_RecordsMetrics_Success(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClient(t)
 	mockMarshaler := mocks.NewMockMarshaler(t)
-	mockMarshaler.EXPECT().MarshalLogs(ld).Return(expectedBytes, nil)
+	mockMarshaler.EXPECT().MarshalLogs(ld).Return(bytes.NewReader(expectedBytes), nil)
 	mockMarshaler.EXPECT().Format().Return("json")
-	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectedBytes).Return(nil)
+	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(mockUploadConsume(nil))
 
 	exp := &googleCloudStorageExporter{
 		cfg:           cfg,
@@ -512,9 +527,10 @@ func Test_logsDataPusher_RecordsMetrics_Timeout(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClient(t)
 	mockMarshaler := mocks.NewMockMarshaler(t)
-	mockMarshaler.EXPECT().MarshalLogs(ld).Return(expectedBytes, nil)
+	mockMarshaler.EXPECT().MarshalLogs(ld).Return(bytes.NewReader(expectedBytes), nil)
 	mockMarshaler.EXPECT().Format().Return("json")
-	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectedBytes).Return(context.DeadlineExceeded)
+	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(mockUploadConsume(context.DeadlineExceeded))
 
 	exp := &googleCloudStorageExporter{
 		cfg:           cfg,
@@ -568,9 +584,10 @@ func Test_logsDataPusher_RecordsMetrics_UnknownError(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClient(t)
 	mockMarshaler := mocks.NewMockMarshaler(t)
-	mockMarshaler.EXPECT().MarshalLogs(ld).Return(expectedBytes, nil)
+	mockMarshaler.EXPECT().MarshalLogs(ld).Return(bytes.NewReader(expectedBytes), nil)
 	mockMarshaler.EXPECT().Format().Return("json")
-	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectedBytes).Return(errors.New("network error"))
+	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(mockUploadConsume(errors.New("network error")))
 
 	exp := &googleCloudStorageExporter{
 		cfg:           cfg,
@@ -629,10 +646,11 @@ func Test_uploadInflight_DuringUpload(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClient(t)
 	mockMarshaler := mocks.NewMockMarshaler(t)
-	mockMarshaler.EXPECT().MarshalLogs(ld).Return(expectedBytes, nil)
+	mockMarshaler.EXPECT().MarshalLogs(ld).Return(bytes.NewReader(expectedBytes), nil)
 	mockMarshaler.EXPECT().Format().Return("json")
-	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectedBytes).
-		RunAndReturn(func(_ context.Context, _ string, _ []byte) error {
+	mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _ string, r io.Reader) error {
+			_, _ = io.ReadAll(r)
 			close(uploadStarted)
 			<-uploadContinue
 			return nil
@@ -675,6 +693,16 @@ func Test_uploadInflight_DuringUpload(t *testing.T) {
 	inflightSum = m.Data.(metricdata.Sum[int64])
 	require.Len(t, inflightSum.DataPoints, 1)
 	require.Equal(t, int64(0), inflightSum.DataPoints[0].Value)
+}
+
+func Test_countingReader(t *testing.T) {
+	data := []byte("hello world")
+	cr := &countingReader{reader: bytes.NewReader(data)}
+
+	result, err := io.ReadAll(cr)
+	require.NoError(t, err)
+	require.Equal(t, data, result)
+	require.Equal(t, int64(len(data)), cr.bytesRead)
 }
 
 // assertHasAttribute checks that the given attribute set contains a string attribute with the expected value.

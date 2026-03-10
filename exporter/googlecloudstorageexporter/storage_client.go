@@ -17,6 +17,7 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"cloud.google.com/go/storage"
@@ -29,7 +30,7 @@ import (
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname MockStorageClient
 type storageClient interface {
-	UploadObject(ctx context.Context, objectName string, buffer []byte) error
+	UploadObject(ctx context.Context, objectName string, reader io.Reader) error
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -94,44 +95,37 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
-// UploadObject will try to write to the bucket. It will create the bucket if it doesn't exist
-func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
+// UploadObject will try to write to the bucket. It will create the bucket if it doesn't exist.
+// Because the reader is consumed during upload, a bucket-not-found error on the first attempt
+// will create the bucket and return the error so the pipeline can retry with a fresh reader.
+func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, reader io.Reader) error {
 	bucket := c.storageClient.Bucket(c.config.BucketName)
 	obj := bucket.Object(objectName)
 
-	// First attempt to write
-	if err := c.writeToObject(ctx, obj, buffer); err != nil {
-		// If bucket doesn't exist, try to create it and write again
+	if err := c.writeToObject(ctx, obj, reader); err != nil {
 		if isBucketNotFoundError(err) {
-			if err := c.createBucket(ctx); err != nil {
-				return fmt.Errorf("create bucket %q: %w", c.config.BucketName, err)
+			if createErr := c.createBucket(ctx); createErr != nil {
+				return fmt.Errorf("create bucket %q: %w", c.config.BucketName, createErr)
 			}
-
-			// Try writing again after bucket creation
-			if err := c.writeToObject(ctx, obj, buffer); err != nil {
-				return fmt.Errorf("write to bucket %q after creation: %w", c.config.BucketName, err)
-			}
-		} else {
-			return fmt.Errorf("write to bucket %q: %w", c.config.BucketName, err)
+			// Return original error so the pipeline retries with a fresh reader.
+			// The bucket now exists, so the retry will succeed.
+			return fmt.Errorf("write to bucket %q (bucket created, retry expected): %w", c.config.BucketName, err)
 		}
+		return fmt.Errorf("write to bucket %q: %w", c.config.BucketName, err)
 	}
 
 	return nil
 }
 
-// writeToObject attempts to write data to a GCS object and waits for completion
-func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *storage.ObjectHandle, buffer []byte) error {
+// writeToObject streams data from the reader to a GCS object and waits for completion
+func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *storage.ObjectHandle, reader io.Reader) error {
 	writer := obj.NewWriter(ctx)
 
-	if _, err := writer.Write(buffer); err != nil {
-		// If Write returns an error, we should still try to close and check for close error
-		if closeErr := writer.Close(); closeErr != nil {
-			return fmt.Errorf("write: %v, close: %v", err, closeErr)
-		}
-		return fmt.Errorf("write to object %q: %w", obj.ObjectName(), err)
+	if _, err := io.Copy(writer, reader); err != nil {
+		_ = writer.Close()
+		return fmt.Errorf("copy to object %q: %w", obj.ObjectName(), err)
 	}
 
-	// Always check Close error as the source of truth for write success. Err is handled by UploadObject
 	return writer.Close()
 }
 
