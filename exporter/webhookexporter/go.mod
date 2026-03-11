@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/exporter/webhookexporter
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/exporterutils v1.94.2
-	github.com/observiq/bindplane-otel-collector/version v1.94.2
+	github.com/observiq/bindplane-otel-collector/internal/exporterutils v1.95.0
+	github.com/observiq/bindplane-otel-collector/version v1.95.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
 	go.opentelemetry.io/collector/component/componenttest v0.147.0
