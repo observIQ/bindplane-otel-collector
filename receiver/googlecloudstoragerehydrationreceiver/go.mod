@@ -4,8 +4,8 @@ go 1.25.7
 
 require (
 	cloud.google.com/go/storage v1.61.1
-	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.94.2
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.2
+	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.95.0
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
 	go.opentelemetry.io/collector/component/componenttest v0.147.0
