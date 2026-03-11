@@ -1678,7 +1678,7 @@ var getRawFieldCases = []getRawFieldCase{
 		expect:   "test",
 	},
 	{
-		name:  "Attribute log.record.original",
+		name:  "Attribute log.record.original string",
 		field: logRecordOriginalField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
@@ -1693,6 +1693,31 @@ var getRawFieldCases = []getRawFieldCase{
 		scope:    plog.NewScopeLogs(),
 		resource: plog.NewResourceLogs(),
 		expect:   windowsEventString,
+	},
+	{
+		name:  "Attribute log.record.original map",
+		field: logRecordOriginalField,
+		logRecord: func() plog.LogRecord {
+			lr := plog.NewLogRecord()
+			lr.Attributes().PutStr("status", "200")
+			lr.Attributes().PutStr("log_type", "k8s-container")
+			lr.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+			lr.Attributes().PutStr("chronicle_log_type", "MICROSOFT_SQL")
+			lr.Attributes().PutStr("chronicle_namespace", "test")
+			logRecordOriginal := lr.Attributes().PutEmptyMap("log.record.original")
+			logRecordOriginal.PutStr("event_id", "7036")
+			logRecordOriginal.PutStr("level", "4")
+			logRecordOriginal.PutStr("message", "Print Spooler stopped")
+			logRecordOriginal.PutStr("process_id", "604")
+			logRecordOriginal.PutStr("source", "Service Control Manager")
+			logRecordOriginal.PutStr("thread_id", "4792")
+			logRecordOriginal.PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+			logRecordOriginal.PutStr("user_id", "SYSTEM")
+			return lr
+		}(),
+		scope:    plog.NewScopeLogs(),
+		resource: plog.NewResourceLogs(),
+		expect:   `{"event_id":"7036","level":"4","message":"Print Spooler stopped","process_id":"604","source":"Service Control Manager","thread_id":"4792","timestamp":"2024-11-08T18:51:13.504187700Z","user_id":"SYSTEM"}`,
 	},
 	{
 		name:  "Attribute log.record.original missing",

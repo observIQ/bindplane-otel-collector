@@ -367,8 +367,17 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 	case logRecordOriginalField:
 		attributes := logRecord.Attributes().AsRaw()
 		if logRecordOriginal, ok := attributes[logRecordOriginalAttribute]; ok {
-			if v, ok := logRecordOriginal.(string); ok {
-				return v, nil
+			switch logRecordOriginal := logRecordOriginal.(type) {
+			case string:
+				return logRecordOriginal, nil
+			case map[string]any:
+				bytes, err := json.Marshal(logRecordOriginal)
+				if err != nil {
+					return "", fmt.Errorf("marshal log record original: %w", err)
+				}
+				return string(bytes), nil
+			default:
+				return "", fmt.Errorf("unsupported log record original type: %T", logRecordOriginal)
 			}
 		}
 		return "", nil
