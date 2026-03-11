@@ -185,8 +185,8 @@ func TestGatewayRestartAfterShutdown(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  1,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: 1,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -262,8 +262,8 @@ func TestGatewayShutdownWithoutStart(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  1,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: 1,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -316,8 +316,8 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  upstreamConnections,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: upstreamConnections,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -865,9 +865,9 @@ func TestGatewayAuthTimeout(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  1,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
-		AuthTimeout:          500 * time.Millisecond,
+		UpstreamConnections: 1,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		AuthTimeout:         500 * time.Millisecond,
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -909,8 +909,8 @@ func TestGatewayUpstreamReconnection(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  1,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: 1,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -983,7 +983,7 @@ func TestGatewayTLSConnection(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  1,
+		UpstreamConnections: 1,
 		OpAMPServer: confighttp.ServerConfig{
 			NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP},
 			TLS: configoptional.Some(configtls.ServerConfig{
@@ -1052,8 +1052,8 @@ func TestGatewayGracefulShutdownWithActiveConnections(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  2,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: 2,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -1307,8 +1307,8 @@ func newGatewayTestHarnessWithCapabilities(t *testing.T, upstreamConnections int
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  upstreamConnections,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: upstreamConnections,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -1368,8 +1368,8 @@ func TestGatewayConcurrentAgentStress(t *testing.T) {
 		Headers: http.Header{
 			"Authorization": []string{"Secret-Key test-secret"},
 		},
-		UpstreamConnections:  numUpstreamConns,
-		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+		UpstreamConnections: numUpstreamConns,
+		OpAMPServer:         confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)

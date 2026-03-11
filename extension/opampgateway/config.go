@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/collector/config/configtls"
 )
 
+// ServerConfig holds the configuration for the upstreamOpAMP server.
 type ServerConfig struct {
 	Endpoint    string                 `mapstructure:"endpoint"`
 	Headers     http.Header            `mapstructure:"headers"`
