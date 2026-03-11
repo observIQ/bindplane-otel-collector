@@ -277,8 +277,11 @@ func StopTrace(sessionName string) error {
 		buffer[offset+1] = byte(ch >> 8)
 	}
 
-	_, err = ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, nil, props)
-	return err
+	r1, err := ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, &sessionNamePtr[0], props)
+	if r1 != 0 {
+		return fmt.Errorf("failed to stop trace(%d): %w", r1, err)
+	}
+	return nil
 }
 
 type Event struct {

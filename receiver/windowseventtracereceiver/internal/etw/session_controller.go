@@ -120,23 +120,8 @@ func (s *SessionController) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	var namePtrU16 *uint16
-	var err error
-
-	if namePtrU16, err = syscall.UTF16PtrFromString(s.name); err != nil {
-		return fmt.Errorf("failed to convert session name to UTF-16: %w", err)
-	}
-
-	propsCopy := *s.properties
-	r1, err := advapi32.ControlTrace(
-		&s.handle,
-		advapi32.EVENT_TRACE_CONTROL_STOP,
-		namePtrU16,
-		&propsCopy,
-	)
-
-	if r1 != 0 {
-		return fmt.Errorf("failed to stop trace(%d): %w", r1, err)
+	if err := s.stopTrace(s.name); err != nil {
+		return err
 	}
 
 	s.handle = 0
