@@ -36,13 +36,23 @@ import (
 )
 
 const (
-	logTypeField                   = `attributes["log_type"]`
-	chronicleLogTypeField          = `attributes["chronicle_log_type"]`
-	chronicleNamespaceField        = `attributes["chronicle_namespace"]`
+	bodyField                      = `body`
+	attrExprPattern                = `attributes["%s"]`
+	logTypeAttribute               = `log_type`
+	namespaceAttribute             = `chronicle_namespace`
+	chronicleLogTypeAttribute      = `chronicle_log_type`
+	logRecordOriginalAttribute     = `log.record.original`
 	chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
 
 	// catchAllLogType is the log type that is used when the log type is not found in the log types map
 	catchAllLogType = "CATCH_ALL"
+)
+
+var (
+	logTypeField            = fmt.Sprintf(attrExprPattern, logTypeAttribute)
+	chronicleLogTypeField   = fmt.Sprintf(attrExprPattern, chronicleLogTypeAttribute)
+	chronicleNamespaceField = fmt.Sprintf(attrExprPattern, namespaceAttribute)
+	logRecordOriginalField  = fmt.Sprintf(attrExprPattern, logRecordOriginalAttribute)
 )
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
@@ -261,7 +271,7 @@ func (m *protoMarshaler) getNamespace(ctx context.Context, logRecord plog.LogRec
 	// check for attributes in attributes["chronicle_namespace"]
 	namespace, err := m.getRawField(ctx, chronicleNamespaceField, logRecord, scope, resource)
 	if err != nil {
-		return "", fmt.Errorf("get chronicle log type: %w", err)
+		return "", fmt.Errorf("get chronicle namespace: %w", err)
 	}
 	if namespace != "" {
 		return namespace, nil
@@ -316,9 +326,10 @@ func (m *protoMarshaler) getHTTPIngestionLabels(logRecord plog.LogRecord) (map[s
 	return configLabels, nil
 }
 
+// getRawField is a helper function to get the raw value of a field from a log record
 func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	switch field {
-	case "body":
+	case bodyField:
 		switch logRecord.Body().Type() {
 		case pcommon.ValueTypeStr:
 			return logRecord.Body().Str(), nil
@@ -331,7 +342,7 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 		}
 	case logTypeField:
 		attributes := logRecord.Attributes().AsRaw()
-		if logType, ok := attributes["log_type"]; ok {
+		if logType, ok := attributes[logTypeAttribute]; ok {
 			if v, ok := logType.(string); ok {
 				return v, nil
 			}
@@ -339,7 +350,7 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 		return "", nil
 	case chronicleLogTypeField:
 		attributes := logRecord.Attributes().AsRaw()
-		if logType, ok := attributes["chronicle_log_type"]; ok {
+		if logType, ok := attributes[chronicleLogTypeAttribute]; ok {
 			if v, ok := logType.(string); ok {
 				return v, nil
 			}
@@ -347,8 +358,16 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 		return "", nil
 	case chronicleNamespaceField:
 		attributes := logRecord.Attributes().AsRaw()
-		if namespace, ok := attributes["chronicle_namespace"]; ok {
+		if namespace, ok := attributes[namespaceAttribute]; ok {
 			if v, ok := namespace.(string); ok {
+				return v, nil
+			}
+		}
+		return "", nil
+	case logRecordOriginalField:
+		attributes := logRecord.Attributes().AsRaw()
+		if logRecordOriginal, ok := attributes[logRecordOriginalAttribute]; ok {
+			if v, ok := logRecordOriginal.(string); ok {
 				return v, nil
 			}
 		}

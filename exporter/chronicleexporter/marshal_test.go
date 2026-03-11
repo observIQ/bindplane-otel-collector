@@ -34,6 +34,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const windowsEventString = "<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Service Control Manager' Guid='{555908d1-a6d7-4695-8e1e-26931d2012f4}' EventSourceName='Service Control Manager'/><EventID Qualifiers='16384'>7036</EventID><Version>0</Version><Level>4</Level><Task>0</Task><Opcode>0</Opcode><Keywords>0x8080000000000000</Keywords><TimeCreated SystemTime='2024-11-08T18:51:13.504187700Z'/><EventRecordID>3562</EventRecordID><Correlation/><Execution ProcessID='604' ThreadID='4792'/><Channel>System</Channel><Computer>WIN-L6PC55MPB98</Computer><Security/></System><EventData><Data Name='param1'>Print Spooler</Data><Data Name='param2'>stopped</Data><Binary>530070006F006F006C00650072002F0031000000</Binary></EventData></Event>"
+
 func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
@@ -1551,19 +1553,19 @@ type getRawFieldCase struct {
 var getRawFieldCases = []getRawFieldCase{
 	{
 		name:  "String body",
-		field: "body",
+		field: bodyField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
-			lr.Body().SetStr("<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Service Control Manager' Guid='{555908d1-a6d7-4695-8e1e-26931d2012f4}' EventSourceName='Service Control Manager'/><EventID Qualifiers='16384'>7036</EventID><Version>0</Version><Level>4</Level><Task>0</Task><Opcode>0</Opcode><Keywords>0x8080000000000000</Keywords><TimeCreated SystemTime='2024-11-08T18:51:13.504187700Z'/><EventRecordID>3562</EventRecordID><Correlation/><Execution ProcessID='604' ThreadID='4792'/><Channel>System</Channel><Computer>WIN-L6PC55MPB98</Computer><Security/></System><EventData><Data Name='param1'>Print Spooler</Data><Data Name='param2'>stopped</Data><Binary>530070006F006F006C00650072002F0031000000</Binary></EventData></Event>")
+			lr.Body().SetStr(windowsEventString)
 			return lr
 		}(),
 		scope:    plog.NewScopeLogs(),
 		resource: plog.NewResourceLogs(),
-		expect:   "<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><Provider Name='Service Control Manager' Guid='{555908d1-a6d7-4695-8e1e-26931d2012f4}' EventSourceName='Service Control Manager'/><EventID Qualifiers='16384'>7036</EventID><Version>0</Version><Level>4</Level><Task>0</Task><Opcode>0</Opcode><Keywords>0x8080000000000000</Keywords><TimeCreated SystemTime='2024-11-08T18:51:13.504187700Z'/><EventRecordID>3562</EventRecordID><Correlation/><Execution ProcessID='604' ThreadID='4792'/><Channel>System</Channel><Computer>WIN-L6PC55MPB98</Computer><Security/></System><EventData><Data Name='param1'>Print Spooler</Data><Data Name='param2'>stopped</Data><Binary>530070006F006F006C00650072002F0031000000</Binary></EventData></Event>",
+		expect:   windowsEventString,
 	},
 	{
 		name:  "Empty body",
-		field: "body",
+		field: bodyField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Body().SetStr("")
@@ -1575,7 +1577,7 @@ var getRawFieldCases = []getRawFieldCase{
 	},
 	{
 		name:  "Map body",
-		field: "body",
+		field: bodyField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Body().SetEmptyMap()
@@ -1620,7 +1622,7 @@ var getRawFieldCases = []getRawFieldCase{
 	},
 	{
 		name:  "Attribute log_type",
-		field: `attributes["log_type"]`,
+		field: logTypeField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Attributes().PutStr("status", "200")
@@ -1634,7 +1636,7 @@ var getRawFieldCases = []getRawFieldCase{
 	},
 	{
 		name:  "Attribute log_type missing",
-		field: `attributes["log_type"]`,
+		field: logTypeField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Attributes().PutStr("status", "200")
@@ -1647,7 +1649,7 @@ var getRawFieldCases = []getRawFieldCase{
 	},
 	{
 		name:  "Attribute chronicle_log_type",
-		field: `attributes["chronicle_log_type"]`,
+		field: chronicleLogTypeField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Attributes().PutStr("status", "200")
@@ -1661,7 +1663,7 @@ var getRawFieldCases = []getRawFieldCase{
 	},
 	{
 		name:  "Attribute chronicle_namespace",
-		field: `attributes["chronicle_namespace"]`,
+		field: chronicleNamespaceField,
 		logRecord: func() plog.LogRecord {
 			lr := plog.NewLogRecord()
 			lr.Attributes().PutStr("status", "200")
@@ -1674,6 +1676,53 @@ var getRawFieldCases = []getRawFieldCase{
 		scope:    plog.NewScopeLogs(),
 		resource: plog.NewResourceLogs(),
 		expect:   "test",
+	},
+	{
+		name:  "Attribute log.record.original",
+		field: logRecordOriginalField,
+		logRecord: func() plog.LogRecord {
+			lr := plog.NewLogRecord()
+			lr.Attributes().PutStr("status", "200")
+			lr.Attributes().PutStr("log_type", "k8s-container")
+			lr.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+			lr.Attributes().PutStr("chronicle_log_type", "MICROSOFT_SQL")
+			lr.Attributes().PutStr("chronicle_namespace", "test")
+			lr.Attributes().PutStr("log.record.original", windowsEventString)
+			return lr
+		}(),
+		scope:    plog.NewScopeLogs(),
+		resource: plog.NewResourceLogs(),
+		expect:   windowsEventString,
+	},
+	{
+		name:  "Attribute log.record.original missing",
+		field: logRecordOriginalField,
+		logRecord: func() plog.LogRecord {
+			lr := plog.NewLogRecord()
+			return lr
+		}(),
+		scope:        plog.NewScopeLogs(),
+		resource:     plog.NewResourceLogs(),
+		expect:       "",
+		expectErrStr: "",
+	},
+	{
+		name:  "Attribute custom_attribute",
+		field: "attributes[\"custom_attribute\"]",
+		logRecord: func() plog.LogRecord {
+			lr := plog.NewLogRecord()
+			lr.Attributes().PutStr("status", "200")
+			lr.Attributes().PutStr("log_type", "k8s-container")
+			lr.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+			lr.Attributes().PutStr("chronicle_log_type", "MICROSOFT_SQL")
+			lr.Attributes().PutStr("chronicle_namespace", "test")
+			lr.Attributes().PutStr("log.record.original", windowsEventString)
+			lr.Attributes().PutStr("custom_attribute", "custom_value")
+			return lr
+		}(),
+		scope:    plog.NewScopeLogs(),
+		resource: plog.NewResourceLogs(),
+		expect:   "custom_value",
 	},
 }
 
