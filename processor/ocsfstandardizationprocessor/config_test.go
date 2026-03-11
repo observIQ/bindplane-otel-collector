@@ -217,6 +217,30 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestConfigValidateAutoAddedFields(t *testing.T) {
+	t.Run("category_uid and type_uid are auto-added to field coverage", func(t *testing.T) {
+		// This config does NOT explicitly map category_uid or type_uid,
+		// but validation should pass because they are auto-added to fieldPaths.
+		cfg := Config{
+			OCSFVersion: OCSFVersion1_0_0,
+			EventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: []FieldMapping{
+						{From: "body.activity", To: "activity_id"},
+						{From: "body.severity", To: "severity_id"},
+						{From: "body.time", To: "time"},
+						{From: "body.user", To: "user"},
+						{From: "body.product", To: "metadata.product"},
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.NoError(t, err, "validation should pass with category_uid and type_uid auto-added")
+	})
+}
+
 func TestConfigValidateFieldCoverage(t *testing.T) {
 	tests := []struct {
 		name          string

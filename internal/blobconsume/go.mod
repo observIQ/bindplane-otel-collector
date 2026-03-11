@@ -3,23 +3,23 @@ module github.com/observiq/bindplane-otel-collector/internal/blobconsume
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.2
-	github.com/observiq/bindplane-otel-collector/internal/testutils v1.94.2
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0
+	github.com/observiq/bindplane-otel-collector/internal/testutils v1.95.0
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/consumer v1.52.0
-	go.opentelemetry.io/collector/consumer/consumertest v0.146.1
-	go.opentelemetry.io/collector/pdata v1.52.0
+	go.opentelemetry.io/collector/consumer v1.53.0
+	go.opentelemetry.io/collector/consumer/consumertest v0.147.0
+	go.opentelemetry.io/collector/pdata v1.53.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
-	go.opentelemetry.io/collector/component v1.52.0 // indirect
-	go.opentelemetry.io/collector/consumer/xconsumer v0.146.1 // indirect
-	go.opentelemetry.io/collector/extension v1.52.0 // indirect
-	go.opentelemetry.io/collector/extension/xextension v0.146.1 // indirect
-	go.opentelemetry.io/collector/featuregate v1.52.0 // indirect
-	go.opentelemetry.io/collector/internal/componentalias v0.146.1 // indirect
+	go.opentelemetry.io/collector/component v1.53.0 // indirect
+	go.opentelemetry.io/collector/consumer/xconsumer v0.147.0 // indirect
+	go.opentelemetry.io/collector/extension v1.53.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.147.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.53.0 // indirect
+	go.opentelemetry.io/collector/internal/componentalias v0.147.0 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
@@ -33,8 +33,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.146.1 // indirect
-	go.opentelemetry.io/collector/pipeline v1.52.0
+	go.opentelemetry.io/collector/pdata/pprofile v0.147.0 // indirect
+	go.opentelemetry.io/collector/pipeline v1.53.0
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
