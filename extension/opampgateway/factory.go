@@ -37,8 +37,10 @@ func NewFactory() extension.Factory {
 
 func defaultConfig() component.Config {
 	return &Config{
-		UpstreamConnections: 1,
-		OpAMPServer:         confighttp.NewDefaultServerConfig(),
+		Server: ServerConfig{
+			Connections: 1,
+		},
+		Listener: confighttp.NewDefaultServerConfig(),
 	}
 }
 
@@ -51,10 +53,11 @@ func createOpAMPGateway(_ context.Context, cs extension.Settings, cfg component.
 	oCfg := cfg.(*Config)
 
 	settings := gateway.Settings{
-		UpstreamOpAMPAddress: oCfg.UpstreamOpAMPAddress,
-		SecretKey:            oCfg.SecretKey,
-		UpstreamConnections:  oCfg.UpstreamConnections,
-		OpAMPServer:          oCfg.OpAMPServer,
+		UpstreamOpAMPAddress: oCfg.Server.Endpoint,
+		Headers:              oCfg.Server.Headers,
+		TLS:                  oCfg.Server.TLS,
+		UpstreamConnections:  oCfg.Server.Connections,
+		OpAMPServer:          oCfg.Listener,
 	}
 
 	gw := gateway.New(cs.Logger, settings, t)

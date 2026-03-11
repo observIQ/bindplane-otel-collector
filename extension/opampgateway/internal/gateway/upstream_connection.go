@@ -56,8 +56,8 @@ type upstreamConnection struct {
 }
 
 type upstreamConnectionSettings struct {
-	endpoint  string
-	secretKey string
+	endpoint string
+	headers  http.Header
 }
 
 func newUpstreamConnection(dialer websocket.Dialer, telemetry *metadata.TelemetryBuilder, settings upstreamConnectionSettings, id string, logger *zap.Logger) *upstreamConnection {
@@ -349,8 +349,10 @@ func (c *upstreamConnection) tryConnectOnce(ctx context.Context, id string) (*we
 }
 
 func (c *upstreamConnection) header(id string) http.Header {
-	return http.Header{
-		"Authorization":                 []string{fmt.Sprintf("Secret-Key %s", c.settings.secretKey)},
-		"X-Opamp-Gateway-Connection-Id": []string{id},
+	h := c.settings.headers.Clone()
+	if h == nil {
+		h = make(http.Header)
 	}
+	h.Set("X-Opamp-Gateway-Connection-Id", id)
+	return h
 }

@@ -16,37 +16,45 @@ package opampgateway
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configtls"
 )
+
+// ServerConfig holds the configuration for the upstreamOpAMP server.
+type ServerConfig struct {
+	Endpoint    string                 `mapstructure:"endpoint"`
+	Headers     http.Header            `mapstructure:"headers"`
+	TLS         configtls.ClientConfig `mapstructure:"tls,omitempty"`
+	Connections int                    `mapstructure:"connections"`
+}
 
 // Config holds the configuration for the OpAMP gateway extension.
 type Config struct {
-	UpstreamOpAMPAddress string                  `mapstructure:"upstream_opamp_address"`
-	SecretKey            string                  `mapstructure:"secret_key"`
-	UpstreamConnections  int                     `mapstructure:"upstream_connections"`
-	OpAMPServer          confighttp.ServerConfig `mapstructure:"opamp_server"`
+	Server   ServerConfig            `mapstructure:"server"`
+	Listener confighttp.ServerConfig `mapstructure:"listener"`
 }
 
 // Validate checks that the configuration is valid.
 func (c *Config) Validate() error {
-	if c.UpstreamOpAMPAddress == "" {
-		return errors.New("upstream_opamp_address must be specified")
+	if c.Server.Endpoint == "" {
+		return errors.New("opamp_client endpoint must be specified")
 	}
-	u, err := url.Parse(c.UpstreamOpAMPAddress)
+	u, err := url.Parse(c.Server.Endpoint)
 	if err != nil {
-		return errors.New("upstream_opamp_address is not a valid URL")
+		return errors.New("opamp_client endpoint is not a valid URL")
 	}
 	if u.Scheme != "ws" && u.Scheme != "wss" {
-		return errors.New("upstream_opamp_address must use ws:// or wss:// scheme")
+		return errors.New("opamp_client endpoint must use ws:// or wss:// scheme")
 	}
 
-	if c.UpstreamConnections < 1 {
-		return errors.New("upstream_connections must be at least 1")
+	if c.Server.Connections < 1 {
+		return errors.New("opamp_client connections must be at least 1")
 	}
 
-	if c.OpAMPServer.NetAddr.Endpoint == "" {
+	if c.Listener.NetAddr.Endpoint == "" {
 		return errors.New("opamp_server endpoint must be specified")
 	}
 
