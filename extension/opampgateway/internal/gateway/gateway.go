@@ -19,6 +19,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +27,7 @@ import (
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
@@ -42,7 +44,8 @@ var (
 // Settings contains the configuration needed by the gateway implementation.
 type Settings struct {
 	UpstreamOpAMPAddress string
-	SecretKey            string
+	Headers              http.Header
+	TLS                  configtls.ClientConfig
 	UpstreamConnections  int
 	OpAMPServer          confighttp.ServerConfig
 	AuthTimeout          time.Duration
