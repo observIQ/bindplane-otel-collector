@@ -210,7 +210,7 @@ require (
 )
 
 require (
-	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.11
+	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.13
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.94.2
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.94.2
 	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.94.2
@@ -1122,9 +1122,6 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
-
-// Commit points to v0.147.0 update for the exporter: https://github.com/honeycombio/enhance-indexing-s3-exporter/commit/958cdce84381340e3b5ad02a196d88640e509410
-replace github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter => github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.8-0.20260309172035-958cdce84381
 
 // BIG IP receiver was removed from contrib in v0.147.0. We need to pin this component at v0.146.0 while we go through our own deprecation process.
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver v0.146.0
