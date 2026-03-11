@@ -72,7 +72,7 @@ func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string
 		propName := windowsSys.UTF16PtrToString((*uint16)(namePtr))
 		value, err := p.getPropertyValue(r, ti, uint32(i))
 		if err != nil {
-			return nil, fmt.Errorf("failed to get property value: %w", err)
+			return nil, fmt.Errorf("failed to get property value for property %q: %w", propName, err)
 		}
 
 		properties[propName] = value
@@ -150,6 +150,16 @@ func (p *parser) parseSimpleType(r *advapi32.EventRecord, propertyInfo *tdh.Even
 	propertyLength, err := p.getPropertyLength(propertyInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to get property length due to: %w", err)
+	}
+
+	// When a property's length is determined by a sibling length property
+	// (PropertyParamLength) and that resolved length is 0, TdhFormatProperty
+	// returns ERROR_INVALID_PARAMETER for types like Binary that require an
+	// explicit size. There are genuinely 0 bytes for this field, so return
+	// empty and consume nothing from the data buffer.
+	if propertyLength == 0 && (propertyInfo.Flags&tdh.PropertyParamLength) != 0 {
+		p.logger.Debug("property length is 0 and property param length is set, returning empty string")
+		return "", nil
 	}
 
 	var userDataConsumed uint16
