@@ -17,6 +17,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -42,7 +43,7 @@ type client struct {
 
 	callbacks ConnectionCallbacks[*upstreamConnection]
 
-	secretKey        string
+	headers          http.Header
 	upstreamEndpoint string
 	connectionCount  int
 
@@ -64,7 +65,7 @@ func newClient(settings Settings, telemetry *metadata.TelemetryBuilder, callback
 		upstreamConnections:   connections,
 		connectionAssignments: connectionAssignments,
 		callbacks:             callbacks,
-		secretKey:             settings.SecretKey,
+		headers:               settings.Headers,
 		upstreamEndpoint:      settings.UpstreamOpAMPAddress,
 		connectionCount:       settings.UpstreamConnections,
 		clientConnectionsWg:   &sync.WaitGroup{},
@@ -93,8 +94,8 @@ func (c *client) startClientConnections(ctx context.Context) {
 		id := fmt.Sprintf("upstream-%d", i)
 
 		clientConnection := newUpstreamConnection(c.dialer, c.telemetry, upstreamConnectionSettings{
-			endpoint:  c.upstreamEndpoint,
-			secretKey: c.secretKey,
+			endpoint: c.upstreamEndpoint,
+			headers:  c.headers,
 		}, id, c.logger)
 
 		c.pool.add(clientConnection)

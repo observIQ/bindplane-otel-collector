@@ -25,9 +25,11 @@ import (
 func TestConfigValidate(t *testing.T) {
 	validConfig := func() *Config {
 		return &Config{
-			UpstreamOpAMPAddress: "ws://localhost:4320/v1/opamp",
-			UpstreamConnections:  1,
-			OpAMPServer: confighttp.ServerConfig{
+			Server: ServerConfig{
+				Endpoint:    "ws://localhost:4320/v1/opamp",
+				Connections: 1,
+			},
+			Listener: confighttp.ServerConfig{
 				NetAddr: confignet.AddrConfig{Endpoint: "0.0.0.0:4321"},
 			},
 		}
@@ -39,41 +41,41 @@ func TestConfigValidate(t *testing.T) {
 
 	t.Run("valid wss scheme", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.UpstreamOpAMPAddress = "wss://localhost:4320/v1/opamp"
+		cfg.Server.Endpoint = "wss://localhost:4320/v1/opamp"
 		require.NoError(t, cfg.Validate())
 	})
 
 	t.Run("empty upstream address", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.UpstreamOpAMPAddress = ""
+		cfg.Server.Endpoint = ""
 		err := cfg.Validate()
-		require.ErrorContains(t, err, "upstream_opamp_address must be specified")
+		require.ErrorContains(t, err, "opamp_client endpoint must be specified")
 	})
 
 	t.Run("invalid upstream address scheme", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.UpstreamOpAMPAddress = "http://localhost:4320"
+		cfg.Server.Endpoint = "http://localhost:4320"
 		err := cfg.Validate()
-		require.ErrorContains(t, err, "upstream_opamp_address must use ws:// or wss:// scheme")
+		require.ErrorContains(t, err, "opamp_client endpoint must use ws:// or wss:// scheme")
 	})
 
 	t.Run("upstream connections zero", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.UpstreamConnections = 0
+		cfg.Server.Connections = 0
 		err := cfg.Validate()
-		require.ErrorContains(t, err, "upstream_connections must be at least 1")
+		require.ErrorContains(t, err, "opamp_client connections must be at least 1")
 	})
 
 	t.Run("upstream connections negative", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.UpstreamConnections = -1
+		cfg.Server.Connections = -1
 		err := cfg.Validate()
-		require.ErrorContains(t, err, "upstream_connections must be at least 1")
+		require.ErrorContains(t, err, "opamp_client connections must be at least 1")
 	})
 
 	t.Run("empty server endpoint", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.OpAMPServer.NetAddr.Endpoint = ""
+		cfg.Listener.NetAddr.Endpoint = ""
 		err := cfg.Validate()
 		require.ErrorContains(t, err, "opamp_server endpoint must be specified")
 	})

@@ -182,7 +182,9 @@ func TestGatewayRestartAfterShutdown(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  1,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -257,7 +259,9 @@ func TestGatewayShutdownWithoutStart(t *testing.T) {
 	upstream := newTestOpAMPServer(t)
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  1,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -309,7 +313,9 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  upstreamConnections,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -856,7 +862,9 @@ func TestGatewayAuthTimeout(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  1,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 		AuthTimeout:          500 * time.Millisecond,
@@ -898,7 +906,9 @@ func TestGatewayUpstreamReconnection(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  1,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -970,7 +980,9 @@ func TestGatewayTLSConnection(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  1,
 		OpAMPServer: confighttp.ServerConfig{
 			NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP},
@@ -1037,7 +1049,9 @@ func TestGatewayGracefulShutdownWithActiveConnections(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  2,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -1290,7 +1304,9 @@ func newGatewayTestHarnessWithCapabilities(t *testing.T, upstreamConnections int
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  upstreamConnections,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
@@ -1349,7 +1365,9 @@ func TestGatewayConcurrentAgentStress(t *testing.T) {
 
 	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
-		SecretKey:            "test-secret",
+		Headers: http.Header{
+			"Authorization": []string{"Secret-Key test-secret"},
+		},
 		UpstreamConnections:  numUpstreamConns,
 		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
