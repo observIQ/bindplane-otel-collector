@@ -239,6 +239,7 @@ gosec:
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=exporter/chronicleexporter/protos/api \
+	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
 	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
