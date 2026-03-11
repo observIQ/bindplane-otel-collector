@@ -125,7 +125,9 @@ func (c *downstreamConnection) send(message *message) error {
 
 func (c *downstreamConnection) close() error {
 	c.logger.Info("downstream connection closing")
-	c.cancel()
+	if c.cancel != nil {
+		c.cancel()
+	}
 	return nil
 }
 
