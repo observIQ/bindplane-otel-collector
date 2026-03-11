@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/testutils/retryserver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -201,78 +202,146 @@ func TestSendLogsRetryableVsPermanentErrors(t *testing.T) {
 		permanentErr bool
 	}{
 		// Retryable per OTLP spec
-		{
-			name:         "429 Too Many Requests is retryable",
-			statusCode:   http.StatusTooManyRequests,
-			permanentErr: false,
-		},
-		{
-			name:         "502 Bad Gateway is retryable",
-			statusCode:   http.StatusBadGateway,
-			permanentErr: false,
-		},
-		{
-			name:         "503 Service Unavailable is retryable",
-			statusCode:   http.StatusServiceUnavailable,
-			permanentErr: false,
-		},
-		{
-			name:         "504 Gateway Timeout is retryable",
-			statusCode:   http.StatusGatewayTimeout,
-			permanentErr: false,
-		},
+		{name: "429 Too Many Requests is retryable", statusCode: http.StatusTooManyRequests, permanentErr: false},
+		{name: "502 Bad Gateway is retryable", statusCode: http.StatusBadGateway, permanentErr: false},
+		{name: "503 Service Unavailable is retryable", statusCode: http.StatusServiceUnavailable, permanentErr: false},
+		{name: "504 Gateway Timeout is retryable", statusCode: http.StatusGatewayTimeout, permanentErr: false},
 		// Permanent errors
-		{
-			name:         "400 Bad Request is permanent",
-			statusCode:   http.StatusBadRequest,
-			permanentErr: true,
-		},
-		{
-			name:         "401 Unauthorized is permanent",
-			statusCode:   http.StatusUnauthorized,
-			permanentErr: true,
-		},
-		{
-			name:         "403 Forbidden is permanent",
-			statusCode:   http.StatusForbidden,
-			permanentErr: true,
-		},
-		{
-			name:         "404 Not Found is permanent",
-			statusCode:   http.StatusNotFound,
-			permanentErr: true,
-		},
-		{
-			name:         "500 Internal Server Error is permanent",
-			statusCode:   http.StatusInternalServerError,
-			permanentErr: true,
-		},
+		{name: "400 Bad Request is permanent", statusCode: http.StatusBadRequest, permanentErr: true},
+		{name: "401 Unauthorized is permanent", statusCode: http.StatusUnauthorized, permanentErr: true},
+		{name: "403 Forbidden is permanent", statusCode: http.StatusForbidden, permanentErr: true},
+		{name: "404 Not Found is permanent", statusCode: http.StatusNotFound, permanentErr: true},
+		{name: "500 Internal Server Error is permanent", statusCode: http.StatusInternalServerError, permanentErr: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(tc.statusCode)
-			}))
-			defer server.Close()
+			// Use retryserver so the response sequence is explicit and the server
+			// auto-cleans up via t.Cleanup (no manual defer needed).
+			srv := retryserver.New(t, []retryserver.Response{
+				{StatusCode: tc.statusCode},
+			})
 
 			cfg := &SignalConfig{
-				ClientConfig: confighttp.ClientConfig{
-					Endpoint: server.URL,
-				},
-				Verb:        POST,
-				ContentType: "application/json",
+				ClientConfig: confighttp.ClientConfig{Endpoint: srv.URL()},
+				Verb:         POST,
+				ContentType:  "application/json",
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
 			require.NoError(t, err)
-			err = exp.start(context.Background(), componenttest.NewNopHost())
-			require.NoError(t, err)
+			require.NoError(t, exp.start(context.Background(), componenttest.NewNopHost()))
 
 			err = exp.sendLogs(context.Background(), []any{"test log"})
 			require.Error(t, err)
 			require.Equal(t, tc.permanentErr, consumererror.IsPermanent(err),
 				"expected permanentErr=%v for status %d", tc.permanentErr, tc.statusCode)
+
+			require.Equal(t, 1, srv.RequestCount())
+		})
+	}
+}
+
+// TestWebhookRetrySequences tests multi-attempt retry scenarios using retryserver to
+// simulate real-world backend failure patterns. Each sendLogs call maps to one HTTP
+// request; the retryserver advances its sequence on every hit, letting us verify that
+// the exporter correctly classifies each response (retryable vs. permanent) across
+// a realistic failure sequence.
+func TestWebhookRetrySequences(t *testing.T) {
+	newExp := func(t *testing.T, endpoint string) *logsExporter {
+		t.Helper()
+		cfg := &SignalConfig{
+			ClientConfig: confighttp.ClientConfig{Endpoint: endpoint},
+			Verb:         POST,
+			ContentType:  "application/json",
+		}
+		exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+		require.NoError(t, err)
+		require.NoError(t, exp.start(context.Background(), componenttest.NewNopHost()))
+		return exp
+	}
+
+	type callExpectation struct {
+		expectErr    bool
+		permanentErr bool
+	}
+
+	testCases := []struct {
+		name     string
+		sequence []retryserver.Response
+		calls    []callExpectation
+	}{
+		{
+			// Mirrors the Google SecOps incident: rate-limit responses before recovery.
+			name: "Google SecOps incident pattern: 429 → 429 → success",
+			sequence: []retryserver.Response{
+				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
+				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
+				{StatusCode: http.StatusOK},
+			},
+			calls: []callExpectation{
+				{expectErr: true, permanentErr: false}, // 429 retryable
+				{expectErr: true, permanentErr: false}, // 429 retryable
+				{expectErr: false},                     // 200 success
+			},
+		},
+		{
+			name: "gateway cascade: 502 → 503 → 504 → success",
+			sequence: []retryserver.Response{
+				{StatusCode: http.StatusBadGateway},
+				{StatusCode: http.StatusServiceUnavailable},
+				{StatusCode: http.StatusGatewayTimeout},
+				{StatusCode: http.StatusOK},
+			},
+			calls: []callExpectation{
+				{expectErr: true, permanentErr: false}, // 502 retryable
+				{expectErr: true, permanentErr: false}, // 503 retryable
+				{expectErr: true, permanentErr: false}, // 504 retryable
+				{expectErr: false},                     // 200 success
+			},
+		},
+		{
+			name: "retryable then permanent: 429 → 401 unauthorized",
+			sequence: []retryserver.Response{
+				{StatusCode: http.StatusTooManyRequests},
+				{StatusCode: http.StatusUnauthorized},
+			},
+			calls: []callExpectation{
+				{expectErr: true, permanentErr: false}, // 429 retryable
+				{expectErr: true, permanentErr: true},  // 401 permanent — do not retry
+			},
+		},
+		{
+			name: "single transient failure then success",
+			sequence: []retryserver.Response{
+				{StatusCode: http.StatusServiceUnavailable},
+				{StatusCode: http.StatusOK},
+			},
+			calls: []callExpectation{
+				{expectErr: true, permanentErr: false}, // 503 retryable
+				{expectErr: false},                     // 200 success
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := retryserver.New(t, tc.sequence)
+			exp := newExp(t, srv.URL())
+
+			for i, call := range tc.calls {
+				err := exp.sendLogs(context.Background(), []any{"test log"})
+				if call.expectErr {
+					require.Error(t, err, "call %d should return error", i)
+					require.Equal(t, call.permanentErr, consumererror.IsPermanent(err),
+						"call %d permanentErr mismatch", i)
+				} else {
+					require.NoError(t, err, "call %d should succeed", i)
+				}
+			}
+
+			require.Equal(t, len(tc.calls), srv.RequestCount(),
+				"request count should match number of sendLogs calls")
 		})
 	}
 }

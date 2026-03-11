@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/expr v1.95.0
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.95.0
+	github.com/observiq/bindplane-otel-collector/internal/testutils v1.95.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.147.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
@@ -106,5 +107,7 @@ require (
 )
 
 replace github.com/observiq/bindplane-otel-collector/internal/osinfo => ../../internal/osinfo
+
+replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
 
 replace github.com/observiq/bindplane-otel-collector/expr => ../../expr
