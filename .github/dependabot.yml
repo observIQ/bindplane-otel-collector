@@ -67,6 +67,17 @@ updates:
       include: "scope"
   ### EXPORTERS ###
   - package-ecosystem: "gomod"
+    directory: "/exporter/awssecuritylakeexporter"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/exporter/azureblobexporter"
     schedule:
       interval: "weekly"
