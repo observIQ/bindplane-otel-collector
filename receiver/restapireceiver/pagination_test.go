@@ -605,6 +605,56 @@ func TestBuildPaginationParams_Timestamp_EpochMilliseconds(t *testing.T) {
 	require.Equal(t, "50", params.Get("limit"))
 }
 
+func TestBuildPaginationParams_Timestamp_EpochMicroseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_us",
+				PageSizeFieldName:  "limit",
+				PageSize:           100,
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         100,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600000000", params.Get("since"))
+	require.Equal(t, "100", params.Get("limit"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochNanoseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ns",
+				PageSizeFieldName:  "limit",
+				PageSize:           100,
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         100,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600000000000", params.Get("since"))
+	require.Equal(t, "100", params.Get("limit"))
+}
+
 func TestBuildPaginationParams_Timestamp_EpochSeconds_WithOffset(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
@@ -651,6 +701,52 @@ func TestBuildPaginationParams_Timestamp_EpochMilliseconds_WithOffset(t *testing
 	require.Equal(t, "1735689600001", params.Get("since"))
 }
 
+func TestBuildPaginationParams_Timestamp_EpochMicroseconds_WithOffset(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_us",
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp:  ts,
+		TimestampFromData: true, // should trigger +1us offset
+	}
+
+	params := buildPaginationParams(cfg, state)
+	// Should be 1 microsecond after the stored timestamp
+	require.Equal(t, "1735689600000001", params.Get("since"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochNanoseconds_WithOffset(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ns",
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp:  ts,
+		TimestampFromData: true, // should trigger +1ns offset
+	}
+
+	params := buildPaginationParams(cfg, state)
+	// Should be 1 nanosecond after the stored timestamp
+	require.Equal(t, "1735689600000000001", params.Get("since"))
+}
+
 func TestNewPaginationState_Timestamp_EpochSeconds(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
@@ -689,6 +785,214 @@ func TestNewPaginationState_Timestamp_EpochMilliseconds(t *testing.T) {
 	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
 	require.Equal(t, 50, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochMicroseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_us",
+				InitialTimestamp:   "1735689600000000",
+				PageSize:           100,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 100, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochNanoseconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_ns",
+				InitialTimestamp:   "1735689600000000000",
+				PageSize:           100,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 100, state.PageSize)
+}
+
+func TestBuildPaginationParams_Timestamp_EpochSecondsFractional(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+				PageSizeFieldName:  "limit",
+				PageSize:           100,
+			},
+		},
+	}
+
+	// Time with 123ms 456us — formatting should output fractional seconds
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 123456000, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         100,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600.123456", params.Get("since"))
+	require.Equal(t, "100", params.Get("limit"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochSecondsFractional_WholeSeconds(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+			},
+		},
+	}
+
+	// Whole seconds — no fractional part in output
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp: ts,
+		PageSize:         100,
+	}
+
+	params := buildPaginationParams(cfg, state)
+	require.Equal(t, "1735689600", params.Get("since"))
+}
+
+func TestBuildPaginationParams_Timestamp_EpochSecondsFractional_WithOffset(t *testing.T) {
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+			},
+		},
+	}
+
+	ts := time.Date(2025, 1, 1, 0, 0, 0, 123456000, time.UTC)
+	state := &paginationState{
+		CurrentTimestamp:  ts,
+		TimestampFromData: true, // should trigger +1us offset
+	}
+
+	params := buildPaginationParams(cfg, state)
+	// Should be 1 microsecond after the stored timestamp
+	require.Equal(t, "1735689600.123457", params.Get("since"))
+}
+
+func TestNewPaginationState_Timestamp_EpochSecondsFractional_Ms(t *testing.T) {
+	// "1735689600.123" — millisecond precision fractional seconds
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+				InitialTimestamp:   "1735689600.123",
+				PageSize:           100,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 123000000, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 100, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochSecondsFractional_Us(t *testing.T) {
+	// "1735689600.123456" — microsecond precision fractional seconds
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+				InitialTimestamp:   "1735689600.123456",
+				PageSize:           50,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 123456000, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 50, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochSecondsFractional_Ns(t *testing.T) {
+	// "1735689600.123456789" — nanosecond precision fractional seconds
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+				InitialTimestamp:   "1735689600.123456789",
+				PageSize:           50,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 123456789, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 50, state.PageSize)
+}
+
+func TestNewPaginationState_Timestamp_EpochSecondsFractional_WholeSeconds(t *testing.T) {
+	// "1735689600" — whole seconds with epoch_s_frac format
+	cfg := &Config{
+		Pagination: PaginationConfig{
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "since",
+				TimestampFieldName: "ts",
+				TimestampFormat:    "epoch_s_frac",
+				InitialTimestamp:   "1735689600",
+				PageSize:           100,
+			},
+		},
+	}
+
+	state := newPaginationState(cfg)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, expected.Equal(state.CurrentTimestamp), "expected %v, got %v", expected, state.CurrentTimestamp)
+	require.Equal(t, 100, state.PageSize)
+}
+
+func TestParseTimestampValue_FractionalFloat(t *testing.T) {
+	// Float64 seconds with fractional part
+	result := parseTimestampValue(1735689600.123)
+	expected := time.Date(2025, 1, 1, 0, 0, 0, 123000000, time.UTC)
+	require.InDelta(t, expected.UnixNano(), result.UnixNano(), 1000, "expected %v, got %v", expected, result)
+
+	// Float64 milliseconds with fractional part
+	result = parseTimestampValue(1735689600123.456)
+	expected = time.Date(2025, 1, 1, 0, 0, 0, 123456000, time.UTC)
+	require.InDelta(t, expected.UnixNano(), result.UnixNano(), 1000, "expected %v, got %v", expected, result)
 }
 
 func TestParsePaginationResponse_WithDataArray(t *testing.T) {

@@ -154,6 +154,9 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 						timestampForRequest = timestampForRequest.Add(time.Microsecond)
 					case epochNanoseconds:
 						timestampForRequest = timestampForRequest.Add(time.Nanosecond)
+					case epochSecondsFractional:
+						// Fractional seconds — increment by 1 microsecond as a reasonable default.
+						timestampForRequest = timestampForRequest.Add(time.Microsecond)
 					default:
 						// For string formats, increment by 1 microsecond since most formats
 						// preserve microsecond precision at best.
@@ -372,10 +375,14 @@ func parseTimestampValue(timestampVal any) time.Time {
 		// Unix timestamp (seconds or milliseconds)
 		if timestampFloat > 1e10 {
 			// Likely milliseconds
-			parsedTime = time.Unix(0, int64(timestampFloat*1e6))
+			ms := int64(timestampFloat)
+			fracNs := int64((timestampFloat - float64(ms)) * 1e6)
+			parsedTime = time.Unix(0, ms*int64(time.Millisecond)+fracNs)
 		} else {
-			// Likely seconds
-			parsedTime = time.Unix(int64(timestampFloat), 0)
+			// Likely seconds (preserve fractional part as nanoseconds)
+			sec := int64(timestampFloat)
+			fracNs := int64((timestampFloat - float64(sec)) * 1e9)
+			parsedTime = time.Unix(sec, fracNs)
 		}
 	} else if timestampInt, ok := timestampVal.(int64); ok {
 		if timestampInt > 1e10 {

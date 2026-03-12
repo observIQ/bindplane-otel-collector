@@ -5,6 +5,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 ## Supported Pipelines
 
 Alpha:
+
 - Logs
 - Metrics
 
@@ -27,23 +28,23 @@ Alpha:
 
 ## Configuration
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `url` | string | | `true` | The base URL for the REST API endpoint |
-| `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array. For nested fields, use dot notation (e.g., `response.data`) |
-| `metrics` | object | | `false` | Metrics configuration (see below) |
-| `auth_mode` | string | `none` | `false` | Authentication mode: `none`, `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
-| `apikey` | object | | `false` | API Key configuration (see below) |
-| `bearer` | object | | `false` | Bearer Token configuration (see below) |
-| `basic` | object | | `false` | Basic Auth configuration (see below) |
-| `oauth2` | object | | `false` | OAuth2 Client Credentials configuration (see below) |
-| `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
-| `pagination` | object | | `false` | Pagination configuration (see below) |
-| `min_poll_interval` | duration | `10s` | `false` | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits. |
-| `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts at `min_poll_interval` and backs off when no data is returned, up to this maximum. |
-| `backoff_multiplier` | float | `2.0` | `false` | Multiplier for increasing the poll interval when no data or a partial page is returned. Must be greater than 1.0. |
-| `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
-| `timeout` | duration | `10s` | `false` | HTTP client timeout |
+| Field                | Type      | Default | Required | Description                                                                                                                                                                                    |
+| -------------------- | --------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`                | string    |         | `true`   | The base URL for the REST API endpoint                                                                                                                                                         |
+| `response_field`     | string    |         | `false`  | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array. For nested fields, use dot notation (e.g., `response.data`) |
+| `metrics`            | object    |         | `false`  | Metrics configuration (see below)                                                                                                                                                              |
+| `auth_mode`          | string    | `none`  | `false`  | Authentication mode: `none`, `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid`                                                                                                       |
+| `apikey`             | object    |         | `false`  | API Key configuration (see below)                                                                                                                                                              |
+| `bearer`             | object    |         | `false`  | Bearer Token configuration (see below)                                                                                                                                                         |
+| `basic`              | object    |         | `false`  | Basic Auth configuration (see below)                                                                                                                                                           |
+| `oauth2`             | object    |         | `false`  | OAuth2 Client Credentials configuration (see below)                                                                                                                                            |
+| `akamai_edgegrid`    | object    |         | `false`  | Akamai EdgeGrid configuration (see below)                                                                                                                                                      |
+| `pagination`         | object    |         | `false`  | Pagination configuration (see below)                                                                                                                                                           |
+| `min_poll_interval`  | duration  | `10s`   | `false`  | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits.                                              |
+| `max_poll_interval`  | duration  | `5m`    | `false`  | Maximum interval between API polls. The receiver uses adaptive polling that starts at `min_poll_interval` and backs off when no data is returned, up to this maximum.                          |
+| `backoff_multiplier` | float     | `2.0`   | `false`  | Multiplier for increasing the poll interval when no data or a partial page is returned. Must be greater than 1.0.                                                                              |
+| `storage`            | component |         | `false`  | The component ID of a storage extension for checkpointing                                                                                                                                      |
+| `timeout`            | duration  | `10s`   | `false`  | HTTP client timeout                                                                                                                                                                            |
 
 ### Auth Mode Configuration
 
@@ -53,105 +54,108 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 
 #### API Key
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `header_name` | string | | `true` | Header name for API key (required if `auth_mode` is `apikey`) |
-| `value` | string | | `true` | API key value (required if `auth_mode` is `apikey`) |
+| Field         | Type   | Default | Required | Description                                                   |
+| ------------- | ------ | ------- | -------- | ------------------------------------------------------------- |
+| `header_name` | string |         | `true`   | Header name for API key (required if `auth_mode` is `apikey`) |
+| `value`       | string |         | `true`   | API key value (required if `auth_mode` is `apikey`)           |
 
 #### Bearer Token
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `token` | string | | `true` | Bearer token value (required if `auth_mode` is `bearer`) |
+| Field   | Type   | Default | Required | Description                                              |
+| ------- | ------ | ------- | -------- | -------------------------------------------------------- |
+| `token` | string |         | `true`   | Bearer token value (required if `auth_mode` is `bearer`) |
 
 #### Basic Auth
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `username` | string | | `true` | Username for basic auth (required if `auth_mode` is `basic`) |
-| `password` | string | | `true` | Password for basic auth |
+| Field      | Type   | Default | Required | Description                                                  |
+| ---------- | ------ | ------- | -------- | ------------------------------------------------------------ |
+| `username` | string |         | `true`   | Username for basic auth (required if `auth_mode` is `basic`) |
+| `password` | string |         | `true`   | Password for basic auth                                      |
 
 #### OAuth2 Client Credentials
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `client_id` | string | | `true` | OAuth2 client ID (required if `auth_mode` is `oauth2`) |
-| `client_secret` | string | | `true` | OAuth2 client secret (required if `auth_mode` is `oauth2`) |
-| `token_url` | string | | `true` | OAuth2 token endpoint URL (required if `auth_mode` is `oauth2`) |
-| `scopes` | []string | | `false` | OAuth2 scopes to request |
-| `endpoint_params` | map[string]string | | `false` | Additional parameters to send to the token endpoint |
+| Field             | Type              | Default | Required | Description                                                     |
+| ----------------- | ----------------- | ------- | -------- | --------------------------------------------------------------- |
+| `client_id`       | string            |         | `true`   | OAuth2 client ID (required if `auth_mode` is `oauth2`)          |
+| `client_secret`   | string            |         | `true`   | OAuth2 client secret (required if `auth_mode` is `oauth2`)      |
+| `token_url`       | string            |         | `true`   | OAuth2 token endpoint URL (required if `auth_mode` is `oauth2`) |
+| `scopes`          | []string          |         | `false`  | OAuth2 scopes to request                                        |
+| `endpoint_params` | map[string]string |         | `false`  | Additional parameters to send to the token endpoint             |
 
 #### Akamai EdgeGrid
 
 **The Akamai API requires an enterprise license. This authentication method has not been tested against an Akamai API.**
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `akamai_access_token` | string || `true` | Akamai EdgeGrid access token |
-| `akamai_client_token` | string || `true` | Akamai EdgeGrid client token |
-| `akamai_client_secret` | string || `true` | Akamai EdgeGrid client secret |
+| Field                  | Type   | Default | Required | Description                   |
+| ---------------------- | ------ | ------- | -------- | ----------------------------- |
+| `akamai_access_token`  | string |         | `true`   | Akamai EdgeGrid access token  |
+| `akamai_client_token`  | string |         | `true`   | Akamai EdgeGrid client token  |
+| `akamai_client_secret` | string |         | `true`   | Akamai EdgeGrid client secret |
 
 ### Pagination Configuration
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `pagination.mode` | string | `none` | `false` | Pagination mode: `none`, `offset_limit`, `page_size`, or `timestamp` |
-| `pagination.total_record_count_field` | string | | `false` | Field name in response containing total record count |
-| `pagination.page_limit` | int | `0` | `false` | Maximum number of pages to fetch (0 = no limit) |
-| `pagination.zero_based_index` | bool | `false` | `false` | Indicates that the requested data starts at index 0 |
+| Field                                 | Type   | Default | Required | Description                                                          |
+| ------------------------------------- | ------ | ------- | -------- | -------------------------------------------------------------------- |
+| `pagination.mode`                     | string | `none`  | `false`  | Pagination mode: `none`, `offset_limit`, `page_size`, or `timestamp` |
+| `pagination.total_record_count_field` | string |         | `false`  | Field name in response containing total record count                 |
+| `pagination.page_limit`               | int    | `0`     | `false`  | Maximum number of pages to fetch (0 = no limit)                      |
+| `pagination.zero_based_index`         | bool   | `false` | `false`  | Indicates that the requested data starts at index 0                  |
 
 #### Offset/Limit Pagination
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `pagination.offset_limit.offset_field_name` | string | | `false` | Query parameter name for offset |
-| `pagination.offset_limit.limit_field_name` | string | | `false` | Query parameter name for limit |
-| `pagination.offset_limit.starting_offset` | int | `0` | `false` | Starting offset value |
+| Field                                       | Type   | Default | Required | Description                     |
+| ------------------------------------------- | ------ | ------- | -------- | ------------------------------- |
+| `pagination.offset_limit.offset_field_name` | string |         | `false`  | Query parameter name for offset |
+| `pagination.offset_limit.limit_field_name`  | string |         | `false`  | Query parameter name for limit  |
+| `pagination.offset_limit.starting_offset`   | int    | `0`     | `false`  | Starting offset value           |
 
 #### Page/Size Pagination
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `pagination.page_size.page_num_field_name` | string | | `false` | Query parameter name for page number |
-| `pagination.page_size.page_size_field_name` | string | | `false` | Query parameter name for page size |
-| `pagination.page_size.starting_page` | int | `1` | `false` | Starting page number |
-| `pagination.page_size.total_pages_field_name` | string | | `false` | Field name in response containing total page count |
+| Field                                         | Type   | Default | Required | Description                                        |
+| --------------------------------------------- | ------ | ------- | -------- | -------------------------------------------------- |
+| `pagination.page_size.page_num_field_name`    | string |         | `false`  | Query parameter name for page number               |
+| `pagination.page_size.page_size_field_name`   | string |         | `false`  | Query parameter name for page size                 |
+| `pagination.page_size.starting_page`          | int    | `1`     | `false`  | Starting page number                               |
+| `pagination.page_size.total_pages_field_name` | string |         | `false`  | Field name in response containing total page count |
 
 #### Timestamp-Based Pagination
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `pagination.timestamp.param_name` | string | | `true` | Query parameter name for timestamp (e.g., "t0", "since", "after", "start_time") |
-| `pagination.timestamp.timestamp_field_name` | string | | `true` | Field name in each response item containing the timestamp (e.g., "ts", "timestamp") |
-| `pagination.timestamp.timestamp_format` | string | RFC3339 | `false` | Format for the timestamp query parameter. Accepts Go time format strings or epoch formats (see below) |
-| `pagination.timestamp.page_size_field_name` | string | | `false` | Query parameter name for page size (e.g., "perPage", "limit") |
-| `pagination.timestamp.page_size` | int | `100` | `false` | Page size to use |
-| `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from. For string formats, use RFC3339 (e.g., `2025-01-01T00:00:00Z`) or the configured `timestamp_format`. For epoch formats, use a numeric value (e.g., `1704067200`). If not set, starts from beginning |
+| Field                                       | Type   | Default | Required | Description                                                                                                                                                                                                                          |
+| ------------------------------------------- | ------ | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pagination.timestamp.param_name`           | string |         | `true`   | Query parameter name for timestamp (e.g., "t0", "since", "after", "start_time")                                                                                                                                                      |
+| `pagination.timestamp.timestamp_field_name` | string |         | `true`   | Field name in each response item containing the timestamp (e.g., "ts", "timestamp")                                                                                                                                                  |
+| `pagination.timestamp.timestamp_format`     | string | RFC3339 | `false`  | Format for the timestamp query parameter. Accepts Go time format strings or epoch formats (see below)                                                                                                                                |
+| `pagination.timestamp.page_size_field_name` | string |         | `false`  | Query parameter name for page size (e.g., "perPage", "limit")                                                                                                                                                                        |
+| `pagination.timestamp.page_size`            | int    | `100`   | `false`  | Page size to use                                                                                                                                                                                                                     |
+| `pagination.timestamp.initial_timestamp`    | string |         | `false`  | Initial timestamp to start from. For string formats, use RFC3339 (e.g., `2025-01-01T00:00:00Z`) or the configured `timestamp_format`. For epoch formats, use a numeric value (e.g., `1704067200`). If not set, starts from beginning |
 
 Common timestamp formats:
+
 - `2006-01-02T15:04:05Z07:00` - RFC3339 (default)
 - `20060102150405` - YYYYMMDDHHMMSS
 - `2006-01-02 15:04:05` - Date and time with space separator
 - `2006-01-02` - Date only
 
 Epoch timestamp formats (sends numeric values instead of formatted strings):
+
 - `epoch_s` - Unix epoch seconds (e.g., `1704067200`)
 - `epoch_ms` - Unix epoch milliseconds (e.g., `1704067200000`)
 - `epoch_us` - Unix epoch microseconds (e.g., `1704067200000000`)
 - `epoch_ns` - Unix epoch nanoseconds (e.g., `1704067200000000000`)
+- `epoch_s_frac` - Fractional epoch seconds (e.g., `1704067200.123456`). The integer part is seconds and the fractional digits represent sub-second precision (`.123` = milliseconds, `.123456` = microseconds, `.123456789` = nanoseconds). Used by APIs that expect `seconds.fraction` format in both responses and query parameters.
 
 ### Metrics Configuration
 
 The metrics configuration allows you to customize how metrics are extracted from API responses.
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `metrics.name_field` | string | | `true` | Field name in each response item containing the metric name. If not found, the metric will be dropped and a warning will be logged. |
-| `metrics.description_field` | string | | `false` | Field name in each response item containing the metric description. If not specified or not found, defaults to `Metric from REST API` |
-| `metrics.type_field` | string | | `false` | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge` |
-| `metrics.unit_field` | string | | `false` | Field name in each response item containing the metric unit. If not specified or not found, no unit is set |
-| `metrics.monotonic_field` | string | | `false` | Field name in each response item indicating if a sum metric is monotonic (boolean). Only applies to `sum` metrics. If not specified or not found, defaults to `false` for safety |
-| `metrics.aggregation_temporality_field` | string | | `false` | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). If not specified or not found, defaults to `cumulative` |
+| Field                                   | Type   | Default | Required | Description                                                                                                                                                                      |
+| --------------------------------------- | ------ | ------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `metrics.name_field`                    | string |         | `true`   | Field name in each response item containing the metric name. If not found, the metric will be dropped and a warning will be logged.                                              |
+| `metrics.description_field`             | string |         | `false`  | Field name in each response item containing the metric description. If not specified or not found, defaults to `Metric from REST API`                                            |
+| `metrics.type_field`                    | string |         | `false`  | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge`                         |
+| `metrics.unit_field`                    | string |         | `false`  | Field name in each response item containing the metric unit. If not specified or not found, no unit is set                                                                       |
+| `metrics.monotonic_field`               | string |         | `false`  | Field name in each response item indicating if a sum metric is monotonic (boolean). Only applies to `sum` metrics. If not specified or not found, defaults to `false` for safety |
+| `metrics.aggregation_temporality_field` | string |         | `false`  | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). If not specified or not found, defaults to `cumulative`                       |
 
 **Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication. If the `name_field` isn't found, the metric will be dropped.
 
@@ -303,7 +307,7 @@ receivers:
       timestamp:
         param_name: "min-date"
         timestamp_field_name: "timestamp"
-        timestamp_format: "20060102150405"  # YYYYMMDDHHMMSS format
+        timestamp_format: "20060102150405" # YYYYMMDDHHMMSS format
         initial_timestamp: "2025-01-01T00:00:00Z"
 ```
 
@@ -325,8 +329,8 @@ receivers:
       timestamp:
         param_name: "since"
         timestamp_field_name: "created_at"
-        timestamp_format: "epoch_s"          # sends ?since=1704067200
-        initial_timestamp: "1704067200"      # 2024-01-01T00:00:00Z
+        timestamp_format: "epoch_s" # sends ?since=1704067200
+        initial_timestamp: "1704067200" # 2024-01-01T00:00:00Z
         page_size_field_name: "limit"
         page_size: 100
     storage: file_storage
@@ -366,6 +370,7 @@ service:
 ```
 
 This configuration would work with an API response like:
+
 ```json
 {
   "metrics": [
@@ -398,19 +403,21 @@ This configuration would work with an API response like:
 The receiver expects JSON responses in one of two formats:
 
 1. **Top-level array:**
+
 ```json
 [
-  {"id": "1", "message": "log entry 1"},
-  {"id": "2", "message": "log entry 2"}
+  { "id": "1", "message": "log entry 1" },
+  { "id": "2", "message": "log entry 2" }
 ]
 ```
 
 2. **Object with data field:**
+
 ```json
 {
   "data": [
-    {"id": "1", "message": "log entry 1"},
-    {"id": "2", "message": "log entry 2"}
+    { "id": "1", "message": "log entry 1" },
+    { "id": "2", "message": "log entry 2" }
   ],
   "total": 2
 }
@@ -435,6 +442,7 @@ To poll at a fixed interval, set `min_poll_interval` and `max_poll_interval` to 
 When a storage extension is configured, the receiver saves its pagination state to storage. This allows the receiver to resume from where it left off after a restart, preventing duplicate data collection.
 
 The checkpoint includes:
+
 - Current pagination state (offset/page number/timestamp)
 - Number of pages fetched
 

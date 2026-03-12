@@ -645,6 +645,69 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: "",
 		},
 		{
+			name: "valid timestamp pagination with epoch_s_frac format (milliseconds)",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_s_frac",
+						InitialTimestamp:   "1704067200.123",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "valid timestamp pagination with epoch_s_frac format (microseconds)",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_s_frac",
+						InitialTimestamp:   "1704067200.123456",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "valid timestamp pagination with epoch_s_frac format (whole seconds)",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "since",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "epoch_s_frac",
+						InitialTimestamp:   "1704067200",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
 			name: "invalid epoch initial_timestamp (not numeric)",
 			config: &Config{
 				URL:      "https://api.example.com/data",

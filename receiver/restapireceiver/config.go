@@ -17,6 +17,7 @@ package restapireceiver // import "github.com/observiq/bindplane-otel-collector/
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -26,10 +27,11 @@ import (
 const (
 	// Epoch timestamp format constants for use in TimestampFormat.
 	// These send the timestamp as a numeric epoch value instead of a formatted string.
-	epochSeconds      = "epoch_s"
-	epochMilliseconds = "epoch_ms"
-	epochMicroseconds = "epoch_us"
-	epochNanoseconds  = "epoch_ns"
+	epochSeconds            = "epoch_s"
+	epochMilliseconds       = "epoch_ms"
+	epochMicroseconds       = "epoch_us"
+	epochNanoseconds        = "epoch_ns"
+	epochSecondsFractional  = "epoch_s_frac"
 )
 
 // AuthMode defines the authentication mode for the REST API receiver.
@@ -370,7 +372,7 @@ func (c *Config) Validate() error {
 			var parsed bool
 			// For epoch formats, validate that initial_timestamp is a numeric value
 			if isEpochFormat(c.Pagination.Timestamp.TimestampFormat) {
-				if _, err := strconv.ParseInt(c.Pagination.Timestamp.InitialTimestamp, 10, 64); err == nil {
+				if _, err := strconv.ParseFloat(c.Pagination.Timestamp.InitialTimestamp, 64); err == nil {
 					parsed = true
 				}
 				if !parsed {
@@ -436,7 +438,7 @@ func (c *Config) Validate() error {
 // isEpochFormat returns true if the given format string is one of the epoch timestamp formats.
 func isEpochFormat(format string) bool {
 	switch format {
-	case epochSeconds, epochMilliseconds, epochMicroseconds, epochNanoseconds:
+	case epochSeconds, epochMilliseconds, epochMicroseconds, epochNanoseconds, epochSecondsFractional:
 		return true
 	}
 	return false
@@ -453,13 +455,47 @@ func formatTimestampEpoch(t time.Time, format string) string {
 		return strconv.FormatInt(t.UnixMicro(), 10)
 	case epochNanoseconds:
 		return strconv.FormatInt(t.UnixNano(), 10)
+	case epochSecondsFractional:
+		nsec := int64(t.Nanosecond())
+		if nsec == 0 {
+			return strconv.FormatInt(t.Unix(), 10)
+		}
+		frac := strings.TrimRight(fmt.Sprintf("%09d", nsec), "0")
+		return fmt.Sprintf("%d.%s", t.Unix(), frac)
 	default:
 		return strconv.FormatInt(t.Unix(), 10)
 	}
 }
 
 // parseEpochTimestamp parses a numeric epoch string into a time.Time based on the epoch format.
+// For epoch_s, epoch_ms, epoch_us, epoch_ns: the value must be an integer in the configured unit.
+// For epoch_s_frac: the value is fractional seconds (e.g., "1704067200.123456") where the integer
+// part is seconds and the fractional digits are sub-second precision.
 func parseEpochTimestamp(value string, format string) (time.Time, error) {
+	// epoch_s_frac: fractional seconds (e.g., "1704067200.123456")
+	if format == epochSecondsFractional {
+		parts := strings.SplitN(value, ".", 2)
+		sec, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("failed to parse epoch timestamp %q: %w", value, err)
+		}
+		var nsec int64
+		if len(parts) == 2 && len(parts[1]) > 0 {
+			fracStr := parts[1]
+			if len(fracStr) < 9 {
+				fracStr += strings.Repeat("0", 9-len(fracStr))
+			} else if len(fracStr) > 9 {
+				fracStr = fracStr[:9]
+			}
+			nsec, err = strconv.ParseInt(fracStr, 10, 64)
+			if err != nil {
+				return time.Time{}, fmt.Errorf("failed to parse fractional epoch timestamp %q: %w", value, err)
+			}
+		}
+		return time.Unix(sec, nsec), nil
+	}
+
+	// All other epoch formats: integer value in the configured unit
 	n, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("failed to parse epoch timestamp %q: %w", value, err)
