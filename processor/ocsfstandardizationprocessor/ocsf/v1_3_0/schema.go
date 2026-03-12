@@ -25407,2516 +25407,272 @@ func ValidateClass(classUID int, profiles []string, data any) error {
 	switch classUID {
 	case ClassUIDAccountChange:
 		baseErr = validateAccountChange(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDAdminGroupQuery:
 		baseErr = validateAdminGroupQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDAPIActivity:
 		baseErr = validateAPIActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDApplicationLifecycle:
 		baseErr = validateApplicationLifecycle(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDAuthentication:
 		baseErr = validateAuthentication(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDAuthorizeSession:
 		baseErr = validateAuthorizeSession(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDBaseEvent:
 		baseErr = validateBaseEvent(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDComplianceFinding:
 		baseErr = validateComplianceFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDConfigState:
 		baseErr = validateConfigState(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDataSecurityFinding:
 		baseErr = validateDataSecurityFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDatastoreActivity:
 		baseErr = validateDatastoreActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDetectionFinding:
 		baseErr = validateDetectionFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDeviceConfigStateChange:
 		baseErr = validateDeviceConfigStateChange(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDhcpActivity:
 		baseErr = validateDhcpActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDDNSActivity:
 		baseErr = validateDNSActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDEmailActivity:
 		baseErr = validateEmailActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDEmailFileActivity:
 		baseErr = validateEmailFileActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDEmailURLActivity:
 		baseErr = validateEmailURLActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDEntityManagement:
 		baseErr = validateEntityManagement(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDEventLog:
 		baseErr = validateEventLog(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFileActivity:
 		baseErr = validateFileActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFileHosting:
 		baseErr = validateFileHosting(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFileQuery:
 		baseErr = validateFileQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFileRemediationActivity:
 		baseErr = validateFileRemediationActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFolderQuery:
 		baseErr = validateFolderQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDFtpActivity:
 		baseErr = validateFtpActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDGroupManagement:
 		baseErr = validateGroupManagement(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDHTTPActivity:
 		baseErr = validateHTTPActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDIncidentFinding:
 		baseErr = validateIncidentFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDInventoryInfo:
 		baseErr = validateInventoryInfo(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDJobQuery:
 		baseErr = validateJobQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDKernelActivity:
 		baseErr = validateKernelActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDKernelExtension:
 		baseErr = validateKernelExtension(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDKernelObjectQuery:
 		baseErr = validateKernelObjectQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDMemoryActivity:
 		baseErr = validateMemoryActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDModuleActivity:
 		baseErr = validateModuleActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDModuleQuery:
 		baseErr = validateModuleQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNetworkActivity:
 		baseErr = validateNetworkActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNetworkConnectionQuery:
 		baseErr = validateNetworkConnectionQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNetworkFileActivity:
 		baseErr = validateNetworkFileActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNetworkRemediationActivity:
 		baseErr = validateNetworkRemediationActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNetworksQuery:
 		baseErr = validateNetworksQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDNtpActivity:
 		baseErr = validateNtpActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDPatchState:
 		baseErr = validatePatchState(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDPeripheralDeviceQuery:
 		baseErr = validatePeripheralDeviceQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDProcessActivity:
 		baseErr = validateProcessActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDProcessQuery:
 		baseErr = validateProcessQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDProcessRemediationActivity:
 		baseErr = validateProcessRemediationActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDRDPActivity:
 		baseErr = validateRDPActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDRemediationActivity:
 		baseErr = validateRemediationActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDScanActivity:
 		baseErr = validateScanActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDScheduledJobActivity:
 		baseErr = validateScheduledJobActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDSecurityFinding:
 		baseErr = validateSecurityFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDServiceQuery:
 		baseErr = validateServiceQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDSessionQuery:
 		baseErr = validateSessionQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDSmbActivity:
 		baseErr = validateSmbActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDSoftwareInfo:
 		baseErr = validateSoftwareInfo(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDSSHActivity:
 		baseErr = validateSSHActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDTunnelActivity:
 		baseErr = validateTunnelActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "load_balancer":
-				if err := validateProfileLoadBalancer(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDUserAccess:
 		baseErr = validateUserAccess(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDUserInventory:
 		baseErr = validateUserInventory(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDUserQuery:
 		baseErr = validateUserQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDVulnerabilityFinding:
 		baseErr = validateVulnerabilityFinding(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWebResourceAccessActivity:
 		baseErr = validateWebResourceAccessActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWebResourcesActivity:
 		baseErr = validateWebResourcesActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "network_proxy":
-				if err := validateProfileNetworkProxy(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinPrefetchQuery:
 		baseErr = validateWinPrefetchQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinRegistryKeyActivity:
 		baseErr = validateWinRegistryKeyActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinRegistryKeyQuery:
 		baseErr = validateWinRegistryKeyQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinRegistryValueActivity:
 		baseErr = validateWinRegistryValueActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinRegistryValueQuery:
 		baseErr = validateWinRegistryValueQuery(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "host":
-				if err := validateProfileHost(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinResourceActivity:
 		baseErr = validateWinResourceActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	case ClassUIDWinWinServiceActivity:
 		baseErr = validateWinWinServiceActivity(m)
-		for _, p := range profiles {
-			switch p {
-			case "cloud":
-				if err := validateProfileCloud(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "datetime":
-				if err := validateProfileDatetime(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "osint":
-				if err := validateProfileOsint(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			case "security_control":
-				if err := validateProfileSecurityControl(m); err != nil {
-					baseErr = errors.Join(baseErr, err)
-				}
-			}
-		}
 	default:
 		return fmt.Errorf("unknown class UID: %d", classUID)
+	}
+	for _, p := range profiles {
+		switch p {
+		case "cloud":
+			if err := validateProfileCloud(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "datetime":
+			if err := validateProfileDatetime(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "host":
+			if err := validateProfileHost(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "load_balancer":
+			if err := validateProfileLoadBalancer(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "network_proxy":
+			if err := validateProfileNetworkProxy(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "osint":
+			if err := validateProfileOsint(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		case "security_control":
+			if err := validateProfileSecurityControl(m); err != nil {
+				baseErr = errors.Join(baseErr, err)
+			}
+		}
 	}
 	return baseErr
 }
 
-func validateProfileAccountChange(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class account_change", profile)
-	}
-}
-
-func validateProfileAdminGroupQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class admin_group_query", profile)
-	}
-}
-
-func validateProfileAPIActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class api_activity", profile)
-	}
-}
-
-func validateProfileApplicationLifecycle(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class application_lifecycle", profile)
-	}
-}
-
-func validateProfileAuthentication(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class authentication", profile)
-	}
-}
-
-func validateProfileAuthorizeSession(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class authorize_session", profile)
-	}
-}
-
-func validateProfileBaseEvent(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class base_event", profile)
-	}
-}
-
-func validateProfileComplianceFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class compliance_finding", profile)
-	}
-}
-
-func validateProfileConfigState(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class config_state", profile)
-	}
-}
-
-func validateProfileDataSecurityFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class data_security_finding", profile)
-	}
-}
-
-func validateProfileDatastoreActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class datastore_activity", profile)
-	}
-}
-
-func validateProfileDetectionFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class detection_finding", profile)
-	}
-}
-
-func validateProfileDeviceConfigStateChange(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class device_config_state_change", profile)
-	}
-}
-
-func validateProfileDhcpActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class dhcp_activity", profile)
-	}
-}
-
-func validateProfileDNSActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class dns_activity", profile)
-	}
-}
-
-func validateProfileEmailActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class email_activity", profile)
-	}
-}
-
-func validateProfileEmailFileActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class email_file_activity", profile)
-	}
-}
-
-func validateProfileEmailURLActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class email_url_activity", profile)
-	}
-}
-
-func validateProfileEntityManagement(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class entity_management", profile)
-	}
-}
-
-func validateProfileEventLog(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class event_log", profile)
-	}
-}
-
-func validateProfileFileActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class file_activity", profile)
-	}
-}
-
-func validateProfileFileHosting(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class file_hosting", profile)
-	}
-}
-
-func validateProfileFileQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class file_query", profile)
-	}
-}
-
-func validateProfileFileRemediationActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class file_remediation_activity", profile)
-	}
-}
-
-func validateProfileFolderQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class folder_query", profile)
-	}
-}
-
-func validateProfileFtpActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class ftp_activity", profile)
-	}
-}
-
-func validateProfileGroupManagement(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class group_management", profile)
-	}
-}
-
-func validateProfileHTTPActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class http_activity", profile)
-	}
-}
-
-func validateProfileIncidentFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class incident_finding", profile)
-	}
-}
-
-func validateProfileInventoryInfo(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class inventory_info", profile)
-	}
-}
-
-func validateProfileJobQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class job_query", profile)
-	}
-}
-
-func validateProfileKernelActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class kernel_activity", profile)
-	}
-}
-
-func validateProfileKernelExtension(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class kernel_extension", profile)
-	}
-}
-
-func validateProfileKernelObjectQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class kernel_object_query", profile)
-	}
-}
-
-func validateProfileMemoryActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class memory_activity", profile)
-	}
-}
-
-func validateProfileModuleActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class module_activity", profile)
-	}
-}
-
-func validateProfileModuleQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class module_query", profile)
-	}
-}
-
-func validateProfileNetworkActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class network_activity", profile)
-	}
-}
-
-func validateProfileNetworkConnectionQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class network_connection_query", profile)
-	}
-}
-
-func validateProfileNetworkFileActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class network_file_activity", profile)
-	}
-}
-
-func validateProfileNetworkRemediationActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class network_remediation_activity", profile)
-	}
-}
-
-func validateProfileNetworksQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class networks_query", profile)
-	}
-}
-
-func validateProfileNtpActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class ntp_activity", profile)
-	}
-}
-
-func validateProfilePatchState(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class patch_state", profile)
-	}
-}
-
-func validateProfilePeripheralDeviceQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class peripheral_device_query", profile)
-	}
-}
-
-func validateProfileProcessActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class process_activity", profile)
-	}
-}
-
-func validateProfileProcessQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class process_query", profile)
-	}
-}
-
-func validateProfileProcessRemediationActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class process_remediation_activity", profile)
-	}
-}
-
-func validateProfileRDPActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class rdp_activity", profile)
-	}
-}
-
-func validateProfileRemediationActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class remediation_activity", profile)
-	}
-}
-
-func validateProfileScanActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class scan_activity", profile)
-	}
-}
-
-func validateProfileScheduledJobActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class scheduled_job_activity", profile)
-	}
-}
-
-func validateProfileSecurityFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class security_finding", profile)
-	}
-}
-
-func validateProfileServiceQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class service_query", profile)
-	}
-}
-
-func validateProfileSessionQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class session_query", profile)
-	}
-}
-
-func validateProfileSmbActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class smb_activity", profile)
-	}
-}
-
-func validateProfileSoftwareInfo(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class software_info", profile)
-	}
-}
-
-func validateProfileSSHActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class ssh_activity", profile)
-	}
-}
-
-func validateProfileTunnelActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "load_balancer", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class tunnel_activity", profile)
-	}
-}
-
-func validateProfileUserAccess(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class user_access", profile)
-	}
-}
-
-func validateProfileUserInventory(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class user_inventory", profile)
-	}
-}
-
-func validateProfileUserQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class user_query", profile)
-	}
-}
-
-func validateProfileVulnerabilityFinding(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class vulnerability_finding", profile)
-	}
-}
-
-func validateProfileWebResourceAccessActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "network_proxy", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class web_resource_access_activity", profile)
-	}
-}
-
-func validateProfileWebResourcesActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "network_proxy", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class web_resources_activity", profile)
-	}
-}
-
-func validateProfileWinPrefetchQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/prefetch_query", profile)
-	}
-}
-
-func validateProfileWinRegistryKeyActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/registry_key_activity", profile)
-	}
-}
-
-func validateProfileWinRegistryKeyQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/registry_key_query", profile)
-	}
-}
-
-func validateProfileWinRegistryValueActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/registry_value_activity", profile)
-	}
-}
-
-func validateProfileWinRegistryValueQuery(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "host", "osint":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/registry_value_query", profile)
-	}
-}
-
-func validateProfileWinResourceActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/resource_activity", profile)
-	}
-}
-
-func validateProfileWinWinServiceActivity(profile string) error {
-	switch profile {
-	case "cloud", "datetime", "osint", "security_control":
-		return nil
-	default:
-		return fmt.Errorf("profile %q is not valid for class win/win_service_activity", profile)
-	}
+// classProfiles maps each class UID to its set of valid profile names.
+var classProfiles = map[int]map[string]bool{
+	ClassUIDAccountChange:              {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDAdminGroupQuery:            {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDAPIActivity:                {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDApplicationLifecycle:       {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDAuthentication:             {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDAuthorizeSession:           {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDBaseEvent:                  {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDComplianceFinding:          {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDConfigState:                {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDDataSecurityFinding:        {"cloud": true, "datetime": true, "host": true, "osint": true, "security_control": true},
+	ClassUIDDatastoreActivity:          {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDDetectionFinding:           {"cloud": true, "datetime": true, "host": true, "osint": true, "security_control": true},
+	ClassUIDDeviceConfigStateChange:    {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDDhcpActivity:               {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDDNSActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDEmailActivity:              {"cloud": true, "datetime": true, "host": true, "osint": true, "security_control": true},
+	ClassUIDEmailFileActivity:          {"cloud": true, "datetime": true, "host": true, "osint": true, "security_control": true},
+	ClassUIDEmailURLActivity:           {"cloud": true, "datetime": true, "host": true, "osint": true, "security_control": true},
+	ClassUIDEntityManagement:           {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDEventLog:                   {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDFileActivity:               {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDFileHosting:                {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDFileQuery:                  {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDFileRemediationActivity:    {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDFolderQuery:                {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDFtpActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDGroupManagement:            {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDHTTPActivity:               {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDIncidentFinding:            {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDInventoryInfo:              {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDJobQuery:                   {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDKernelActivity:             {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDKernelExtension:            {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDKernelObjectQuery:          {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDMemoryActivity:             {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDModuleActivity:             {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDModuleQuery:                {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDNetworkActivity:            {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDNetworkConnectionQuery:     {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDNetworkFileActivity:        {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDNetworkRemediationActivity: {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDNetworksQuery:              {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDNtpActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDPatchState:                 {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDPeripheralDeviceQuery:      {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDProcessActivity:            {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDProcessQuery:               {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDProcessRemediationActivity: {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDRDPActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDRemediationActivity:        {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDScanActivity:               {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDScheduledJobActivity:       {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDSecurityFinding:            {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDServiceQuery:               {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDSessionQuery:               {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDSmbActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDSoftwareInfo:               {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDSSHActivity:                {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDTunnelActivity:             {"cloud": true, "datetime": true, "host": true, "load_balancer": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDUserAccess:                 {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDUserInventory:              {"cloud": true, "datetime": true, "osint": true},
+	ClassUIDUserQuery:                  {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDVulnerabilityFinding:       {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDWebResourceAccessActivity:  {"cloud": true, "datetime": true, "host": true, "network_proxy": true, "osint": true},
+	ClassUIDWebResourcesActivity:       {"cloud": true, "datetime": true, "host": true, "network_proxy": true, "osint": true, "security_control": true},
+	ClassUIDWinPrefetchQuery:           {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDWinRegistryKeyActivity:     {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDWinRegistryKeyQuery:        {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDWinRegistryValueActivity:   {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDWinRegistryValueQuery:      {"cloud": true, "datetime": true, "host": true, "osint": true},
+	ClassUIDWinResourceActivity:        {"cloud": true, "datetime": true, "osint": true, "security_control": true},
+	ClassUIDWinWinServiceActivity:      {"cloud": true, "datetime": true, "osint": true, "security_control": true},
 }
 
 // ValidateProfile makes sure the profile is valid for the class identified by classUID.
 func ValidateProfile(classUID int, profile string) error {
-	switch classUID {
-	case ClassUIDAccountChange:
-		return validateProfileAccountChange(profile)
-	case ClassUIDAdminGroupQuery:
-		return validateProfileAdminGroupQuery(profile)
-	case ClassUIDAPIActivity:
-		return validateProfileAPIActivity(profile)
-	case ClassUIDApplicationLifecycle:
-		return validateProfileApplicationLifecycle(profile)
-	case ClassUIDAuthentication:
-		return validateProfileAuthentication(profile)
-	case ClassUIDAuthorizeSession:
-		return validateProfileAuthorizeSession(profile)
-	case ClassUIDBaseEvent:
-		return validateProfileBaseEvent(profile)
-	case ClassUIDComplianceFinding:
-		return validateProfileComplianceFinding(profile)
-	case ClassUIDConfigState:
-		return validateProfileConfigState(profile)
-	case ClassUIDDataSecurityFinding:
-		return validateProfileDataSecurityFinding(profile)
-	case ClassUIDDatastoreActivity:
-		return validateProfileDatastoreActivity(profile)
-	case ClassUIDDetectionFinding:
-		return validateProfileDetectionFinding(profile)
-	case ClassUIDDeviceConfigStateChange:
-		return validateProfileDeviceConfigStateChange(profile)
-	case ClassUIDDhcpActivity:
-		return validateProfileDhcpActivity(profile)
-	case ClassUIDDNSActivity:
-		return validateProfileDNSActivity(profile)
-	case ClassUIDEmailActivity:
-		return validateProfileEmailActivity(profile)
-	case ClassUIDEmailFileActivity:
-		return validateProfileEmailFileActivity(profile)
-	case ClassUIDEmailURLActivity:
-		return validateProfileEmailURLActivity(profile)
-	case ClassUIDEntityManagement:
-		return validateProfileEntityManagement(profile)
-	case ClassUIDEventLog:
-		return validateProfileEventLog(profile)
-	case ClassUIDFileActivity:
-		return validateProfileFileActivity(profile)
-	case ClassUIDFileHosting:
-		return validateProfileFileHosting(profile)
-	case ClassUIDFileQuery:
-		return validateProfileFileQuery(profile)
-	case ClassUIDFileRemediationActivity:
-		return validateProfileFileRemediationActivity(profile)
-	case ClassUIDFolderQuery:
-		return validateProfileFolderQuery(profile)
-	case ClassUIDFtpActivity:
-		return validateProfileFtpActivity(profile)
-	case ClassUIDGroupManagement:
-		return validateProfileGroupManagement(profile)
-	case ClassUIDHTTPActivity:
-		return validateProfileHTTPActivity(profile)
-	case ClassUIDIncidentFinding:
-		return validateProfileIncidentFinding(profile)
-	case ClassUIDInventoryInfo:
-		return validateProfileInventoryInfo(profile)
-	case ClassUIDJobQuery:
-		return validateProfileJobQuery(profile)
-	case ClassUIDKernelActivity:
-		return validateProfileKernelActivity(profile)
-	case ClassUIDKernelExtension:
-		return validateProfileKernelExtension(profile)
-	case ClassUIDKernelObjectQuery:
-		return validateProfileKernelObjectQuery(profile)
-	case ClassUIDMemoryActivity:
-		return validateProfileMemoryActivity(profile)
-	case ClassUIDModuleActivity:
-		return validateProfileModuleActivity(profile)
-	case ClassUIDModuleQuery:
-		return validateProfileModuleQuery(profile)
-	case ClassUIDNetworkActivity:
-		return validateProfileNetworkActivity(profile)
-	case ClassUIDNetworkConnectionQuery:
-		return validateProfileNetworkConnectionQuery(profile)
-	case ClassUIDNetworkFileActivity:
-		return validateProfileNetworkFileActivity(profile)
-	case ClassUIDNetworkRemediationActivity:
-		return validateProfileNetworkRemediationActivity(profile)
-	case ClassUIDNetworksQuery:
-		return validateProfileNetworksQuery(profile)
-	case ClassUIDNtpActivity:
-		return validateProfileNtpActivity(profile)
-	case ClassUIDPatchState:
-		return validateProfilePatchState(profile)
-	case ClassUIDPeripheralDeviceQuery:
-		return validateProfilePeripheralDeviceQuery(profile)
-	case ClassUIDProcessActivity:
-		return validateProfileProcessActivity(profile)
-	case ClassUIDProcessQuery:
-		return validateProfileProcessQuery(profile)
-	case ClassUIDProcessRemediationActivity:
-		return validateProfileProcessRemediationActivity(profile)
-	case ClassUIDRDPActivity:
-		return validateProfileRDPActivity(profile)
-	case ClassUIDRemediationActivity:
-		return validateProfileRemediationActivity(profile)
-	case ClassUIDScanActivity:
-		return validateProfileScanActivity(profile)
-	case ClassUIDScheduledJobActivity:
-		return validateProfileScheduledJobActivity(profile)
-	case ClassUIDSecurityFinding:
-		return validateProfileSecurityFinding(profile)
-	case ClassUIDServiceQuery:
-		return validateProfileServiceQuery(profile)
-	case ClassUIDSessionQuery:
-		return validateProfileSessionQuery(profile)
-	case ClassUIDSmbActivity:
-		return validateProfileSmbActivity(profile)
-	case ClassUIDSoftwareInfo:
-		return validateProfileSoftwareInfo(profile)
-	case ClassUIDSSHActivity:
-		return validateProfileSSHActivity(profile)
-	case ClassUIDTunnelActivity:
-		return validateProfileTunnelActivity(profile)
-	case ClassUIDUserAccess:
-		return validateProfileUserAccess(profile)
-	case ClassUIDUserInventory:
-		return validateProfileUserInventory(profile)
-	case ClassUIDUserQuery:
-		return validateProfileUserQuery(profile)
-	case ClassUIDVulnerabilityFinding:
-		return validateProfileVulnerabilityFinding(profile)
-	case ClassUIDWebResourceAccessActivity:
-		return validateProfileWebResourceAccessActivity(profile)
-	case ClassUIDWebResourcesActivity:
-		return validateProfileWebResourcesActivity(profile)
-	case ClassUIDWinPrefetchQuery:
-		return validateProfileWinPrefetchQuery(profile)
-	case ClassUIDWinRegistryKeyActivity:
-		return validateProfileWinRegistryKeyActivity(profile)
-	case ClassUIDWinRegistryKeyQuery:
-		return validateProfileWinRegistryKeyQuery(profile)
-	case ClassUIDWinRegistryValueActivity:
-		return validateProfileWinRegistryValueActivity(profile)
-	case ClassUIDWinRegistryValueQuery:
-		return validateProfileWinRegistryValueQuery(profile)
-	case ClassUIDWinResourceActivity:
-		return validateProfileWinResourceActivity(profile)
-	case ClassUIDWinWinServiceActivity:
-		return validateProfileWinWinServiceActivity(profile)
-	default:
-		return fmt.Errorf("unknown class UID: %d", classUID)
+	profiles, ok := classProfiles[classUID]
+	if !ok {
+		return fmt.Errorf("profile %q is not valid for class UID %d (class has no profiles)", profile, classUID)
 	}
+	if !profiles[profile] {
+		return fmt.Errorf("profile %q is not valid for class UID %d", profile, classUID)
+	}
+	return nil
 }
 
 // fieldReqs describes the requirement metadata for a class or object.

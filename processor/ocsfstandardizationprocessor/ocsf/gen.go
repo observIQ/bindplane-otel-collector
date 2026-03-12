@@ -537,6 +537,17 @@ func writeEnumValidation(buf *bytes.Buffer, fieldName string, attr Attribute) {
 // writeValidateClass generates a ValidateClass function that validates data
 // directly as map[string]any against the appropriate class, including profile validation.
 func writeValidateClass(buf *bytes.Buffer, schema Schema, classNames []string) {
+	// Collect all unique profile names across all classes for the shared dispatch.
+	allProfileSet := map[string]bool{}
+	for _, cls := range schema.Classes {
+		for _, attr := range cls.Attributes {
+			if attr.Profile != "" {
+				allProfileSet[attr.Profile] = true
+			}
+		}
+	}
+	allProfiles := sortedKeys(allProfileSet)
+
 	buf.WriteString("// ValidateClass validates data against the OCSF event class identified by classUID.\n")
 	buf.WriteString("// If profiles are provided, profile-specific validation is also applied.\n")
 	buf.WriteString("func ValidateClass(classUID int, profiles []string, data any) error {\n")
@@ -548,81 +559,73 @@ func writeValidateClass(buf *bytes.Buffer, schema Schema, classNames []string) {
 	buf.WriteString("switch classUID {\n")
 	for _, name := range classNames {
 		goName := toGoName(name)
-		cls := schema.Classes[name]
-
-		// Collect profiles for this class
-		classProfileSet := map[string]bool{}
-		for _, attr := range cls.Attributes {
-			if attr.Profile != "" {
-				classProfileSet[attr.Profile] = true
-			}
-		}
-		classProfiles := sortedKeys(classProfileSet)
-
 		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
 		fmt.Fprintf(buf, "baseErr = validate%s(m)\n", goName)
-
-		if len(classProfiles) > 0 {
-			buf.WriteString("for _, p := range profiles {\n")
-			buf.WriteString("switch p {\n")
-			for _, prof := range classProfiles {
-				goProf := toGoName(prof)
-				fmt.Fprintf(buf, "case %q:\n", prof)
-				fmt.Fprintf(buf, "if err := validateProfile%s(m); err != nil {\n", goProf)
-				buf.WriteString("baseErr = errors.Join(baseErr, err)\n")
-				buf.WriteString("}\n")
-			}
-			buf.WriteString("}\n") // switch
-			buf.WriteString("}\n") // for
-		}
 	}
 	buf.WriteString("default:\n")
 	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")
 	buf.WriteString("}\n")
+
+	// Profile validation is shared — each validateProfileXxx function is the same
+	// regardless of class, so we dispatch once outside the class switch.
+	// Profile names are validated at config time via ValidateProfile, so unknown
+	// profiles simply won't match any case here (safe no-op).
+	buf.WriteString("for _, p := range profiles {\n")
+	buf.WriteString("switch p {\n")
+	for _, prof := range allProfiles {
+		goProf := toGoName(prof)
+		fmt.Fprintf(buf, "case %q:\n", prof)
+		fmt.Fprintf(buf, "if err := validateProfile%s(m); err != nil {\n", goProf)
+		buf.WriteString("baseErr = errors.Join(baseErr, err)\n")
+		buf.WriteString("}\n")
+	}
+	buf.WriteString("}\n") // switch
+	buf.WriteString("}\n") // for
+
 	buf.WriteString("return baseErr\n")
 	buf.WriteString("}\n\n")
 }
 
 func writeValidateProfile(buf *bytes.Buffer, schema Schema, classNames []string) {
-	// Generate per-class validateProfileXxx functions that check if a profile name is valid
+	// Generate a classProfiles lookup table: map[int]map[string]bool
+	// keyed by class UID -> set of valid profile names.
+	buf.WriteString("// classProfiles maps each class UID to its set of valid profile names.\n")
+	buf.WriteString("var classProfiles = map[int]map[string]bool{\n")
 	for _, name := range classNames {
-		goName := toGoName(name)
 		cls := schema.Classes[name]
-
 		classProfileSet := map[string]bool{}
 		for _, attr := range cls.Attributes {
 			if attr.Profile != "" {
 				classProfileSet[attr.Profile] = true
 			}
 		}
-		classProfiles := sortedKeys(classProfileSet)
-
-		fmt.Fprintf(buf, "func validateProfile%s(profile string) error {\n", goName)
-		if len(classProfiles) > 0 {
-			buf.WriteString("switch profile {\n")
-			fmt.Fprintf(buf, "case %s:\n", quoteAndJoin(classProfiles))
-			buf.WriteString("return nil\n")
-			buf.WriteString("default:\n")
-			fmt.Fprintf(buf, "return fmt.Errorf(\"profile %%q is not valid for class %s\", profile)\n", name)
-			buf.WriteString("}\n")
-		} else {
-			fmt.Fprintf(buf, "return fmt.Errorf(\"profile %%q is not valid for class %s\", profile)\n", name)
+		if len(classProfileSet) == 0 {
+			continue
 		}
-		buf.WriteString("}\n\n")
+		profiles := sortedKeys(classProfileSet)
+		goName := toGoName(name)
+		fmt.Fprintf(buf, "ClassUID%s: {", goName)
+		for i, p := range profiles {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			fmt.Fprintf(buf, "%q: true", p)
+		}
+		buf.WriteString("},\n")
 	}
+	buf.WriteString("}\n\n")
 
-	// Generate the top-level ValidateProfile dispatcher
+	// Generate the top-level ValidateProfile function using the table
 	buf.WriteString("// ValidateProfile makes sure the profile is valid for the class identified by classUID.\n")
 	buf.WriteString("func ValidateProfile(classUID int, profile string) error {\n")
-	buf.WriteString("switch classUID {\n")
-	for _, name := range classNames {
-		goName := toGoName(name)
-		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
-		fmt.Fprintf(buf, "return validateProfile%s(profile)\n", goName)
-	}
-	buf.WriteString("default:\n")
-	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")
+	buf.WriteString("profiles, ok := classProfiles[classUID]\n")
+	buf.WriteString("if !ok {\n")
+	buf.WriteString("return fmt.Errorf(\"profile %q is not valid for class UID %d (class has no profiles)\", profile, classUID)\n")
 	buf.WriteString("}\n")
+	buf.WriteString("if !profiles[profile] {\n")
+	buf.WriteString("return fmt.Errorf(\"profile %q is not valid for class UID %d\", profile, classUID)\n")
+	buf.WriteString("}\n")
+	buf.WriteString("return nil\n")
 	buf.WriteString("}\n\n")
 }
 
