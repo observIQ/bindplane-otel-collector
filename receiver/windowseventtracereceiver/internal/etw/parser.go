@@ -45,17 +45,19 @@ type parser struct {
 	logger      *zap.Logger
 }
 
-func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error) {
-	if r.EventHeader.Flags == advapi32.EVENT_HEADER_FLAG_STRING_ONLY {
+func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
+	if r.EventHeader.Flags&advapi32.EVENT_HEADER_FLAG_STRING_ONLY != 0 {
 		userDataPtr := (*uint16)(unsafe.Pointer(r.UserData))
 		return map[string]any{
-			"UserData": utf16StringAtOffset(uintptr(unsafe.Pointer(userDataPtr)), 0),
-		}, nil
+				"UserData": utf16StringAtOffset(uintptr(unsafe.Pointer(userDataPtr)), 0),
+			},
+			nil, // getEventInformation fails for string-only events, so we return nil for the TraceEventInfo
+			nil
 	}
 
 	ti, err := getEventInformation(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get event information: %w", err)
+		return nil, nil, fmt.Errorf("failed to get event information: %w", err)
 	}
 
 	p := &parser{
@@ -72,13 +74,13 @@ func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string
 		propName := windowsSys.UTF16PtrToString((*uint16)(namePtr))
 		value, err := p.getPropertyValue(r, ti, uint32(i))
 		if err != nil {
-			return nil, fmt.Errorf("failed to get property value: %w", err)
+			return nil, nil, fmt.Errorf("failed to get property value for property %q: %w", propName, err)
 		}
 
 		properties[propName] = value
 	}
 
-	return properties, nil
+	return properties, ti, nil
 }
 
 func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEventInfo, i uint32) (any, error) {
@@ -150,6 +152,16 @@ func (p *parser) parseSimpleType(r *advapi32.EventRecord, propertyInfo *tdh.Even
 	propertyLength, err := p.getPropertyLength(propertyInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to get property length due to: %w", err)
+	}
+
+	// When a property's length is determined by a sibling length property
+	// (PropertyParamLength) and that resolved length is 0, TdhFormatProperty
+	// returns ERROR_INVALID_PARAMETER for types like Binary that require an
+	// explicit size. There are genuinely 0 bytes for this field, so return
+	// empty and consume nothing from the data buffer.
+	if propertyLength == 0 && (propertyInfo.Flags&tdh.PropertyParamLength) != 0 {
+		p.logger.Debug("property length is 0 and property param length is set, returning empty string")
+		return "", nil
 	}
 
 	var userDataConsumed uint16
