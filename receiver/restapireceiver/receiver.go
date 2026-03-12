@@ -230,7 +230,7 @@ func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[
 		// When using tokenized offsets, the token and PagesFetched are already
 		// updated in parseOffsetLimitResponse — skip numeric increment.
 		if b.cfg.Pagination.OffsetLimit.NextOffsetFieldName == "" {
-			dataCount := getDataCount(fullResponse)
+			dataCount := len(data)
 			if dataCount > 0 {
 				b.paginationState.CurrentOffset += dataCount
 				b.paginationState.PagesFetched++

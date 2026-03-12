@@ -22,6 +22,30 @@ import (
 	"go.uber.org/zap"
 )
 
+// testExtractData extracts data items from a response map for use in pagination tests.
+func testExtractData(response map[string]any) []map[string]any {
+	// Try common field names used in tests
+	for _, fieldName := range []string{"data", "items", "results", "records"} {
+		if dataVal, exists := response[fieldName]; exists {
+			// Handle []any (from JSON unmarshal)
+			if arr, ok := dataVal.([]any); ok {
+				result := make([]map[string]any, 0, len(arr))
+				for _, item := range arr {
+					if m, ok := item.(map[string]any); ok {
+						result = append(result, m)
+					}
+				}
+				return result
+			}
+			// Handle []map[string]any (from test literals)
+			if arr, ok := dataVal.([]map[string]any); ok {
+				return arr
+			}
+		}
+	}
+	return nil
+}
+
 func TestBuildPaginationParams_OffsetLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
@@ -150,8 +174,7 @@ func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 		Limit:         10,
 	}
 
-	// Extract data for pagination parsing (not used for offset/limit mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -184,8 +207,7 @@ func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 		Limit:         10,
 	}
 
-	// Extract data for pagination parsing (not used for offset/limit mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -217,8 +239,7 @@ func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
 		Limit:         10,
 	}
 
-	// Extract data for pagination parsing (not used for offset/limit mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -248,8 +269,7 @@ func TestParsePaginationResponse_OffsetLimit_PartialPage(t *testing.T) {
 		Limit:         10,
 	}
 
-	// Extract data for pagination parsing (not used for offset/limit mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -281,8 +301,7 @@ func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 		PageSize:    20,
 	}
 
-	// Extract data for pagination parsing (not used for page/size mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -315,8 +334,7 @@ func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 		PageSize:    20,
 	}
 
-	// Extract data for pagination parsing (not used for page/size mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -347,8 +365,7 @@ func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
 		PageSize:    5,
 	}
 
-	// Extract data for pagination parsing (not used for page/size mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -378,8 +395,7 @@ func TestParsePaginationResponse_PageSize_PartialPage(t *testing.T) {
 		PageSize:    5,
 	}
 
-	// Extract data for pagination parsing (not used for page/size mode)
-	data := extractDataFromResponse(response, "", nil)
+	data := response["data"].([]map[string]any)
 
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
@@ -614,7 +630,7 @@ func TestParseOffsetLimitResponse_TokenPresent_FullPage(t *testing.T) {
 
 	// Full page (10 items, limit 10) with a next token → hasMore=true
 	response := map[string]any{
-		"data": []any{
+		"data": []map[string]any{
 			map[string]any{"id": "1"}, map[string]any{"id": "2"}, map[string]any{"id": "3"},
 			map[string]any{"id": "4"}, map[string]any{"id": "5"}, map[string]any{"id": "6"},
 			map[string]any{"id": "7"}, map[string]any{"id": "8"}, map[string]any{"id": "9"},
@@ -624,7 +640,7 @@ func TestParseOffsetLimitResponse_TokenPresent_FullPage(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.True(t, hasMore)
 	require.Equal(t, "abc123", state.CurrentOffsetToken)
@@ -650,7 +666,7 @@ func TestParseOffsetLimitResponse_TokenPresent_PartialPage(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, "abc123", state.CurrentOffsetToken)
@@ -675,7 +691,7 @@ func TestParseOffsetLimitResponse_TokenPresent_EmptyPage(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, "bookmark123", state.CurrentOffsetToken)
@@ -699,7 +715,7 @@ func TestParseOffsetLimitResponse_TokenEmpty(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10, CurrentOffsetToken: "previous"}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, "", state.CurrentOffsetToken)
@@ -718,11 +734,11 @@ func TestParseOffsetLimitResponse_TokenMissing(t *testing.T) {
 	}
 
 	response := map[string]any{
-		"data": []any{map[string]any{"id": "1"}},
+		"data": []map[string]any{map[string]any{"id": "1"}},
 	}
 
 	state := &paginationState{Limit: 10, CurrentOffsetToken: "previous"}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, "", state.CurrentOffsetToken)
@@ -746,7 +762,7 @@ func TestParseOffsetLimitResponse_TokenNull(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10, CurrentOffsetToken: "previous"}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, "", state.CurrentOffsetToken)
@@ -765,7 +781,7 @@ func TestParseOffsetLimitResponse_TokenNested(t *testing.T) {
 	}
 
 	response := map[string]any{
-		"data": []any{
+		"data": []map[string]any{
 			map[string]any{"id": "1"}, map[string]any{"id": "2"}, map[string]any{"id": "3"},
 			map[string]any{"id": "4"}, map[string]any{"id": "5"}, map[string]any{"id": "6"},
 			map[string]any{"id": "7"}, map[string]any{"id": "8"}, map[string]any{"id": "9"},
@@ -777,7 +793,7 @@ func TestParseOffsetLimitResponse_TokenNested(t *testing.T) {
 	}
 
 	state := &paginationState{Limit: 10}
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.True(t, hasMore)
 	require.Equal(t, "cursor_xyz", state.CurrentOffsetToken)
@@ -808,7 +824,7 @@ func TestParseOffsetLimitResponse_TokenNumeric(t *testing.T) {
 			"next_offset": float64(42),
 		}
 		state := &paginationState{Limit: 10}
-		hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+		hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 		require.NoError(t, err)
 		require.True(t, hasMore)
 		require.Equal(t, "42", state.CurrentOffsetToken)
@@ -820,7 +836,7 @@ func TestParseOffsetLimitResponse_TokenNumeric(t *testing.T) {
 			"next_offset": 99,
 		}
 		state := &paginationState{Limit: 10}
-		hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+		hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 		require.NoError(t, err)
 		require.True(t, hasMore)
 		require.Equal(t, "99", state.CurrentOffsetToken)
@@ -849,7 +865,7 @@ func TestParseOffsetLimitResponse_NoTokenFieldConfigured(t *testing.T) {
 		Limit:         10,
 	}
 
-	hasMore, err := parseOffsetLimitResponse(cfg, response, state)
+	hasMore, err := parseOffsetLimitResponse(cfg, response, testExtractData(response), state)
 	require.NoError(t, err)
 	require.True(t, hasMore)
 	require.Equal(t, 10, state.TotalRecords)
