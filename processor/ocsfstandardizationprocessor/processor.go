@@ -33,6 +33,7 @@ type compiledFieldMapping struct {
 type compiledEventMapping struct {
 	filter        *expr.Expression
 	classID       int
+	profiles      []string
 	fieldMappings []compiledFieldMapping
 	categoryUID   int
 }
@@ -70,6 +71,7 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 
 		compiledEventMap := compiledEventMapping{
 			classID:       eventMapping.ClassID,
+			profiles:      eventMapping.Profiles,
 			fieldMappings: fieldMappings,
 			categoryUID:   categoryUID,
 		}
@@ -179,7 +181,7 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 				continue
 			}
 
-			if typeName := osp.schema.LookupFieldType(eventMapping.classID, fieldMapping.to); typeName != "" {
+			if typeName := osp.schema.LookupFieldType(eventMapping.classID, eventMapping.profiles, fieldMapping.to); typeName != "" {
 				value = coerceType(value, typeName)
 			}
 
@@ -194,7 +196,7 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 
 		// Validate the body is a valid OCSF log
 		if osp.runtimeValidation {
-			err := osp.schema.ValidateClass(eventMapping.classID, newBody)
+			err := osp.schema.ValidateClass(eventMapping.classID, eventMapping.profiles, newBody)
 			if err != nil {
 				osp.logger.Error("mapped log does not conform to OCSF spec",
 					zap.Error(err),

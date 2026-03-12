@@ -8,10 +8,6 @@ This processor is used to create JSON OCSF compliant log bodies from OTEL logs.
 
 - Logs
 
-## Limitations
-
-- OCSF profile validation is not currently supported. Profile fields can still be mapped, but they will not be validated against profile schemas.
-
 ## How it works
 
 The processor transforms OpenTelemetry log records into [OCSF](https://schema.ocsf.io/) compliant JSON bodies. Each `event_mapping` defines a filter to match incoming logs, an OCSF `class_id` to assign, and a set of `field_mappings` that map source log fields to OCSF fields. Fields can be populated from the source log (`from`) or set to a static value (`default`).

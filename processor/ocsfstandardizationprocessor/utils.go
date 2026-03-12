@@ -28,11 +28,13 @@ import (
 // OCSFSchema is the interface for OCSF schema implementations.
 type OCSFSchema interface {
 	// ValidateClass validates the body of a class.
-	ValidateClass(classUID int, body any) error
+	ValidateClass(classUID int, profiles []string, body any) error
 	// LookupFieldType returns the expected OCSF type for a field path in a given class.
-	LookupFieldType(classUID int, fieldPath string) string
+	LookupFieldType(classUID int, profiles []string, fieldPath string) string
+	// ValidateProfile makes sure the profile is valid for the class identified by classUID.
+	ValidateProfile(classUID int, profile string) error
 	// ValidateFieldCoverage checks that fieldPaths cover all required fields for the class identified by classUID.
-	ValidateFieldCoverage(classUID int, fieldPaths []string) error
+	ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string) error
 }
 
 func getOCSFSchema(ocsfVersion OCSFVersion) OCSFSchema {

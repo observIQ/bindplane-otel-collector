@@ -226,6 +226,9 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 		generateType(&buf, name, cls.Attributes, cls.Constraints, typeConstraints)
 	}
 
+	// Write one validate function per unique profile
+	writeProfileValidateFunctions(&buf, schema, typeConstraints)
+
 	// Generate class UID constants
 	buf.WriteString("// Class UIDs\n")
 	buf.WriteString("const (\n")
@@ -236,7 +239,10 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 	buf.WriteString(")\n\n")
 
 	// Generate ValidateClass function
-	writeValidateClass(&buf, classNames)
+	writeValidateClass(&buf, schema, classNames)
+
+	// Generate ValidateProfile function
+	writeValidateProfile(&buf, schema, classNames)
 
 	// Generate field coverage validation (config-time required field checks)
 	writeFieldCoverageValidation(&buf, schema, classNames)
@@ -262,8 +268,33 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 }
 
 func generateType(buf *bytes.Buffer, name string, attrs map[string]Attribute, constraints Constraints, typeConstraints map[string]typeConstraint) {
-	attrs = filterOutProfileAttrs(attrs)
-	writeValidation(buf, toGoName(name), attrs, constraints, typeConstraints)
+	baseAttrs := filterOutProfileAttrs(attrs)
+	writeValidation(buf, toGoName(name), baseAttrs, constraints, typeConstraints)
+}
+
+// writeProfileValidateFunctions generates one validate function per unique profile
+// (e.g. validateProfileCloud, validateProfileDatetime). Profile attributes are the
+// same across all classes, so we only need one function per profile.
+func writeProfileValidateFunctions(buf *bytes.Buffer, schema Schema, typeConstraints map[string]typeConstraint) {
+	// Collect profile attrs from across all classes — each profile defines the
+	// same set of attributes regardless of which class it appears on.
+	profileAttrs := map[string]map[string]Attribute{}
+	for _, cls := range schema.Classes {
+		for attrName, attr := range cls.Attributes {
+			if attr.Profile == "" {
+				continue
+			}
+			if profileAttrs[attr.Profile] == nil {
+				profileAttrs[attr.Profile] = map[string]Attribute{}
+			}
+			profileAttrs[attr.Profile][attrName] = attr
+		}
+	}
+
+	for _, profileName := range sortedKeys(profileAttrs) {
+		funcName := fmt.Sprintf("Profile%s", toGoName(profileName))
+		writeValidation(buf, funcName, profileAttrs[profileName], Constraints{}, typeConstraints)
+	}
 }
 
 func writePackages(buf *bytes.Buffer) {
@@ -492,19 +523,90 @@ func writeEnumValidation(buf *bytes.Buffer, fieldName string, attr Attribute) {
 }
 
 // writeValidateClass generates a ValidateClass function that validates data
-// directly as map[string]any against the appropriate class.
-func writeValidateClass(buf *bytes.Buffer, classNames []string) {
+// directly as map[string]any against the appropriate class, including profile validation.
+func writeValidateClass(buf *bytes.Buffer, schema Schema, classNames []string) {
 	buf.WriteString("// ValidateClass validates data against the OCSF event class identified by classUID.\n")
-	buf.WriteString("func ValidateClass(classUID int, data any) error {\n")
+	buf.WriteString("// If profiles are provided, profile-specific validation is also applied.\n")
+	buf.WriteString("func ValidateClass(classUID int, profiles []string, data any) error {\n")
 	buf.WriteString("m, ok := data.(map[string]any)\n")
 	buf.WriteString("if !ok {\n")
 	buf.WriteString("return fmt.Errorf(\"expected map[string]any, got %T\", data)\n")
 	buf.WriteString("}\n")
+	buf.WriteString("var baseErr error\n")
+	buf.WriteString("switch classUID {\n")
+	for _, name := range classNames {
+		goName := toGoName(name)
+		cls := schema.Classes[name]
+
+		// Collect profiles for this class
+		classProfileSet := map[string]bool{}
+		for _, attr := range cls.Attributes {
+			if attr.Profile != "" {
+				classProfileSet[attr.Profile] = true
+			}
+		}
+		classProfiles := sortedKeys(classProfileSet)
+
+		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
+		fmt.Fprintf(buf, "baseErr = validate%s(m)\n", goName)
+
+		if len(classProfiles) > 0 {
+			buf.WriteString("for _, p := range profiles {\n")
+			buf.WriteString("switch p {\n")
+			for _, prof := range classProfiles {
+				goProf := toGoName(prof)
+				fmt.Fprintf(buf, "case %q:\n", prof)
+				fmt.Fprintf(buf, "if err := validateProfile%s(m); err != nil {\n", goProf)
+				buf.WriteString("baseErr = errors.Join(baseErr, err)\n")
+				buf.WriteString("}\n")
+			}
+			buf.WriteString("}\n") // switch
+			buf.WriteString("}\n") // for
+		}
+	}
+	buf.WriteString("default:\n")
+	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")
+	buf.WriteString("}\n")
+	buf.WriteString("return baseErr\n")
+	buf.WriteString("}\n\n")
+}
+
+func writeValidateProfile(buf *bytes.Buffer, schema Schema, classNames []string) {
+	// Generate per-class validateProfileXxx functions that check if a profile name is valid
+	for _, name := range classNames {
+		goName := toGoName(name)
+		cls := schema.Classes[name]
+
+		classProfileSet := map[string]bool{}
+		for _, attr := range cls.Attributes {
+			if attr.Profile != "" {
+				classProfileSet[attr.Profile] = true
+			}
+		}
+		classProfiles := sortedKeys(classProfileSet)
+
+		fmt.Fprintf(buf, "func validateProfile%s(profile string) error {\n", goName)
+		if len(classProfiles) > 0 {
+			buf.WriteString("switch profile {\n")
+			fmt.Fprintf(buf, "case %s:\n", quoteAndJoin(classProfiles))
+			buf.WriteString("return nil\n")
+			buf.WriteString("default:\n")
+			fmt.Fprintf(buf, "return fmt.Errorf(\"profile %%q is not valid for class %s\", profile)\n", name)
+			buf.WriteString("}\n")
+		} else {
+			fmt.Fprintf(buf, "return fmt.Errorf(\"profile %%q is not valid for class %s\", profile)\n", name)
+		}
+		buf.WriteString("}\n\n")
+	}
+
+	// Generate the top-level ValidateProfile dispatcher
+	buf.WriteString("// ValidateProfile makes sure the profile is valid for the class identified by classUID.\n")
+	buf.WriteString("func ValidateProfile(classUID int, profile string) error {\n")
 	buf.WriteString("switch classUID {\n")
 	for _, name := range classNames {
 		goName := toGoName(name)
 		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
-		fmt.Fprintf(buf, "return validate%s(m)\n", goName)
+		fmt.Fprintf(buf, "return validateProfile%s(profile)\n", goName)
 	}
 	buf.WriteString("default:\n")
 	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")
@@ -599,6 +701,42 @@ func filterOutProfileAttrs(attrs map[string]Attribute) map[string]Attribute {
 	return filtered
 }
 
+// filterAttrsForProfile returns only attributes belonging to the given profile.
+func filterAttrsForProfile(attrs map[string]Attribute, profile string) map[string]Attribute {
+	filtered := make(map[string]Attribute)
+	for name, attr := range attrs {
+		if attr.Profile == profile {
+			filtered[name] = attr
+		}
+	}
+	return filtered
+}
+
+// collectAllProfiles returns sorted unique profile names from all classes and objects.
+func collectAllProfiles(schema Schema) []string {
+	profiles := map[string]bool{}
+	for _, cls := range schema.Classes {
+		for _, attr := range cls.Attributes {
+			if attr.Profile != "" {
+				profiles[attr.Profile] = true
+			}
+		}
+	}
+	for _, obj := range schema.Objects {
+		for _, attr := range obj.Attributes {
+			if attr.Profile != "" {
+				profiles[attr.Profile] = true
+			}
+		}
+	}
+	result := make([]string, 0, len(profiles))
+	for p := range profiles {
+		result = append(result, p)
+	}
+	sort.Strings(result)
+	return result
+}
+
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -615,18 +753,23 @@ func writeSchemaStruct(buf *bytes.Buffer) {
 type Schema struct{}
 
 // ValidateClass validates data against the OCSF event class identified by classUID.
-func (Schema) ValidateClass(classUID int, data any) error {
-	return ValidateClass(classUID, data)
+func (Schema) ValidateClass(classUID int, profiles []string, data any) error {
+	return ValidateClass(classUID, profiles, data)
+}
+
+// ValidateProfile makes sure the profile is valid for the class identified by classUID.
+func (Schema) ValidateProfile(classUID int, profile string) error {
+	return ValidateProfile(classUID, profile)
 }
 
 // LookupFieldType returns the coercion type name for a field path in the given class.
-func (Schema) LookupFieldType(classUID int, fieldPath string) string {
-	return LookupFieldType(classUID, fieldPath)
+func (Schema) LookupFieldType(classUID int, profiles []string, fieldPath string) string {
+	return LookupFieldType(classUID, profiles, fieldPath)
 }
 
 // ValidateFieldCoverage checks that fieldPaths cover all required fields for the class identified by classUID.
-func (Schema) ValidateFieldCoverage(classUID int, fieldPaths []string) error {
-	return ValidateFieldCoverage(classUID, fieldPaths)
+func (Schema) ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string) error {
+	return ValidateFieldCoverage(classUID, profiles, fieldPaths)
 }
 `)
 }
@@ -666,6 +809,33 @@ func writeFieldCoverageValidation(buf *bytes.Buffer, schema Schema, classNames [
 		obj := schema.Objects[name]
 		attrs := filterOutProfileAttrs(obj.Attributes)
 		writeFieldReqsMapEntry(buf, fmt.Sprintf("%q", name), attrs, obj.Constraints, schema.Types)
+	}
+	buf.WriteString("}\n\n")
+
+	// Build profileClassFieldReqs map — keyed by profile name, then class UID
+	allProfiles := collectAllProfiles(schema)
+
+	buf.WriteString("var profileClassFieldReqs = map[string]map[int]*fieldReqs{\n")
+	for _, profile := range allProfiles {
+		fmt.Fprintf(buf, "%q: {\n", profile)
+		for _, name := range classNames {
+			if name == "base_event" {
+				continue
+			}
+			cls := schema.Classes[name]
+			profileAttrs := filterAttrsForProfile(cls.Attributes, profile)
+			if len(profileAttrs) > 0 {
+				writeFieldReqsMapEntry(buf, fmt.Sprintf("ClassUID%s", toGoName(name)), profileAttrs, Constraints{}, schema.Types)
+			}
+		}
+		buf.WriteString("},\n")
+	}
+	buf.WriteString("}\n\n")
+
+	// Build validProfiles set
+	buf.WriteString("var validProfiles = map[string]bool{\n")
+	for _, p := range allProfiles {
+		fmt.Fprintf(buf, "%q: true,\n", p)
 	}
 	buf.WriteString("}\n\n")
 
@@ -765,17 +935,37 @@ func quoteAndJoin(ss []string) string {
 }
 
 // writeFieldCoverageFuncs writes the ValidateFieldCoverage, validateCoverage,
-// and splitFirst functions as static code.
+// splitFirst, and LookupFieldType functions as static code.
 func writeFieldCoverageFuncs(buf *bytes.Buffer) {
 	buf.WriteString(`// ValidateFieldCoverage checks that fieldPaths cover all required fields
 // for the class identified by classUID, recursively validating nested objects.
+// If profiles are provided, profile-specific required fields are also checked.
 // fieldPaths are dot-notation paths as configured by the user (e.g., "metadata.product.name").
-func ValidateFieldCoverage(classUID int, fieldPaths []string) error {
+func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string) error {
 	reqs, ok := classFieldReqs[classUID]
 	if !ok {
 		return fmt.Errorf("unknown class UID: %d", classUID)
 	}
-	return validateCoverage(reqs, fieldPaths, "")
+
+	for _, p := range profiles {
+		if !validProfiles[p] {
+			return fmt.Errorf("unknown profile: %q", p)
+		}
+	}
+
+	err := validateCoverage(reqs, fieldPaths, "")
+
+	for _, p := range profiles {
+		if profileReqs, ok := profileClassFieldReqs[p]; ok {
+			if pReqs, ok := profileReqs[classUID]; ok {
+				if pErr := validateCoverage(pReqs, fieldPaths, ""); pErr != nil {
+					err = errors.Join(err, pErr)
+				}
+			}
+		}
+	}
+
+	return err
 }
 
 func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
@@ -863,13 +1053,25 @@ func splitFirst(s string) (string, string) {
 // LookupFieldType returns the coercion type name for a field path in the
 // given class. It resolves dot-notation paths (e.g. "src_endpoint.ip") by
 // recursing through object field definitions. Returns "" if the field or
-// class is unknown.
-func LookupFieldType(classUID int, fieldPath string) string {
+// class is unknown. If profiles are provided, profile-specific fields are
+// also searched.
+func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	reqs, ok := classFieldReqs[classUID]
-	if !ok {
-		return ""
+	if ok {
+		if t := lookupFieldTypeInReqs(reqs, fieldPath); t != "" {
+			return t
+		}
 	}
-	return lookupFieldTypeInReqs(reqs, fieldPath)
+	for _, p := range profiles {
+		if profileReqs, ok := profileClassFieldReqs[p]; ok {
+			if pReqs, ok := profileReqs[classUID]; ok {
+				if t := lookupFieldTypeInReqs(pReqs, fieldPath); t != "" {
+					return t
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {

@@ -24,19 +24,18 @@ processors:
     event_mappings:
       - class_id: 3001
         filter: 'attributes["log.type"] == "security"'
+        profiles: ["cloud"]
         field_mappings:
           - default: "Bindplane Agent"
             to: "source.name"
           - to: "activity_id"
             default: 2
-          - to: "category_uid"
-            default: 2
           - to: "severity_id"
             default: 3
+          - to: "cloud.provider"
+            default: "aws"
           - to: "time"
             default: 4587928389
-          - to: "type_uid"
-            default: 1
           - to: "user.name"
             default: "test"
           - to: "metadata.product.name"

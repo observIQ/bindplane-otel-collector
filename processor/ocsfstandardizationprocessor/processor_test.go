@@ -711,6 +711,87 @@ func TestProcessLogsValidation(t *testing.T) {
 			},
 			expectDropped: true,
 		},
+		{
+			name: "cloud profile - valid body passes",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"cloud"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.cloud", To: "cloud"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["cloud"] = map[string]any{
+					"provider": "AWS",
+				}
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "cloud profile - missing required cloud field drops log",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{"cloud"},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "datetime profile - no required fields passes",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{"datetime"},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				err := record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "multiple profiles - cloud and datetime passes with cloud field",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"cloud", "datetime"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.cloud", To: "cloud"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["cloud"] = map[string]any{
+					"provider": "GCP",
+				}
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
 	}
 
 	for _, version := range OCSFVersions {

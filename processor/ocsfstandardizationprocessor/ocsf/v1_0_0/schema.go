@@ -12833,6 +12833,144 @@ func validateWinResourceActivity(data map[string]any) error {
 	return errors.Join(errs...)
 }
 
+// validateProfileCloud checks required fields, constraints, and enum values.
+func validateProfileCloud(data map[string]any) error {
+	var errs []error
+	if _, ok := data["cloud"]; !ok {
+		errs = append(errs, errors.New("cloud is required"))
+	}
+	if v, ok := data["api"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateAPI(m); err != nil {
+				errs = append(errs, fmt.Errorf("api: %w", err))
+			}
+		}
+	}
+	if v, ok := data["cloud"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateCloud(m); err != nil {
+				errs = append(errs, fmt.Errorf("cloud: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateProfileDatetime checks required fields, constraints, and enum values.
+func validateProfileDatetime(data map[string]any) error {
+	var errs []error
+	if v, ok := data["end_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("end_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["expiration_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("expiration_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["query_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("query_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["response_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("response_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["start_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("start_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateProfileHost checks required fields, constraints, and enum values.
+func validateProfileHost(data map[string]any) error {
+	var errs []error
+	if v, ok := data["actor"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateActor(m); err != nil {
+				errs = append(errs, fmt.Errorf("actor: %w", err))
+			}
+		}
+	}
+	if v, ok := data["device"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateDevice(m); err != nil {
+				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateProfileSecurityControl checks required fields, constraints, and enum values.
+func validateProfileSecurityControl(data map[string]any) error {
+	var errs []error
+	if _, ok := data["disposition_id"]; !ok {
+		errs = append(errs, errors.New("disposition_id is required"))
+	}
+	if v, ok := data["disposition_id"]; ok {
+		if intVal, ok := toInt64(v); ok {
+			switch intVal {
+			case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 99:
+			default:
+				errs = append(errs, fmt.Errorf("disposition_id: invalid value %d", intVal))
+			}
+		}
+	}
+	if v, ok := data["disposition"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("disposition: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["attacks"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateAttack(m); err != nil {
+						errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	if v, ok := data["malware"]; ok {
+		if arr, ok := v.([]any); ok {
+			for i, elem := range arr {
+				if m, ok := elem.(map[string]any); ok {
+					if err := validateMalware(m); err != nil {
+						errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+					}
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // Class UIDs
 const (
 	ClassUIDAccountChange             = 3001
@@ -12874,84 +13012,1083 @@ const (
 )
 
 // ValidateClass validates data against the OCSF event class identified by classUID.
-func ValidateClass(classUID int, data any) error {
+// If profiles are provided, profile-specific validation is also applied.
+func ValidateClass(classUID int, profiles []string, data any) error {
 	m, ok := data.(map[string]any)
 	if !ok {
 		return fmt.Errorf("expected map[string]any, got %T", data)
 	}
+	var baseErr error
 	switch classUID {
 	case ClassUIDAccountChange:
-		return validateAccountChange(m)
+		baseErr = validateAccountChange(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDAPIActivity:
-		return validateAPIActivity(m)
+		baseErr = validateAPIActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDApplicationLifecycle:
-		return validateApplicationLifecycle(m)
+		baseErr = validateApplicationLifecycle(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDAuthentication:
-		return validateAuthentication(m)
+		baseErr = validateAuthentication(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDAuthorizeSession:
-		return validateAuthorizeSession(m)
+		baseErr = validateAuthorizeSession(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDBaseEvent:
-		return validateBaseEvent(m)
+		baseErr = validateBaseEvent(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDConfigState:
-		return validateConfigState(m)
+		baseErr = validateConfigState(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDDhcpActivity:
-		return validateDhcpActivity(m)
+		baseErr = validateDhcpActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDDNSActivity:
-		return validateDNSActivity(m)
+		baseErr = validateDNSActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDEmailActivity:
-		return validateEmailActivity(m)
+		baseErr = validateEmailActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDEmailFileActivity:
-		return validateEmailFileActivity(m)
+		baseErr = validateEmailFileActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDEmailURLActivity:
-		return validateEmailURLActivity(m)
+		baseErr = validateEmailURLActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDEntityManagement:
-		return validateEntityManagement(m)
+		baseErr = validateEntityManagement(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDFileActivity:
-		return validateFileActivity(m)
+		baseErr = validateFileActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDFtpActivity:
-		return validateFtpActivity(m)
+		baseErr = validateFtpActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDGroupManagement:
-		return validateGroupManagement(m)
+		baseErr = validateGroupManagement(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDHTTPActivity:
-		return validateHTTPActivity(m)
+		baseErr = validateHTTPActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDInventoryInfo:
-		return validateInventoryInfo(m)
+		baseErr = validateInventoryInfo(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDKernelActivity:
-		return validateKernelActivity(m)
+		baseErr = validateKernelActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDKernelExtension:
-		return validateKernelExtension(m)
+		baseErr = validateKernelExtension(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDMemoryActivity:
-		return validateMemoryActivity(m)
+		baseErr = validateMemoryActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDModuleActivity:
-		return validateModuleActivity(m)
+		baseErr = validateModuleActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDNetworkActivity:
-		return validateNetworkActivity(m)
+		baseErr = validateNetworkActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDNetworkFileActivity:
-		return validateNetworkFileActivity(m)
+		baseErr = validateNetworkFileActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDProcessActivity:
-		return validateProcessActivity(m)
+		baseErr = validateProcessActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDRDPActivity:
-		return validateRDPActivity(m)
+		baseErr = validateRDPActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDScheduledJobActivity:
-		return validateScheduledJobActivity(m)
+		baseErr = validateScheduledJobActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDSecurityFinding:
-		return validateSecurityFinding(m)
+		baseErr = validateSecurityFinding(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDSmbActivity:
-		return validateSmbActivity(m)
+		baseErr = validateSmbActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDSSHActivity:
-		return validateSSHActivity(m)
+		baseErr = validateSSHActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDUserAccess:
-		return validateUserAccess(m)
+		baseErr = validateUserAccess(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDWebResourceAccessActivity:
-		return validateWebResourceAccessActivity(m)
+		baseErr = validateWebResourceAccessActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDWebResourcesActivity:
-		return validateWebResourcesActivity(m)
+		baseErr = validateWebResourcesActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "host":
+				if err := validateProfileHost(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDWinRegistryKeyActivity:
-		return validateWinRegistryKeyActivity(m)
+		baseErr = validateWinRegistryKeyActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDWinRegistryValueActivity:
-		return validateWinRegistryValueActivity(m)
+		baseErr = validateWinRegistryValueActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
 	case ClassUIDWinResourceActivity:
-		return validateWinResourceActivity(m)
+		baseErr = validateWinResourceActivity(m)
+		for _, p := range profiles {
+			switch p {
+			case "cloud":
+				if err := validateProfileCloud(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "datetime":
+				if err := validateProfileDatetime(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			case "security_control":
+				if err := validateProfileSecurityControl(m); err != nil {
+					baseErr = errors.Join(baseErr, err)
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("unknown class UID: %d", classUID)
+	}
+	return baseErr
+}
+
+func validateProfileAccountChange(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class account_change", profile)
+	}
+}
+
+func validateProfileAPIActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class api_activity", profile)
+	}
+}
+
+func validateProfileApplicationLifecycle(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class application_lifecycle", profile)
+	}
+}
+
+func validateProfileAuthentication(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class authentication", profile)
+	}
+}
+
+func validateProfileAuthorizeSession(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class authorize_session", profile)
+	}
+}
+
+func validateProfileBaseEvent(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class base_event", profile)
+	}
+}
+
+func validateProfileConfigState(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class config_state", profile)
+	}
+}
+
+func validateProfileDhcpActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class dhcp_activity", profile)
+	}
+}
+
+func validateProfileDNSActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class dns_activity", profile)
+	}
+}
+
+func validateProfileEmailActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class email_activity", profile)
+	}
+}
+
+func validateProfileEmailFileActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class email_file_activity", profile)
+	}
+}
+
+func validateProfileEmailURLActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class email_url_activity", profile)
+	}
+}
+
+func validateProfileEntityManagement(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class entity_management", profile)
+	}
+}
+
+func validateProfileFileActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class file_activity", profile)
+	}
+}
+
+func validateProfileFtpActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class ftp_activity", profile)
+	}
+}
+
+func validateProfileGroupManagement(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class group_management", profile)
+	}
+}
+
+func validateProfileHTTPActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class http_activity", profile)
+	}
+}
+
+func validateProfileInventoryInfo(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class inventory_info", profile)
+	}
+}
+
+func validateProfileKernelActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class kernel_activity", profile)
+	}
+}
+
+func validateProfileKernelExtension(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class kernel_extension", profile)
+	}
+}
+
+func validateProfileMemoryActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class memory_activity", profile)
+	}
+}
+
+func validateProfileModuleActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class module_activity", profile)
+	}
+}
+
+func validateProfileNetworkActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class network_activity", profile)
+	}
+}
+
+func validateProfileNetworkFileActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class network_file_activity", profile)
+	}
+}
+
+func validateProfileProcessActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class process_activity", profile)
+	}
+}
+
+func validateProfileRDPActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class rdp_activity", profile)
+	}
+}
+
+func validateProfileScheduledJobActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class scheduled_job_activity", profile)
+	}
+}
+
+func validateProfileSecurityFinding(profile string) error {
+	switch profile {
+	case "cloud", "datetime":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class security_finding", profile)
+	}
+}
+
+func validateProfileSmbActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class smb_activity", profile)
+	}
+}
+
+func validateProfileSSHActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class ssh_activity", profile)
+	}
+}
+
+func validateProfileUserAccess(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class user_access", profile)
+	}
+}
+
+func validateProfileWebResourceAccessActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class web_resource_access_activity", profile)
+	}
+}
+
+func validateProfileWebResourcesActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "host":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class web_resources_activity", profile)
+	}
+}
+
+func validateProfileWinRegistryKeyActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class win/registry_key_activity", profile)
+	}
+}
+
+func validateProfileWinRegistryValueActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class win/registry_value_activity", profile)
+	}
+}
+
+func validateProfileWinResourceActivity(profile string) error {
+	switch profile {
+	case "cloud", "datetime", "security_control":
+		return nil
+	default:
+		return fmt.Errorf("profile %q is not valid for class win/resource_activity", profile)
+	}
+}
+
+// ValidateProfile makes sure the profile is valid for the class identified by classUID.
+func ValidateProfile(classUID int, profile string) error {
+	switch classUID {
+	case ClassUIDAccountChange:
+		return validateProfileAccountChange(profile)
+	case ClassUIDAPIActivity:
+		return validateProfileAPIActivity(profile)
+	case ClassUIDApplicationLifecycle:
+		return validateProfileApplicationLifecycle(profile)
+	case ClassUIDAuthentication:
+		return validateProfileAuthentication(profile)
+	case ClassUIDAuthorizeSession:
+		return validateProfileAuthorizeSession(profile)
+	case ClassUIDBaseEvent:
+		return validateProfileBaseEvent(profile)
+	case ClassUIDConfigState:
+		return validateProfileConfigState(profile)
+	case ClassUIDDhcpActivity:
+		return validateProfileDhcpActivity(profile)
+	case ClassUIDDNSActivity:
+		return validateProfileDNSActivity(profile)
+	case ClassUIDEmailActivity:
+		return validateProfileEmailActivity(profile)
+	case ClassUIDEmailFileActivity:
+		return validateProfileEmailFileActivity(profile)
+	case ClassUIDEmailURLActivity:
+		return validateProfileEmailURLActivity(profile)
+	case ClassUIDEntityManagement:
+		return validateProfileEntityManagement(profile)
+	case ClassUIDFileActivity:
+		return validateProfileFileActivity(profile)
+	case ClassUIDFtpActivity:
+		return validateProfileFtpActivity(profile)
+	case ClassUIDGroupManagement:
+		return validateProfileGroupManagement(profile)
+	case ClassUIDHTTPActivity:
+		return validateProfileHTTPActivity(profile)
+	case ClassUIDInventoryInfo:
+		return validateProfileInventoryInfo(profile)
+	case ClassUIDKernelActivity:
+		return validateProfileKernelActivity(profile)
+	case ClassUIDKernelExtension:
+		return validateProfileKernelExtension(profile)
+	case ClassUIDMemoryActivity:
+		return validateProfileMemoryActivity(profile)
+	case ClassUIDModuleActivity:
+		return validateProfileModuleActivity(profile)
+	case ClassUIDNetworkActivity:
+		return validateProfileNetworkActivity(profile)
+	case ClassUIDNetworkFileActivity:
+		return validateProfileNetworkFileActivity(profile)
+	case ClassUIDProcessActivity:
+		return validateProfileProcessActivity(profile)
+	case ClassUIDRDPActivity:
+		return validateProfileRDPActivity(profile)
+	case ClassUIDScheduledJobActivity:
+		return validateProfileScheduledJobActivity(profile)
+	case ClassUIDSecurityFinding:
+		return validateProfileSecurityFinding(profile)
+	case ClassUIDSmbActivity:
+		return validateProfileSmbActivity(profile)
+	case ClassUIDSSHActivity:
+		return validateProfileSSHActivity(profile)
+	case ClassUIDUserAccess:
+		return validateProfileUserAccess(profile)
+	case ClassUIDWebResourceAccessActivity:
+		return validateProfileWebResourceAccessActivity(profile)
+	case ClassUIDWebResourcesActivity:
+		return validateProfileWebResourcesActivity(profile)
+	case ClassUIDWinRegistryKeyActivity:
+		return validateProfileWinRegistryKeyActivity(profile)
+	case ClassUIDWinRegistryValueActivity:
+		return validateProfileWinRegistryValueActivity(profile)
+	case ClassUIDWinResourceActivity:
+		return validateProfileWinResourceActivity(profile)
 	default:
 		return fmt.Errorf("unknown class UID: %d", classUID)
 	}
@@ -13511,15 +14648,462 @@ var objectFieldReqs = map[string]*fieldReqs{
 	},
 }
 
+var profileClassFieldReqs = map[string]map[int]*fieldReqs{
+	"cloud": {
+		ClassUIDAccountChange: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDAPIActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"cloud": "cloud"},
+		},
+		ClassUIDApplicationLifecycle: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDAuthentication: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDAuthorizeSession: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDConfigState: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDDhcpActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDDNSActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDEmailActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDEmailFileActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDEmailURLActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDEntityManagement: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDFileActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDFtpActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDGroupManagement: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDHTTPActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDInventoryInfo: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDKernelActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDKernelExtension: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDMemoryActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDModuleActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDNetworkActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDNetworkFileActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDProcessActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDRDPActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDScheduledJobActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDSecurityFinding: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDSmbActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDSSHActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDUserAccess: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDWebResourceAccessActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDWebResourcesActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDWinRegistryKeyActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDWinRegistryValueActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+		ClassUIDWinResourceActivity: {
+			required:     []string{"cloud"},
+			objectFields: map[string]string{"api": "api", "cloud": "cloud"},
+		},
+	},
+	"container": {},
+	"datetime": {
+		ClassUIDAccountChange: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDAPIActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDApplicationLifecycle: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDAuthentication: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDAuthorizeSession: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDConfigState: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDDhcpActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDDNSActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "query_time_dt": "datetime", "response_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDEmailActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDEmailFileActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDEmailURLActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDEntityManagement: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDFileActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDFtpActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDGroupManagement: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDHTTPActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDInventoryInfo: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDKernelActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDKernelExtension: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDMemoryActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDModuleActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDNetworkActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDNetworkFileActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "expiration_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDProcessActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDRDPActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDScheduledJobActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDSecurityFinding: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDSmbActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDSSHActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDUserAccess: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDWebResourceAccessActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDWebResourcesActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDWinRegistryKeyActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDWinRegistryValueActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+		ClassUIDWinResourceActivity: {
+			fieldTypes: map[string]string{"end_time_dt": "datetime", "start_time_dt": "datetime", "time_dt": "datetime"},
+		},
+	},
+	"host": {
+		ClassUIDAccountChange: {
+			objectFields: map[string]string{"device": "device"},
+		},
+		ClassUIDApplicationLifecycle: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDAuthentication: {
+			objectFields: map[string]string{"device": "device"},
+		},
+		ClassUIDAuthorizeSession: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDDhcpActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDDNSActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDEmailActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDEmailFileActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDEmailURLActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDEntityManagement: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDFtpActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDGroupManagement: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDHTTPActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDNetworkActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDRDPActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDSmbActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDSSHActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDUserAccess: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDWebResourceAccessActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+		ClassUIDWebResourcesActivity: {
+			objectFields: map[string]string{"actor": "actor", "device": "device"},
+		},
+	},
+	"linux/linux_users": {},
+	"security_control": {
+		ClassUIDDNSActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDEmailActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDEmailFileActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDEmailURLActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDFileActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDFtpActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDHTTPActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDKernelActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDKernelExtension: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDMemoryActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDModuleActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDNetworkActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDProcessActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDRDPActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDScheduledJobActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDSmbActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDSSHActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDWinRegistryKeyActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDWinRegistryValueActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+		ClassUIDWinResourceActivity: {
+			required:     []string{"disposition_id"},
+			objectFields: map[string]string{"attacks": "attack", "malware": "malware"},
+			fieldTypes:   map[string]string{"disposition": "string", "disposition_id": "integer"},
+		},
+	},
+}
+
+var validProfiles = map[string]bool{
+	"cloud":             true,
+	"container":         true,
+	"datetime":          true,
+	"host":              true,
+	"linux/linux_users": true,
+	"security_control":  true,
+}
+
 // ValidateFieldCoverage checks that fieldPaths cover all required fields
 // for the class identified by classUID, recursively validating nested objects.
+// If profiles are provided, profile-specific required fields are also checked.
 // fieldPaths are dot-notation paths as configured by the user (e.g., "metadata.product.name").
-func ValidateFieldCoverage(classUID int, fieldPaths []string) error {
+func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string) error {
 	reqs, ok := classFieldReqs[classUID]
 	if !ok {
 		return fmt.Errorf("unknown class UID: %d", classUID)
 	}
-	return validateCoverage(reqs, fieldPaths, "")
+
+	for _, p := range profiles {
+		if !validProfiles[p] {
+			return fmt.Errorf("unknown profile: %q", p)
+		}
+	}
+
+	err := validateCoverage(reqs, fieldPaths, "")
+
+	for _, p := range profiles {
+		if profileReqs, ok := profileClassFieldReqs[p]; ok {
+			if pReqs, ok := profileReqs[classUID]; ok {
+				if pErr := validateCoverage(pReqs, fieldPaths, ""); pErr != nil {
+					err = errors.Join(err, pErr)
+				}
+			}
+		}
+	}
+
+	return err
 }
 
 func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
@@ -13607,13 +15191,25 @@ func splitFirst(s string) (string, string) {
 // LookupFieldType returns the coercion type name for a field path in the
 // given class. It resolves dot-notation paths (e.g. "src_endpoint.ip") by
 // recursing through object field definitions. Returns "" if the field or
-// class is unknown.
-func LookupFieldType(classUID int, fieldPath string) string {
+// class is unknown. If profiles are provided, profile-specific fields are
+// also searched.
+func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	reqs, ok := classFieldReqs[classUID]
-	if !ok {
-		return ""
+	if ok {
+		if t := lookupFieldTypeInReqs(reqs, fieldPath); t != "" {
+			return t
+		}
 	}
-	return lookupFieldTypeInReqs(reqs, fieldPath)
+	for _, p := range profiles {
+		if profileReqs, ok := profileClassFieldReqs[p]; ok {
+			if pReqs, ok := profileReqs[classUID]; ok {
+				if t := lookupFieldTypeInReqs(pReqs, fieldPath); t != "" {
+					return t
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
@@ -13636,16 +15232,21 @@ func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
 type Schema struct{}
 
 // ValidateClass validates data against the OCSF event class identified by classUID.
-func (Schema) ValidateClass(classUID int, data any) error {
-	return ValidateClass(classUID, data)
+func (Schema) ValidateClass(classUID int, profiles []string, data any) error {
+	return ValidateClass(classUID, profiles, data)
+}
+
+// ValidateProfile makes sure the profile is valid for the class identified by classUID.
+func (Schema) ValidateProfile(classUID int, profile string) error {
+	return ValidateProfile(classUID, profile)
 }
 
 // LookupFieldType returns the coercion type name for a field path in the given class.
-func (Schema) LookupFieldType(classUID int, fieldPath string) string {
-	return LookupFieldType(classUID, fieldPath)
+func (Schema) LookupFieldType(classUID int, profiles []string, fieldPath string) string {
+	return LookupFieldType(classUID, profiles, fieldPath)
 }
 
 // ValidateFieldCoverage checks that fieldPaths cover all required fields for the class identified by classUID.
-func (Schema) ValidateFieldCoverage(classUID int, fieldPaths []string) error {
-	return ValidateFieldCoverage(classUID, fieldPaths)
+func (Schema) ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string) error {
+	return ValidateFieldCoverage(classUID, profiles, fieldPaths)
 }

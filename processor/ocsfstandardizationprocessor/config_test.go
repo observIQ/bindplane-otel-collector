@@ -241,6 +241,98 @@ func TestConfigValidateAutoAddedFields(t *testing.T) {
 	})
 }
 
+func TestConfigValidateProfile(t *testing.T) {
+	tests := []struct {
+		name          string
+		eventMappings []EventMapping
+		wantErr       string
+	}{
+		{
+			name: "unknown profile",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{"test"},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			wantErr: "invalid profile",
+		},
+		{
+			name: "valid profile with required profile fields",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"cloud"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.cloud", To: "cloud"},
+					),
+				},
+			},
+		},
+		{
+			name: "multiple profiles",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"cloud", "datetime"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.cloud", To: "cloud"},
+					),
+				},
+			},
+		},
+		{
+			name: "profile with no required fields",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{"datetime"},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+		},
+		{
+			name: "profile missing required field",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{"cloud"},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+			wantErr: "missing required field",
+		},
+		{
+			name: "empty profiles array",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					Profiles:      []string{},
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+		},
+	}
+
+	for _, version := range OCSFVersions {
+		for _, tt := range tests {
+			t.Run(string(version)+"/"+tt.name, func(t *testing.T) {
+				cfg := Config{
+					OCSFVersion:   version,
+					EventMappings: tt.eventMappings,
+				}
+				err := cfg.Validate()
+				if tt.wantErr != "" {
+					require.ErrorContains(t, err, tt.wantErr)
+				} else {
+					require.NoError(t, err)
+				}
+			})
+		}
+	}
+}
+
 func TestConfigValidateFieldCoverage(t *testing.T) {
 	tests := []struct {
 		name          string

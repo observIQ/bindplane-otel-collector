@@ -68,6 +68,7 @@ type FieldMapping struct {
 type EventMapping struct {
 	Filter        string         `mapstructure:"filter"`
 	ClassID       int            `mapstructure:"class_id"`
+	Profiles      []string       `mapstructure:"profiles"`
 	FieldMappings []FieldMapping `mapstructure:"field_mappings"`
 }
 
@@ -99,6 +100,16 @@ func (cfg Config) Validate() error {
 			}
 		}
 
+		schema := getOCSFSchema(cfg.OCSFVersion)
+
+		if em.Profiles != nil && len(em.Profiles) > 0 {
+			for _, profile := range em.Profiles {
+				if err := schema.ValidateProfile(em.ClassID, profile); err != nil {
+					return fmt.Errorf("event_mappings[%d]: invalid profile: %w", i, err)
+				}
+			}
+		}
+
 		defaultFieldCount := 4
 		fieldPaths := make([]string, len(em.FieldMappings)+defaultFieldCount)
 		// We always automatically add the class_uid field and the metadata.version field
@@ -123,7 +134,7 @@ func (cfg Config) Validate() error {
 			fieldPaths[j+defaultFieldCount] = fm.To
 		}
 
-		coverageErr := getOCSFSchema(cfg.OCSFVersion).ValidateFieldCoverage(em.ClassID, fieldPaths)
+		coverageErr := schema.ValidateFieldCoverage(em.ClassID, em.Profiles, fieldPaths)
 		if coverageErr != nil {
 			return fmt.Errorf("event_mappings[%d]: OCSF Class %d has validation errors\n%w", i, em.ClassID, coverageErr)
 		}
