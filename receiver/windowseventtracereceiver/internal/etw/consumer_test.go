@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	tdh "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
 )
 
 // TestXMLEscape verifies that xmlEscape correctly escapes XML special characters
@@ -183,8 +184,8 @@ func TestRawEventCallback_XMLEscaping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			consumer := newTestConsumer()
-			consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, error) {
-				return tt.eventData, nil
+			consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
+				return tt.eventData, nil, nil
 			}
 
 			record := &advapi32.EventRecord{}
@@ -212,8 +213,8 @@ func TestRawEventCallback_XMLEscaping(t *testing.T) {
 // derived from EventHeader are correctly rendered.
 func TestRawEventCallback_XMLStructure(t *testing.T) {
 	consumer := newTestConsumer()
-	consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, error) {
-		return map[string]any{"Prop": "val"}, nil
+	consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
+		return map[string]any{"Prop": "val"}, nil, nil
 	}
 
 	record := &advapi32.EventRecord{}
