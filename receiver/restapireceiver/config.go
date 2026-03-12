@@ -27,11 +27,11 @@ import (
 const (
 	// Epoch timestamp format constants for use in TimestampFormat.
 	// These send the timestamp as a numeric epoch value instead of a formatted string.
-	epochSeconds            = "epoch_s"
-	epochMilliseconds       = "epoch_ms"
-	epochMicroseconds       = "epoch_us"
-	epochNanoseconds        = "epoch_ns"
-	epochSecondsFractional  = "epoch_s_frac"
+	epochSeconds           = "epoch_s"
+	epochMilliseconds      = "epoch_ms"
+	epochMicroseconds      = "epoch_us"
+	epochNanoseconds       = "epoch_ns"
+	epochSecondsFractional = "epoch_s_frac"
 )
 
 // AuthMode defines the authentication mode for the REST API receiver.
