@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
@@ -27,8 +28,6 @@ import (
 var (
 	// errInvalidConfigType is returned when the configuration is not of the expected type.
 	errInvalidConfigType = errors.New("config is not of type ocsfstandardizationprocessor.Config")
-	// componentType is the value of the "type" key in configuration.
-	componentType = component.MustNewType("ocsf_standardization")
 )
 
 const (
@@ -42,7 +41,7 @@ var (
 // NewFactory creates a new ProcessorFactory with default configuration
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		componentType,
+		metadata.Type,
 		createDefaultConfig,
 		processor.WithLogs(createLogsProcessor, stability),
 	)
