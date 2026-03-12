@@ -23,6 +23,12 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
+// SecurityLakeCustomSource is the configuration for a custom source in Security Lake.
+type SecurityLakeCustomSource struct {
+	Name    string `mapstructure:"name"`
+	ClassID int    `mapstructure:"class_id"`
+}
+
 // Config is the configuration for the AWS Security Lake exporter.
 type Config struct {
 	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"`
@@ -36,11 +42,8 @@ type Config struct {
 	// S3Bucket is the name of the Security Lake S3 bucket. (required)
 	S3Bucket string `mapstructure:"s3_bucket"`
 
-	// S3Prefix is the S3 key prefix. Defaults to "ext/".
-	S3Prefix string `mapstructure:"s3_prefix"`
-
 	// SourceName is the custom source name registered in Security Lake. (required)
-	SourceName string `mapstructure:"source_name"`
+	CustomSources []SecurityLakeCustomSource `mapstructure:"custom_sources"`
 
 	// AccountID is the AWS account ID used in the partition path. (required)
 	AccountID string `mapstructure:"account_id"`
@@ -72,8 +75,16 @@ func (c *Config) Validate() error {
 	if c.S3Bucket == "" {
 		return errors.New("s3_bucket is required")
 	}
-	if c.SourceName == "" {
-		return errors.New("source_name is required")
+	if len(c.CustomSources) == 0 {
+		return errors.New("at least one custom_source is required")
+	}
+	for _, source := range c.CustomSources {
+		if source.Name == "" {
+			return errors.New("custom_source.name is required")
+		}
+		if source.ClassID == 0 {
+			return errors.New("custom_source.class_id is required")
+		}
 	}
 	if c.AccountID == "" {
 		return errors.New("account_id is required")

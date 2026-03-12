@@ -22,16 +22,24 @@ This exporter sends OCSF-formatted logs as Parquet files to an AWS Security Lake
 
 | Field            | Type   | Default | Required | Description                                                          |
 | ---------------- | ------ | ------- | -------- | -------------------------------------------------------------------- |
-| `region`         | string |         | `true`   | The AWS region where the Security Lake S3 bucket resides.            |
-| `s3_bucket`      | string |         | `true`   | The name of the Security Lake S3 bucket.                             |
-| `s3_prefix`      | string | `ext/`  | `false`  | The S3 key prefix for uploaded objects.                              |
-| `source_name`    | string |         | `true`   | The custom source name registered in Security Lake.                  |
-| `account_id`     | string |         | `true`   | The AWS account ID used in the partition path.                       |
-| `role_arn`       | string |         | `false`  | An optional IAM role ARN to assume for S3 writes.                    |
-| `endpoint`       | string |         | `false`  | An optional custom endpoint for S3 writes (useful for testing).      |
+| `region`           | string | | `true` | The AWS region where the Security Lake S3 bucket resides. |
+| `s3_bucket`        | string | | `true` | The name of the Security Lake S3 bucket. |
+| `custom_sources`   | list   | | `true` | A list of custom sources registered in Security Lake. At least one is required. See [Custom Sources](#custom-sources). |
+| `account_id`       | string | | `true` | The AWS account ID used in the partition path. |
+| `role_arn`         | string | | `false` | An optional IAM role ARN to assume for S3 writes. |
+| `endpoint`         | string | | `false` | An optional custom endpoint for S3 writes (useful for testing). |
 | `retry_on_failure` | object | | `false` | Standard OpenTelemetry retry configuration. |
-| `sending_queue`  | object |         | `false`  | Standard OpenTelemetry queue/batch configuration.                    |
-| `timeout`        | duration | `5s`  | `false`  | The timeout for S3 write operations.                                 |
+| `sending_queue`    | object | | `false` | Standard OpenTelemetry queue/batch configuration. |
+| `timeout`          | duration | `5s` | `false` | The timeout for S3 write operations. |
+
+### Custom Sources
+
+Each entry in `custom_sources` has the following fields:
+
+| Field      | Type   | Default | Required | Description                                              |
+| ---------- | ------ | ------- | -------- | -------------------------------------------------------- |
+| `name`     | string |         | `true`   | The custom source name registered in Security Lake.      |
+| `class_id` | int    |         | `true`   | The OCSF class ID associated with this custom source.    |
 
 ## Example Configuration
 
@@ -41,8 +49,10 @@ This exporter sends OCSF-formatted logs as Parquet files to an AWS Security Lake
 aws_security_lake:
   region: "us-east-1"
   s3_bucket: "aws-security-data-lake-us-east-1-xxxxxxxxxxxx"
-  source_name: "my-custom-source"
   account_id: "123456789012"
+  custom_sources:
+    - name: "my-custom-source"
+      class_id: 1001
 ```
 
 ### Configuration with IAM Role
@@ -51,9 +61,11 @@ aws_security_lake:
 aws_security_lake:
   region: "us-east-1"
   s3_bucket: "aws-security-data-lake-us-east-1-xxxxxxxxxxxx"
-  source_name: "my-custom-source"
   account_id: "123456789012"
   role_arn: "arn:aws:iam::123456789012:role/SecurityLakeWriteRole"
+  custom_sources:
+    - name: "my-custom-source"
+      class_id: 1001
 ```
 
 ### Full Pipeline Example
@@ -72,8 +84,10 @@ exporters:
   aws_security_lake:
     region: "us-east-1"
     s3_bucket: "aws-security-data-lake-us-east-1-xxxxxxxxxxxx"
-    source_name: "my-custom-source"
     account_id: "123456789012"
+    custom_sources:
+      - name: "my-custom-source"
+        class_id: 1001
 
 service:
   pipelines:

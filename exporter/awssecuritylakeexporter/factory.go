@@ -40,7 +40,6 @@ func createDefaultConfig() component.Config {
 		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
 		QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
-		S3Prefix:         "ext/",
 	}
 }
 
