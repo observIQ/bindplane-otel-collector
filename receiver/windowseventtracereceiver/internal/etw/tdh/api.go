@@ -594,15 +594,17 @@ const (
 /*
 typedef enum _TEMPLATE_FLAGS {
   TEMPLATE_EVENT_DATA   = 1,
-  TEMPLATE_USER_DATA    = 2
+  TEMPLATE_USER_DATA    = 2,
+  TEMPLATE_CONTROL_GUID = 4
 } TEMPLATE_FLAGS;
 */
 
 type TemplateFlags int32
 
 const (
-	TEMPLATE_EVENT_DATA = TemplateFlags(1)
-	TEMPLATE_USER_DATA  = TemplateFlags(2)
+	TEMPLATE_EVENT_DATA   = TemplateFlags(1)
+	TEMPLATE_USER_DATA    = TemplateFlags(2)
+	TEMPLATE_CONTROL_GUID = TemplateFlags(4)
 )
 
 /*

@@ -18,6 +18,7 @@ package etw
 
 import (
 	"encoding/xml"
+	"fmt"
 	"sync"
 	"testing"
 	"unsafe"
@@ -276,6 +277,127 @@ func TestRawEventCallback_ExtendedData(t *testing.T) {
 
 	err := xml.Unmarshal([]byte(event.Raw), new(any))
 	assert.NoError(t, err, "output must be valid XML:\n%s", event.Raw)
+}
+
+// TestParsedEventCallback_EventDataRouting verifies that event data is routed
+// to EventData or UserData based on the TEMPLATE_FLAGS in TraceEventInfo.
+func TestParsedEventCallback_EventDataRouting(t *testing.T) {
+	data := map[string]any{"key": "value"}
+
+	tests := []struct {
+		name         string
+		ti           *tdh.TraceEventInfo
+		expectInUser bool
+	}{
+		{
+			name:         "TEMPLATE_EVENT_DATA routes to EventData",
+			ti:           &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_EVENT_DATA},
+			expectInUser: false,
+		},
+		{
+			name:         "TEMPLATE_USER_DATA routes to UserData",
+			ti:           &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_USER_DATA},
+			expectInUser: true,
+		},
+		{
+			name:         "TEMPLATE_USER_DATA combined with TEMPLATE_CONTROL_GUID routes to UserData",
+			ti:           &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_USER_DATA | tdh.TEMPLATE_CONTROL_GUID},
+			expectInUser: true,
+		},
+		{
+			name:         "nil ti defaults to EventData",
+			ti:           nil,
+			expectInUser: false,
+		},
+		{
+			name:         "zero Flags defaults to EventData",
+			ti:           &tdh.TraceEventInfo{},
+			expectInUser: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			consumer := newTestConsumer()
+			consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
+				return data, tt.ti, nil
+			}
+
+			rc := consumer.parsedEventCallback(&advapi32.EventRecord{})
+			assert.Equal(t, uintptr(0), rc)
+
+			event := <-consumer.Events
+			require.NotNil(t, event)
+
+			if tt.expectInUser {
+				assert.Equal(t, data, event.UserData, "expected data in UserData")
+				assert.Nil(t, event.EventData, "expected EventData to be nil")
+			} else {
+				assert.Equal(t, data, event.EventData, "expected data in EventData")
+				assert.Nil(t, event.UserData, "expected UserData to be nil")
+			}
+		})
+	}
+}
+
+// TestRawEventCallback_UserDataTag verifies that rawEventCallback uses the
+// correct XML tag (<UserData> vs <EventData>) based on TEMPLATE_FLAGS.
+func TestRawEventCallback_UserDataTag(t *testing.T) {
+	data := map[string]any{"key": "value"}
+
+	tests := []struct {
+		name        string
+		ti          *tdh.TraceEventInfo
+		expectedTag string
+	}{
+		{
+			name:        "TEMPLATE_EVENT_DATA uses EventData tag",
+			ti:          &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_EVENT_DATA},
+			expectedTag: "EventData",
+		},
+		{
+			name:        "TEMPLATE_USER_DATA uses UserData tag",
+			ti:          &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_USER_DATA},
+			expectedTag: "UserData",
+		},
+		{
+			name:        "TEMPLATE_USER_DATA combined with TEMPLATE_CONTROL_GUID uses UserData tag",
+			ti:          &tdh.TraceEventInfo{Flags: tdh.TEMPLATE_USER_DATA | tdh.TEMPLATE_CONTROL_GUID},
+			expectedTag: "UserData",
+		},
+		{
+			name:        "nil ti defaults to EventData tag",
+			ti:          nil,
+			expectedTag: "EventData",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			consumer := newTestConsumer()
+			consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
+				return data, tt.ti, nil
+			}
+
+			rc := consumer.rawEventCallback(&advapi32.EventRecord{})
+			assert.Equal(t, uintptr(0), rc)
+
+			event := <-consumer.Events
+			require.NotNil(t, event)
+
+			assert.Contains(t, event.Raw, fmt.Sprintf("<%s>", tt.expectedTag))
+			assert.Contains(t, event.Raw, fmt.Sprintf("</%s>", tt.expectedTag))
+
+			oppositeTag := "UserData"
+			if tt.expectedTag == "UserData" {
+				oppositeTag = "EventData"
+			}
+			assert.NotContains(t, event.Raw, fmt.Sprintf("<%s>", oppositeTag))
+
+			err := xml.Unmarshal([]byte(event.Raw), new(any))
+			assert.NoError(t, err, "output must be valid XML:\n%s", event.Raw)
+		})
+	}
 }
 
 // newTestConsumer returns a minimal Consumer for unit tests.

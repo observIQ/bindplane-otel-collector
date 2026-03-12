@@ -165,12 +165,16 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	}
 	xmlBuilder.WriteString("  </System>\n")
 
-	// EventData section
-	xmlBuilder.WriteString("  <EventData>\n")
+	// EventData/UserData section — tag follows the TEMPLATE_FLAGS layout indicator.
+	dataTag := "EventData"
+	if ti != nil && ti.Flags&tdh.TEMPLATE_USER_DATA != 0 {
+		dataTag = "UserData"
+	}
+	xmlBuilder.WriteString(fmt.Sprintf("  <%s>\n", dataTag))
 	for key, value := range eventData {
 		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%s</Data>\n", xmlEscape(key), xmlEscape(fmt.Sprintf("%v", value))))
 	}
-	xmlBuilder.WriteString("  </EventData>\n")
+	xmlBuilder.WriteString(fmt.Sprintf("  </%s>\n", dataTag))
 
 	if extData := collectExtendedData(eventRecord); len(extData) > 0 {
 		xmlBuilder.WriteString("  <ExtendedData>\n")
@@ -399,6 +403,14 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		providerName = provider.Name
 	}
 
+	var eventData map[string]any
+	var userData map[string]any
+	if ti != nil && ti.Flags&tdh.TEMPLATE_USER_DATA != 0 {
+		userData = data
+	} else {
+		eventData = data
+	}
+
 	level := eventRecord.EventHeader.EventDescriptor.Level
 	event := &Event{
 		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
@@ -427,7 +439,8 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		Security: EventSecurity{
 			SID: eventRecord.SID(),
 		},
-		EventData:    data,
+		EventData:    eventData,
+		UserData:     userData,
 		ExtendedData: collectExtendedData(eventRecord),
 	}
 
