@@ -276,32 +276,7 @@ func generateType(buf *bytes.Buffer, name string, attrs map[string]Attribute, co
 // (e.g. validateProfileCloud, validateProfileDatetime). Profile attributes are the
 // same across all classes, so we only need one function per profile.
 func writeProfileValidateFunctions(buf *bytes.Buffer, schema Schema, typeConstraints map[string]typeConstraint) {
-	// Collect profile attrs from across all classes and objects — each profile
-	// defines the same set of attributes regardless of which class/object it
-	// appears on.
-	profileAttrs := map[string]map[string]Attribute{}
-	for _, cls := range schema.Classes {
-		for attrName, attr := range cls.Attributes {
-			if attr.Profile == "" {
-				continue
-			}
-			if profileAttrs[attr.Profile] == nil {
-				profileAttrs[attr.Profile] = map[string]Attribute{}
-			}
-			profileAttrs[attr.Profile][attrName] = attr
-		}
-	}
-	for _, obj := range schema.Objects {
-		for attrName, attr := range obj.Attributes {
-			if attr.Profile == "" {
-				continue
-			}
-			if profileAttrs[attr.Profile] == nil {
-				profileAttrs[attr.Profile] = map[string]Attribute{}
-			}
-			profileAttrs[attr.Profile][attrName] = attr
-		}
-	}
+	profileAttrs := collectProfileAttrs(schema)
 
 	for _, profileName := range sortedKeys(profileAttrs) {
 		funcName := fmt.Sprintf("Profile%s", toGoName(profileName))
@@ -727,29 +702,38 @@ func filterAttrsForProfile(attrs map[string]Attribute, profile string) map[strin
 	return filtered
 }
 
-// collectAllProfiles returns sorted unique profile names from all classes and objects.
-func collectAllProfiles(schema Schema) []string {
-	profiles := map[string]bool{}
+// collectProfileAttrs returns a map of profile name → merged attributes from all classes and objects.
+// Each profile defines the same set of attributes regardless of which class/object it appears on.
+func collectProfileAttrs(schema Schema) map[string]map[string]Attribute {
+	profileAttrs := map[string]map[string]Attribute{}
 	for _, cls := range schema.Classes {
-		for _, attr := range cls.Attributes {
-			if attr.Profile != "" {
-				profiles[attr.Profile] = true
+		for attrName, attr := range cls.Attributes {
+			if attr.Profile == "" {
+				continue
 			}
+			if profileAttrs[attr.Profile] == nil {
+				profileAttrs[attr.Profile] = map[string]Attribute{}
+			}
+			profileAttrs[attr.Profile][attrName] = attr
 		}
 	}
 	for _, obj := range schema.Objects {
-		for _, attr := range obj.Attributes {
-			if attr.Profile != "" {
-				profiles[attr.Profile] = true
+		for attrName, attr := range obj.Attributes {
+			if attr.Profile == "" {
+				continue
 			}
+			if profileAttrs[attr.Profile] == nil {
+				profileAttrs[attr.Profile] = map[string]Attribute{}
+			}
+			profileAttrs[attr.Profile][attrName] = attr
 		}
 	}
-	result := make([]string, 0, len(profiles))
-	for p := range profiles {
-		result = append(result, p)
-	}
-	sort.Strings(result)
-	return result
+	return profileAttrs
+}
+
+// collectAllProfiles returns sorted unique profile names from all classes and objects.
+func collectAllProfiles(schema Schema) []string {
+	return sortedKeys(collectProfileAttrs(schema))
 }
 
 func sortedKeys[V any](m map[string]V) []string {
