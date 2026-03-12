@@ -25,12 +25,17 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
+// OCSFVersion is the OCSF version to use for the logs.
 type OCSFVersion string
 
 const (
+	// OCSFVersion1_0_0 is the OCSF version 1.0.0.
 	OCSFVersion1_0_0 OCSFVersion = "1.0.0"
+	// OCSFVersion1_1_0 is the OCSF version 1.1.0.
 	OCSFVersion1_1_0 OCSFVersion = "1.1.0"
+	// OCSFVersion1_2_0 is the OCSF version 1.2.0.
 	OCSFVersion1_2_0 OCSFVersion = "1.2.0"
+	// OCSFVersion1_3_0 is the OCSF version 1.3.0.
 	OCSFVersion1_3_0 OCSFVersion = "1.3.0"
 )
 
