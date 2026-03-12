@@ -24,10 +24,8 @@ import (
 )
 
 func TestWrapLogger(t *testing.T) {
-	baseLogger := zap.NewNop()
-	opts := createServiceLoggerOpts(baseLogger)
+	opts := createServiceLoggerOpts()
 	serviceLogger := zap.NewNop().WithOptions(opts...)
-	require.Equal(t, baseLogger.Core(), serviceLogger.Core())
 
 	infoLevel := serviceLogger.Core().Enabled(zapcore.InfoLevel)
 	require.False(t, infoLevel)
@@ -39,7 +37,6 @@ func TestCreateService(t *testing.T) {
 	require.NoError(t, err)
 
 	factories := otelcol.Factories{}
-	logger := zap.NewNop()
-	_, err = createService(factories, *configProviderSettings, logger)
+	_, err = createService(factories, *configProviderSettings)
 	require.NoError(t, err)
 }

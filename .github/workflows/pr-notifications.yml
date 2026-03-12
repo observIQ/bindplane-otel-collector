@@ -1,0 +1,72 @@
+name: Slack PR Review Notifications
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [closed]
+
+jobs:
+  # Handle @iris cr commands in PR comments
+  pr-notify:
+    name: PR Review Notification
+    # Only run on PR comments that mention the bot
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@iris')
+    uses: observIQ/gha-workflows/.github/workflows/reusable-slack-pr-notify.yml@main
+    with:
+      comment_body: ${{ github.event.comment.body }}
+      pr_api_url: ${{ github.event.issue.pull_request.url }}
+      pr_labels: ${{ toJSON(github.event.issue.labels) }}
+      comment_id: ${{ github.event.comment.id }}
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+      GHA_WORKFLOWS_TOKEN: ${{ secrets.ORG_BINDPLANE_BOT_PR_NOTIFY_TOKEN }}
+
+  # Add emoji reactions to Slack message when PR is reviewed
+  review-status:
+    name: Add Review Status Reaction
+    if: |
+      github.event_name == 'pull_request_review' &&
+      (github.event.review.state == 'approved' || github.event.review.state == 'changes_requested')
+    uses: observIQ/gha-workflows/.github/workflows/reusable-slack-pr-review-status.yml@main
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      reaction_type: ${{ github.event.review.state }}
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+      GHA_WORKFLOWS_TOKEN: ${{ secrets.ORG_BINDPLANE_BOT_PR_NOTIFY_TOKEN }}
+
+  # Add emoji reaction when PR is merged
+  pr-merged:
+    name: Add Merged Reaction
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true
+    uses: observIQ/gha-workflows/.github/workflows/reusable-slack-pr-review-status.yml@main
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      reaction_type: merged
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+      GHA_WORKFLOWS_TOKEN: ${{ secrets.ORG_BINDPLANE_BOT_PR_NOTIFY_TOKEN }}
+
+  # Add emoji reaction when PR is closed without merging
+  pr-closed:
+    name: Add Closed Reaction
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == false
+    uses: observIQ/gha-workflows/.github/workflows/reusable-slack-pr-review-status.yml@main
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      reaction_type: closed
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+      GHA_WORKFLOWS_TOKEN: ${{ secrets.ORG_BINDPLANE_BOT_PR_NOTIFY_TOKEN }}

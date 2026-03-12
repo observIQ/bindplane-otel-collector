@@ -1,7 +1,7 @@
 # Google Managed Prometheus Exporter
 
 This exporter can be used to send metrics to Google Cloud Managed Service for Prometheus. It is an extension of the official
-[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.138.0/exporter/googlemanagedprometheusexporter), with additional configuration options.
+[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.147.0/exporter/googlemanagedprometheusexporter), with additional configuration options.
 
 ## Supported pipelines
 
@@ -10,7 +10,7 @@ This exporter can be used to send metrics to Google Cloud Managed Service for Pr
 ## How It Works
 
 1. The user configures this exporter in a pipeline
-2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.138.0/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
+2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.147.0/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
 3. Metrics are sent to Google Cloud.
 
 ## Configuration
@@ -24,7 +24,7 @@ This exporter can be used to send metrics to Google Cloud Managed Service for Pr
 | `project`          | string  |                  | `false`  | The GCP project used when exporting telemetry data. If not set, the exporter will attempt to extract the value from the specified credentials.                                                                                               |
 | `use_insecure`     | boolean | `false`          | `false`  | Uses gRPC communication if true. Only has an effect if the endpoint is set.                                                                                                                                                                  |
 | `user_agent`       | string  | `StanzaLogAgent` | `false`  | Overrides the user agent used when making requests.                                                                                                                                                                                          |
-| `sending_queue`    | object  |                  | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.138.0/exporter/exporterhelper/README.md) for more information. |
+| `sending_queue`    | object  |                  | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.147.0/exporter/exporterhelper/README.md) for more information. |
 
 ## Example configuration
 
@@ -62,4 +62,14 @@ service:
       receivers: [prometheus]
       processors: [resource, batch]
       exporters: [googlemanagedprometheus]
+```
+
+## OCB
+
+This component relies on the `github.com/observiq/bindplane-otel-collector/version` package to get a version value. This version is used to construct a User-Agent header value.
+
+When using this component with the OpenTelemetry Collector Builder (OCB), use the `--ldflags` CLI argument to set the version value at build time. For example:
+
+```sh
+builder --config "manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=v1.2.3"
 ```

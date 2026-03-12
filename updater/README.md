@@ -36,7 +36,7 @@ If the file indicates the installation was successful, then the updater exits.
 ## Updater Rollback
 While installing, the updater records a list of actions take (files copied, service actions taken). If something goes wrong during installation, or while monitoring for agent health, then a rollback is initiated.
 
-The rollback will perform the reverse of each action in reverse order. For instance, if the agent binary is replaced with the new agent, then the OpenTelemetry JMX jar is replaced with a new jar, the rollback would copy the backup jar to its previous location, then it would copy the backup agent to its previous location.
+The rollback will perform the reverse of each action in reverse order. For instance, if the agent binary is replaced with the new agent, then a plugin file is replaced with a new plugin, the rollback would copy the backup plugin to its previous location, then it would copy the backup agent to its previous location.
 
 Ultimately, this means the rollback process will put the system back into its original state.
 

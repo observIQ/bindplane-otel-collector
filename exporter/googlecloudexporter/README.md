@@ -1,7 +1,7 @@
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official
-[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.138.0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
+[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.147.0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
 
 ## Configuration
 
@@ -16,7 +16,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `user_agent`       | `StanzaLogAgent` | `false`  | Overrides the user agent used when making requests.                                                                                                                                                          |
 | `timeout`          | `12s`            | `false`  | The timeout for API calls.                                                                                                                                                                                   |
 | `sending_queue`    |                  | `false`  | Determines how telemetry data is buffered before exporting.                                                                                                                                                  |
-| `batch`            |                  | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.138.0/processor/batchprocessor).                                                            |
+| `batch`            |                  | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.147.0/processor/batchprocessor).                                                            |
 | `append_host`      |                  | `true`   | Append the agent's hostname to incoming telemetry if not already present.                                                                                                                                    |
 
 ## Metric Processing Steps
@@ -46,3 +46,13 @@ When trace data is received by the Google Cloud Exporter, it is processed in the
 ## Metric Labels
 
 Unlike the official Google Cloud Exporter, this extension transforms all resource attributes into metric labels by default. Users may still use the `resource_filters` field in the metric config to overwrite this behavior.
+
+## OCB
+
+This component relies on the `github.com/observiq/bindplane-otel-collector/version` package to get a version value. This version is used to construct a User-Agent header value.
+
+When using this component with the OpenTelemetry Collector Builder (OCB), use the `--ldflags` CLI argument to set the version value at build time. For example:
+
+```sh
+builder --config "manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=v1.2.3"
+```

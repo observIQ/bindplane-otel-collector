@@ -1,0 +1,9 @@
+type: pebble
+
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+
+tests:
+  config:

@@ -52,6 +52,12 @@ func setHardcodedFeatureFlags() error {
 	if err := featuregate.GlobalRegistry().Set("filelog.mtimeSortType", true); err != nil {
 		return fmt.Errorf("failed to enable filelog.mtimeSortType: %w", err)
 	}
+	if err := featuregate.GlobalRegistry().Set("exporter.prometheusremotewritexporter.enableSendingRW2", true); err != nil {
+		return fmt.Errorf("failed to enable exporter.prometheusremotewritexporter.enableSendingRW2: %w", err)
+	}
+	if err := featuregate.GlobalRegistry().Set("connector.spanmetrics.includeCollectorInstanceID", true); err != nil {
+		return fmt.Errorf("failed to enable connector.spanmetrics.includeCollectorInstanceID: %w", err)
+	}
 
 	return nil
 }

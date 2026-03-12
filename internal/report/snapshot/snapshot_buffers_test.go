@@ -15,6 +15,10 @@
 package snapshot
 
 import (
+	"bytes"
+	"compress/gzip"
+	"fmt"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +27,16 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 )
+
+// decompress gzip decompresses the data
+func decompress(data []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return io.ReadAll(r)
+}
 
 func TestNewLogBuffer(t *testing.T) {
 	idealSize := 100
@@ -164,13 +178,85 @@ func TestLogsBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 	logBuffer.Add(payloadThree)
 
-	payload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil)
+	// ConstructPayload now returns uncompressed data
+	payload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &plog.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalLogs(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.LogRecordCount())
+}
+
+func TestLogsBufferConstructPayloadSampling(t *testing.T) {
+	t.Run("Samples when payload exceeds max size", func(t *testing.T) {
+		logBuffer := NewLogBuffer(2000)
+
+		// Add many log records with unique content to prevent effective compression
+		payload := plog.NewLogs()
+		rl := payload.ResourceLogs().AppendEmpty()
+		sl := rl.ScopeLogs().AppendEmpty()
+		for i := 0; i < 1000; i++ {
+			lr := sl.LogRecords().AppendEmpty()
+			// Use unique content per log to reduce compression effectiveness
+			lr.Body().SetStr(fmt.Sprintf("Log message %d with unique identifier %x", i, i*12345))
+			lr.Attributes().PutStr("key", fmt.Sprintf("value-%d", i))
+			lr.Attributes().PutInt("index", int64(i))
+		}
+		logBuffer.Add(payload)
+
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 2000)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
+		require.NoError(t, err)
+		require.LessOrEqual(t, len(compressedPayload), 2000)
+
+		unmarshaler := &plog.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalLogs(uncompressedPayload)
+		require.NoError(t, err)
+		// Should have fewer logs due to sampling (sampling was required to fit)
+		require.Less(t, actual.LogRecordCount(), 1000)
+	})
+
+	t.Run("Returns error and clears buffer when too large even at 1%", func(t *testing.T) {
+		logBuffer := NewLogBuffer(10000)
+
+		// Add a very large payload
+		payload := plog.NewLogs()
+		rl := payload.ResourceLogs().AppendEmpty()
+		sl := rl.ScopeLogs().AppendEmpty()
+		for i := 0; i < 1000; i++ {
+			lr := sl.LogRecords().AppendEmpty()
+			lr.Body().SetStr("This is a test log message with a lot of content to make it very large and exceed the size limit even at 1 percent retention")
+			lr.Attributes().PutStr("attribute1", "value1")
+			lr.Attributes().PutStr("attribute2", "value2")
+		}
+		logBuffer.Add(payload)
+
+		// Use an extremely small max size that even 1% can't fit
+		_, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 10)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "snapshot buffer is too large to construct payload")
+
+		// Buffer should be cleared
+		require.Equal(t, 0, logBuffer.Len())
+	})
+
+	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
+		logBuffer := NewLogBuffer(100)
+		// ConstructPayload returns uncompressed data
+		payload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 1000)
+		require.NoError(t, err)
+
+		unmarshaler := &plog.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalLogs(payload)
+		require.NoError(t, err)
+		require.Equal(t, 0, actual.LogRecordCount())
+	})
 }
 
 func TestNewMetricBuffer(t *testing.T) {
@@ -337,13 +423,89 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 	pThreeMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadThree)
 
-	payload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil)
+	// ConstructPayload now returns uncompressed data
+	payload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &pmetric.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalMetrics(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.DataPointCount())
+}
+
+func TestMetricBufferConstructPayloadSampling(t *testing.T) {
+	t.Run("Samples when payload exceeds max size", func(t *testing.T) {
+		metricBuffer := NewMetricBuffer(1000)
+
+		// Add many data points to create a large payload
+		payload := pmetric.NewMetrics()
+		rm := payload.ResourceMetrics().AppendEmpty()
+		sm := rm.ScopeMetrics().AppendEmpty()
+		m := sm.Metrics().AppendEmpty()
+		m.SetName("test_metric")
+		m.SetEmptyGauge()
+		for i := 0; i < 500; i++ {
+			dp := m.Gauge().DataPoints().AppendEmpty()
+			dp.SetIntValue(int64(i))
+			dp.Attributes().PutStr("key", "value")
+		}
+		metricBuffer.Add(payload)
+
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 500)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
+		require.NoError(t, err)
+		require.LessOrEqual(t, len(compressedPayload), 500)
+
+		unmarshaler := &pmetric.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalMetrics(uncompressedPayload)
+		require.NoError(t, err)
+		// Should have fewer data points due to sampling
+		require.Less(t, actual.DataPointCount(), 500)
+	})
+
+	t.Run("Returns error and clears buffer when too large even at 1%", func(t *testing.T) {
+		metricBuffer := NewMetricBuffer(10000)
+
+		// Add a very large payload
+		payload := pmetric.NewMetrics()
+		rm := payload.ResourceMetrics().AppendEmpty()
+		sm := rm.ScopeMetrics().AppendEmpty()
+		m := sm.Metrics().AppendEmpty()
+		m.SetName("test_metric")
+		m.SetEmptyGauge()
+		for i := 0; i < 1000; i++ {
+			dp := m.Gauge().DataPoints().AppendEmpty()
+			dp.SetIntValue(int64(i))
+			dp.Attributes().PutStr("attribute1", "value1")
+			dp.Attributes().PutStr("attribute2", "value2")
+		}
+		metricBuffer.Add(payload)
+
+		// Use an extremely small max size that even 1% can't fit
+		_, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 10)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "snapshot buffer is too large to construct payload")
+
+		// Buffer should be cleared
+		require.Equal(t, 0, metricBuffer.Len())
+	})
+
+	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
+		metricBuffer := NewMetricBuffer(100)
+		// ConstructPayload returns uncompressed data
+		payload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 1000)
+		require.NoError(t, err)
+
+		unmarshaler := &pmetric.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalMetrics(payload)
+		require.NoError(t, err)
+		require.Equal(t, 0, actual.DataPointCount())
+	})
 }
 
 func TestNewTraceBuffer(t *testing.T) {
@@ -486,11 +648,115 @@ func TestTraceBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	traceBuffer.Add(payloadThree)
 
-	payload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil)
+	// ConstructPayload now returns uncompressed data
+	payload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &ptrace.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalTraces(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.SpanCount())
+}
+
+func TestTraceBufferConstructPayloadSampling(t *testing.T) {
+	t.Run("Samples when payload exceeds max size", func(t *testing.T) {
+		traceBuffer := NewTraceBuffer(2000)
+
+		// Add many spans with unique content to prevent effective compression
+		payload := ptrace.NewTraces()
+		rs := payload.ResourceSpans().AppendEmpty()
+		ss := rs.ScopeSpans().AppendEmpty()
+		for i := 0; i < 1000; i++ {
+			span := ss.Spans().AppendEmpty()
+			span.SetName(fmt.Sprintf("test-span-%d", i))
+			span.Attributes().PutStr("key", fmt.Sprintf("value-%d", i))
+			span.Attributes().PutInt("index", int64(i))
+		}
+		traceBuffer.Add(payload)
+
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 2000)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
+		require.NoError(t, err)
+		require.LessOrEqual(t, len(compressedPayload), 2000)
+
+		unmarshaler := &ptrace.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalTraces(uncompressedPayload)
+		require.NoError(t, err)
+		// Should have fewer spans due to sampling (sampling was required to fit)
+		require.Less(t, actual.SpanCount(), 1000)
+	})
+
+	t.Run("Returns error and clears buffer when too large even at 1%", func(t *testing.T) {
+		traceBuffer := NewTraceBuffer(10000)
+
+		// Add a very large payload
+		payload := ptrace.NewTraces()
+		rs := payload.ResourceSpans().AppendEmpty()
+		ss := rs.ScopeSpans().AppendEmpty()
+		for i := 0; i < 1000; i++ {
+			span := ss.Spans().AppendEmpty()
+			span.SetName("test-span-with-a-longer-name-to-increase-payload-size")
+			span.Attributes().PutStr("attribute1", "value1")
+			span.Attributes().PutStr("attribute2", "value2")
+		}
+		traceBuffer.Add(payload)
+
+		// Use an extremely small max size that even 1% can't fit
+		_, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 10)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "snapshot buffer is too large to construct payload")
+
+		// Buffer should be cleared
+		require.Equal(t, 0, traceBuffer.Len())
+	})
+
+	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
+		traceBuffer := NewTraceBuffer(100)
+		// ConstructPayload returns uncompressed data
+		payload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 1000)
+		require.NoError(t, err)
+
+		unmarshaler := &ptrace.ProtoUnmarshaler{}
+		actual, err := unmarshaler.UnmarshalTraces(payload)
+		require.NoError(t, err)
+		require.Equal(t, 0, actual.SpanCount())
+	})
+}
+
+func TestCompress(t *testing.T) {
+	t.Run("Compresses and decompresses data correctly", func(t *testing.T) {
+		original := []byte("This is some test data that should be compressed and decompressed correctly")
+		compressed, err := compress(original)
+		require.NoError(t, err)
+		require.NotEmpty(t, compressed)
+
+		decompressed, err := decompress(compressed)
+		require.NoError(t, err)
+		require.Equal(t, original, decompressed)
+	})
+
+	t.Run("Compresses empty data", func(t *testing.T) {
+		compressed, err := compress([]byte{})
+		require.NoError(t, err)
+
+		decompressed, err := decompress(compressed)
+		require.NoError(t, err)
+		require.Empty(t, decompressed)
+	})
+
+	t.Run("Compressed data is smaller for repetitive content", func(t *testing.T) {
+		// Create repetitive data that compresses well
+		original := make([]byte, 10000)
+		for i := range original {
+			original[i] = 'a'
+		}
+		compressed, err := compress(original)
+		require.NoError(t, err)
+		require.Less(t, len(compressed), len(original))
+	})
 }

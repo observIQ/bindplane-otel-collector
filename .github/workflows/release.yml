@@ -2,11 +2,20 @@ name: release
 on:
   push:
     tags:
-      - "v*"
+      - "v[0-9]*"
 
 jobs:
-  build-64bit-msi:
+  build-msi:
     runs-on: windows-2022
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            msi_name: observiq-otel-collector.msi
+            msi_arch: x64
+          - arch: arm64
+            msi_name: observiq-otel-collector-arm64.msi
+            msi_arch: arm64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -15,32 +24,24 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: "**/go.sum"
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
-          distribution: goreleaser-pro
-          version: "v2.12.5"
-          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
+      - name: Prepare Release Dependencies
+        run: make release-prep CURR_VERSION=${VERSION#v}
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-      - name: Copy Windows Collector Binary
-        run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
-      - name: Copy Windows Updater Binary
-        run: cp dist/windows_amd64/updater_windows_amd64_v1/updater.exe windows/updater.exe
-      - name: Copy Plugins to MSI Build Directory
-        run: cp -r release_deps/plugins windows/
-      - name: Copy Example Config
-        run: cp config/example.yaml windows/config.yaml
-      - name: Copy Logging Config
-        run: cp config/logging.yaml windows/logging.yaml
-      - name: Copy JMX Receiver Jar
-        run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
-      - name: Copy LICENSE
-        run: cp LICENSE windows/LICENSE
-      - name: Copy VERSION file
-        run: cp release_deps/VERSION.txt windows/VERSION.txt
+          VERSION: ${{ github.ref_name }}
+      - name: Build Windows Binaries
+        run: make build-windows-${{ matrix.arch }}
+      - name: Copy Shared Files to MSI Build Directory
+        run: |
+          cp -r release_deps/plugins windows/
+          cp config/example.yaml windows/config.yaml
+          cp config/logging.yaml windows/logging.yaml
+          cp LICENSE windows/LICENSE
+          cp release_deps/VERSION.txt windows/VERSION.txt
+      - name: Copy Binaries
+        run: |
+          cp dist/collector_windows_${{ matrix.arch }}.exe windows/observiq-otel-collector.exe
+          cp dist/updater_windows_${{ matrix.arch }}.exe windows/updater.exe
       # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
       # for the MSI to build properly
       - name: Copy Build Dir
@@ -51,50 +52,49 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
-          unzip wix310-binaries.zip
+          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          unzip wix314-binaries.zip
         working-directory: C:/build
-      - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.ref_name }} --arch amd64
+      - name: Build MSI
+        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.ref_name }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate 
-        run: | 
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Set variables for signing
-        id: variables 
-        run: | 
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
-        shell: bash
-      - name: Signing using keypair alias
+        id: variables
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+        shell: bash
+      - name: Sign MSI
+        run: |
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
-      - name: "Upload MSI"
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: C:/build/observiq-otel-collector.msi
+          name: ${{ matrix.msi_name }}
+          path: C:/build/${{ matrix.msi_name }}
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
-          retention-days: 1
-      - name: "Upload Windows ZIP Archive"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-archive
-          path: dist/**/*.zip
-          # Short lived because Go Releaser will upload the zip to a release (github release, gcs, etc)
           retention-days: 1
 
   release:
-    needs: [build-64bit-msi]
+    needs: [build-msi]
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
+      - name: Redirect temp directories
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
         with:
@@ -116,38 +116,14 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to Github Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
-      - name: Login to Google Artifact Repository
-        uses: docker/login-action@v2
-        with:
-          registry: us-central1-docker.pkg.dev
-          username: _json_key
-          password: ${{ secrets.ORG_OBSERVIQ_PUBLIC_GCR_JSON_KEY }}
-      - name: Retrieve Windows 64-bit MSI Installer
+      - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
           name: observiq-otel-collector.msi
-          path: observiq-otel-collector.msi
-      - name: Retrieve Windows 64-bit ZIP Archive
+      - name: Retrieve Windows ARM64 MSI Installer
         uses: actions/download-artifact@v4
         with:
-          name: windows-archive
-          path: windows-archive
+          name: observiq-otel-collector-arm64.msi
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
@@ -159,11 +135,22 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: ~/.cache/goreleaser
-      - name: Sign MSI
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi/observiq-otel-collector.msi.sig ./observiq-otel-collector.msi/observiq-otel-collector.msi
+      - name: Sign AMD64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi.sig ./observiq-otel-collector.msi
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Sign ARM64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-arm64.msi.sig ./observiq-otel-collector-arm64.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -171,17 +158,21 @@ jobs:
           version: "v2.12.5"
           args: release --clean --timeout 120m
         env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
       - name: Create artifact archive
         run: |
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
-          cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
+          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
+          cp ./observiq-otel-collector.msi ./artifacts
+          cp ./observiq-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/windows_amd64/*.zip ./artifacts
+          cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
@@ -195,6 +186,7 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
+          gsutil cp ./release_deps/gpg-keys.tar.gz gs://bdot-release/latest/gpg-keys.tar.gz
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
         with:
@@ -244,6 +236,7 @@ jobs:
             artifacts apt upload stable-deb \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.deb
+
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
           gcloud \

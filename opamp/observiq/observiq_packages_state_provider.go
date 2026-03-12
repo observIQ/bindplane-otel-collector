@@ -22,8 +22,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
+	"github.com/observiq/bindplane-otel-collector/version"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"

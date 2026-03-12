@@ -15,13 +15,10 @@
 package pcapreceiver
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os/exec"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/capture"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
 	"go.opentelemetry.io/collector/component"
@@ -33,22 +30,18 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	// newCommand is used to allow tests to stub command creation
-	newCommand = exec.Command
-)
-
 // pcapReceiver receives network packets via tcpdump and emits them as logs
 type pcapReceiver struct {
-	id        component.ID
-	telemetry component.TelemetrySettings
-	metrics   *metadata.TelemetryBuilder
-	config    *Config
-	logger    *zap.Logger
-	consumer  consumer.Logs
-	cancel    context.CancelFunc
-	cmd       *exec.Cmd
-	obsrecv   *receiverhelper.ObsReport
+	id         component.ID
+	telemetry  component.TelemetrySettings
+	metrics    *metadata.TelemetryBuilder
+	config     *Config
+	logger     *zap.Logger
+	consumer   consumer.Logs
+	cancel     context.CancelFunc
+	cmd        *exec.Cmd   // Used on Unix systems for tcpdump process
+	pcapHandle interface{} // Used on Windows for go-pcap handle
+	obsrecv    *receiverhelper.ObsReport
 }
 
 // newReceiver creates a new PCAP receiver
@@ -73,149 +66,7 @@ func newReceiver(params receiver.Settings, config *Config, logger *zap.Logger, c
 	}, nil
 }
 
-// Start starts the packet capture
-func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
-	r.logger.Info("Starting PCAP receiver", zap.String("interface", r.config.Interface))
-
-	// Validate configuration first
-	if err := r.config.Validate(); err != nil {
-		return fmt.Errorf("configuration validation failed: %w", err)
-	}
-
-	if err := r.checkPrivileges(); err != nil {
-		r.logger.Warn("PCAP receiver cannot collect packets due to insufficient privileges",
-			zap.Error(err),
-			zap.String("message", "No packets will be collected. Please ensure the collector has the necessary privileges to capture network packets."))
-		return nil
-	}
-
-	// Build the capture command
-	// Use a single cross-platform builder to avoid symbol conflicts across build tags
-	r.cmd = capture.BuildCaptureCommand(
-		r.config.Interface,
-		r.config.Filter,
-		r.config.SnapLen,
-		r.config.Promiscuous,
-	)
-
-	if r.cmd == nil {
-		return fmt.Errorf("failed to build capture command")
-	}
-
-	// Log the command being executed for debugging
-	r.logger.Debug("Built capture command",
-		zap.String("path", r.cmd.Path),
-		zap.Strings("args", r.cmd.Args),
-		zap.Int("snaplen", r.config.SnapLen),
-		zap.Bool("promiscuous", r.config.Promiscuous),
-		zap.String("filter", r.config.Filter))
-
-	// Get stdout pipe
-	stdout, err := r.cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("failed to get stdout pipe: %w", err)
-	}
-
-	// Get stderr pipe for error messages
-	stderr, err := r.cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("failed to get stderr pipe: %w", err)
-	}
-
-	// Start the command
-	if err := r.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start capture command: %w. Ensure tcpdump is installed and you have sufficient privileges", err)
-	}
-
-	r.logger.Debug("tcpdump process started", zap.Int("pid", r.cmd.Process.Pid))
-
-	// Create cancellable context
-	ctx, cancel := context.WithCancel(ctx)
-	r.cancel = cancel
-
-	// Start goroutine to read stderr
-	go r.readStderr(ctx, stderr)
-
-	// Start goroutine to read and parse packets
-	go r.readPackets(ctx, stdout)
-
-	r.logger.Info("PCAP receiver started successfully",
-		zap.String("tcpdump_command", fmt.Sprintf("%s %v", r.cmd.Path, r.cmd.Args)),
-		zap.Int("tcpdump_pid", r.cmd.Process.Pid))
-	return nil
-}
-
-// Shutdown stops the packet capture
-func (r *pcapReceiver) Shutdown(_ context.Context) error {
-	r.logger.Info("Shutting down PCAP receiver")
-
-	if r.cancel != nil {
-		r.cancel()
-	}
-
-	if r.cmd != nil && r.cmd.Process != nil {
-		r.logger.Debug("Killing tcpdump process", zap.Int("pid", r.cmd.Process.Pid))
-		if err := r.cmd.Process.Kill(); err != nil {
-			r.logger.Warn("Failed to kill capture process", zap.Error(err), zap.Int("pid", r.cmd.Process.Pid))
-		}
-		// Wait for process to exit and capture exit status
-		waitErr := r.cmd.Wait()
-		if waitErr != nil {
-			if exitError, ok := waitErr.(*exec.ExitError); ok {
-				r.logger.Debug("tcpdump process exited with non-zero status",
-					zap.Int("pid", r.cmd.Process.Pid),
-					zap.Int("exit_code", exitError.ExitCode()))
-			} else {
-				r.logger.Debug("tcpdump process wait completed with error",
-					zap.Error(waitErr),
-					zap.Int("pid", r.cmd.Process.Pid))
-			}
-		} else {
-			r.logger.Debug("tcpdump process exited successfully", zap.Int("pid", r.cmd.Process.Pid))
-		}
-
-		// Log final process state if available
-		if state := r.cmd.ProcessState; state != nil {
-			r.logger.Debug("tcpdump final state",
-				zap.Int("pid", r.cmd.Process.Pid),
-				zap.String("state", state.String()),
-				zap.Bool("exited", state.Exited()),
-				zap.Bool("success", state.Success()))
-		}
-	} else {
-		r.logger.Warn("No tcpdump process to shutdown")
-	}
-
-	r.logger.Info("PCAP receiver shut down")
-	return nil
-}
-
-// readStderr reads error messages from capture tool (tcpdump/dumpcap)
-func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
-	r.logger.Debug("Starting stderr reader goroutine")
-	defer r.logger.Debug("Stderr reader goroutine exiting")
-
-	scanner := bufio.NewScanner(stderr)
-	lineCount := 0
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			r.logger.Debug("Stderr reader context cancelled", zap.Int("lines_read", lineCount))
-			return
-		default:
-			line := scanner.Text()
-			lineCount++
-			// Log stderr output at info level to see what the capture tool is saying (it writes important messages to stderr)
-			r.logger.Info("capture tool stderr", zap.String("message", line), zap.Int("line_number", lineCount))
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		r.logger.Error("Error reading from capture tool stderr", zap.Error(err), zap.Int("total_lines", lineCount))
-	} else {
-		r.logger.Debug("Stderr scanner closed", zap.Int("total_lines_read", lineCount))
-	}
-}
+// Start and Shutdown methods are platform-specific (see receiver_unix.go and receiver_windows.go)
 
 // truncateString truncates a string to maxLen characters, adding "..." if truncated
 func truncateString(s string, maxLen int) string {

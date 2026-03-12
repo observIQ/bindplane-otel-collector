@@ -17,6 +17,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -258,4 +259,35 @@ func (slowShutdownReceiver) Start(_ context.Context, _ component.Host) error {
 func (slowShutdownReceiver) Shutdown(ctx context.Context) error {
 	<-ctx.Done()
 	return nil
+}
+
+func TestCollectorLifecycleWithConfig(t *testing.T) {
+	cases := []struct {
+		desc       string
+		configPath string
+	}{
+		{
+			desc:       "config with pebble extension",
+			configPath: filepath.Join("test", "pebble.yaml"),
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.desc, func(t *testing.T) {
+			collector, err := New([]string{tt.configPath}, "0.0.0", nil)
+			require.NoError(t, err)
+
+			err = collector.Run(context.Background())
+			require.NoError(t, err)
+
+			status := <-collector.Status()
+			require.True(t, status.Running)
+			require.NoError(t, status.Err)
+
+			collector.Stop(context.Background())
+			status = <-collector.Status()
+			require.False(t, status.Running)
+			require.False(t, status.Panicked)
+		})
+	}
 }

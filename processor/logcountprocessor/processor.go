@@ -36,8 +36,8 @@ type logCountProcessor struct {
 	config    *Config
 	match     *expr.Expression
 	attrs     *expr.ExpressionMap
-	OTTLmatch *expr.OTTLCondition[ottllog.TransformContext]
-	OTTLattrs *expr.OTTLAttributeMap[ottllog.TransformContext]
+	OTTLmatch *expr.OTTLCondition[*ottllog.TransformContext]
+	OTTLattrs *expr.OTTLAttributeMap[*ottllog.TransformContext]
 	counter   *counter.TelemetryCounter
 	consumer  consumer.Logs
 	logger    *zap.Logger
@@ -61,8 +61,8 @@ func newExprProcessor(config *Config, consumer consumer.Logs, match *expr.Expres
 func newOTTLProcessor(
 	config *Config,
 	consumer consumer.Logs,
-	match *expr.OTTLCondition[ottllog.TransformContext],
-	attrs *expr.OTTLAttributeMap[ottllog.TransformContext],
+	match *expr.OTTLCondition[*ottllog.TransformContext],
+	attrs *expr.OTTLAttributeMap[*ottllog.TransformContext],
 	logger *zap.Logger) *logCountProcessor {
 	return &logCountProcessor{
 		config:    config,
@@ -144,7 +144,7 @@ func (p *logCountProcessor) consumeLogsOTTL(ctx context.Context, pl plog.Logs) {
 			logs := scopeLog.LogRecords()
 			for k := 0; k < logs.Len(); k++ {
 				log := logs.At(k)
-				logCtx := ottllog.NewTransformContext(log, scopeLog.Scope(), resource, scopeLog, resourceLog)
+				logCtx := ottllog.NewTransformContextPtr(resourceLog, scopeLog, log)
 				match, err := p.OTTLmatch.Match(ctx, logCtx)
 				if err != nil {
 					p.logger.Error("Error while matching OTTL log", zap.Error(err))

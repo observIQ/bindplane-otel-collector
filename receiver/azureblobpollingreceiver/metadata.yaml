@@ -1,0 +1,13 @@
+type: azureblobpolling
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics, logs, traces]
+
+tests:
+  config:
+    connection_string: DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=+idLkHYcL0MUWIKYHm2j4Q==;EndpointSuffix=core.windows.net
+    container: test-container
+    poll_interval: 10m
+  skip_lifecycle: true

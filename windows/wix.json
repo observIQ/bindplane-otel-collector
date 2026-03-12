@@ -30,9 +30,6 @@
       "never_overwrite": true
     },
     {
-      "path": "opentelemetry-java-contrib-jmx-metrics.jar"
-    },
-    {
       "path": "VERSION.txt"
     },
     {

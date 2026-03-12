@@ -22,7 +22,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
-	ios "github.com/observiq/bindplane-otel-collector/internal/os"
+	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -61,7 +61,7 @@ func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
-	macAddress := ios.MACAddress()
+	macAddress := osinfo.MACAddress()
 	params.Logger.Debug("Creating gRPC exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &grpcExporter{
 		cfg:        cfg,
@@ -188,11 +188,6 @@ func (exp *grpcExporter) countAndReportBatchBytes(ctx context.Context, payloads 
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
-	if exp.metrics != nil {
-		totalLogs := int64(len(request.GetBatch().GetEntries()))
-		defer exp.metrics.recordSent(totalLogs)
-	}
-
 	// Track request latency
 	start := time.Now()
 

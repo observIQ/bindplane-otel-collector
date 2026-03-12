@@ -17,46 +17,46 @@ The following telemetry is emitted by this component.
 
 The number of logs in a batch.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| {logs} | Histogram | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| {logs} | Histogram | Int | Alpha |
 
 ### otelcol_s3event.dlq_file_not_found_errors
 
 The number of file not found errors that triggered DLQ processing
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {errors} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {errors} | Sum | Int | true | Alpha |
 
 ### otelcol_s3event.dlq_iam_errors
 
 The number of IAM permission denied errors that triggered DLQ processing
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {errors} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {errors} | Sum | Int | true | Alpha |
 
 ### otelcol_s3event.dlq_unsupported_file_errors
 
 The number of unsupported file type errors that triggered DLQ processing
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {errors} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {errors} | Sum | Int | true | Alpha |
 
 ### otelcol_s3event.failures
 
 The number of failures encountered while processing S3 objects
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {failures} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {failures} | Sum | Int | true | Alpha |
 
 ### otelcol_s3event.objects_handled
 
 The number of S3 objects processed by the receiver
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {objects} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {objects} | Sum | Int | true | Alpha |

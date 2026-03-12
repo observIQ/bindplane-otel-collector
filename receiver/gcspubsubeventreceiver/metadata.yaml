@@ -1,0 +1,104 @@
+type: gcsevent
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+
+tests:
+  config:
+    project_id: "test-project"
+    subscription_id: "test-subscription"
+
+resource_attributes:
+  gcs.bucket:
+    description: The name of the GCS bucket containing the processed object
+    enabled: true
+    type: string
+  gcs.object:
+    description: The name of the GCS object that was processed
+    enabled: true
+    type: string
+telemetry:
+  metrics:
+    gcsevent.batch_size:
+      enabled: true
+      description: The number of logs in a batch.
+      stability:
+        level: alpha
+      unit: "{logs}"
+      histogram:
+        value_type: int
+        bucket_boundaries: [1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1000000]
+
+    gcsevent.dlq_file_not_found_errors:
+      enabled: true
+      description: The number of file not found errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    gcsevent.dlq_iam_errors:
+      enabled: true
+      description: The number of IAM permission denied errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    gcsevent.dlq_unsupported_file_errors:
+      enabled: true
+      description: The number of unsupported file type errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    gcsevent.failures:
+      enabled: true
+      description: The number of failures encountered while processing GCS objects
+      stability:
+        level: alpha
+      unit: "{failures}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    gcsevent.objects_handled:
+      enabled: true
+      description: The number of GCS objects processed by the receiver
+      stability:
+        level: alpha
+      unit: "{objects}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    gcsevent.parse_errors:
+      enabled: true
+      description: The number of individual log records skipped due to parse errors within a GCS object
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []

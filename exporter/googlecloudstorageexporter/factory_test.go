@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -35,7 +36,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		Partition:          minutePartition,
 		Compression:        noCompression,
 		TimeoutConfig:      exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:        exporterhelper.NewDefaultQueueConfig(),
+		QueueConfig:        configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:      configretry.NewDefaultBackOffConfig(),
 	}
 

@@ -22,8 +22,8 @@ EXT?=
 endif
 
 SNAPSHOT := $(shell git rev-parse --short HEAD)
-PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
-CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
+PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | grep -v 'version' | tail -n1)
+CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | grep -v 'version' | tail -n1)
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
 
@@ -37,12 +37,12 @@ version:
 # Builds just the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -58,7 +58,7 @@ build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc
 build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-windows
-build-windows: build-windows-amd64
+build-windows: build-windows-amd64 build-windows-arm64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
@@ -90,7 +90,11 @@ build-darwin-arm64:
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+
+.PHONY: build-windows-arm64
+build-windows-arm64:
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(MAKE) build-binaries -j2
 
 # tool-related commands
 .PHONY: install-tools
@@ -138,6 +142,62 @@ misspell-fix:
 test:
 	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
 
+.PHONY: test-receivers
+test-receivers:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-processors
+test-processors:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-exporters
+test-exporters:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-extensions
+test-extensions:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-other
+test-other:
+	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
+	if [ -n "$$PACKAGES" ]; then \
+		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		else \
+			echo "skipping running tests in $${dir}"; \
+		fi; \
+	done
+
 .PHONY: test-no-race
 test-no-race:
 	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." "
@@ -166,7 +226,7 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.24"
+	$(MAKE) for-all CMD="go mod tidy -compat=1.25.7"
 
 .PHONY: gosec
 gosec:
@@ -175,20 +235,82 @@ gosec:
 	  -exclude-dir=receiver/sapnetweaverreceiver \
 	  -exclude-dir=extension/bindplaneextension \
 	  -exclude-dir=processor/snapshotprocessor \
+	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
+	  -exclude-dir=exporter/chronicleexporter/protos/api \
+	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
+	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
+	  -exclude-dir=extension/opampgateway/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 	cd extension/bindplaneextension; gosec ./...
 	cd processor/snapshotprocessor; gosec ./...
 	cd receiver/sapnetweaverreceiver; gosec ./...
+	cd processor/ocsfstandardizationprocessor; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
-ci-checks: check-fmt check-license misspell lint gosec test
+ci-checks: check-fmt check-license check-mod-paths check-dependabot misspell lint gosec test
+
+# This target checks that every go.mod has the correct module path.
+# Root must be github.com/observiq/bindplane-otel-collector.
+# Subdirectories must be github.com/observiq/bindplane-otel-collector/<relative-path>.
+# Modules with legacy paths that cannot be renamed are excluded.
+MOD_PATH_EXCLUDES := ./cmd/plugindocgen
+.PHONY: check-mod-paths
+check-mod-paths:
+	@FAILED=0; \
+	for dir in $(ALL_MODULES); do \
+		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
+		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
+		if [ "$${dir}" = "." ]; then \
+			EXPECTED="github.com/observiq/bindplane-otel-collector"; \
+		else \
+			RELPATH=$$(echo "$${dir}" | sed 's|^\./||'); \
+			EXPECTED="github.com/observiq/bindplane-otel-collector/$${RELPATH}"; \
+		fi; \
+		if [ "$${MOD}" != "$${EXPECTED}" ]; then \
+			echo "MISMATCH: $${dir}/go.mod"; \
+			echo "  got:      $${MOD}"; \
+			echo "  expected: $${EXPECTED}"; \
+			FAILED=1; \
+		fi; \
+	done; \
+	if [ "$${FAILED}" -eq 1 ]; then \
+		echo ""; \
+		echo "check-mod-paths FAILED: module paths must match directory structure."; \
+		exit 1; \
+	else \
+		echo "Check module paths finished successfully"; \
+	fi
+
+# This target checks that every directory with a go.mod has an entry in dependabot.yml
+.PHONY: check-dependabot
+check-dependabot:
+	@FAILED=0; \
+	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
+	for dir in $(ALL_MODULES); do \
+		if [ "$${dir}" = "." ]; then \
+			EXPECTED="/"; \
+		else \
+			EXPECTED=$$(echo "$${dir}" | sed 's|^\./|/|'); \
+		fi; \
+		if ! echo "$${DEPENDABOT_DIRS}" | grep -qx "$${EXPECTED}"; then \
+			echo "MISSING: $${dir}/go.mod has no entry in .github/dependabot.yml (expected directory: \"$${EXPECTED}\")"; \
+			FAILED=1; \
+		fi; \
+	done; \
+	if [ "$${FAILED}" -eq 1 ]; then \
+		echo ""; \
+		echo "check-dependabot FAILED: add missing entries to .github/dependabot.yml"; \
+		exit 1; \
+	else \
+		echo "Check dependabot finished successfully"; \
+	fi
 
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
@@ -247,16 +369,46 @@ release-prep:
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 
+.PHONY: release-prep-gpg
+release-prep-gpg:
+	$(MAKE) release-prep
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
+
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
-# If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
+# If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	if [ ! -e "./observiq-otel-collector-arm64.msi" ]; then touch ./observiq-otel-collector-arm64.msi; fi
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+
+.PHONY: release-containers-test
+release-containers-test:
+	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+	mkdir -p tmp
+	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
+	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
+	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
+
+.PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+agent-linux-amd64:
+	GOARCH=amd64 GOOS=linux $(MAKE) agent
+agent-linux-arm64:
+	GOARCH=arm64 GOOS=linux $(MAKE) agent
+agent-linux-ppc64le:
+	GOARCH=ppc64le GOOS=linux $(MAKE) agent
 
 build-single:
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
+	$(MAKE)
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
+.PHONY: release-test-single
+release-test-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
 
 .PHONY: for-all
 for-all:

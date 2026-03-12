@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -40,9 +41,9 @@ const (
 
 // Config the configuration for the azureblob exporter
 type Config struct {
-	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
-	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"`
+	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 
 	// ConnectionString is the Azure Blob Storage connection key,
 	// which can be found in the Azure Blob Storage resource on the Azure Portal. (no default)

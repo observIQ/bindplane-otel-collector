@@ -17,16 +17,18 @@ package factories
 import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/kandjireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver"
@@ -57,6 +59,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubpushreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudspannerreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver"
@@ -72,6 +75,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
@@ -83,6 +87,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/rabbitmqreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/riakreceiver"
@@ -123,6 +128,7 @@ var defaultReceivers = []receiver.Factory{
 	awsxrayreceiver.NewFactory(),
 	azureblobreceiver.NewFactory(),
 	azureblobrehydrationreceiver.NewFactory(),
+	azureblobpollingreceiver.NewFactory(),
 	azureeventhubreceiver.NewFactory(),
 	bigipreceiver.NewFactory(),
 	carbonreceiver.NewFactory(),
@@ -137,7 +143,9 @@ var defaultReceivers = []receiver.Factory{
 	filestatsreceiver.NewFactory(),
 	fluentforwardreceiver.NewFactory(),
 	githubreceiver.NewFactory(),
+	gcspubsubeventreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
+	googlecloudpubsubpushreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),
 	googlecloudstoragerehydrationreceiver.NewFactory(),
 	hostmetricsreceiver.NewFactory(),
@@ -172,7 +180,9 @@ var defaultReceivers = []receiver.Factory{
 	pluginreceiver.NewFactory(),
 	podmanreceiver.NewFactory(),
 	postgresqlreceiver.NewFactory(),
+	restapireceiver.NewFactory(),
 	prometheusreceiver.NewFactory(),
+	prometheusremotewritereceiver.NewFactory(),
 	rabbitmqreceiver.NewFactory(),
 	redisreceiver.NewFactory(),
 	riakreceiver.NewFactory(),

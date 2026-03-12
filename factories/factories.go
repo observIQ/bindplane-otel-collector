@@ -16,18 +16,28 @@
 package factories
 
 import (
+	"fmt"
+
 	"go.opentelemetry.io/collector/connector"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/service/telemetry/otelconftelemetry"
 	"go.uber.org/multierr"
 )
 
 // DefaultFactories returns the default factories used by the Bindplane Agent
 func DefaultFactories() (otelcol.Factories, error) {
-	return combineFactories(defaultReceivers, defaultProcessors, defaultExporters, defaultExtensions, defaultConnectors)
+	factories, err := combineFactories(defaultReceivers, defaultProcessors, defaultExporters, defaultExtensions, defaultConnectors)
+	if err != nil {
+		return otelcol.Factories{}, fmt.Errorf("combineFactories: %w", err)
+	}
+
+	// Add telemetry providers factory
+	factories.Telemetry = otelconftelemetry.NewFactory()
+	return factories, nil
 }
 
 // combineFactories combines the supplied factories into a single Factories struct.

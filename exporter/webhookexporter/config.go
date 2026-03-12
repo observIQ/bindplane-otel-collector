@@ -20,6 +20,7 @@ import (
 	"net/url"
 
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -58,7 +59,7 @@ type SignalConfig struct {
 	confighttp.ClientConfig `mapstructure:",squash"`
 
 	// QueueBatchConfig contains settings for the sending queue and batching
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
 
 	// BackOffConfig contains settings for retry behavior on failures
 	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`

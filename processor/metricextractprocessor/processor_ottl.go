@@ -34,9 +34,9 @@ import (
 // ottlExtractProcessor is a processor that extracts metrics from logs using OTTL expressions
 type ottlExtractProcessor struct {
 	config    *Config
-	ottlMatch *expr.OTTLCondition[ottllog.TransformContext]
-	ottlValue *expr.OTTLExpression[ottllog.TransformContext]
-	ottlAttrs *expr.OTTLAttributeMap[ottllog.TransformContext]
+	ottlMatch *expr.OTTLCondition[*ottllog.TransformContext]
+	ottlValue *expr.OTTLExpression[*ottllog.TransformContext]
+	ottlAttrs *expr.OTTLAttributeMap[*ottllog.TransformContext]
 	consumer  consumer.Logs
 	logger    *zap.Logger
 }
@@ -45,9 +45,9 @@ type ottlExtractProcessor struct {
 func newOTTLExtractProcessor(
 	config *Config,
 	consumer consumer.Logs,
-	match *expr.OTTLCondition[ottllog.TransformContext],
-	value *expr.OTTLExpression[ottllog.TransformContext],
-	attrs *expr.OTTLAttributeMap[ottllog.TransformContext],
+	match *expr.OTTLCondition[*ottllog.TransformContext],
+	value *expr.OTTLExpression[*ottllog.TransformContext],
+	attrs *expr.OTTLAttributeMap[*ottllog.TransformContext],
 	logger *zap.Logger) *ottlExtractProcessor {
 	return &ottlExtractProcessor{
 		config:    config,
@@ -116,7 +116,7 @@ func (e *ottlExtractProcessor) extractMetrics(ctx context.Context, pl plog.Logs)
 			logRecords := scopeLog.LogRecords()
 			for k := 0; k < logRecords.Len(); k++ {
 				lr := logRecords.At(k)
-				logCtx := ottllog.NewTransformContext(lr, scopeLog.Scope(), resource, scopeLog, resourceLog)
+				logCtx := ottllog.NewTransformContextPtr(resourceLog, scopeLog, lr)
 
 				matches, err := e.ottlMatch.Match(ctx, logCtx)
 				if err != nil {
@@ -141,7 +141,7 @@ func (e *ottlExtractProcessor) extractMetrics(ctx context.Context, pl plog.Logs)
 	return metrics
 }
 
-func (e *ottlExtractProcessor) addDatapointOTTL(ctx context.Context, lr plog.LogRecord, logCtx ottllog.TransformContext, dpSlice pmetric.NumberDataPointSlice) {
+func (e *ottlExtractProcessor) addDatapointOTTL(ctx context.Context, lr plog.LogRecord, logCtx *ottllog.TransformContext, dpSlice pmetric.NumberDataPointSlice) {
 	val, err := e.ottlValue.Execute(ctx, logCtx)
 	if err != nil {
 		e.logger.Error("Failed when extracting value.", zap.Error(err))
