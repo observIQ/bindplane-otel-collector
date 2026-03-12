@@ -88,6 +88,7 @@ func (cfg Config) Validate() error {
 	if !validVersion {
 		return fmt.Errorf("invalid OCSF version: %s", cfg.OCSFVersion)
 	}
+	schema := getOCSFSchema(cfg.OCSFVersion)
 
 	for i, em := range cfg.EventMappings {
 		if em.ClassID == 0 {
@@ -100,9 +101,7 @@ func (cfg Config) Validate() error {
 			}
 		}
 
-		schema := getOCSFSchema(cfg.OCSFVersion)
-
-		if em.Profiles != nil && len(em.Profiles) > 0 {
+		if len(em.Profiles) > 0 {
 			for _, profile := range em.Profiles {
 				if err := schema.ValidateProfile(em.ClassID, profile); err != nil {
 					return fmt.Errorf("event_mappings[%d]: invalid profile: %w", i, err)
