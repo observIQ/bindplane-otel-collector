@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"go.opentelemetry.io/collector/component"
 )
 
@@ -91,7 +91,7 @@ func validateTimestamp(timestamp string) (*time.Time, error) {
 		return nil, errors.New("missing value")
 	}
 
-	ts, err := time.Parse(rehydration.TimeFormat, timestamp)
+	ts, err := time.Parse(blobconsume.TimeFormat, timestamp)
 	if err != nil {
 		return nil, errors.New("invalid timestamp format must be in the form YYYY-MM-DDTHH:MM")
 	}

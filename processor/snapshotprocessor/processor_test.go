@@ -70,7 +70,7 @@ func TestProcess_Logs(t *testing.T) {
 	require.Equal(t, l, sink.AllLogs()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"logs","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"logs","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -134,7 +134,7 @@ func TestProcess_Metrics(t *testing.T) {
 	require.Equal(t, m, sink.AllMetrics()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -198,7 +198,7 @@ func TestProcess_Traces(t *testing.T) {
 	require.Equal(t, tr, sink.AllTraces()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"traces","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"traces","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -258,7 +258,7 @@ func TestProcess_Metrics_PreservesTemporalityWithFiltering(t *testing.T) {
 	require.NoError(t, p.ConsumeMetrics(context.Background(), m))
 
 	// Request buffer with search query (this triggers the filtering code path where the bug occurred)
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"filtering-test","search_query":"transmit"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"filtering-test","search_query":"transmit","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",

@@ -29,6 +29,8 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configoptional"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -46,7 +48,12 @@ func TestNewLogsExporter(t *testing.T) {
 			cfg: &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "http://localhost:8080",
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",
@@ -123,11 +130,11 @@ func TestLogsDataPusher(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name: "server error",
+			name: "server error permanent",
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusBadRequest)
 			},
-			expectedError: "failed to send request: 500 Internal Server Error",
+			expectedError: "400 Bad Request",
 		},
 		{
 			name: "connection error",
@@ -153,7 +160,12 @@ func TestLogsDataPusher(t *testing.T) {
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",
@@ -178,6 +190,89 @@ func TestLogsDataPusher(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestSendLogsRetryableVsPermanentErrors(t *testing.T) {
+	testCases := []struct {
+		name         string
+		statusCode   int
+		permanentErr bool
+	}{
+		// Retryable per OTLP spec
+		{
+			name:         "429 Too Many Requests is retryable",
+			statusCode:   http.StatusTooManyRequests,
+			permanentErr: false,
+		},
+		{
+			name:         "502 Bad Gateway is retryable",
+			statusCode:   http.StatusBadGateway,
+			permanentErr: false,
+		},
+		{
+			name:         "503 Service Unavailable is retryable",
+			statusCode:   http.StatusServiceUnavailable,
+			permanentErr: false,
+		},
+		{
+			name:         "504 Gateway Timeout is retryable",
+			statusCode:   http.StatusGatewayTimeout,
+			permanentErr: false,
+		},
+		// Permanent errors
+		{
+			name:         "400 Bad Request is permanent",
+			statusCode:   http.StatusBadRequest,
+			permanentErr: true,
+		},
+		{
+			name:         "401 Unauthorized is permanent",
+			statusCode:   http.StatusUnauthorized,
+			permanentErr: true,
+		},
+		{
+			name:         "403 Forbidden is permanent",
+			statusCode:   http.StatusForbidden,
+			permanentErr: true,
+		},
+		{
+			name:         "404 Not Found is permanent",
+			statusCode:   http.StatusNotFound,
+			permanentErr: true,
+		},
+		{
+			name:         "500 Internal Server Error is permanent",
+			statusCode:   http.StatusInternalServerError,
+			permanentErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tc.statusCode)
+			}))
+			defer server.Close()
+
+			cfg := &SignalConfig{
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: server.URL,
+				},
+				Verb:        POST,
+				ContentType: "application/json",
+			}
+
+			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			require.NoError(t, err)
+			err = exp.start(context.Background(), componenttest.NewNopHost())
+			require.NoError(t, err)
+
+			err = exp.sendLogs(context.Background(), []any{"test log"})
+			require.Error(t, err)
+			require.Equal(t, tc.permanentErr, consumererror.IsPermanent(err),
+				"expected permanentErr=%v for status %d", tc.permanentErr, tc.statusCode)
 		})
 	}
 }
@@ -212,7 +307,12 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",
@@ -555,71 +655,64 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 func TestQueueBatchSettings(t *testing.T) {
 	testCases := []struct {
 		name          string
-		queueSettings exporterhelper.QueueBatchConfig
+		queueSettings configoptional.Optional[exporterhelper.QueueBatchConfig]
 		numLogs       int
 		expectError   bool
 		description   string
 	}{
 		{
 			name: "default queue settings",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    1000,
 				NumConsumers: 10,
-			},
+			}),
 			numLogs:     100,
 			expectError: false,
 			description: "Default queue settings should work properly",
 		},
 		{
-			name: "disabled queue",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled: false,
-			},
-			numLogs:     50,
-			expectError: false,
-			description: "Disabled queue should still process logs",
+			name:          "disabled queue",
+			queueSettings: configoptional.None[exporterhelper.QueueBatchConfig](),
+			numLogs:       50,
+			expectError:   false,
+			description:   "Disabled queue should still process logs",
 		},
 		{
 			name: "small queue size",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    10,
 				NumConsumers: 1,
-			},
+			}),
 			numLogs:     25,
 			expectError: false,
 			description: "Small queue size should handle logs appropriately",
 		},
 		{
 			name: "large queue size",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    10000,
 				NumConsumers: 100,
-			},
+			}),
 			numLogs:     1000,
 			expectError: false,
 			description: "Large queue size should handle many logs efficiently",
 		},
 		{
 			name: "single consumer",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    100,
 				NumConsumers: 1,
-			},
+			}),
 			numLogs:     50,
 			expectError: false,
 			description: "Single consumer should process logs sequentially",
 		},
 		{
 			name: "multiple consumers",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    500,
 				NumConsumers: 20,
-			},
+			}),
 			numLogs:     200,
 			expectError: false,
 			description: "Multiple consumers should process logs concurrently",
@@ -718,38 +811,34 @@ func TestQueueBatchSettings(t *testing.T) {
 func TestQueueBatchSettingsWithRetries(t *testing.T) {
 	testCases := []struct {
 		name          string
-		queueSettings exporterhelper.QueueBatchConfig
+		queueSettings configoptional.Optional[exporterhelper.QueueBatchConfig]
 		serverError   bool
 		expectedError bool
 		description   string
 	}{
 		{
 			name: "queue enabled with server error",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    100,
 				NumConsumers: 1,
-			},
+			}),
 			serverError:   true,
 			expectedError: true,
 			description:   "Queue should handle server errors appropriately",
 		},
 		{
-			name: "queue disabled with server error",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled: false,
-			},
+			name:          "queue disabled with server error",
+			queueSettings: configoptional.None[exporterhelper.QueueBatchConfig](),
 			serverError:   true,
 			expectedError: true,
 			description:   "Disabled queue should still handle server errors",
 		},
 		{
 			name: "queue enabled with successful requests",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    50,
 				NumConsumers: 2,
-			},
+			}),
 			serverError:   false,
 			expectedError: false,
 			description:   "Queue should work correctly with successful requests",

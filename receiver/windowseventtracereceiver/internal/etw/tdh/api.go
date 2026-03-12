@@ -206,26 +206,44 @@ func (tei *TraceEventInfo) ProviderName() string {
 }
 
 func (tei *TraceEventInfo) TaskName() string {
+	if tei == nil {
+		return ""
+	}
 	return stringAt(unsafe.Pointer(tei), tei.TaskNameOffset)
 }
 
 func (tei *TraceEventInfo) LevelName() string {
+	if tei == nil {
+		return ""
+	}
 	return stringAt(unsafe.Pointer(tei), tei.LevelNameOffset)
 }
 
 func (tei *TraceEventInfo) OpcodeName() string {
+	if tei == nil {
+		return ""
+	}
 	return stringAt(unsafe.Pointer(tei), tei.OpcodeNameOffset)
 }
 
 func (tei *TraceEventInfo) KeywordName() string {
+	if tei == nil {
+		return ""
+	}
 	return stringAt(unsafe.Pointer(tei), tei.KeywordsNameOffset)
 }
 
 func (tei *TraceEventInfo) ChannelName() string {
+	if tei == nil {
+		return ""
+	}
 	return stringAt(unsafe.Pointer(tei), tei.ChannelNameOffset)
 }
 
 func (tei *TraceEventInfo) GetEventPropertyInfoAt(index uint32) *EventPropertyInfo {
+	if tei == nil {
+		return nil
+	}
 	if index >= tei.PropertyCount {
 		return nil
 	}
@@ -234,14 +252,23 @@ func (tei *TraceEventInfo) GetEventPropertyInfoAt(index uint32) *EventPropertyIn
 
 // Seems to be always empty
 func (t *TraceEventInfo) RelatedActivityIDName() string {
+	if t == nil {
+		return ""
+	}
 	return t.stringAt(t.Pointer(), uintptr(t.RelatedActivityIDNameOffset))
 }
 
 func (t *TraceEventInfo) Pointer() uintptr {
+	if t == nil {
+		return 0
+	}
 	return uintptr(unsafe.Pointer(t))
 }
 
 func (t *TraceEventInfo) PointerOffset(offset uintptr) uintptr {
+	if t == nil {
+		return 0
+	}
 	return t.Pointer() + offset
 }
 
@@ -256,6 +283,9 @@ func (t *TraceEventInfo) stringAt(pstruct uintptr, offset uintptr) string {
 }
 
 func (tei *TraceEventInfo) PropertyNameOffset(index uint32) uint32 {
+	if tei == nil {
+		return 0
+	}
 	if index >= tei.PropertyCount {
 		return 0
 	}
@@ -263,10 +293,17 @@ func (tei *TraceEventInfo) PropertyNameOffset(index uint32) uint32 {
 }
 
 func (t *TraceEventInfo) IsMof() bool {
+	if t == nil {
+		return false
+	}
 	return t.DecodingSource == DecodingSourceWbem
 }
 
 func (t *TraceEventInfo) EventID() uint16 {
+	if t == nil {
+		return 0
+	}
+
 	if t.IsXML() {
 		return t.EventDescriptor.Id
 	} else if t.IsMof() {
@@ -279,6 +316,9 @@ func (t *TraceEventInfo) EventID() uint16 {
 }
 
 func (t *TraceEventInfo) IsXML() bool {
+	if t == nil {
+		return false
+	}
 	return t.DecodingSource == DecodingSourceXMLFile
 }
 
@@ -320,7 +360,7 @@ typedef struct _TDH_CONTEXT {
 */
 
 type TdhContext struct {
-	ParameterValue uint32
+	ParameterValue uint64
 	ParameterType  TdhContextType
 	ParameterSize  uint32
 }
@@ -521,6 +561,9 @@ type TraceEventInfo struct {
 
 // getEventPropertyInfoAtIndex looks for the EventPropertyInfo object at a specified index.
 func (info *TraceEventInfo) GetEventPropertyInfoAtIndex(i uint32) *EventPropertyInfo {
+	if info == nil {
+		return nil
+	}
 	if i < info.PropertyCount {
 		// Calculate the address of the first element in EventPropertyInfoArray.
 		eventPropertyInfoPtr := uintptr(unsafe.Pointer(&info.EventPropertyInfoArray[0]))

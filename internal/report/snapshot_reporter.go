@@ -51,6 +51,9 @@ type snapshotConfig struct {
 	// MinimumTimestamp is the minimum timestamp used to filter telemetry such that only telemetry
 	// with a timestamp higher than specified will be reported.
 	MinimumTimestamp *time.Time `yaml:"minimum_timestamp"`
+
+	// MaximumPayloadSizeBytes is the maximum size of the payload in bytes that should be sent to the endpoint.
+	MaximumPayloadSizeBytes int `json:"maximum_payload_size" yaml:"maximum_payload_size,omitempty" mapstructure:"maximum_payload_size"`
 }
 
 // endpointConfig is the configuration of a specific endpoint and full headers to include
@@ -103,16 +106,20 @@ func (s *SnapshotReporter) Report(cfg any) error {
 		return errors.New("invalid config type")
 	}
 
+	// If not specified, default to 10MB
+	if ssCfg.MaximumPayloadSizeBytes <= 0 {
+		ssCfg.MaximumPayloadSizeBytes = 10485760 //10MiB
+	}
+
 	// Gather payload
-	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp)
+	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSizeBytes)
 	if err != nil {
 		return fmt.Errorf("prep request payload: %w", err)
 	}
 
-	// Compress
 	compressedPayload, err := compress(payload)
 	if err != nil {
-		return fmt.Errorf("failed to compress payload: %w", err)
+		return fmt.Errorf("compress payload: %w", err)
 	}
 
 	// Prep request
@@ -201,7 +208,7 @@ func (s *SnapshotReporter) SaveMetrics(componentID string, md pmetric.Metrics) {
 }
 
 // prepRequestPayload based on the pipelineType will return a marshaled proto of the OTLP data types for the componentID
-func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, searchQuery *string, minimumTimestamp *time.Time) (payload []byte, err error) {
+func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, searchQuery *string, minimumTimestamp *time.Time, maximumPayloadSize int) (payload []byte, err error) {
 	switch pipelineType {
 	case "logs":
 		s.logLock.Lock()
@@ -211,7 +218,7 @@ func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, 
 			return []byte{}, nil
 		}
 
-		payload, err = buffer.ConstructPayload(&plog.ProtoMarshaler{}, searchQuery, minimumTimestamp)
+		payload, err = buffer.ConstructPayload(&plog.ProtoMarshaler{}, searchQuery, minimumTimestamp, maximumPayloadSize)
 	case "metrics":
 		s.metricLock.Lock()
 		buffer, ok := s.metricBuffers[componentID]
@@ -220,7 +227,7 @@ func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, 
 			return []byte{}, nil
 		}
 
-		payload, err = buffer.ConstructPayload(&pmetric.ProtoMarshaler{}, searchQuery, minimumTimestamp)
+		payload, err = buffer.ConstructPayload(&pmetric.ProtoMarshaler{}, searchQuery, minimumTimestamp, maximumPayloadSize)
 	case "traces":
 		s.traceLock.Lock()
 		buffer, ok := s.traceBuffers[componentID]
@@ -229,7 +236,7 @@ func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, 
 			return []byte{}, nil
 		}
 
-		payload, err = buffer.ConstructPayload(&ptrace.ProtoMarshaler{}, searchQuery, minimumTimestamp)
+		payload, err = buffer.ConstructPayload(&ptrace.ProtoMarshaler{}, searchQuery, minimumTimestamp, maximumPayloadSize)
 	}
 
 	return

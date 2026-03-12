@@ -16,6 +16,9 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
+	"github.com/observiq/bindplane-otel-collector/extension/badgerextension"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway"
+	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
@@ -39,6 +42,7 @@ import (
 var defaultExtensions = []extension.Factory{
 	avrologencodingextension.NewFactory(),
 	awss3eventextension.NewFactory(),
+	badgerextension.NewFactory(),
 	basicauthextension.NewFactory(),
 	bearertokenauthextension.NewFactory(),
 	cgroupruntimeextension.NewFactory(),
@@ -49,8 +53,10 @@ var defaultExtensions = []extension.Factory{
 	googlecloudlogentryencodingextension.NewFactory(),
 	jsonlogencodingextension.NewFactory(),
 	textencodingextension.NewFactory(),
+	pebbleextension.NewFactory(),
 	oauth2clientauthextension.NewFactory(),
 	oidcauthextension.NewFactory(),
+	opampgateway.NewFactory(),
 	pprofextension.NewFactory(),
 	redisstorageextension.NewFactory(),
 	sigv4authextension.NewFactory(),

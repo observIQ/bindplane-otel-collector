@@ -516,8 +516,8 @@ install_package()
   info "Copying artifacts to install directory..."
   increase_indent
 
-  # This find command gets a list of all artifacts paths except config.yaml, logging.yaml, or opentelemetry-java-contrib-jmx-metrics.jar
-  FILES=$(cd "$TMP_DIR/artifacts"; find "." -type f -not \( -name config.yaml -or -name logging.yaml -or -name opentelemetry-java-contrib-jmx-metrics.jar \))
+  # This find command gets a list of all artifacts paths except config.yaml, logging.yaml
+  FILES=$(cd "$TMP_DIR/artifacts"; find "." -type f -not \( -name config.yaml -or -name logging.yaml \))
   # Move files to install dir
   for f in $FILES
   do
@@ -544,11 +544,6 @@ install_package()
   if [ -n "$OPAMP_ENDPOINT" ]; then
     create_manager_yml "$MANAGEMENT_YML_PATH"
   fi
-
-  # Install jmx jar
-  info "Moving opentelemetry-java-contrib-jmx-metrics.jar to /opt..."
-  mv "$TMP_DIR/artifacts/opentelemetry-java-contrib-jmx-metrics.jar" "/opt/opentelemetry-java-contrib-jmx-metrics.jar" || error_exit "$LINENO" "Failed to copy opentelemetry-java-contrib-jmx-metrics.jar to /opt"
-  succeeded
 
   if [ -f "/Library/LaunchDaemons/$SERVICE_NAME.plist" ]; then
     # Existing service file, we should stop & unload first.
@@ -661,10 +656,6 @@ uninstall()
 
   info "Removing any existing log files"
   rm -f "/var/log/observiq_collector.err" || error_exit "$LINENO" "Failed to remove /var/log/observiq_collector.err"
-  succeeded
-
-  info "Removing opentelemetry-java-contrib-jmx-metrics.jar from /opt..."
-  rm -f "/opt/opentelemetry-java-contrib-jmx-metrics.jar" || error_exit "$LINENO" "Failed to remove /opt/opentelemetry-java-contrib-jmx-metrics.jar"
   succeeded
 
   decrease_indent

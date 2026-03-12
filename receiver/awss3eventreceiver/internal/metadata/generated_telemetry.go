@@ -65,38 +65,38 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 	var err, errs error
 	builder.S3eventBatchSize, err = builder.meter.Int64Histogram(
 		"otelcol_s3event.batch_size",
-		metric.WithDescription("The number of logs in a batch."),
+		metric.WithDescription("The number of logs in a batch. [Alpha]"),
 		metric.WithUnit("{logs}"),
 		metric.WithExplicitBucketBoundaries([]float64{1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1e+06}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventDlqFileNotFoundErrors, err = builder.meter.Int64Counter(
 		"otelcol_s3event.dlq_file_not_found_errors",
-		metric.WithDescription("The number of file not found errors that triggered DLQ processing"),
+		metric.WithDescription("The number of file not found errors that triggered DLQ processing [Alpha]"),
 		metric.WithUnit("{errors}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventDlqIamErrors, err = builder.meter.Int64Counter(
 		"otelcol_s3event.dlq_iam_errors",
-		metric.WithDescription("The number of IAM permission denied errors that triggered DLQ processing"),
+		metric.WithDescription("The number of IAM permission denied errors that triggered DLQ processing [Alpha]"),
 		metric.WithUnit("{errors}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventDlqUnsupportedFileErrors, err = builder.meter.Int64Counter(
 		"otelcol_s3event.dlq_unsupported_file_errors",
-		metric.WithDescription("The number of unsupported file type errors that triggered DLQ processing"),
+		metric.WithDescription("The number of unsupported file type errors that triggered DLQ processing [Alpha]"),
 		metric.WithUnit("{errors}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventFailures, err = builder.meter.Int64Counter(
 		"otelcol_s3event.failures",
-		metric.WithDescription("The number of failures encountered while processing S3 objects"),
+		metric.WithDescription("The number of failures encountered while processing S3 objects [Alpha]"),
 		metric.WithUnit("{failures}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventObjectsHandled, err = builder.meter.Int64Counter(
 		"otelcol_s3event.objects_handled",
-		metric.WithDescription("The number of S3 objects processed by the receiver"),
+		metric.WithDescription("The number of S3 objects processed by the receiver [Alpha]"),
 		metric.WithUnit("{objects}"),
 	)
 	errs = errors.Join(errs, err)

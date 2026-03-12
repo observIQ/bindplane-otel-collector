@@ -23,9 +23,9 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
-	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/opamp/observiq"
+	"github.com/observiq/bindplane-otel-collector/version"
 	"go.uber.org/zap"
 )
 

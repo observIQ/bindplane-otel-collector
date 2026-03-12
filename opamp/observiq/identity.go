@@ -18,7 +18,7 @@ import (
 	"os"
 	"runtime"
 
-	ios "github.com/observiq/bindplane-otel-collector/internal/os"
+	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
@@ -41,12 +41,12 @@ type identity struct {
 // newIdentity constructs a new identity for this collector
 func newIdentity(logger *zap.Logger, config opamp.Config, version string) *identity {
 	// Grab various fields from OS
-	hostname, err := ios.Hostname()
+	hostname, err := osinfo.Hostname()
 	if err != nil {
 		logger.Warn("Failed to retrieve hostname for collector. Creating partial identity", zap.Error(err))
 	}
 
-	name, err := ios.Name()
+	name, err := osinfo.Name()
 	if err != nil {
 		logger.Warn("Failed to retrieve host details on collector. Creating partial identity", zap.Error(err))
 	}
@@ -61,7 +61,7 @@ func newIdentity(logger *zap.Logger, config opamp.Config, version string) *ident
 		oSDetails:   name,
 		oSFamily:    runtime.GOOS,
 		hostname:    hostname,
-		mac:         ios.MACAddress(),
+		mac:         osinfo.MACAddress(),
 	}
 }
 

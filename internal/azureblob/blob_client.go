@@ -1,0 +1,149 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package azureblob contains client interfaces and implementations for accessing Blob storage
+package azureblob //import "github.com/observiq/bindplane-otel-collector/internal/azureblob"
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+)
+
+// BlobInfo contains the necessary info to process a blob
+type BlobInfo struct {
+	Name         string
+	Size         int64
+	LastModified time.Time
+}
+
+// BlobClient provides a client for Blob operations
+//
+//go:generate mockery --name BlobClient --inpackage --with-expecter --filename mock_blob_client.go --structname MockBlobClient
+type BlobClient interface {
+	// DownloadBlob downloads the contents of the blob into the supplied buffer.
+	// It will return the count of bytes used in the buffer.
+	DownloadBlob(ctx context.Context, container, blobPath string, buf []byte) (int64, error)
+
+	// DeleteBlob deletes the blob in the specified container
+	DeleteBlob(ctx context.Context, container, blobPath string) error
+
+	// StreamBlobs will stream BlobInfo to the blobChan and errors to the errChan, generally if an errChan gets an item
+	// then the stream should be stopped
+	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{})
+}
+
+type blobClient interface {
+	NewListBlobsFlatPager(containerName string, options *azblob.ListBlobsFlatOptions) *runtime.Pager[azblob.ListBlobsFlatResponse]
+	DownloadBuffer(ctx context.Context, containerName string, blobPath string, buffer []byte, options *azblob.DownloadBufferOptions) (int64, error)
+	DeleteBlob(ctx context.Context, containerName string, blobPath string, options *azblob.DeleteBlobOptions) (azblob.DeleteBlobResponse, error)
+}
+
+var _ blobClient = &azblob.Client{}
+
+// AzureClient is an implementation of the BlobClient for Azure
+type AzureClient struct {
+	azClient  blobClient
+	batchSize int
+	pageSize  int32
+}
+
+// NewAzureBlobClient creates a new azureBlobClient with the given connection string
+func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobClient, error) {
+	azClient, err := azblob.NewClientFromConnectionString(connectionString, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &AzureClient{
+		azClient:  azClient,
+		batchSize: batchSize,
+		pageSize:  int32(pageSize),
+	}, nil
+}
+
+// StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
+// then the stream should be stopped
+func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{}) {
+	var marker *string
+
+	pager := a.azClient.NewListBlobsFlatPager(container, &azblob.ListBlobsFlatOptions{
+		Marker:     marker,
+		Prefix:     prefix,
+		MaxResults: &a.pageSize,
+	})
+
+	for pager.More() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		resp, err := pager.NextPage(ctx)
+		if err != nil {
+			errChan <- fmt.Errorf("error streaming blobs: %w", err)
+			return
+		}
+
+		batch := []*BlobInfo{}
+		for _, blob := range resp.Segment.BlobItems {
+			if blob.Deleted != nil && *blob.Deleted {
+				continue
+			}
+			if blob.Name == nil || blob.Properties == nil || blob.Properties.ContentLength == nil {
+				continue
+			}
+
+			var lastModified time.Time
+			if blob.Properties.LastModified != nil {
+				lastModified = *blob.Properties.LastModified
+			}
+
+			info := &BlobInfo{
+				Name:         *blob.Name,
+				Size:         *blob.Properties.ContentLength,
+				LastModified: lastModified,
+			}
+			batch = append(batch, info)
+			if len(batch) == int(a.batchSize) {
+				blobChan <- batch
+				batch = []*BlobInfo{}
+			}
+		}
+
+		blobChan <- batch
+	}
+
+	close(doneChan)
+}
+
+// DownloadBlob downloads the contents of the blob into the supplied buffer.
+// It will return the count of bytes used in the buffer.
+func (a *AzureClient) DownloadBlob(ctx context.Context, container, blobPath string, buf []byte) (int64, error) {
+	bytesDownloaded, err := a.azClient.DownloadBuffer(ctx, container, blobPath, buf, nil)
+	if err != nil {
+		return 0, fmt.Errorf("download: %w", err)
+	}
+
+	return bytesDownloaded, nil
+}
+
+// DeleteBlob deletes the blob in the specified container
+func (a *AzureClient) DeleteBlob(ctx context.Context, container, blobPath string) error {
+	_, err := a.azClient.DeleteBlob(ctx, container, blobPath, nil)
+	return err
+}

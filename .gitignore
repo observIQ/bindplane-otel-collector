@@ -7,6 +7,7 @@ local
 .vagrant
 dist
 cosign.*
+*.msi.sig
 gpg.*
 *.msi
 *.exe
@@ -17,6 +18,7 @@ windows/config.yaml
 windows/logging.yaml
 windows/LICENSE
 windows/plugins
+windows/build/
 opentelemetry-java-contrib-jmx-metrics.jar
 VERSION.txt
 release_deps
@@ -43,3 +45,19 @@ gha-creds-*.json
 # during release process. Can cause Goreleaser failure
 # due to dirty git state.
 ci-signing-key.asc
+
+# Local performance testing and images
+ImagesAzure/
+perf-test/
+
+# Local planning docs
+**/MULTI_COLLECTOR_PLAN.md
+
+# JetBrains IDE files
+.idea/
+
+# OMC Agents
+.omc/
+
+# OCSF Schema files
+ocsf_schema.json

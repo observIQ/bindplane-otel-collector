@@ -1,0 +1,32 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: destination.address
+                value:
+                  stringValue: "192.168.1.1"
+              - key: destination.port
+                value:
+                  intValue: "443"
+              - key: network.interface.name
+                value:
+                  stringValue: eth0
+              - key: network.transport
+                value:
+                  stringValue: TCP
+              - key: network.type
+                value:
+                  stringValue: IP
+              - key: packet.length
+                value:
+                  intValue: "48"
+              - key: source.address
+                value:
+                  stringValue: "192.168.1.100"
+              - key: source.port
+                value:
+                  intValue: "54321"
+            body:
+              stringValue: "0x4500003c1c4640004006b1e6c0a80164c0a80101d43101bb499602d200000000a002fffffe300000020405b401030306"
+        scope: {}

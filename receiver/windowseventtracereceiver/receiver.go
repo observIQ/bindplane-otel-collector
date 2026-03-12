@@ -110,10 +110,12 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 		successfulProviders++
 	}
 
-	if (successfulProviders == 0 && totalProviders > 0) && lr.cfg.RequireAllProviders {
-		lr.logger.Error("Failed to enable any providers",
+	failedProviders := totalProviders - successfulProviders
+	if lr.cfg.RequireAllProviders && failedProviders > 0 {
+		lr.logger.Error("Failed to enable all providers",
 			zap.String("session", lr.cfg.SessionName),
-			zap.Int("totalProviders", totalProviders))
+			zap.Int("successfulProviders", successfulProviders),
+			zap.Int("failedProviders", failedProviders))
 		return
 	}
 

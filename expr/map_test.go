@@ -53,7 +53,7 @@ func TestCreateExpressionMap(t *testing.T) {
 
 			for key := range tc.expressions {
 				require.NotNil(t, expressionMap.expressions[key])
-				require.Equal(t, tc.expressions[key], expressionMap.expressions[key].Source.Content())
+				require.Equal(t, tc.expressions[key], expressionMap.expressions[key].Source().String())
 			}
 		})
 	}

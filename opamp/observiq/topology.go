@@ -99,6 +99,11 @@ func (ts *topologySender) SetInterval(d *time.Duration) {
 	} else {
 		interval = *d
 	}
+	// Drain any stale value to prevent blocking when the loop isn't running.
+	select {
+	case <-ts.changeIntervalChan:
+	default:
+	}
 	select {
 	case ts.changeIntervalChan <- interval:
 	case <-ts.done:

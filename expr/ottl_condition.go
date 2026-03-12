@@ -37,53 +37,53 @@ func (e OTTLCondition[T]) Match(ctx context.Context, tCtx T) (bool, error) {
 }
 
 // NewOTTLSpanCondition creates a new OTTLCondition for a span with the given condition.
-func NewOTTLSpanCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[ottlspan.TransformContext], error) {
+func NewOTTLSpanCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[*ottlspan.TransformContext], error) {
 	statementStr := "noop() where " + condition
 	statement, err := NewOTTLSpanStatement(statementStr, set)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OTTLCondition[ottlspan.TransformContext]{
+	return &OTTLCondition[*ottlspan.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLMetricCondition creates a new OTTLCondition for a metric with the given condition.
-func NewOTTLMetricCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[ottlmetric.TransformContext], error) {
+func NewOTTLMetricCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[*ottlmetric.TransformContext], error) {
 	statementStr := "noop() where " + condition
 	statement, err := NewOTTLMetricStatement(statementStr, set)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OTTLCondition[ottlmetric.TransformContext]{
+	return &OTTLCondition[*ottlmetric.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLDatapointCondition creates a new OTTLCondition for a datapoint with the given condition.
-func NewOTTLDatapointCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[ottldatapoint.TransformContext], error) {
+func NewOTTLDatapointCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[*ottldatapoint.TransformContext], error) {
 	statementStr := "noop() where " + condition
 	statement, err := NewOTTLDatapointStatement(statementStr, set)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OTTLCondition[ottldatapoint.TransformContext]{
+	return &OTTLCondition[*ottldatapoint.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLLogRecordCondition creates a new OTTLCondition for a log record with the given condition.
-func NewOTTLLogRecordCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[ottllog.TransformContext], error) {
+func NewOTTLLogRecordCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[*ottllog.TransformContext], error) {
 	statementStr := "noop() where " + condition
 	statement, err := NewOTTLLogRecordStatement(statementStr, set)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OTTLCondition[ottllog.TransformContext]{
+	return &OTTLCondition[*ottllog.TransformContext]{
 		statement: statement,
 	}, nil
 }

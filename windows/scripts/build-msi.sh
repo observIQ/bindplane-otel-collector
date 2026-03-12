@@ -17,12 +17,21 @@ set -e
 BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PROJECT_BASE="$BASEDIR/../.."
 
+ARCH="${1:-amd64}"
+
+# Map Go arch names to WiX candle -arch values
+if [ "$ARCH" = "arm64" ]; then
+    WIX_ARCH="arm64"
+else
+    WIX_ARCH="x64"
+fi
+
 # Empty storage directory required by wix.json
 mkdir -p storage
 touch storage/.include
 
-cp "$PROJECT_BASE/dist/collector_windows_amd64.exe" "observiq-otel-collector.exe"
-cp "$PROJECT_BASE/dist/updater_windows_amd64.exe" "updater.exe"
+cp "$PROJECT_BASE/dist/collector_windows_${ARCH}.exe" "observiq-otel-collector.exe"
+cp "$PROJECT_BASE/dist/updater_windows_${ARCH}.exe" "updater.exe"
 
 vagrant winrm -c \
-    "cd C:/vagrant; go-msi.exe make -m observiq-otel-collector.msi --version v0.0.1 --arch amd64"
+    "cd C:/vagrant; go-msi.exe make -m observiq-otel-collector-${ARCH}.msi --version v0.0.1 --arch ${WIX_ARCH}"

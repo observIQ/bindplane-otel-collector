@@ -22,6 +22,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/maskprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor"
+	"github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor"
@@ -47,7 +48,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor"
@@ -79,6 +79,7 @@ var defaultProcessors = []processor.Factory{
 	maskprocessor.NewFactory(),
 	memorylimiterprocessor.NewFactory(),
 	metricextractprocessor.NewFactory(),
+	ocsfstandardizationprocessor.NewFactory(),
 	metricsgenerationprocessor.NewFactory(),
 	metricstatsprocessor.NewFactory(),
 	metricstransformprocessor.NewFactory(),
@@ -89,7 +90,6 @@ var defaultProcessors = []processor.Factory{
 	resourceattributetransposerprocessor.NewFactory(),
 	resourcedetectionprocessor.NewFactory(),
 	resourceprocessor.NewFactory(),
-	routingprocessor.NewFactory(),
 	samplingprocessor.NewFactory(),
 	snapshotprocessor.NewFactory(),
 	spancountprocessor.NewFactory(),

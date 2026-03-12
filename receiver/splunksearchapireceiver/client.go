@@ -47,7 +47,7 @@ type defaultSplunkSearchAPIClient struct {
 }
 
 func newDefaultSplunkSearchAPIClient(ctx context.Context, settings component.TelemetrySettings, conf Config, host component.Host) (*defaultSplunkSearchAPIClient, error) {
-	client, err := conf.ClientConfig.ToClient(ctx, host, settings)
+	client, err := conf.ClientConfig.ToClient(ctx, host.GetExtensions(), settings)
 	if err != nil {
 		return nil, err
 	}

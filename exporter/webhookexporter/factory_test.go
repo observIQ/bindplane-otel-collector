@@ -26,36 +26,40 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 )
 
 func TestNewFactory(t *testing.T) {
-	factory := NewFactoryWithVersion("v1.2.3")
+	factory := NewFactory()
 	assert.Equal(t, metadata.Type, factory.Type())
 	assert.Equal(t, metadata.LogsStability, factory.LogsStability())
 }
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig("v1.2.3")()
+	cfg := createDefaultConfig()
 	assert.NotNil(t, cfg)
 
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
-	expectedUserAgent := "bindplane-otel-collector/v1.2.3"
+	expectedUserAgent := "bindplane-otel-collector/latest"
 	assert.Equal(t, &SignalConfig{
 		ClientConfig: confighttp.ClientConfig{
 			Endpoint: "https://localhost",
 			Timeout:  30 * time.Second,
-			Headers: map[string]configopaque.String{
-				"User-Agent": configopaque.String(expectedUserAgent),
+			Headers: configopaque.MapList{
+				{
+					Name:  "User-Agent",
+					Value: configopaque.String(expectedUserAgent),
+				},
 			},
 		},
 		Verb:             POST,
 		ContentType:      "application/json",
-		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 	}, webhookCfg.LogsConfig)
 }

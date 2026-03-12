@@ -10,6 +10,6 @@ The following telemetry is emitted by this component.
 
 The number of packets captured by the PCAP receiver
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {packets} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {packets} | Sum | Int | true | Alpha |
