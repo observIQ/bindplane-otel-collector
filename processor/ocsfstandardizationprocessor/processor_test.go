@@ -817,6 +817,65 @@ func TestProcessLogsValidation(t *testing.T) {
 	}
 }
 
+func TestProfileObjectFieldRuntimeValidation(t *testing.T) {
+	// Test that host-profile device field passes runtime validation when
+	// the device object has the required type_id field.
+	tests := []struct {
+		name          string
+		profiles      []string
+		expectDropped bool
+	}{
+		{
+			name:     "host profile with valid device passes",
+			profiles: []string{"host"},
+		},
+		{
+			name:     "host and datetime profiles with valid device passes",
+			profiles: []string{"host", "datetime"},
+		},
+	}
+
+	for _, version := range OCSFVersions {
+		for _, tt := range tests {
+			t.Run(string(version)+"/"+tt.name, func(t *testing.T) {
+				cfg := &Config{
+					OCSFVersion: version,
+					EventMappings: []EventMapping{
+						{
+							ClassID:  3001,
+							Profiles: tt.profiles,
+							FieldMappings: append(accountChangeFieldMappings,
+								FieldMapping{From: "body.device_type", To: "device.type_id"},
+								FieldMapping{From: "body.device_ip", To: "device.ip"},
+							),
+						},
+					},
+				}
+
+				processor, err := newOCSFStandardizationProcessor(zap.NewNop(), cfg)
+				require.NoError(t, err)
+
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["device_type"] = 1
+				body["device_ip"] = "10.0.0.1"
+				err = record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+
+				result, err := processor.processLogs(context.Background(), ld)
+				require.NoError(t, err)
+
+				if tt.expectDropped {
+					require.Equal(t, 0, countLogRecords(result), "expected log to be dropped")
+				} else {
+					require.Equal(t, 1, countLogRecords(result))
+				}
+			})
+		}
+	}
+}
+
 func TestSetNestedValue(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -333,6 +333,95 @@ func TestConfigValidateProfile(t *testing.T) {
 	}
 }
 
+func TestConfigValidateProfileObjectFields(t *testing.T) {
+	// device.type_id is required on the device object, so all device mappings include it.
+	tests := []struct {
+		name          string
+		eventMappings []EventMapping
+		wantErr       string
+	}{
+		{
+			name: "host profile with device object fields passes",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"host"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.device_type", To: "device.type_id"},
+						FieldMapping{From: "body.device_ip", To: "device.ip"},
+					),
+				},
+			},
+		},
+		{
+			name: "host and datetime profiles with datetime object field passes",
+			eventMappings: []EventMapping{
+				{
+					ClassID:  3001,
+					Profiles: []string{"host", "datetime"},
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.device_type", To: "device.type_id"},
+						FieldMapping{From: "body.device_ip", To: "device.ip"},
+					),
+				},
+			},
+		},
+	}
+
+	for _, version := range OCSFVersions {
+		for _, tt := range tests {
+			t.Run(string(version)+"/"+tt.name, func(t *testing.T) {
+				cfg := Config{
+					OCSFVersion:   version,
+					EventMappings: tt.eventMappings,
+				}
+				err := cfg.Validate()
+				if tt.wantErr != "" {
+					require.ErrorContains(t, err, tt.wantErr)
+				} else {
+					require.NoError(t, err)
+				}
+			})
+		}
+	}
+}
+
+func TestLookupFieldTypeProfileObjectFields(t *testing.T) {
+	// Verify that LookupFieldType resolves profile-specific fields on objects.
+	// device.namespace_pid is a container-profile field (type=integer_t).
+	// device.created_time_dt is a datetime-profile field (type=datetime_t).
+	// container profile on device object was added in v1.1.0
+	versionsWithContainer := OCSFVersions[1:] // skip v1.0.0
+
+	for _, version := range versionsWithContainer {
+		t.Run(string(version)+"/without_profile_namespace_pid_not_found", func(t *testing.T) {
+			schema := getOCSFSchema(version)
+			typeName := schema.LookupFieldType(3001, []string{"host"}, "device.namespace_pid")
+			require.Empty(t, typeName, "device.namespace_pid should not resolve without container profile")
+		})
+
+		t.Run(string(version)+"/with_container_profile_namespace_pid_found", func(t *testing.T) {
+			schema := getOCSFSchema(version)
+			typeName := schema.LookupFieldType(3001, []string{"host", "container"}, "device.namespace_pid")
+			require.Equal(t, "integer", typeName, "device.namespace_pid should resolve to integer with container profile")
+		})
+	}
+
+	for _, version := range OCSFVersions {
+		t.Run(string(version)+"/with_datetime_profile_created_time_dt_found", func(t *testing.T) {
+			schema := getOCSFSchema(version)
+			typeName := schema.LookupFieldType(3001, []string{"host", "datetime"}, "device.created_time_dt")
+			require.Equal(t, "datetime", typeName, "device.created_time_dt should resolve to datetime with datetime profile")
+		})
+
+		t.Run(string(version)+"/without_datetime_profile_created_time_dt_not_found", func(t *testing.T) {
+			schema := getOCSFSchema(version)
+			typeName := schema.LookupFieldType(3001, []string{"host"}, "device.created_time_dt")
+			require.Empty(t, typeName, "device.created_time_dt should not resolve without datetime profile")
+		})
+	}
+}
+
 func TestConfigValidateFieldCoverage(t *testing.T) {
 	tests := []struct {
 		name          string

@@ -28,6 +28,7 @@ The following options may be configured:
 | -- | -- | -- | -- | -- |
 | `filter` | string | | No | A boolean [expression](https://github.com/expr-lang/expr) to match incoming logs. If empty, all logs match. |
 | `class_id` | int | | Yes | The OCSF event class ID. Must be non-zero. |
+| `profiles` | []string | `[]` | No | List of OCSF profiles to overlay on the event. |
 | `field_mappings` | []FieldMapping | `[]` | No | List of field mappings for the event. |
 
 ### FieldMapping

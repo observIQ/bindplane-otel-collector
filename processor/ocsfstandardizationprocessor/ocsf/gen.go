@@ -276,11 +276,23 @@ func generateType(buf *bytes.Buffer, name string, attrs map[string]Attribute, co
 // (e.g. validateProfileCloud, validateProfileDatetime). Profile attributes are the
 // same across all classes, so we only need one function per profile.
 func writeProfileValidateFunctions(buf *bytes.Buffer, schema Schema, typeConstraints map[string]typeConstraint) {
-	// Collect profile attrs from across all classes — each profile defines the
-	// same set of attributes regardless of which class it appears on.
+	// Collect profile attrs from across all classes and objects — each profile
+	// defines the same set of attributes regardless of which class/object it
+	// appears on.
 	profileAttrs := map[string]map[string]Attribute{}
 	for _, cls := range schema.Classes {
 		for attrName, attr := range cls.Attributes {
+			if attr.Profile == "" {
+				continue
+			}
+			if profileAttrs[attr.Profile] == nil {
+				profileAttrs[attr.Profile] = map[string]Attribute{}
+			}
+			profileAttrs[attr.Profile][attrName] = attr
+		}
+	}
+	for _, obj := range schema.Objects {
+		for attrName, attr := range obj.Attributes {
 			if attr.Profile == "" {
 				continue
 			}
@@ -832,6 +844,21 @@ func writeFieldCoverageValidation(buf *bytes.Buffer, schema Schema, classNames [
 	}
 	buf.WriteString("}\n\n")
 
+	// Build profileObjectFieldReqs map — keyed by profile name, then object name
+	buf.WriteString("var profileObjectFieldReqs = map[string]map[string]*fieldReqs{\n")
+	for _, profile := range allProfiles {
+		fmt.Fprintf(buf, "%q: {\n", profile)
+		for _, name := range objectNames {
+			obj := schema.Objects[name]
+			profileAttrs := filterAttrsForProfile(obj.Attributes, profile)
+			if len(profileAttrs) > 0 {
+				writeFieldReqsMapEntry(buf, fmt.Sprintf("%q", name), profileAttrs, Constraints{}, schema.Types)
+			}
+		}
+		buf.WriteString("},\n")
+	}
+	buf.WriteString("}\n\n")
+
 	// Build validProfiles set
 	buf.WriteString("var validProfiles = map[string]bool{\n")
 	for _, p := range allProfiles {
@@ -953,12 +980,12 @@ func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string)
 		}
 	}
 
-	err := validateCoverage(reqs, fieldPaths, "")
+	err := validateCoverage(reqs, profiles, fieldPaths, "")
 
 	for _, p := range profiles {
 		if profileReqs, ok := profileClassFieldReqs[p]; ok {
 			if pReqs, ok := profileReqs[classUID]; ok {
-				if pErr := validateCoverage(pReqs, fieldPaths, ""); pErr != nil {
+				if pErr := validateCoverage(pReqs, profiles, fieldPaths, ""); pErr != nil {
 					err = errors.Join(err, pErr)
 				}
 			}
@@ -968,7 +995,7 @@ func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string)
 	return err
 }
 
-func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
+func validateCoverage(reqs *fieldReqs, profiles []string, paths []string, prefix string) error {
 	var errs []error
 
 	// Group paths by top-level key
@@ -1034,8 +1061,18 @@ func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
 		if !ok {
 			continue
 		}
-		if err := validateCoverage(objReqs, subPaths, prefix+field+"."); err != nil {
+		if err := validateCoverage(objReqs, profiles, subPaths, prefix+field+"."); err != nil {
 			errs = append(errs, err)
+		}
+		// Also validate profile-specific required fields for this object type
+		for _, p := range profiles {
+			if profObjMap, ok := profileObjectFieldReqs[p]; ok {
+				if profObjReqs, ok := profObjMap[objType]; ok {
+					if err := validateCoverage(profObjReqs, profiles, subPaths, prefix+field+"."); err != nil {
+						errs = append(errs, err)
+					}
+				}
+			}
 		}
 	}
 
@@ -1058,14 +1095,14 @@ func splitFirst(s string) (string, string) {
 func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	reqs, ok := classFieldReqs[classUID]
 	if ok {
-		if t := lookupFieldTypeInReqs(reqs, fieldPath); t != "" {
+		if t := lookupFieldTypeInReqs(reqs, profiles, fieldPath); t != "" {
 			return t
 		}
 	}
 	for _, p := range profiles {
 		if profileReqs, ok := profileClassFieldReqs[p]; ok {
 			if pReqs, ok := profileReqs[classUID]; ok {
-				if t := lookupFieldTypeInReqs(pReqs, fieldPath); t != "" {
+				if t := lookupFieldTypeInReqs(pReqs, profiles, fieldPath); t != "" {
 					return t
 				}
 			}
@@ -1074,7 +1111,7 @@ func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	return ""
 }
 
-func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
+func lookupFieldTypeInReqs(reqs *fieldReqs, profiles []string, path string) string {
 	top, sub := splitFirst(path)
 	if sub == "" {
 		return reqs.fieldTypes[top]
@@ -1083,11 +1120,23 @@ func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
 	if !ok {
 		return ""
 	}
-	objReqs, ok := objectFieldReqs[objType]
-	if !ok {
-		return ""
+	// Check base object reqs
+	if objReqs, ok := objectFieldReqs[objType]; ok {
+		if t := lookupFieldTypeInReqs(objReqs, profiles, sub); t != "" {
+			return t
+		}
 	}
-	return lookupFieldTypeInReqs(objReqs, sub)
+	// Check profile-specific object reqs
+	for _, p := range profiles {
+		if profObjMap, ok := profileObjectFieldReqs[p]; ok {
+			if profObjReqs, ok := profObjMap[objType]; ok {
+				if t := lookupFieldTypeInReqs(profObjReqs, profiles, sub); t != "" {
+					return t
+				}
+			}
+		}
+	}
+	return ""
 }
 
 `)

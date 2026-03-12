@@ -17918,6 +17918,20 @@ func validateProfileCloud(data map[string]any) error {
 	if _, ok := data["cloud"]; !ok {
 		errs = append(errs, errors.New("cloud is required"))
 	}
+	if v, ok := data["cloud_partition"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("cloud_partition: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
+	if v, ok := data["region"]; ok {
+		if strVal, ok := v.(string); ok {
+			if len(strVal) > 65535 {
+				errs = append(errs, fmt.Errorf("region: length %d exceeds max 65535", len(strVal)))
+			}
+		}
+	}
 	if v, ok := data["api"]; ok {
 		if m, ok := v.(map[string]any); ok {
 			if err := validateAPI(m); err != nil {
@@ -17935,9 +17949,43 @@ func validateProfileCloud(data map[string]any) error {
 	return errors.Join(errs...)
 }
 
+// validateProfileContainer checks required fields, constraints, and enum values.
+func validateProfileContainer(data map[string]any) error {
+	var errs []error
+	if v, ok := data["container"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateContainer(m); err != nil {
+				errs = append(errs, fmt.Errorf("container: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // validateProfileDatetime checks required fields, constraints, and enum values.
 func validateProfileDatetime(data map[string]any) error {
 	var errs []error
+	if v, ok := data["accessed_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("accessed_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["created_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("created_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["deleted_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("deleted_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
 	if v, ok := data["end_time_dt"]; ok {
 		if strVal, ok := v.(string); ok {
 			if !regexDatetimeT.MatchString(strVal) {
@@ -17952,10 +18000,73 @@ func validateProfileDatetime(data map[string]any) error {
 			}
 		}
 	}
+	if v, ok := data["first_seen_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("first_seen_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["hire_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("hire_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["last_login_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("last_login_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
 	if v, ok := data["last_run_time_dt"]; ok {
 		if strVal, ok := v.(string); ok {
 			if !regexDatetimeT.MatchString(strVal) {
 				errs = append(errs, fmt.Errorf("last_run_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["last_seen_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("last_seen_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["leave_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("leave_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["logged_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("logged_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["modified_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("modified_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["next_run_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("next_run_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["processed_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("processed_time_dt: invalid value %q", strVal))
 			}
 		}
 	}
@@ -17980,10 +18091,24 @@ func validateProfileDatetime(data map[string]any) error {
 			}
 		}
 	}
+	if v, ok := data["terminated_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("terminated_time_dt: invalid value %q", strVal))
+			}
+		}
+	}
 	if v, ok := data["time_dt"]; ok {
 		if strVal, ok := v.(string); ok {
 			if !regexDatetimeT.MatchString(strVal) {
 				errs = append(errs, fmt.Errorf("time_dt: invalid value %q", strVal))
+			}
+		}
+	}
+	if v, ok := data["transmit_time_dt"]; ok {
+		if strVal, ok := v.(string); ok {
+			if !regexDatetimeT.MatchString(strVal) {
+				errs = append(errs, fmt.Errorf("transmit_time_dt: invalid value %q", strVal))
 			}
 		}
 	}
@@ -18004,6 +18129,19 @@ func validateProfileHost(data map[string]any) error {
 		if m, ok := v.(map[string]any); ok {
 			if err := validateDevice(m); err != nil {
 				errs = append(errs, fmt.Errorf("device: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateProfileLinuxLinuxUsers checks required fields, constraints, and enum values.
+func validateProfileLinuxLinuxUsers(data map[string]any) error {
+	var errs []error
+	if v, ok := data["group"]; ok {
+		if m, ok := v.(map[string]any); ok {
+			if err := validateGroup(m); err != nil {
+				errs = append(errs, fmt.Errorf("group: %w", err))
 			}
 		}
 	}
@@ -21159,6 +21297,117 @@ var profileClassFieldReqs = map[string]map[int]*fieldReqs{
 	},
 }
 
+var profileObjectFieldReqs = map[string]map[string]*fieldReqs{
+	"cloud": {
+		"resource_details": {
+			fieldTypes: map[string]string{"cloud_partition": "string", "region": "string"},
+		},
+	},
+	"container": {
+		"device": {
+			objectFields: map[string]string{"container": "container"},
+			fieldTypes:   map[string]string{"namespace_pid": "integer"},
+		},
+		"endpoint": {
+			objectFields: map[string]string{"container": "container"},
+			fieldTypes:   map[string]string{"namespace_pid": "integer"},
+		},
+		"network_endpoint": {
+			objectFields: map[string]string{"container": "container"},
+			fieldTypes:   map[string]string{"namespace_pid": "integer"},
+		},
+		"network_proxy": {
+			objectFields: map[string]string{"container": "container"},
+			fieldTypes:   map[string]string{"namespace_pid": "integer"},
+		},
+		"process": {
+			objectFields: map[string]string{"container": "container"},
+			fieldTypes:   map[string]string{"namespace_pid": "integer"},
+		},
+	},
+	"datetime": {
+		"certificate": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "expiration_time_dt": "datetime"},
+		},
+		"cve": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"database": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"databucket": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"device": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "first_seen_time_dt": "datetime", "last_seen_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"digital_signature": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime"},
+		},
+		"epss": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime"},
+		},
+		"file": {
+			fieldTypes: map[string]string{"accessed_time_dt": "datetime", "created_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"finding": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "first_seen_time_dt": "datetime", "last_seen_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"finding_info": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "first_seen_time_dt": "datetime", "last_seen_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"http_cookie": {
+			fieldTypes: map[string]string{"expiration_time_dt": "datetime"},
+		},
+		"job": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "last_run_time_dt": "datetime", "next_run_time_dt": "datetime"},
+		},
+		"kb_article": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime"},
+		},
+		"ldap_person": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "deleted_time_dt": "datetime", "hire_time_dt": "datetime", "last_login_time_dt": "datetime", "leave_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"logger": {
+			fieldTypes: map[string]string{"logged_time_dt": "datetime", "transmit_time_dt": "datetime"},
+		},
+		"metadata": {
+			fieldTypes: map[string]string{"logged_time_dt": "datetime", "modified_time_dt": "datetime", "processed_time_dt": "datetime"},
+		},
+		"process": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "terminated_time_dt": "datetime"},
+		},
+		"query_info": {
+			fieldTypes: map[string]string{"query_time_dt": "datetime"},
+		},
+		"session": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "expiration_time_dt": "datetime"},
+		},
+		"table": {
+			fieldTypes: map[string]string{"created_time_dt": "datetime", "modified_time_dt": "datetime"},
+		},
+		"vulnerability": {
+			fieldTypes: map[string]string{"first_seen_time_dt": "datetime", "last_seen_time_dt": "datetime"},
+		},
+		"win/reg_key": {
+			fieldTypes: map[string]string{"modified_time_dt": "datetime"},
+		},
+		"win/reg_value": {
+			fieldTypes: map[string]string{"modified_time_dt": "datetime"},
+		},
+	},
+	"host": {},
+	"linux/linux_users": {
+		"process": {
+			objectFields: map[string]string{"group": "group"},
+			fieldTypes:   map[string]string{"auid": "integer", "egid": "integer", "euid": "integer"},
+		},
+	},
+	"load_balancer":    {},
+	"network_proxy":    {},
+	"security_control": {},
+}
+
 var validProfiles = map[string]bool{
 	"cloud":             true,
 	"container":         true,
@@ -21186,12 +21435,12 @@ func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string)
 		}
 	}
 
-	err := validateCoverage(reqs, fieldPaths, "")
+	err := validateCoverage(reqs, profiles, fieldPaths, "")
 
 	for _, p := range profiles {
 		if profileReqs, ok := profileClassFieldReqs[p]; ok {
 			if pReqs, ok := profileReqs[classUID]; ok {
-				if pErr := validateCoverage(pReqs, fieldPaths, ""); pErr != nil {
+				if pErr := validateCoverage(pReqs, profiles, fieldPaths, ""); pErr != nil {
 					err = errors.Join(err, pErr)
 				}
 			}
@@ -21201,7 +21450,7 @@ func ValidateFieldCoverage(classUID int, profiles []string, fieldPaths []string)
 	return err
 }
 
-func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
+func validateCoverage(reqs *fieldReqs, profiles []string, paths []string, prefix string) error {
 	var errs []error
 
 	// Group paths by top-level key
@@ -21267,8 +21516,18 @@ func validateCoverage(reqs *fieldReqs, paths []string, prefix string) error {
 		if !ok {
 			continue
 		}
-		if err := validateCoverage(objReqs, subPaths, prefix+field+"."); err != nil {
+		if err := validateCoverage(objReqs, profiles, subPaths, prefix+field+"."); err != nil {
 			errs = append(errs, err)
+		}
+		// Also validate profile-specific required fields for this object type
+		for _, p := range profiles {
+			if profObjMap, ok := profileObjectFieldReqs[p]; ok {
+				if profObjReqs, ok := profObjMap[objType]; ok {
+					if err := validateCoverage(profObjReqs, profiles, subPaths, prefix+field+"."); err != nil {
+						errs = append(errs, err)
+					}
+				}
+			}
 		}
 	}
 
@@ -21291,14 +21550,14 @@ func splitFirst(s string) (string, string) {
 func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	reqs, ok := classFieldReqs[classUID]
 	if ok {
-		if t := lookupFieldTypeInReqs(reqs, fieldPath); t != "" {
+		if t := lookupFieldTypeInReqs(reqs, profiles, fieldPath); t != "" {
 			return t
 		}
 	}
 	for _, p := range profiles {
 		if profileReqs, ok := profileClassFieldReqs[p]; ok {
 			if pReqs, ok := profileReqs[classUID]; ok {
-				if t := lookupFieldTypeInReqs(pReqs, fieldPath); t != "" {
+				if t := lookupFieldTypeInReqs(pReqs, profiles, fieldPath); t != "" {
 					return t
 				}
 			}
@@ -21307,7 +21566,7 @@ func LookupFieldType(classUID int, profiles []string, fieldPath string) string {
 	return ""
 }
 
-func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
+func lookupFieldTypeInReqs(reqs *fieldReqs, profiles []string, path string) string {
 	top, sub := splitFirst(path)
 	if sub == "" {
 		return reqs.fieldTypes[top]
@@ -21316,11 +21575,23 @@ func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
 	if !ok {
 		return ""
 	}
-	objReqs, ok := objectFieldReqs[objType]
-	if !ok {
-		return ""
+	// Check base object reqs
+	if objReqs, ok := objectFieldReqs[objType]; ok {
+		if t := lookupFieldTypeInReqs(objReqs, profiles, sub); t != "" {
+			return t
+		}
 	}
-	return lookupFieldTypeInReqs(objReqs, sub)
+	// Check profile-specific object reqs
+	for _, p := range profiles {
+		if profObjMap, ok := profileObjectFieldReqs[p]; ok {
+			if profObjReqs, ok := profObjMap[objType]; ok {
+				if t := lookupFieldTypeInReqs(profObjReqs, profiles, sub); t != "" {
+					return t
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // Schema implements the OCSFSchema interface for this version.
