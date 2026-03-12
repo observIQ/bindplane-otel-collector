@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter
+module github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter
 
 go 1.25.7
 

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter
+module github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter
 
 go 1.25.7
 

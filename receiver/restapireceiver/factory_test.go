@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver/internal/metadata"
 )
 
 func TestType(t *testing.T) {

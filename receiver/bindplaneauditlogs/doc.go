@@ -14,4 +14,4 @@
 
 //go:generate mdatagen metadata.yaml
 
-package bindplaneauditlogs //import "github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
+package bindplaneauditlogs //import "github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs"

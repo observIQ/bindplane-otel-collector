@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package event defines the types of events that can be processed by the extension.
-package event // import "github.com/observiq/bindplane-otel-collector/internal/aws/event"
+package event // import "github.com/observiq/bindplane-otel-contrib/internal/aws/event"
 
 import (
 	"encoding/json"

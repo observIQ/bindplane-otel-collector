@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor
+module github.com/observiq/bindplane-otel-contrib/processor/randomfailureprocessor
 
 go 1.25.7
 

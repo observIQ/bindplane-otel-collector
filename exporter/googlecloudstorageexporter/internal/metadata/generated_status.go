@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("googlecloudstorage")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter"
 )
 
 const (

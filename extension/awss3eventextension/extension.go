@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventextension // import "github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
+package awss3eventextension // import "github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension"
 
 import (
 	"context"
@@ -25,9 +25,9 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 
-	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension/internal/worker"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension/internal/worker"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/backoff"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
 )
 
 type awsS3EventExtension struct {

@@ -17,7 +17,7 @@ package worker
 import (
 	"encoding/json"
 
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
 )
 
 // OffsetStorageKey is the key used to store offsets in the storage client made by this receiver type

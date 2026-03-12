@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver
 
 go 1.25.7
 
@@ -407,3 +407,5 @@ require (
 // Panic present in gosnowflake v1.16.0 so replace with v1.15.0
 // https://github.com/snowflakedb/gosnowflake/issues/1533
 replace github.com/snowflakedb/gosnowflake => github.com/snowflakedb/gosnowflake v1.15.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260310172209-3f5a1cd665e2

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package sapnetweaverreceiver is an OTel compatible receiver
-package sapnetweaverreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
+package sapnetweaverreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/sapnetweaverreceiver"
 
 import (
 	"context"

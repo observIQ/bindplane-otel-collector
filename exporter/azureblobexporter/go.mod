@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter
+module github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter
 
 go 1.25.7
 

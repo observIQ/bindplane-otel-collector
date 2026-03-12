@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package restapireceiver implements a receiver that pulls logs and metrics from a REST API.
-package restapireceiver // import "github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
+package restapireceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver"

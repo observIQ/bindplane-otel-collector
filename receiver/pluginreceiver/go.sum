@@ -667,6 +667,8 @@ github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f h1:KUppIJq7/+
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/npillmayer/nestext v0.1.3/go.mod h1:h2lrijH8jpicr25dFY+oAJLyzlya6jhnuG+zWp9L0Uk=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260310172209-3f5a1cd665e2 h1:eZxQq9l8b8XavcCDkZGmskfnyb3XGq0a8tZR6M6l7C8=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260310172209-3f5a1cd665e2/go.mod h1:CKacIpCtIgNRVxfGv1D/ItLanWvhgxG9rWJOO3fgM9w=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -732,8 +734,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/tcplogreceive
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/tcplogreceiver v0.147.0/go.mod h1:EivHdvYuYxtRsVThXkq4zmnpAq8KkL+GPTCQGI7Xg9Y=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/udplogreceiver v0.147.0 h1:UC6babsoA3AMaD8iDBAWTcrUuRDYeWNjE8fBmZIfGs4=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/udplogreceiver v0.147.0/go.mod h1:YV7rqYtJJvaeUR81StQRrwy1JRN5hbXLqdPviDJjOA8=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.147.0 h1:IUjgdCy08yh7dlVPUyHirKzyv0Hk0LBJeRKTm3EOdzI=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.147.0/go.mod h1:0a6ntACp2wJ6nfirlG+12gIbMYLZRXeueHKaYAyd37I=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=

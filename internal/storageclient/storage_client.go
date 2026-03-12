@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package storageclient contains interfaces and implementations used for storing data
-package storageclient //import "github.com/observiq/bindplane-otel-collector/internal/storageclient"
+package storageclient //import "github.com/observiq/bindplane-otel-contrib/internal/storageclient"
 
 import (
 	"context"

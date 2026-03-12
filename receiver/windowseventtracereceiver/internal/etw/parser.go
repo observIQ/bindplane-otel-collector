@@ -27,9 +27,9 @@ import (
 
 	windowsSys "golang.org/x/sys/windows"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
-	tdh "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	tdh "github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/tdh"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/windows"
 	"go.uber.org/zap"
 )
 

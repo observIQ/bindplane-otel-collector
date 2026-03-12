@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/bindplane-otel-collector/expr"
+	"github.com/observiq/bindplane-otel-contrib/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"

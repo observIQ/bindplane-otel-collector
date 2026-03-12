@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
+package blobconsume //import "github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
 
 import (
 	"context"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/internal/testutils"
+	"github.com/observiq/bindplane-otel-contrib/internal/testutils"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 )

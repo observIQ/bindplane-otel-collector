@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/internal/aws
+module github.com/observiq/bindplane-otel-contrib/internal/aws
 
 go 1.25.7
 

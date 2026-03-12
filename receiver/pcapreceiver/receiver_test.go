@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver/internal/metadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 	"github.com/stretchr/testify/require"

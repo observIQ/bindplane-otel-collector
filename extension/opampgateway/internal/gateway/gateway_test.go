@@ -38,7 +38,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway/internal/metadata"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"

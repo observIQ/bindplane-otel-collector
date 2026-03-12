@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor
+module github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor
 
 go 1.25.7
 

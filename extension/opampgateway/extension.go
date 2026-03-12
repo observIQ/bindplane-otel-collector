@@ -17,7 +17,7 @@ package opampgateway
 import (
 	"context"
 
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/gateway"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway/internal/gateway"
 	"go.opentelemetry.io/collector/component"
 )
 

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver/internal"
+	"github.com/observiq/bindplane-otel-contrib/receiver/splunksearchapireceiver/internal"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"

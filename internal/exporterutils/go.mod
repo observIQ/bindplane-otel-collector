@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/internal/exporterutils
+module github.com/observiq/bindplane-otel-contrib/internal/exporterutils
 
 go 1.25.7
 

@@ -30,9 +30,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal"
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal/client"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal/metadata"
 )
 
 type badgerExtension struct {

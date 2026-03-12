@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("s3event")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver"
 )
 
 const (

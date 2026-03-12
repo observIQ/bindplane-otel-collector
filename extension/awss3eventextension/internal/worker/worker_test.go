@@ -26,10 +26,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 
-	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension/internal/worker"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/event"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
+	"github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension/internal/worker"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/event"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/fake"
 )
 
 func TestProcessMessage(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/worker"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

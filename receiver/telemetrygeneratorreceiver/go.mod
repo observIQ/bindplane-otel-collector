@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver
 
 go 1.25.7
 

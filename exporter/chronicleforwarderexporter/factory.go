@@ -19,7 +19,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleforwarderexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/config/configoptional"

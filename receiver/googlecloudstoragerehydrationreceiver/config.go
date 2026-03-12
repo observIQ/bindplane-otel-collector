@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
+package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver"
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
+	"github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
 	"go.opentelemetry.io/collector/component"
 )
 

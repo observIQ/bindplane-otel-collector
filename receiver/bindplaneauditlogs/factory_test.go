@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 )

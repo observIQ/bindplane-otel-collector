@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("opampgateway")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/extension/opampgateway"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/extension/opampgateway"
 )
 
 const (

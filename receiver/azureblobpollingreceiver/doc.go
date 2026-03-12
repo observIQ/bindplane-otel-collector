@@ -15,4 +15,4 @@
 // Package azureblobpollingreceiver implements a receiver that continuously polls
 // Azure Blob Storage at configurable intervals and dynamically adjusts the time
 // window to collect only new data from each interval.
-package azureblobpollingreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
+package azureblobpollingreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver"

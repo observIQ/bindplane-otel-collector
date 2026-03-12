@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/oktareceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/oktareceiver
 
 go 1.25.7
 

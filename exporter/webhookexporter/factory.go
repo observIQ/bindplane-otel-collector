@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/version"
+	"github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/version"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"

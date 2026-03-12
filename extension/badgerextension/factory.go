@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
 
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal/metadata"
 )
 
 // NewFactory creates a new extension factory for the badger storage extension

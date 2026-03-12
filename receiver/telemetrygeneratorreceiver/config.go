@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package telemetrygeneratorreceiver generates telemetry for testing purposes
-package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
+package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver"
 
 import (
 	"errors"

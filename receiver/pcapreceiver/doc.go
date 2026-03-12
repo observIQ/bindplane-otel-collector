@@ -21,4 +21,4 @@
 //
 // This receiver requires elevated privileges (root on Unix-like systems) to
 // capture network packets.
-package pcapreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver"
+package pcapreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver"

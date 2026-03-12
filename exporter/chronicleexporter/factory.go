@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"

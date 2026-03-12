@@ -21,4 +21,4 @@
 // The receiver uses synchronous Pub/Sub pull to receive GCS event notifications. When an
 // OBJECT_FINALIZE event is received, the receiver downloads the GCS object and processes
 // it as log data.
-package gcspubsubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
+package gcspubsubeventreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver"

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs
+module github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs
 
 go 1.25.7
 

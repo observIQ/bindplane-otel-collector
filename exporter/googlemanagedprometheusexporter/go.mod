@@ -1,9 +1,9 @@
-module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter
+module github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter
 
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/version v1.95.0
+	github.com/observiq/bindplane-otel-contrib/version v0.0.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.147.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
@@ -148,4 +148,4 @@ require (
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/version => ../../version
+replace github.com/observiq/bindplane-otel-contrib/version => ../../version

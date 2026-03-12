@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway/internal/metadata"
 	"go.uber.org/zap"
 )
 

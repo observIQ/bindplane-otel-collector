@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("azureblobpolling")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver"
 )
 
 const (

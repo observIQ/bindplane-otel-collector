@@ -27,8 +27,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 var (

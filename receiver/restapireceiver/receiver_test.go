@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"

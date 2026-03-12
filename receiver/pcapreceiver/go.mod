@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver
 
 go 1.25.7
 

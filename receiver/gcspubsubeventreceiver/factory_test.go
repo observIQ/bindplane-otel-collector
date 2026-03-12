@@ -26,8 +26,8 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver"
+	"github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver/internal/metadata"
 )
 
 // Test that the factory creates the default configuration correctly

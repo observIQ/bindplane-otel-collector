@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package worker provides a worker that processes S3 event notifications.
-package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
+package worker // import "github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/worker"
 
 import (
 	"context"
@@ -39,10 +39,10 @@ import (
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/constants"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/metadata"
 )
 
 // AWS error codes for DLQ condition detection

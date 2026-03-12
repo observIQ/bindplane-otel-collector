@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/counter"
-	"github.com/observiq/bindplane-otel-collector/expr"
-	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
+	"github.com/observiq/bindplane-otel-contrib/counter"
+	"github.com/observiq/bindplane-otel-contrib/expr"
+	"github.com/observiq/bindplane-otel-contrib/receiver/routereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"

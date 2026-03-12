@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("ocsf_standardization")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor"
 )
 
 const (

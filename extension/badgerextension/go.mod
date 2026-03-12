@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/extension/badgerextension
+module github.com/observiq/bindplane-otel-contrib/extension/badgerextension
 
 go 1.25.7
 

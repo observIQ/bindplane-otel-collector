@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3rehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
+package awss3rehydrationreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver"
 
 import (
 	"context"
@@ -23,9 +23,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
+	"github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver/internal/aws"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"

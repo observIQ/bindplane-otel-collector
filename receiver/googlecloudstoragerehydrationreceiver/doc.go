@@ -15,4 +15,4 @@
 // Package googlecloudstoragerehydrationreceiver implements a receiver that rehydrates telemetry data from Google Cloud Storage.
 //
 //go:generate mdatagen metadata.yaml
-package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
+package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver"

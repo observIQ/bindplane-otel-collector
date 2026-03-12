@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/extension/opampgateway
+module github.com/observiq/bindplane-otel-contrib/extension/opampgateway
 
 go 1.25.7
 

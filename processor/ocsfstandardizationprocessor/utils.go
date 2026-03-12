@@ -15,14 +15,14 @@
 package ocsfstandardizationprocessor
 
 import (
-	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
-	v110 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
-	v120 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
-	v130 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_3_0"
-	v140 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_4_0"
-	v150 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_5_0"
-	v160 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_6_0"
-	v170 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
+	v100 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
+	v110 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
+	v120 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
+	v130 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_3_0"
+	v140 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_4_0"
+	v150 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_5_0"
+	v160 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_6_0"
+	v170 "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
 )
 
 // OCSFSchema is the interface for OCSF schema implementations.

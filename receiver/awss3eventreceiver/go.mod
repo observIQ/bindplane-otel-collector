@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver
 
 go 1.25.7
 
@@ -11,8 +11,8 @@ require (
 	github.com/aws/smithy-go v1.24.2
 	github.com/google/go-cmp v0.7.0
 	github.com/linkedin/goavro/v2 v2.15.0
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.95.0
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0
+	github.com/observiq/bindplane-otel-contrib/internal/aws v0.0.1
+	github.com/observiq/bindplane-otel-contrib/internal/storageclient v0.0.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
 	go.opentelemetry.io/collector/component/componenttest v0.147.0
@@ -87,6 +87,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/aws => ../../internal/aws
+replace github.com/observiq/bindplane-otel-contrib/internal/aws => ../../internal/aws
 
-replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
+replace github.com/observiq/bindplane-otel-contrib/internal/storageclient => ../../internal/storageclient

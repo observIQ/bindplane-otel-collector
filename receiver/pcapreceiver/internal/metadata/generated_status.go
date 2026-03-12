@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("pcap")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver"
 )
 
 const (

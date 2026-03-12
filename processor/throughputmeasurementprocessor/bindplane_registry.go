@@ -17,7 +17,7 @@
 package throughputmeasurementprocessor
 
 import (
-	"github.com/observiq/bindplane-otel-collector/internal/measurements"
+	"github.com/observiq/bindplane-otel-contrib/internal/measurements"
 	"go.opentelemetry.io/collector/component"
 )
 

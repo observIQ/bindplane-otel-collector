@@ -19,8 +19,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
-	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter/internal/metadatatest"
+	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/configoptional"

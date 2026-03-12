@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/processor/topologyprocessor
+module github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor
 
 go 1.25.7
 

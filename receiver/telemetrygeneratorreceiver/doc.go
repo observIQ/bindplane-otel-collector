@@ -14,4 +14,4 @@
 
 //go:generate mdatagen metadata.yaml
 
-package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
+package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver"

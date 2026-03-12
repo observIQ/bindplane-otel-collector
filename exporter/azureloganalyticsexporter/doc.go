@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package azureloganalyticsexporter exports logs to Azure Log Analytics via Log Ingestion API.
-package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
+package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter"

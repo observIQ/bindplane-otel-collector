@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component/componenttest"
 )
 

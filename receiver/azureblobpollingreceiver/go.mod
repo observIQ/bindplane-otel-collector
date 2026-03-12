@@ -1,11 +1,11 @@
-module github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver
 
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.95.0
-	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.95.0
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0
+	github.com/observiq/bindplane-otel-contrib/internal/azureblob v0.0.1
+	github.com/observiq/bindplane-otel-contrib/internal/blobconsume v0.0.1
+	github.com/observiq/bindplane-otel-contrib/internal/storageclient v0.0.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
 	go.opentelemetry.io/collector/consumer v1.53.0
@@ -44,10 +44,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
+replace github.com/observiq/bindplane-otel-contrib/internal/azureblob => ../../internal/azureblob
 
-replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../../internal/blobconsume
+replace github.com/observiq/bindplane-otel-contrib/internal/blobconsume => ../../internal/blobconsume
 
-replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
+replace github.com/observiq/bindplane-otel-contrib/internal/storageclient => ../../internal/storageclient
 
-replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
+replace github.com/observiq/bindplane-otel-contrib/internal/testutils => ../../internal/testutils

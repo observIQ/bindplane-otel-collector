@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter
+module github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter
 
 go 1.25.7
 
@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
 	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.1.0
-	github.com/observiq/bindplane-otel-collector/expr v1.95.0
+	github.com/observiq/bindplane-otel-contrib/expr v0.0.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.147.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
@@ -94,4 +94,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/expr => ../../expr
+replace github.com/observiq/bindplane-otel-contrib/expr => ../../expr

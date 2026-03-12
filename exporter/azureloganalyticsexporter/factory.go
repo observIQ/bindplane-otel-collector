@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
+package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter"
 
 import (
 	"context"
 	"errors"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"

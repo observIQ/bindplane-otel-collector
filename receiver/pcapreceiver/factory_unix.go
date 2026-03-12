@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"

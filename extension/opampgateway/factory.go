@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/gateway"
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway/internal/gateway"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/extension"

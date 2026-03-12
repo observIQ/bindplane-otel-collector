@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/version"
+	"github.com/observiq/bindplane-otel-contrib/version"
 	gmp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"

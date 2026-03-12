@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
+package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter"
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter/internal/metadata"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"

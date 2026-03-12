@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
+package blobconsume //import "github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
 
 import (
 	"bytes"

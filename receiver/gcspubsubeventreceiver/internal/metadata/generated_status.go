@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("gcsevent")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver"
 )
 
 const (

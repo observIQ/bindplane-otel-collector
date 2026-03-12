@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/internal/aws/event"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/event"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 )

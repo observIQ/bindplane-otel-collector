@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal/client"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.uber.org/zap"
 )

@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
 
-	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/extension/pebbleextension/internal/metadata"
 )
 
 // NewFactory creates a new factory for the pebble extension

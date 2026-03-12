@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package ocsfstandardizationprocessor creates OCSF-formatted logs from OpenTelemetry logs.
-package ocsfstandardizationprocessor // import "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor"
+package ocsfstandardizationprocessor // import "github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor"

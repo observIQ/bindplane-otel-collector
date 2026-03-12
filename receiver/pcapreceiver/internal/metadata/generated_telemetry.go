@@ -13,11 +13,11 @@ import (
 )
 
 func Meter(settings component.TelemetrySettings) metric.Meter {
-	return settings.MeterProvider.Meter("github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver")
+	return settings.MeterProvider.Meter("github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver")
 }
 
 func Tracer(settings component.TelemetrySettings) trace.Tracer {
-	return settings.TracerProvider.Tracer("github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver")
+	return settings.TracerProvider.Tracer("github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver")
 }
 
 // TelemetryBuilder provides an interface for components to report telemetry

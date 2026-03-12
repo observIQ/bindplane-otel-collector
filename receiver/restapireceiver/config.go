@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package restapireceiver // import "github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
+package restapireceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver"
 
 import (
 	"fmt"

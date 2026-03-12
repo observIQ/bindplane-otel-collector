@@ -25,7 +25,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	windows_ "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
+	windows_ "github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 // DLL and function references

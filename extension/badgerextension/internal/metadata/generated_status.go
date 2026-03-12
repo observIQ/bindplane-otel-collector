@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("badger")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/extension/badgerextension"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/extension/badgerextension"
 )
 
 const (

@@ -26,10 +26,10 @@ import (
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/fake"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/worker"
 )
 
 func TestWithBucketNameFilter(t *testing.T) {

@@ -24,8 +24,8 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/metadata"
 )
 
 func TestValidConfig(t *testing.T) {

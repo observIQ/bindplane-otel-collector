@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/internal/azureblob
+module github.com/observiq/bindplane-otel-contrib/internal/azureblob
 
 go 1.25.7
 

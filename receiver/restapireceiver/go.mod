@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/restapireceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver
 
 go 1.25.7
 

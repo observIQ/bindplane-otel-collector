@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package azureblob contains client interfaces and implementations for accessing Blob storage
-package azureblob //import "github.com/observiq/bindplane-otel-collector/internal/azureblob"
+package azureblob //import "github.com/observiq/bindplane-otel-contrib/internal/azureblob"
 
 import (
 	"context"

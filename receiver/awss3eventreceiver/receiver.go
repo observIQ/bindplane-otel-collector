@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+package awss3eventreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver"
 
 import (
 	"context"
@@ -32,11 +32,11 @@ import (
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
-	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/backoff"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/worker"
 )
 
 type logsReceiver struct {

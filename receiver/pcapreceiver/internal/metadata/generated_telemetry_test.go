@@ -50,14 +50,14 @@ func TestProviders(t *testing.T) {
 
 	meter := Meter(set)
 	if m, ok := meter.(mockMeter); ok {
-		require.Equal(t, "github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver", m.name)
+		require.Equal(t, "github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver", m.name)
 	} else {
 		require.Fail(t, "returned Meter not mockMeter")
 	}
 
 	tracer := Tracer(set)
 	if m, ok := tracer.(mockTracer); ok {
-		require.Equal(t, "github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver", m.name)
+		require.Equal(t, "github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver", m.name)
 	} else {
 		require.Fail(t, "returned Meter not mockTracer")
 	}

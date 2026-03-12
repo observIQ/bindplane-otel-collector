@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"

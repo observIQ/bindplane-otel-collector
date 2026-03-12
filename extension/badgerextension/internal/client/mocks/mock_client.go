@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	client "github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
+	client "github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal/client"
 
 	mock "github.com/stretchr/testify/mock"
 

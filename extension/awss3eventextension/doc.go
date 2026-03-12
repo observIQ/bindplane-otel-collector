@@ -20,4 +20,4 @@
 // The extension polls an SQS queue for S3 event notifications. When an object creation
 // event is received, the extension downloads the S3 object and writes it so the configured
 // directory.
-package awss3eventextension // import "github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
+package awss3eventextension // import "github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension"

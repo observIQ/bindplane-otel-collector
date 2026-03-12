@@ -28,8 +28,8 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/tdh"
 )
 
 type Session struct {

@@ -24,7 +24,7 @@ import (
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 	"go.opentelemetry.io/collector/confmap/xconfmap"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver/internal/metadata"
 )
 
 func TestConfig_Validate(t *testing.T) {

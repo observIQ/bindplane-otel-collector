@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/gopacket/gopacket"
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
+	"github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver/parser"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 )

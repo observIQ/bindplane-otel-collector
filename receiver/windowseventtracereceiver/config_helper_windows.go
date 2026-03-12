@@ -19,7 +19,7 @@ package windowseventtracereceiver
 import (
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/etw/advapi32"
 	"golang.org/x/sys/windows"
 )
 

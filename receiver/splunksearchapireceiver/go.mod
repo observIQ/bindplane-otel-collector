@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver
+module github.com/observiq/bindplane-otel-contrib/receiver/splunksearchapireceiver
 
 go 1.25.7
 
@@ -98,6 +98,6 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
+replace github.com/observiq/bindplane-otel-contrib/internal/storageclient => ../../internal/storageclient
 
-replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
+replace github.com/observiq/bindplane-otel-contrib/internal/testutils => ../../internal/testutils

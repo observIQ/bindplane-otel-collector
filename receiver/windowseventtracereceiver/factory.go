@@ -17,7 +17,7 @@ package windowseventtracereceiver
 import (
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver/internal/metadata"
 )
 
 // NewFactory creates a new receiver factory

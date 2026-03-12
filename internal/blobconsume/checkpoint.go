@@ -13,13 +13,13 @@
 // limitations under the License.
 
 // Package blobconsume provides a checkpoint for blob-consuming receivers that can be stored using an internal/storageclient.StorageClient
-package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
+package blobconsume //import "github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
 
 import (
 	"encoding/json"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
 )
 
 // CheckPoint is the checkpoint used with a storage extension to

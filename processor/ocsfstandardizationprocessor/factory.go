@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"

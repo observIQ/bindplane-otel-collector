@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/observiq/bindplane-otel-collector/expr"
+	"github.com/observiq/bindplane-otel-contrib/expr"
 )
 
 var (

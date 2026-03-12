@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package client provides a client for the SQS service.
-package client // import "github.com/observiq/bindplane-otel-collector/internal/aws/client"
+package client // import "github.com/observiq/bindplane-otel-contrib/internal/aws/client"
 
 import (
 	"context"

@@ -1,10 +1,10 @@
-module github.com/observiq/bindplane-otel-collector/internal/blobconsume
+module github.com/observiq/bindplane-otel-contrib/internal/blobconsume
 
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0
-	github.com/observiq/bindplane-otel-collector/internal/testutils v1.95.0
+	github.com/observiq/bindplane-otel-contrib/internal/storageclient v0.0.1
+	github.com/observiq/bindplane-otel-contrib/internal/testutils v0.0.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/consumer v1.53.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.147.0
@@ -39,6 +39,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../storageclient
+replace github.com/observiq/bindplane-otel-contrib/internal/storageclient => ../storageclient
 
-replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../testutils
+replace github.com/observiq/bindplane-otel-contrib/internal/testutils => ../testutils

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+package awss3eventreceiver // import "github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver"
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver/internal/metadata"
 )
 
 // errImproperCfgType error for when an invalid config type is passed to receiver creation funcs

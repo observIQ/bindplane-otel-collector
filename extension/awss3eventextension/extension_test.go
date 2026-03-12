@@ -26,9 +26,9 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/extension/extensiontest"
 
-	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
-	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
+	"github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension/internal/metadata"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/client"
+	"github.com/observiq/bindplane-otel-contrib/internal/aws/fake"
 )
 
 func TestExtensionLifecycle(t *testing.T) {

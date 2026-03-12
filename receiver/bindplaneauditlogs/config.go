@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package bindplaneauditlogs provides a receiver that receives telemetry from an BindPlane audit logs.
-package bindplaneauditlogs // import "github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
+package bindplaneauditlogs // import "github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs"
 
 import (
 	"errors"

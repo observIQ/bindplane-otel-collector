@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package internal contains the internal constants for the badger extension
-package internal // import "github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal"
+package internal // import "github.com/observiq/bindplane-otel-contrib/extension/badgerextension/internal"
 
 const (
 	// ExtensionAttribute is the attribute for the extension

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
+package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver"
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
-	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-contrib/internal/blobconsume"
+	"github.com/observiq/bindplane-otel-contrib/internal/storageclient"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"

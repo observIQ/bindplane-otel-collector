@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/internal/storageclient
+module github.com/observiq/bindplane-otel-contrib/internal/storageclient
 
 go 1.25.7
 

@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("restapi")
-	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver"
 )
 
 const (

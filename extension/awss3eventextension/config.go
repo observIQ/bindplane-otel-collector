@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventextension // import "github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
+package awss3eventextension // import "github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension"
 
 import (
 	"errors"

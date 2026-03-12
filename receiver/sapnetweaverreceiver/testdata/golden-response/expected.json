@@ -4146,7 +4146,7 @@
                   }
                ],
                "scope": {
-                  "name": "github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver",
+                  "name": "github.com/observiq/bindplane-otel-contrib/receiver/sapnetweaverreceiver",
                   "version": "latest"
                }
             }

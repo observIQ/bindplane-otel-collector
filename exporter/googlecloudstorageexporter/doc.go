@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package googlecloudstorageexporter stores OpenTelemetry data as a Google Cloud Storage exporter.
-package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
+package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter"
