@@ -57,11 +57,13 @@ exporters:
     verbosity: detailed
 
   aws_security_lake:
-    source_name: "test-source"
-    account_id: "123456789012"
     region: "us-east-1"
     s3_bucket: "bindplane-test-bucket"
-    s3_prefix: "ext/"
+    account_id: "123456789012"
+    ocsf_version: "1.3.0"
+    custom_sources:
+      - name: "test-source"
+        class_id: 3001
 
 service:
   telemetry:

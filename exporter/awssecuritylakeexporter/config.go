@@ -16,12 +16,30 @@ package awssecuritylakeexporter // import "github.com/observiq/bindplane-otel-co
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
+
+type OCSFVersion string
+
+const (
+	OCSFVersion1_0_0 OCSFVersion = "1.0.0"
+	OCSFVersion1_1_0 OCSFVersion = "1.1.0"
+	OCSFVersion1_2_0 OCSFVersion = "1.2.0"
+	OCSFVersion1_3_0 OCSFVersion = "1.3.0"
+)
+
+var ocsfVersions = []OCSFVersion{
+	OCSFVersion1_0_0,
+	OCSFVersion1_1_0,
+	OCSFVersion1_2_0,
+	OCSFVersion1_3_0,
+}
 
 // SecurityLakeCustomSource is the configuration for a custom source in Security Lake.
 type SecurityLakeCustomSource struct {
@@ -35,6 +53,9 @@ type Config struct {
 	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
 	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 	TLS              configtls.ClientConfig                                   `mapstructure:"tls"`
+
+	// OCSFVersion is the OCSF version to use for the logs.
+	OCSFVersion OCSFVersion `mapstructure:"ocsf_version"`
 
 	// Region is the AWS region where the Security Lake S3 bucket resides. (required)
 	Region string `mapstructure:"region"`
@@ -89,6 +110,11 @@ func (c *Config) Validate() error {
 	if c.AccountID == "" {
 		return errors.New("account_id is required")
 	}
-
+	if c.OCSFVersion == "" {
+		return errors.New("ocsf_version is required")
+	}
+	if !slices.Contains(ocsfVersions, c.OCSFVersion) {
+		return fmt.Errorf("invalid ocsf_version: %s", c.OCSFVersion)
+	}
 	return nil
 }
