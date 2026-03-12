@@ -240,6 +240,7 @@ gosec:
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=exporter/chronicleexporter/protos/api \
 	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
+	  -exclude-dir=exporter/awssecuritylakeexporter \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
 	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
@@ -251,6 +252,7 @@ gosec:
 	cd processor/snapshotprocessor; gosec ./...
 	cd receiver/sapnetweaverreceiver; gosec ./...
 	cd processor/ocsfstandardizationprocessor; gosec ./...
+	cd exporter/awssecuritylakeexporter; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
