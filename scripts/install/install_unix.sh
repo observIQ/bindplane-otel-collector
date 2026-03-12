@@ -40,6 +40,7 @@ TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env 
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo"
+SUGGESTED_TOOLS="jq bash"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -50,13 +51,11 @@ skip_gpg_check=false
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
 
-# Require bash for non-AIX to create a standardized environment
-# Also set up the supervisor timeout values (AIX needs higher values due to slow I/O)
+# Set up the supervisor timeout values (AIX needs higher values due to slow I/O)
 if [ "$(uname -s)" = "AIX" ]; then
   config_apply_timeout="150"
   bootstrap_timeout="120"
 else
-  PREREQS="bash $PREREQS"
   config_apply_timeout="30"
   bootstrap_timeout="5"
 fi
@@ -771,6 +770,21 @@ dependencies_check() {
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+
+  MISSING_SUGGESTED=''
+  for tool in $SUGGESTED_TOOLS; do
+    if ! command -v "$tool" >/dev/null; then
+      if [ -z "$MISSING_SUGGESTED" ]; then
+        MISSING_SUGGESTED="${fg_yellow}$tool${reset}"
+      else
+        MISSING_SUGGESTED="$MISSING_SUGGESTED, ${fg_yellow}$tool${reset}"
+      fi
+    fi
+  done
+
+  if [ -n "$MISSING_SUGGESTED" ]; then
+    warn "The following tools are recommended but not found: [$MISSING_SUGGESTED]"
+  fi
 }
 
 # This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
@@ -1203,7 +1217,7 @@ install_aix()
     mkgroup "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_USER'"
   fi
   if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
-    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s "$(which bash)" "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s /usr/bin/false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
   fi
 
   # Create the install & storage directories
