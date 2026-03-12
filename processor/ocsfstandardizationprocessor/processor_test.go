@@ -28,10 +28,8 @@ import (
 func accountChangeInputBody() map[string]any {
 	return map[string]any{
 		"activity": 1,
-		"category": 3,
 		"severity": 1,
 		"time":     int64(1234567890),
-		"type":     300101,
 		"user": map[string]any{
 			"type_id": 1,
 			"name":    "testuser",
@@ -180,6 +178,7 @@ func TestProcessLogs(t *testing.T) {
 			expectedBody: func() map[string]any {
 				expected := accountChangeExpectedBody("1.0.0")
 				expected["activity_id"] = int64(99)
+				expected["type_uid"] = int64(300199)
 				return expected
 			}(),
 			expectedCount: 1,
@@ -892,6 +891,130 @@ func TestNewOCSFStandardizationProcessor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetTypeUID(t *testing.T) {
+	tests := []struct {
+		name       string
+		classID    int
+		activityID int
+		expected   int64
+	}{
+		{
+			name:       "basic calculation",
+			classID:    3001,
+			activityID: 1,
+			expected:   300101,
+		},
+		{
+			name:       "zero activity ID",
+			classID:    3001,
+			activityID: 0,
+			expected:   300100,
+		},
+		{
+			name:       "both zero",
+			classID:    0,
+			activityID: 0,
+			expected:   0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getTypeUID(tt.classID, tt.activityID)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestAutoMappedFields(t *testing.T) {
+	t.Run("category_uid derived from classID", func(t *testing.T) {
+		config := &Config{
+			OCSFVersion: OCSFVersion1_0_0,
+			EventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+		}
+
+		processor, err := newOCSFStandardizationProcessor(zap.NewNop(), config)
+		require.NoError(t, err)
+
+		// categoryUID = classID / 1000 = 3001 / 1000 = 3
+		require.Equal(t, 3, processor.eventMappings[0].categoryUID)
+	})
+
+	t.Run("type_uid computed from activity_id at runtime", func(t *testing.T) {
+		config := &Config{
+			OCSFVersion: OCSFVersion1_0_0,
+			EventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+		}
+
+		processor, err := newOCSFStandardizationProcessor(zap.NewNop(), config)
+		require.NoError(t, err)
+
+		ld := plog.NewLogs()
+		record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+		err = record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+		require.NoError(t, err)
+
+		result, err := processor.processLogs(context.Background(), ld)
+		require.NoError(t, err)
+		require.Equal(t, 1, countLogRecords(result))
+
+		body := result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().Map().AsRaw()
+
+		typeUID, ok := body["type_uid"]
+		require.True(t, ok, "type_uid should be present in output")
+		require.Equal(t, int64(300101), typeUID)
+	})
+
+	t.Run("type_uid not set when no activity_id mapping", func(t *testing.T) {
+		noActivityMappings := []FieldMapping{
+			{From: "body.category", To: "category_uid"},
+			{From: "body.severity", To: "severity_id"},
+			{From: "body.time", To: "time"},
+			{From: "body.user", To: "user"},
+			{From: "body.product", To: "metadata.product"},
+		}
+
+		runtimeValidation := false
+		config := &Config{
+			OCSFVersion:       OCSFVersion1_0_0,
+			RuntimeValidation: &runtimeValidation,
+			EventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: noActivityMappings,
+				},
+			},
+		}
+
+		processor, err := newOCSFStandardizationProcessor(zap.NewNop(), config)
+		require.NoError(t, err)
+
+		ld := plog.NewLogs()
+		record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+		err = record.Body().SetEmptyMap().FromRaw(accountChangeInputBody())
+		require.NoError(t, err)
+
+		result, err := processor.processLogs(context.Background(), ld)
+		require.NoError(t, err)
+		require.Equal(t, 1, countLogRecords(result))
+
+		body := result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().Map().AsRaw()
+
+		_, ok := body["type_uid"]
+		require.False(t, ok, "type_uid should not be present without activity_id mapping")
+	})
 }
 
 func countLogRecords(ld plog.Logs) int {
