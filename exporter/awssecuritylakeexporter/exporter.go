@@ -43,6 +43,6 @@ func (e *securityLakeExporter) Capabilities() consumer.Capabilities {
 }
 
 // logsDataPusher pushes OCSF logs to Security Lake as Parquet files on S3.
-func (e *securityLakeExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
+func (e *securityLakeExporter) logsDataPusher(_ context.Context, _ plog.Logs) error {
 	return nil
 }

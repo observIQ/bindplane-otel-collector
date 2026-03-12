@@ -54,6 +54,18 @@ type Config struct {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	if err := c.TimeoutConfig.Validate(); err != nil {
+		return err
+	}
+	if err := c.BackOffConfig.Validate(); err != nil {
+		return err
+	}
+	if err := c.QueueBatchConfig.Validate(); err != nil {
+		return err
+	}
+	if err := c.TLS.Validate(); err != nil {
+		return err
+	}
 	if c.Region == "" {
 		return errors.New("region is required")
 	}
@@ -67,17 +79,5 @@ func (c *Config) Validate() error {
 		return errors.New("account_id is required")
 	}
 
-	if err := c.TimeoutConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.BackOffConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.QueueBatchConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.TLS.Validate(); err != nil {
-		return err
-	}
 	return nil
 }
