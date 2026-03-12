@@ -172,6 +172,14 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	}
 	xmlBuilder.WriteString("  </EventData>\n")
 
+	if extData := collectExtendedData(eventRecord); len(extData) > 0 {
+		xmlBuilder.WriteString("  <ExtendedData>\n")
+		for key, value := range extData {
+			xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%s</Data>\n", xmlEscape(key), xmlEscape(fmt.Sprintf("%v", value))))
+		}
+		xmlBuilder.WriteString("  </ExtendedData>\n")
+	}
+
 	xmlBuilder.WriteString("</Event>")
 
 	event := &Event{
