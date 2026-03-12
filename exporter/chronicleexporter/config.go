@@ -30,9 +30,11 @@ import (
 
 const (
 	// noCompression is the no compression type.
-	noCompression = "none"
-	protocolHTTPS = "https"
-	protocolGRPC  = "gRPC"
+	noCompression     = "none"
+	protocolHTTPS     = "https"
+	protocolGRPC      = "gRPC"
+	apiVersionV1Alpha = "v1alpha"
+	apiVersionV1Beta  = "v1beta"
 )
 
 // Config defines configuration for the Chronicle exporter.
@@ -107,6 +109,15 @@ type Config struct {
 
 	// LogErroredPayloads is a flag that determines whether or not to log errored payloads.
 	LogErroredPayloads bool `mapstructure:"log_errored_payloads"`
+
+	// OverrideEndpoint determines whether or not to ignore the Location field when constructing the endpoint.
+	// This is useful for when the endpoint is a custom endpoint and the Location field is not needed.
+	// We still need the Location field for the API call to Chronicle, but we don't want to use it in the endpoint.
+	// Only applies to HTTPS protocol.
+	OverrideEndpoint bool `mapstructure:"override_endpoint"`
+
+	// APIVersion is the version of the API to use. Default is "v1alpha". Only applies to HTTPS protocol.
+	APIVersion string `mapstructure:"api_version"`
 }
 
 // Validate checks if the configuration is valid.
@@ -136,11 +147,19 @@ func (cfg *Config) Validate() error {
 		if cfg.Location == "" {
 			return errors.New("location is required when protocol is https")
 		}
+		if cfg.Endpoint == "" {
+			return errors.New("endpoint is required when protocol is https")
+		}
 		if cfg.Project == "" {
 			return errors.New("project is required when protocol is https")
 		}
 		if cfg.BatchRequestSizeLimitHTTP <= 0 {
 			return errors.New("positive batch request size limit is required when protocol is https")
+		}
+		if cfg.APIVersion != "" {
+			if cfg.APIVersion != apiVersionV1Alpha && cfg.APIVersion != apiVersionV1Beta {
+				return fmt.Errorf("invalid API version: %s", cfg.APIVersion)
+			}
 		}
 
 		return nil

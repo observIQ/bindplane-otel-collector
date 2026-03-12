@@ -13631,3 +13631,21 @@ func lookupFieldTypeInReqs(reqs *fieldReqs, path string) string {
 	}
 	return lookupFieldTypeInReqs(objReqs, sub)
 }
+
+// Schema implements the OCSFSchema interface for this version.
+type Schema struct{}
+
+// ValidateClass validates data against the OCSF event class identified by classUID.
+func (Schema) ValidateClass(classUID int, data any) error {
+	return ValidateClass(classUID, data)
+}
+
+// LookupFieldType returns the coercion type name for a field path in the given class.
+func (Schema) LookupFieldType(classUID int, fieldPath string) string {
+	return LookupFieldType(classUID, fieldPath)
+}
+
+// ValidateFieldCoverage checks that fieldPaths cover all required fields for the class identified by classUID.
+func (Schema) ValidateFieldCoverage(classUID int, fieldPaths []string) error {
+	return ValidateFieldCoverage(classUID, fieldPaths)
+}

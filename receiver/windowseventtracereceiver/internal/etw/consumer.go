@@ -29,6 +29,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	tdh "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
 	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
@@ -49,7 +50,7 @@ type Consumer struct {
 
 	eventCallback      func(eventRecord *advapi32.EventRecord) uintptr
 	bufferCallback     func(buffer *advapi32.EventTraceLogfile) uintptr
-	getEventProperties func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error)
+	getEventProperties func(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error)
 
 	// Channel for received events
 	Events chan *Event
@@ -115,14 +116,11 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 		providerName = provider.Name
 	}
 
-	eventData, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	eventData, ti, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		return 1
 	}
-
-	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
-
 	// Create an XML-like representation
 	var xmlBuilder strings.Builder
 	xmlBuilder.WriteString("<Event>\n")
@@ -132,15 +130,15 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
 		xmlEscape(providerName), providerGUID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
-		eventID))
+		ti.EventID()))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
 		eventRecord.EventHeader.EventDescriptor.Version))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
 		eventRecord.EventHeader.EventDescriptor.Level))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%s</Task>\n",
-		xmlEscape(taskName)))
+		xmlEscape(ti.TaskName())))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%s</Opcode>\n",
-		xmlEscape(opcodeName)))
+		xmlEscape(ti.OpcodeName())))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
 		eventRecord.EventHeader.EventDescriptor.Keyword))
 
@@ -157,7 +155,7 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Execution ProcessID=\"%d\" ThreadID=\"%d\"/>\n",
 		eventRecord.EventHeader.ProcessId, eventRecord.EventHeader.ThreadId))
 
-	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", xmlEscape(channelName)))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", xmlEscape(ti.ChannelName())))
 
 	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", xmlEscape(hostname)))
 
@@ -197,7 +195,7 @@ func xmlEscape(s string) string {
 }
 
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
-	data, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	data, ti, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		c.LostEvents++
@@ -216,9 +214,6 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		providerName = provider.Name
 	}
 
-	// Get event information from TraceEventInfo
-	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
-
 	level := eventRecord.EventHeader.EventDescriptor.Level
 	event := &Event{
 		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
@@ -226,11 +221,11 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
 		System: EventSystem{
 			ActivityID: eventRecord.EventHeader.ActivityId.String(),
-			Channel:    channelName,
+			Channel:    ti.ChannelName(),
 			Keywords:   strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Keyword), 10),
-			EventID:    strconv.FormatUint(uint64(eventID), 10),
-			Opcode:     opcodeName,
-			Task:       taskName,
+			EventID:    strconv.FormatUint(uint64(ti.EventID()), 10),
+			Opcode:     ti.OpcodeName(),
+			Task:       ti.TaskName(),
 			Provider: EventProvider{
 				GUID: providerGUID,
 				Name: providerName,
@@ -265,15 +260,6 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	case <-c.doneChan:
 		return 1
 	}
-}
-
-func (c *Consumer) getEventInfoFromRecord(eventRecord *advapi32.EventRecord) (channelName string, opcodeName string, taskName string, eventID uint16) {
-	ti, err := getEventInformation(eventRecord)
-	if err != nil {
-		c.logger.Error("Failed to get event information", zap.Error(err))
-		return "", "", "", 0
-	}
-	return ti.ChannelName(), ti.OpcodeName(), ti.TaskName(), ti.EventID()
 }
 
 func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uintptr {

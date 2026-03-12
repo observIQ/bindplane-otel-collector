@@ -212,8 +212,8 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 				providerGUID,
 				advapi32.EVENT_CONTROL_CODE_ENABLE_PROVIDER,
 				traceLevel,
-				provider.MatchAnyKeyword,
-				provider.MatchAllKeyword,
+				matchAnyKeyword,
+				matchAllKeyword,
 				timeout,
 				&params,
 			)
