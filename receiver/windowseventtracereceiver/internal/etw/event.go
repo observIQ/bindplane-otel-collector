@@ -75,19 +75,25 @@ type EventTimeCreated struct {
 
 // EventSystem contains system information for the event
 type EventSystem struct {
-	ActivityID  string           `json:"activityID"`
-	Channel     string           `json:"channel"`
-	Computer    string           `json:"computer"`
-	EventID     string           `json:"eventID,omitempty"`
-	Correlation EventCorrelation `json:"correlation"`
-	Execution   EventExecution   `json:"execution"`
-	Keywords    string           `json:"keywords"`
-	Level       uint8            `json:"level"`
-	Opcode      string           `json:"opcode"`
-	Task        string           `json:"task"`
-	Provider    EventProvider    `json:"provider"`
-	TimeCreated EventTimeCreated `json:"timeCreated"`
-	Version     uint8            `json:"version"`
+	ActivityID     string           `json:"activityID"`
+	Channel        string           `json:"channel"`
+	Computer       string           `json:"computer"`
+	DecodingSource string           `json:"decodingSource,omitempty"`
+	EventID        string           `json:"eventID,omitempty"`
+	EventGUID      string           `json:"eventGUID,omitempty"`
+	Correlation    EventCorrelation `json:"correlation"`
+	Execution      EventExecution   `json:"execution"`
+	Keywords       string           `json:"keywords"`
+	KeywordName    string           `json:"keywordName,omitempty"`
+	Level          uint8            `json:"level"`
+	LevelName      string           `json:"levelName,omitempty"`
+	LoggerID       uint16           `json:"loggerID,omitempty"`
+	Opcode         string           `json:"opcode"`
+	ProcessorNumber uint16          `json:"processorNumber,omitempty"`
+	Task           string           `json:"task"`
+	Provider       EventProvider    `json:"provider"`
+	TimeCreated    EventTimeCreated `json:"timeCreated"`
+	Version        uint8            `json:"version"`
 }
 
 // Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format by the receiver

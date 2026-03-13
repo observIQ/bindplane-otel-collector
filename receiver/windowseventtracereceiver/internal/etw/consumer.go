@@ -130,18 +130,32 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString("  <System>\n")
 	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
 		xmlEscape(providerName), providerGUID))
+	if ti != nil {
+		if !ti.EventGUID.Equals(&windows.GUID{}) {
+			xmlBuilder.WriteString(fmt.Sprintf("    <EventGuid>%s</EventGuid>\n", ti.EventGUID.String()))
+		}
+		xmlBuilder.WriteString(fmt.Sprintf("    <DecodingSource>%s</DecodingSource>\n", xmlEscape(decodingSourceName(ti.DecodingSource))))
+	}
 	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
 		ti.EventID()))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
 		eventRecord.EventHeader.EventDescriptor.Version))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
 		eventRecord.EventHeader.EventDescriptor.Level))
+	if levelName := ti.LevelName(); levelName != "" {
+		xmlBuilder.WriteString(fmt.Sprintf("    <LevelName>%s</LevelName>\n", xmlEscape(levelName)))
+	}
 	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%s</Task>\n",
 		xmlEscape(ti.TaskName())))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%s</Opcode>\n",
 		xmlEscape(ti.OpcodeName())))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
 		eventRecord.EventHeader.EventDescriptor.Keyword))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Flags>0x%x</Flags>\n",
+		eventRecord.EventHeader.Flags))
+	if keywordName := ti.KeywordName(); keywordName != "" {
+		xmlBuilder.WriteString(fmt.Sprintf("    <KeywordName>%s</KeywordName>\n", xmlEscape(keywordName)))
+	}
 
 	timeStr := eventRecord.EventHeader.UTC().Format(time.RFC3339Nano)
 	xmlBuilder.WriteString(fmt.Sprintf("    <TimeCreated SystemTime=\"%s\"/>\n", timeStr))
@@ -159,6 +173,14 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", xmlEscape(ti.ChannelName())))
 
 	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", xmlEscape(hostname)))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Session>%s</Session>\n", xmlEscape(c.sessionName)))
+
+	processorNum := uint16(eventRecord.BufferContext.Union & 0xFF)
+	if eventRecord.EventHeader.Flags&advapi32.EVENT_HEADER_FLAG_PROCESSOR_INDEX != 0 {
+		processorNum = eventRecord.BufferContext.Union
+	}
+	xmlBuilder.WriteString(fmt.Sprintf("    <ProcessorNumber>%d</ProcessorNumber>\n", processorNum))
+	xmlBuilder.WriteString(fmt.Sprintf("    <LoggerId>%d</LoggerId>\n", eventRecord.BufferContext.LoggerId))
 
 	if sid := eventRecord.SID(); sid != "" {
 		xmlBuilder.WriteString(fmt.Sprintf("    <Security UserID=\"%s\"/>\n", sid))
@@ -383,6 +405,19 @@ func collectExtendedData(r *advapi32.EventRecord) map[string]any {
 	return result
 }
 
+func decodingSourceName(ds tdh.DecodingSource) string {
+	switch ds {
+	case tdh.DecodingSourceXMLFile:
+		return "xml"
+	case tdh.DecodingSourceWbem:
+		return "wbem"
+	case tdh.DecodingSourceWPP:
+		return "wpp"
+	default:
+		return strconv.Itoa(int(ds))
+	}
+}
+
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	data, ti, err := c.getEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
@@ -412,29 +447,39 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	}
 
 	level := eventRecord.EventHeader.EventDescriptor.Level
+
+	processorNumber := uint16(eventRecord.BufferContext.Union & 0xFF)
+	if eventRecord.EventHeader.Flags&advapi32.EVENT_HEADER_FLAG_PROCESSOR_INDEX != 0 {
+		processorNumber = eventRecord.BufferContext.Union
+	}
+
 	event := &Event{
 		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
 		Session:   c.sessionName,
 		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
 		System: EventSystem{
-			ActivityID: eventRecord.EventHeader.ActivityId.String(),
-			Channel:    ti.ChannelName(),
-			Keywords:   strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Keyword), 10),
-			EventID:    strconv.FormatUint(uint64(ti.EventID()), 10),
-			Opcode:     ti.OpcodeName(),
-			Task:       ti.TaskName(),
+			ActivityID:      eventRecord.EventHeader.ActivityId.String(),
+			Channel:         ti.ChannelName(),
+			Keywords:        strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Keyword), 10),
+			KeywordName:     ti.KeywordName(),
+			EventID:         strconv.FormatUint(uint64(ti.EventID()), 10),
+			Opcode:          ti.OpcodeName(),
+			Task:            ti.TaskName(),
 			Provider: EventProvider{
 				GUID: providerGUID,
 				Name: providerName,
 			},
-			Level:       level,
-			Computer:    hostname,
-			Correlation: EventCorrelation{},
+			Level:           level,
+			LevelName:       ti.LevelName(),
+			Computer:        hostname,
+			Correlation:     EventCorrelation{},
 			Execution: EventExecution{
 				ThreadID:  eventRecord.EventHeader.ThreadId,
 				ProcessID: eventRecord.EventHeader.ProcessId,
 			},
-			Version: eventRecord.EventHeader.EventDescriptor.Version,
+			Version:         eventRecord.EventHeader.EventDescriptor.Version,
+			ProcessorNumber: processorNumber,
+			LoggerID:        eventRecord.BufferContext.LoggerId,
 		},
 		Security: EventSecurity{
 			SID: eventRecord.SID(),
@@ -442,6 +487,13 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		EventData:    eventData,
 		UserData:     userData,
 		ExtendedData: collectExtendedData(eventRecord),
+	}
+
+	if ti != nil {
+		if !ti.EventGUID.Equals(&windows.GUID{}) {
+			event.System.EventGUID = ti.EventGUID.String()
+		}
+		event.System.DecodingSource = decodingSourceName(ti.DecodingSource)
 	}
 
 	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != zeroGUID {

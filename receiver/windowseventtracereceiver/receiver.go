@@ -158,7 +158,7 @@ func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *etw.
 }
 
 // TODO think about bundling logs into resources
-func (lr *logsReceiver) parseLogs(ctx context.Context, event *etw.Event) (plog.Logs, error) {
+func (lr *logsReceiver) parseLogs(_ context.Context, event *etw.Event) (plog.Logs, error) {
 	if lr.cfg.Raw {
 		return lr.rawEvent(event)
 	}
@@ -199,6 +199,11 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 
 	record.Body().SetEmptyMap()
 	record.Body().Map().PutStr("opcode", event.System.Opcode)
+	level := record.Body().Map().PutEmptyMap("level")
+	level.PutStr("value", strconv.FormatUint(uint64(event.System.Level), 10))
+	if event.System.LevelName != "" {
+		level.PutStr("name", event.System.LevelName)
+	}
 
 	if event.System.Execution.ThreadID != 0 {
 		record.Body().Map().PutStr("thread_id", strconv.FormatUint(uint64(event.System.Execution.ThreadID), 10))
@@ -225,9 +230,25 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		record.Body().Map().PutStr("keywords", event.System.Keywords)
 	}
 
+	if event.System.KeywordName != "" {
+		record.Body().Map().PutStr("keyword_name", event.System.KeywordName)
+	}
+
+	if event.Flags != "" {
+		record.Body().Map().PutStr("flags", event.Flags)
+	}
+
 	if event.System.EventID != "" {
 		eventID := record.Body().Map().PutEmptyMap("event_id")
 		eventID.PutStr("id", event.System.EventID)
+		eventID.PutStr("version", strconv.FormatUint(uint64(event.System.Version), 10))
+		if event.System.EventGUID != "" {
+			eventID.PutStr("guid", event.System.EventGUID)
+		}
+	}
+
+	if event.System.DecodingSource != "" {
+		record.Body().Map().PutStr("decoding_source", event.System.DecodingSource)
 	}
 
 	correlation := record.Body().Map().PutEmptyMap("correlation")
@@ -248,6 +269,9 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		execution := record.Body().Map().PutEmptyMap("execution")
 		execution.PutStr("process_id", strconv.FormatUint(uint64(event.System.Execution.ProcessID), 10))
 		execution.PutStr("thread_id", strconv.FormatUint(uint64(event.System.Execution.ThreadID), 10))
+		if event.System.ProcessorNumber != 0 {
+			execution.PutStr("processor_number", strconv.FormatUint(uint64(event.System.ProcessorNumber), 10))
+		}
 	}
 
 	if len(event.ExtendedData) > 0 {
@@ -262,6 +286,22 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		for key, data := range event.UserData {
 			putAnyValue(userData, key, data)
 		}
+	}
+
+	if event.System.Channel != "" {
+		record.Body().Map().PutStr("channel", event.System.Channel)
+	}
+
+	if event.System.Computer != "" {
+		record.Body().Map().PutStr("computer", event.System.Computer)
+	}
+
+	if event.Session != "" {
+		record.Body().Map().PutStr("session", event.Session)
+	}
+
+	if event.System.LoggerID != 0 {
+		record.Body().Map().PutStr("logger_id", strconv.FormatUint(uint64(event.System.LoggerID), 10))
 	}
 }
 
