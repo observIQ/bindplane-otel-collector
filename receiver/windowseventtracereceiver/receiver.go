@@ -227,7 +227,8 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 	}
 
 	if event.System.EventID != "" {
-		record.Body().Map().PutEmptyMap("event_id").PutStr("id", event.System.EventID)
+		eventID := record.Body().Map().PutEmptyMap("event_id")
+		eventID.PutStr("id", event.System.EventID)
 	}
 
 	record.Body().Map().PutStr("version", strconv.FormatUint(uint64(event.System.Version), 10))
