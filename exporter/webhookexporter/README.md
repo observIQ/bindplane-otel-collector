@@ -29,7 +29,8 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
    - Data is sent to the configured endpoint using the specified HTTP method (POST, PATCH, or PUT)
    - The configured Content-Type header is applied
    - Any additional headers specified in the configuration are included
-   - The request body contains the data in JSON format
+   - When `format` is `json_array` (default), the request body contains all logs as a JSON array
+   - When `format` is `single`, each log record is sent as an individual HTTP request with a single JSON object as the body
 
 4. **Error Handling**:
    - Failed requests are retried according to the sending queue configuration
@@ -45,6 +46,7 @@ The following configuration options are available:
 | endpoint         | string            |         | `true`   | The URL where the webhook requests will be sent. Must start with http:// or https://                                                                                                                                                                |
 | verb             | string            |         | `true`   | The HTTP method to use for the webhook requests. Must be one of: POST, PATCH, PUT                                                                                                                                                                   |
 | content_type     | string            |         | `true`   | The Content-Type header for the webhook requests                                                                                                                                                                                                    |
+| format           | string            | json_array | `true` | The payload format for log data. `json_array` sends all logs as a JSON array in a single request. `single` sends one HTTP request per log record.                                                                                                   |
 | headers          | map[string]string |         | `false`  | Additional HTTP headers to include in the webhook requests                                                                                                                                                                                          |
 | sending_queue    | map               |         | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.        |
 | retry_on_failure | map               |         | `false`  | Determines how the exporter will attempt to retry after a failure. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information. |
@@ -60,6 +62,18 @@ exporters:
     endpoint: https://api.example.com/webhook
     verb: POST
     content_type: application/json
+```
+
+#### Single Log Format
+
+```yaml
+exporters:
+  webhook:
+    logs:
+      endpoint: https://api.example.com/webhook
+      verb: POST
+      content_type: application/json
+      format: single
 ```
 
 #### Sending Queue Configuration
