@@ -124,22 +124,16 @@ func TestParseEventData_AllFieldsInBody(t *testing.T) {
 
 	event := &etw.Event{
 		Session:   "TestSession",
-		Flags:     "576",
 		Timestamp: time.Now(),
 		System: etw.EventSystem{
-			Channel:        "Security",
-			Computer:       "MYCOMPUTER",
-			EventID:        "4624",
-			EventGUID:      "{12345678-1234-1234-1234-123456789ABC}",
-			Version:        2,
-			Level:          4,
-			LevelName:      "Information",
-			Keywords:       "9232379236109516800",
-			KeywordName:    "Audit Success",
-			DecodingSource: "xml",
-			LoggerID:       47,
-			Opcode:         "Info",
-			Task:           "Logon",
+			Channel:  "Security",
+			Computer: "MYCOMPUTER",
+			EventID:  "4624",
+			Version:  2,
+			Level:    4,
+			Keywords: "9232379236109516800",
+			Opcode:   "Info",
+			Task:     "Logon",
 			Provider: etw.EventProvider{
 				Name: "Microsoft-Windows-Security-Auditing",
 				GUID: "{54849625-5478-4994-A5BA-3E3B0328C30D}",
@@ -148,7 +142,6 @@ func TestParseEventData_AllFieldsInBody(t *testing.T) {
 				ProcessID: 1234,
 				ThreadID:  5678,
 			},
-			ProcessorNumber: 3,
 			Correlation: etw.EventCorrelation{
 				ActivityID:        "{AAA-BBB}",
 				RelatedActivityID: "{CCC-DDD}",
@@ -181,29 +174,19 @@ func TestParseEventData_AllFieldsInBody(t *testing.T) {
 		assert.Equal(t, want, v.Str())
 	}
 
-	// Fields previously only in resource attributes
+	// Fields from Event Viewer XML system block
 	assertBodyStr("channel", "Security")
 	assertBodyStr("computer", "MYCOMPUTER")
-	assertBodyStr("session", "TestSession")
+	assertBodyStr("level", "4")
+	assertBodyStr("keywords", "9232379236109516800")
 
-	// level is a map with value + name
-	assertNestedStr("level", "value", "4")
-	assertNestedStr("level", "name", "Information")
-
-	assertBodyStr("flags", "576")
-	assertBodyStr("keyword_name", "Audit Success")
-	assertBodyStr("decoding_source", "xml")
-	assertBodyStr("logger_id", "47")
-
-	// event_id carries id, version, and guid
+	// event_id carries id and version
 	assertNestedStr("event_id", "id", "4624")
 	assertNestedStr("event_id", "version", "2")
-	assertNestedStr("event_id", "guid", "{12345678-1234-1234-1234-123456789ABC}")
 
-	// execution carries process_id, thread_id, and processor_number
+	// execution carries process_id and thread_id
 	assertNestedStr("execution", "process_id", "1234")
 	assertNestedStr("execution", "thread_id", "5678")
-	assertNestedStr("execution", "processor_number", "3")
 
 	// Verify resource attributes still present (backwards compat)
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
