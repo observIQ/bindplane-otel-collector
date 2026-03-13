@@ -20,7 +20,6 @@ import (
 	"encoding/xml"
 	"sync"
 	"testing"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -240,39 +239,6 @@ func TestRawEventCallback_XMLStructure(t *testing.T) {
 	assert.Contains(t, event.Raw, "<Version>2</Version>")
 	assert.Contains(t, event.Raw, `ProcessID="1234"`)
 	assert.Contains(t, event.Raw, `ThreadID="5678"`)
-
-	err := xml.Unmarshal([]byte(event.Raw), new(any))
-	assert.NoError(t, err, "output must be valid XML:\n%s", event.Raw)
-}
-
-// TestRawEventCallback_ExtendedData verifies that extended data items are
-// rendered into an <ExtendedData> XML section.
-func TestRawEventCallback_ExtendedData(t *testing.T) {
-	sessionID := uint32(12345)
-	item := advapi32.EventHeaderExtendedDataItem{
-		ExtType:  advapi32.EventHeaderExtTypeTerminalSessionID,
-		DataSize: 4,
-		DataPtr:  uintptr(unsafe.Pointer(&sessionID)),
-	}
-	record := &advapi32.EventRecord{
-		ExtendedDataCount: 1,
-		ExtendedData:      &item,
-	}
-
-	consumer := newTestConsumer()
-	consumer.getEventProperties = func(_ *advapi32.EventRecord, _ *zap.Logger) (map[string]any, *tdh.TraceEventInfo, error) {
-		return nil, nil, nil
-	}
-
-	rc := consumer.rawEventCallback(record)
-	assert.Equal(t, uintptr(0), rc)
-
-	event := <-consumer.Events
-	require.NotNil(t, event)
-
-	assert.Contains(t, event.Raw, "<ExtendedData>")
-	assert.Contains(t, event.Raw, "</ExtendedData>")
-	assert.Contains(t, event.Raw, `<Data Name="terminal_session_id">12345</Data>`)
 
 	err := xml.Unmarshal([]byte(event.Raw), new(any))
 	assert.NoError(t, err, "output must be valid XML:\n%s", event.Raw)

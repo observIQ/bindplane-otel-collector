@@ -25,7 +25,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"go.uber.org/zap"
 
@@ -172,14 +171,6 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	}
 	xmlBuilder.WriteString("  </EventData>\n")
 
-	if extData := collectExtendedData(eventRecord); len(extData) > 0 {
-		xmlBuilder.WriteString("  <ExtendedData>\n")
-		for key, value := range extData {
-			xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%s</Data>\n", xmlEscape(key), xmlEscape(fmt.Sprintf("%v", value))))
-		}
-		xmlBuilder.WriteString("  </ExtendedData>\n")
-	}
-
 	xmlBuilder.WriteString("</Event>")
 
 	event := &Event{
@@ -201,182 +192,6 @@ func xmlEscape(s string) string {
 	var buf strings.Builder
 	xml.EscapeText(&buf, []byte(s)) //nolint:errcheck // strings.Builder never returns an error
 	return buf.String()
-}
-
-// collectExtendedData extracts extended data items from an event record into a
-// map of named fields. Each known ExtType maps to a descriptive key; unknown
-// types are keyed as "ext_0x<hex>" so no data is silently dropped.
-//
-// RelatedActivityID and SID are also present in dedicated Correlation and
-// Security fields on the parsed event, but are included here too because this
-// is where the data originates.
-//
-// Note: item.DataPtr points to Windows-allocated memory outside the Go heap.
-// The unsafe pointer arithmetic below is safe because checkptr only validates
-// pointers that fall within Go heap allocations, and Windows memory is not
-// tracked by the Go runtime.
-func collectExtendedData(r *advapi32.EventRecord) map[string]any {
-	if r.ExtendedDataCount == 0 {
-		return nil
-	}
-
-	result := make(map[string]any, int(r.ExtendedDataCount))
-	for i := uint16(0); i < r.ExtendedDataCount; i++ {
-		item := r.ExtendedDataItem(i)
-		if item == nil || item.DataSize == 0 {
-			continue
-		}
-
-		switch item.ExtType {
-		case advapi32.EventHeaderExtTypeRelatedActivityID:
-			// Already captured in dedicated Correlation field.
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_related_activityid
-			// We are also capturing this here to indicate the data's source.
-			if v := r.RelatedActivityID(); v != "" {
-				result["related_activity_id"] = v
-			}
-
-		case advapi32.EventHeaderExtTypeSID:
-			// Already captured in dedicated Security field.
-			// https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-sid
-			// We are also capturing this here to indicate the data's source.
-			if v := r.SID(); v != "" {
-				result["sid"] = v
-			}
-
-		case advapi32.EventHeaderExtTypeTerminalSessionID:
-			// struct { uint32 SessionId; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_ts_id
-			if item.DataSize >= 4 {
-				result["terminal_session_id"] = fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr)))
-			}
-
-		case advapi32.EventHeaderExtTypeInstanceInfo:
-			// struct { uint32 InstanceId; uint32 ParentInstanceId; GUID ParentGuid; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_instance
-			if item.DataSize >= 24 {
-				result["instance_info"] = map[string]any{
-					"instance_id":        fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr))),
-					"parent_instance_id": fmt.Sprintf("%d", *(*uint32)(unsafe.Pointer(item.DataPtr + 4))),
-					"parent_guid":        (*windows.GUID)(unsafe.Pointer(item.DataPtr + 8)).String(),
-				}
-			}
-
-		case advapi32.EventHeaderExtTypeStackTrace32:
-			// struct { uint64 MatchId; uint32 Address[]; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_stack_trace32
-			if item.DataSize > 8 {
-				addrCount := (uint32(item.DataSize) - 8) / 4
-				addrs := make([]any, addrCount)
-				for j := uint32(0); j < addrCount; j++ {
-					addrs[j] = fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr + 8 + uintptr(j)*4)))
-				}
-				result["stack_trace_32"] = addrs
-			}
-
-		case advapi32.EventHeaderExtTypeStackTrace64:
-			// struct { uint64 MatchId; uint64 Address[]; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_stack_trace64
-			if item.DataSize > 8 {
-				addrCount := (uint32(item.DataSize) - 8) / 8
-				addrs := make([]any, addrCount)
-				for j := uint32(0); j < addrCount; j++ {
-					addrs[j] = fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr + 8 + uintptr(j)*8)))
-				}
-				result["stack_trace_64"] = addrs
-			}
-
-		case advapi32.EventHeaderExtTypePMCCounters:
-			// struct { uint64 Counters[]; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_pmc_counters
-			if counterCount := uint32(item.DataSize) / 8; counterCount > 0 {
-				counters := make([]any, counterCount)
-				for j := uint32(0); j < counterCount; j++ {
-					counters[j] = fmt.Sprintf("%d", *(*uint64)(unsafe.Pointer(item.DataPtr + uintptr(j)*8)))
-				}
-				result["pmc_counters"] = counters
-			}
-
-		case advapi32.EventHeaderExtTypeEventKey:
-			// struct { uint64 EventKey; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_event_key
-			if item.DataSize >= 8 {
-				result["event_key"] = fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr)))
-			}
-
-		case advapi32.EventHeaderExtTypeProcessStartKey:
-			// struct { uint64 ProcessStartKey; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_process_start_key
-			if item.DataSize >= 8 {
-				result["process_start_key"] = fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr)))
-			}
-
-		case advapi32.EventHeaderExtTypeControlGUID:
-			// A GUID identifying the control GUID of the provider session.
-			// https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_CONTROL_GUID.html
-			if item.DataSize >= 16 {
-				result["control_guid"] = (*windows.GUID)(unsafe.Pointer(item.DataPtr)).String()
-			}
-
-		case advapi32.EventHeaderExtTypeContainerID:
-			// Container GUID (16 bytes).
-			// https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/System/Diagnostics/Etw/constant.EVENT_HEADER_EXT_TYPE_CONTAINER_ID.html
-			if item.DataSize >= 16 {
-				result["container_id"] = (*windows.GUID)(unsafe.Pointer(item.DataPtr)).String()
-			}
-
-		case advapi32.EventHeaderExtTypeStackKey32:
-			// struct { uint64 MatchId; uint32 StackKey; uint32 Padding; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_stack_key32
-			// MatchId correlates separate kernel-mode and user-mode stack capture events.
-			// StackKey is an opaque reference into the kernel's compacted stack trace table.
-			if item.DataSize >= 12 {
-				result["stack_key_32"] = map[string]any{
-					"match_id": fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr))),
-					"key":      fmt.Sprintf("0x%08x", *(*uint32)(unsafe.Pointer(item.DataPtr + 8))),
-				}
-			}
-
-		case advapi32.EventHeaderExtTypeStackKey64:
-			// struct { uint64 MatchId; uint64 StackKey; }
-			// https://learn.microsoft.com/en-us/windows/win32/api/evntcons/ns-evntcons-event_extended_item_stack_key64
-			// MatchId correlates separate kernel-mode and user-mode stack capture events.
-			// StackKey is an opaque reference into the kernel's compacted stack trace table.
-			if item.DataSize >= 16 {
-				result["stack_key_64"] = map[string]any{
-					"match_id": fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr))),
-					"key":      fmt.Sprintf("0x%016x", *(*uint64)(unsafe.Pointer(item.DataPtr + 8))),
-				}
-			}
-
-		default:
-			// Known types that currently fall through to hex because no struct definition
-			// is publicly documented. If Microsoft publishes struct layouts for these,
-			// they can be promoted to their own cases above:
-			//
-			//   EventHeaderExtTypePEBSIndex     (0x0007) — Intel PEBS hardware counter index; no struct found in SDK docs
-			//   EventHeaderExtTypePSMKey        (0x0009) — PSM (Process State Monitor?) key; no struct found in SDK docs
-			//   EventHeaderExtTypeEventSchemaTL (0x000B) — TraceLogging schema metadata; variable-length binary blob
-			//   EventHeaderExtTypeProvTraits    (0x000C) — provider traits data; variable-length binary blob
-			//   EventHeaderExtTypeQPCDelta      (0x000F) — QPC delta from preceding event; likely uint64 but unconfirmed
-			//   EventHeaderExtTypeMax           (0x0013) — sentinel upper bound; should never appear in real data
-			//
-			// Preserve as hex so data is not silently dropped.
-			const maxHexBytes = 64
-			size := int(item.DataSize)
-			truncated := size > maxHexBytes
-			if truncated {
-				size = maxHexBytes
-			}
-			data := unsafe.Slice((*byte)(unsafe.Pointer(item.DataPtr)), size)
-			v := fmt.Sprintf("%x", data)
-			if truncated {
-				v += "..."
-			}
-			result[fmt.Sprintf("ext_0x%04x", item.ExtType)] = v
-		}
-	}
-	return result
 }
 
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
@@ -428,7 +243,7 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 			SID: eventRecord.SID(),
 		},
 		EventData:    data,
-		ExtendedData: collectExtendedData(eventRecord),
+		ExtendedData: nil,
 	}
 
 	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != zeroGUID {
