@@ -254,10 +254,9 @@ func TestHTTPExporterRetrySequences(t *testing.T) {
 		calls    []callExpectation
 	}{
 		{
-			// Reproduces the Google SecOps incident: Chronicle returned two
-			// consecutive 429s before recovering. Verifies the exporter treats
-			// each 429 as retryable so the caller (exporterhelper) can retry.
-			name: "Google SecOps incident pattern: 429 → 429 → success",
+			// Verifies the exporter treats consecutive 429s as retryable,
+			// allowing the caller (exporterhelper) to retry until the server recovers.
+			name: "consecutive rate-limits then success: 429 → 429 → success",
 			sequence: []retryserver.Response{
 				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
 				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},

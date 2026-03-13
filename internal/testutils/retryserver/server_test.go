@@ -66,7 +66,7 @@ func TestNew_Sequence(t *testing.T) {
 }
 
 func TestNew_RealWorldRateLimitScenario(t *testing.T) {
-	// Simulates the Google SecOps incident: two 429s then success.
+	// Simulates consecutive rate-limit responses followed by a successful retry.
 	srv := retryserver.New(t, []retryserver.Response{
 		{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
 		{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},

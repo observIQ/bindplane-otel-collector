@@ -272,8 +272,8 @@ func TestWebhookRetrySequences(t *testing.T) {
 		calls    []callExpectation
 	}{
 		{
-			// Mirrors the Google SecOps incident: rate-limit responses before recovery.
-			name: "Google SecOps incident pattern: 429 → 429 → success",
+			// Verifies consecutive rate-limit responses are retried until the server recovers.
+			name: "consecutive rate-limits then success: 429 → 429 → success",
 			sequence: []retryserver.Response{
 				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
 				{StatusCode: http.StatusTooManyRequests, RetryAfter: "1"},
