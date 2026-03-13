@@ -59,6 +59,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 		},
 		Verb:             POST,
 		ContentType:      "application/json",
+		Format:           JSONArray,
 		QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 	}, webhookCfg.LogsConfig)
@@ -79,6 +80,7 @@ func TestCreateLogsExporter(t *testing.T) {
 					},
 					Verb:        POST,
 					ContentType: "application/json",
+					Format:      JSONArray,
 				},
 			},
 			wantErr: false,

@@ -21,6 +21,50 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 )
 
+func TestPayloadFormat_UnmarshalText(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []byte
+		want    PayloadFormat
+		wantErr bool
+	}{
+		{
+			name:  "valid json_array",
+			input: []byte("json_array"),
+			want:  JSONArray,
+		},
+		{
+			name:  "valid single",
+			input: []byte("single"),
+			want:  SingleJSON,
+		},
+		{
+			name:    "invalid format",
+			input:   []byte("ndjson"),
+			wantErr: true,
+		},
+		{
+			name:    "empty format",
+			input:   []byte(""),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var f PayloadFormat
+			err := f.UnmarshalText(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Empty(t, f)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.want, f)
+			}
+		})
+	}
+}
+
 func TestHTTPVerb_UnmarshalText(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -90,12 +134,13 @@ func TestConfig_Validate(t *testing.T) {
 					},
 					Verb:        POST,
 					ContentType: "application/json",
+					Format:      JSONArray,
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "valid config with all signals",
+			name: "valid config with single format",
 			config: Config{
 				LogsConfig: &SignalConfig{
 					ClientConfig: confighttp.ClientConfig{
@@ -103,6 +148,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 					Verb:        POST,
 					ContentType: "application/json",
+					Format:      SingleJSON,
 				},
 			},
 			wantErr: false,
@@ -118,6 +164,34 @@ func TestConfig_Validate(t *testing.T) {
 				LogsConfig: &SignalConfig{
 					ClientConfig: confighttp.ClientConfig{
 						Endpoint: "ftp://example.com",
+					},
+					Verb:        POST,
+					ContentType: "application/json",
+					Format:      JSONArray,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid format in logs config",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
+					Verb:        POST,
+					ContentType: "application/json",
+					Format:      "invalid",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing format in logs config",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
 					},
 					Verb:        POST,
 					ContentType: "application/json",

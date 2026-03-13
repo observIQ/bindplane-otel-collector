@@ -83,8 +83,14 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	le.logger.Debug("begin webhook logsDataPusher")
 
-	// Extract log bodies and send all logs in one request
-	return le.sendLogs(ctx, extractLogBodies(ld))
+	bodies := extractLogBodies(ld)
+
+	switch le.cfg.Format {
+	case SingleJSON:
+		return le.sendSingleLogs(ctx, bodies)
+	default:
+		return le.sendLogs(ctx, bodies)
+	}
 }
 
 func extractLogBodies(ld plog.Logs) []any {
@@ -122,8 +128,22 @@ func extractLogsFromLogRecords(logRecords plog.LogRecordSlice) []any {
 	return logs
 }
 
+func (le *logsExporter) sendSingleLogs(ctx context.Context, logs []any) error {
+	var errs []error
+	for _, log := range logs {
+		if err := le.sendPayload(ctx, log); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
-	body, err := json.Marshal(logs)
+	return le.sendPayload(ctx, logs)
+}
+
+func (le *logsExporter) sendPayload(ctx context.Context, payload any) error {
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}

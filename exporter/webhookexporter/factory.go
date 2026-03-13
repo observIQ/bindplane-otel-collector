@@ -63,6 +63,7 @@ func createDefaultConfig() component.Config {
 			},
 			Verb:             POST,
 			ContentType:      "application/json",
+			Format:           JSONArray,
 			QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 			BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 		},

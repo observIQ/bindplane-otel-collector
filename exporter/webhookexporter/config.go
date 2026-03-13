@@ -25,6 +25,28 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
+// PayloadFormat represents the allowed payload formats for the webhook exporter
+type PayloadFormat string
+
+const (
+	// JSONArray sends all logs as a JSON array in a single request
+	JSONArray PayloadFormat = "json_array"
+	// SingleJSON sends one HTTP request per log record
+	SingleJSON PayloadFormat = "single"
+)
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface
+func (f *PayloadFormat) UnmarshalText(text []byte) error {
+	format := PayloadFormat(text)
+	switch format {
+	case JSONArray, SingleJSON:
+		*f = format
+		return nil
+	default:
+		return fmt.Errorf("invalid payload format: %s, must be one of: json_array, single", text)
+	}
+}
+
 // HTTPVerb represents the allowed HTTP methods for the webhook exporter
 type HTTPVerb string
 
@@ -71,6 +93,11 @@ type SignalConfig struct {
 	// ContentType specifies the Content-Type header for the webhook requests
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
+
+	// Format specifies how logs are serialized in the request body.
+	// "json_array" (default) sends all logs as a JSON array in a single request.
+	// "single" sends one HTTP request per log record.
+	Format PayloadFormat `mapstructure:"format"`
 }
 
 // Validate checks if the configuration is valid
@@ -95,6 +122,13 @@ func (c *SignalConfig) Validate() error {
 
 	if err := c.Verb.UnmarshalText([]byte(c.Verb)); err != nil {
 		return fmt.Errorf("invalid verb: %w", err)
+	}
+
+	if c.Format == "" {
+		return fmt.Errorf("format is required")
+	}
+	if err := c.Format.UnmarshalText([]byte(c.Format)); err != nil {
+		return fmt.Errorf("invalid format: %w", err)
 	}
 
 	return nil

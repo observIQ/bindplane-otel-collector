@@ -57,6 +57,7 @@ func TestNewLogsExporter(t *testing.T) {
 				},
 				Verb:        POST,
 				ContentType: "application/json",
+				Format:      JSONArray,
 			},
 			expectError: false,
 		},
@@ -169,6 +170,7 @@ func TestLogsDataPusher(t *testing.T) {
 				},
 				Verb:        POST,
 				ContentType: "application/json",
+				Format:      JSONArray,
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
@@ -262,6 +264,7 @@ func TestSendLogsRetryableVsPermanentErrors(t *testing.T) {
 				},
 				Verb:        POST,
 				ContentType: "application/json",
+				Format:      JSONArray,
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
@@ -316,6 +319,7 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 				},
 				Verb:        POST,
 				ContentType: "application/json",
+				Format:      JSONArray,
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
@@ -347,6 +351,102 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			require.Equal(t, "test log message 2", jsonArray[1])
 		})
 	}
+}
+
+func TestLogsDataPusherSingleFormat(t *testing.T) {
+	// Track all received request bodies
+	receivedBodies := make(chan []byte, 10)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		receivedBodies <- body
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := &SignalConfig{
+		ClientConfig: confighttp.ClientConfig{
+			Endpoint: server.URL,
+		},
+		Verb:        POST,
+		ContentType: "application/json",
+		Format:      SingleJSON,
+	}
+
+	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+	require.NoError(t, err)
+	err = exp.start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Create test logs with 3 records
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+	lr1 := scopeLogs.LogRecords().AppendEmpty()
+	lr1.Body().SetStr("first log")
+	lr2 := scopeLogs.LogRecords().AppendEmpty()
+	lr2.Body().SetStr(`{"message": "structured log"}`)
+	lr3 := scopeLogs.LogRecords().AppendEmpty()
+	lr3.Body().SetStr("third log")
+
+	err = exp.logsDataPusher(context.Background(), logs)
+	require.NoError(t, err)
+
+	// Should receive 3 separate requests
+	body1 := <-receivedBodies
+	body2 := <-receivedBodies
+	body3 := <-receivedBodies
+
+	// Each body should be a single JSON value, not an array
+	require.Equal(t, `"first log"`, string(body1))
+	require.Equal(t, `{"message":"structured log"}`, string(body2))
+	require.Equal(t, `"third log"`, string(body3))
+}
+
+func TestLogsDataPusherSingleFormatPartialFailure(t *testing.T) {
+	requestCount := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		// Fail the second request with a permanent error
+		if requestCount == 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := &SignalConfig{
+		ClientConfig: confighttp.ClientConfig{
+			Endpoint: server.URL,
+		},
+		Verb:        POST,
+		ContentType: "application/json",
+		Format:      SingleJSON,
+	}
+
+	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+	require.NoError(t, err)
+	err = exp.start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+	lr1 := scopeLogs.LogRecords().AppendEmpty()
+	lr1.Body().SetStr("log 1")
+	lr2 := scopeLogs.LogRecords().AppendEmpty()
+	lr2.Body().SetStr("log 2")
+	lr3 := scopeLogs.LogRecords().AppendEmpty()
+	lr3.Body().SetStr("log 3")
+
+	err = exp.logsDataPusher(context.Background(), logs)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "400 Bad Request")
+	// All 3 requests should still have been attempted
+	require.Equal(t, 3, requestCount)
 }
 
 func TestExtractLogBodies(t *testing.T) {
@@ -754,6 +854,7 @@ func TestQueueBatchSettings(t *testing.T) {
 				},
 				Verb:             POST,
 				ContentType:      "application/json",
+				Format:           JSONArray,
 				QueueBatchConfig: tc.queueSettings,
 			}
 
@@ -867,6 +968,7 @@ func TestQueueBatchSettingsWithRetries(t *testing.T) {
 				},
 				Verb:             POST,
 				ContentType:      "application/json",
+				Format:           JSONArray,
 				QueueBatchConfig: tc.queueSettings,
 			}
 
