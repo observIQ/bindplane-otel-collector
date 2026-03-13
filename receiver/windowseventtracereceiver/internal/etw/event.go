@@ -94,6 +94,7 @@ type EventSystem struct {
 type Event struct {
 	Raw          string         `json:"raw,omitempty"`
 	Session      string         `json:"session"`
+	Flags        string         `json:"flags"`
 	Timestamp    time.Time      `json:"timestamp"`
 	EventData    map[string]any `json:"eventData,omitempty"`
 	UserData     map[string]any `json:"userData,omitempty"`

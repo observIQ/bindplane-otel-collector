@@ -412,8 +412,8 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	}
 
 	level := eventRecord.EventHeader.EventDescriptor.Level
-
 	event := &Event{
+		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
 		Session:   c.sessionName,
 		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
 		System: EventSystem{
@@ -427,8 +427,8 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 				GUID: providerGUID,
 				Name: providerName,
 			},
-			Level:    level,
-			Computer: hostname,
+			Level:       level,
+			Computer:    hostname,
 			Correlation: EventCorrelation{},
 			Execution: EventExecution{
 				ThreadID:  eventRecord.EventHeader.ThreadId,
