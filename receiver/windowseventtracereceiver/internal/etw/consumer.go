@@ -435,6 +435,9 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 				ProcessID: eventRecord.EventHeader.ProcessId,
 			},
 			Version: eventRecord.EventHeader.EventDescriptor.Version,
+			TimeCreated: EventTimeCreated{
+				SystemTime: eventRecord.EventHeader.UTC(),
+			},
 		},
 		Security: EventSecurity{
 			SID: eventRecord.SID(),

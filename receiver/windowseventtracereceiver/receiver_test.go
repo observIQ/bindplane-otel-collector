@@ -134,6 +134,9 @@ func TestParseEventData_AllFieldsInBody(t *testing.T) {
 			Keywords: "9232379236109516800",
 			Opcode:   "Info",
 			Task:     "Logon",
+			TimeCreated: etw.EventTimeCreated{
+				SystemTime: time.Date(2024, 3, 13, 12, 34, 56, 789000000, time.UTC),
+			},
 			Provider: etw.EventProvider{
 				Name: "Microsoft-Windows-Security-Auditing",
 				GUID: "{54849625-5478-4994-A5BA-3E3B0328C30D}",
@@ -180,9 +183,10 @@ func TestParseEventData_AllFieldsInBody(t *testing.T) {
 	assertBodyStr("level", "4")
 	assertBodyStr("keywords", "9232379236109516800")
 
-	// event_id carries id and version
+	// event_id carries the id; version is a top-level field
 	assertNestedStr("event_id", "id", "4624")
-	assertNestedStr("event_id", "version", "2")
+	assertBodyStr("version", "2")
+	assertBodyStr("time_created", "2024-03-13T12:34:56.789Z")
 
 	// execution carries process_id and thread_id
 	assertNestedStr("execution", "process_id", "1234")

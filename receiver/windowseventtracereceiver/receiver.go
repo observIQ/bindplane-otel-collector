@@ -227,9 +227,13 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 	}
 
 	if event.System.EventID != "" {
-		eventID := record.Body().Map().PutEmptyMap("event_id")
-		eventID.PutStr("id", event.System.EventID)
-		eventID.PutStr("version", strconv.FormatUint(uint64(event.System.Version), 10))
+		record.Body().Map().PutEmptyMap("event_id").PutStr("id", event.System.EventID)
+	}
+
+	record.Body().Map().PutStr("version", strconv.FormatUint(uint64(event.System.Version), 10))
+
+	if !event.System.TimeCreated.SystemTime.IsZero() {
+		record.Body().Map().PutStr("time_created", event.System.TimeCreated.SystemTime.UTC().Format(time.RFC3339Nano))
 	}
 
 	correlation := record.Body().Map().PutEmptyMap("correlation")
