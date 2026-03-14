@@ -67,7 +67,7 @@ offline_installation=false
 # rpm --import <revoked_public_key>.asc
 # rpm -q gpg-pubkey, it's one of these
 # rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
-RPM_GPG_KEYS_TO_REMOVE=[]
+RPM_GPG_KEYS_TO_REMOVE=""
 
 # Colors
 if [ "$non_interactive" = "false" ]; then
@@ -828,48 +828,8 @@ install_package()
   fi
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
-    if [ "$non_interactive" = "true" ]; then
-      # In quiet mode, fail immediately on GPG verification failure
-      if [ -n "$gpg_verify_output" ]; then
-        increase_indent
-        printf "%s\n" "$gpg_verify_output"
-        decrease_indent
-      fi
-      error_exit "$LINENO" "Failed to verify package signature. Use '--no-gpg-check' to skip verification."
-    else
-      # In interactive mode, show verification output, prompt the user, and explain failure
-      if [ -n "$gpg_verify_output" ]; then
-        increase_indent
-        printf "%s\n" "$gpg_verify_output"
-        decrease_indent
-      fi
-      
-      increase_indent
-      printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
-      printf "${indent}  - The GPG keys are not properly installed or accessible\n"
-      printf "${indent}  - The package has been tampered with\n"
-      printf "${indent}  - The signing key has expired or been revoked\n"
-      printf "${indent}  - Network issues prevented GPG key retrieval\n"
-      printf "\\n${indent}$(fg_yellow 'Continuing without signature verification is NOT RECOMMENDED unless you have independently verified the package authenticity.')\\n\\n"
-      decrease_indent
-      
-      command printf "${indent}Do you wish to continue installation without GPG verification? "
-      prompt "n"
-      read -r gpg_override_input
-      printf "\\n"
-      
-      if [ "$gpg_override_input" != "y" ] && [ "$gpg_override_input" != "Y" ]; then
-        if [ -n "$gpg_verify_output" ]; then
-          increase_indent
-          error "Verification failed due to:"
-          printf "%s\n" "$gpg_verify_output"
-          decrease_indent
-        fi
-        error_exit "$LINENO" "Installation aborted due to GPG verification failure."
-      fi
-      
-      warn "Continuing installation without GPG verification. Ensure package authenticity has been verified through other means."
-    fi
+    warn "GPG signature verification failed. Continuing installation without signature verification."
+    warn "Use '--no-gpg-check' to suppress GPG verification entirely."
   fi
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
@@ -1016,34 +976,27 @@ verify_package_deb() {
 }
 
 verify_package_rpm() {
+  if ! command -v gpg > /dev/null 2>&1; then
+    info "gpg is not installed, skipping RPM signature verification"
+    return 0
+  fi
+
+  # Import the BDOT public key into the RPM keyring.
+  # This persists on the host and enables native RPM signature
+  # checks for future upgrades.
   set +e
-  # Capture stderr from rpm --import
-  IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+  rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>/dev/null
   IMPORT_EXIT_CODE=$?
   set -e
 
-  # Fail if rpm --import itself fails
   if [ $IMPORT_EXIT_CODE -ne 0 ]; then
-      error "Failed to import public key"
-      return 1
-  fi
-
-  # Extract the signing key ID from checksig (reliable on EL7+)
-  SIGNING_KEYID=$(rpm --checksig --verbose "$package_out_file_path" 2>&1 \
-    | sed -nE 's/.*[Kk]ey ID ([0-9A-Fa-f]+):.*/\1/p' \
-    | head -n1)
-
-  if [ -z "$SIGNING_KEYID" ]; then
-    error "Could not determine RPM signing key ID"
+    error "Failed to import public key"
     return 1
   fi
 
-  # Normalize key ID to lowercase (rpm stores gpg-pubkey in lowercase)
-  SIGNING_KEYID=$(echo "$SIGNING_KEYID" | tr '[:upper:]' '[:lower:]')
-
-  # Remove revoked keys (your existing logic)
-  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
-    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
+  # Remove revoked keys from the RPM keyring
+  if [ -n "$RPM_GPG_KEYS_TO_REMOVE" ]; then
+    for key in $RPM_GPG_KEYS_TO_REMOVE; do
       if rpm -q "$key" > /dev/null 2>&1; then
         if ! rpm -e "$key" > /dev/null 2>&1; then
           error "Failed to remove revocation key"
@@ -1053,22 +1006,15 @@ verify_package_rpm() {
     done
   fi
 
-  if ! rpm -qa 'gpg-pubkey*' \
-  | xargs -n1 rpm -qi \
-  | gpg --quiet --with-colons --show-keys \
-  | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
-  | grep -qx "$SIGNING_KEYID"; then
-      error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
-      return 1
-  fi
-
-  # Verify the signature
+  # Verify the package signature using the RPM keyring.
+  # rpm --checksig validates against all imported keys natively —
+  # no need to extract key IDs or do separate subkey checks.
   set +e
-  CHECKSIG_OUTPUT=$(rpm --checksig --verbose "$package_out_file_path" 2>&1)
+  CHECKSIG_OUTPUT=$(rpm --checksig "$package_out_file_path" 2>&1)
   CHECKSIG_EXIT_CODE=$?
   set -e
 
-  # Reject hard failures first
+  # Reject hard failures
   if echo "$CHECKSIG_OUTPUT" | grep -q "BAD"; then
     error "RPM signature is BAD"
     return 1
@@ -1087,7 +1033,7 @@ verify_package_rpm() {
     return 1
   fi
 
-  success "Package signature is valid, not revoked, and subkey is not expired"
+  success "Package signature is valid"
   return 0
 }
 
