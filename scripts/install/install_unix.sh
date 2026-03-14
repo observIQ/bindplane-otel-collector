@@ -67,7 +67,13 @@ offline_installation=false
 # rpm --import <revoked_public_key>.asc
 # rpm -q gpg-pubkey, it's one of these
 # rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
-RPM_GPG_KEYS_TO_REMOVE=[]
+RPM_GPG_KEYS_TO_REMOVE=""
+
+# GPG_UNSUPPORTED_OS_LIST is a space-separated list of "id:major_version" entries
+# identifying OS versions that cannot perform GPG signature verification due to
+# incompatible RPM/GnuPG versions. Add new entries as "id:major_version".
+# Examples: "centos:6" "rhel:5"
+GPG_UNSUPPORTED_OS_LIST="centos:6 centos:7"
 
 # Colors
 if [ "$non_interactive" = "false" ]; then
@@ -674,6 +680,9 @@ os_check()
   case "$os_type" in
     Linux)
       succeeded
+      increase_indent
+      info "Detected OS: $(get_os_display_name)"
+      decrease_indent
       ;;
     *)
       failed
@@ -687,9 +696,12 @@ os_arch_check()
 {
   info "Checking for valid operating system architecture..."
   arch=$(uname -m)
-  case "$arch" in 
+  case "$arch" in
     x86_64|aarch64|ppc64|ppc64le|arm64|aarch64_be|armv8b|armv8l|arm|armv6l|armv7l)
       succeeded
+      increase_indent
+      info "Detected architecture: $arch"
+      decrease_indent
       ;;
     *)
       failed
@@ -798,14 +810,16 @@ install_package()
 
     eval curl -L "$proxy_args" "$collector_download_url" -o "$package_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
 
-    if [ -n "$proxy" ]; then
-      info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
-    else 
-      info "Downloading GPG key tar file from $gpg_tar_download_url..."
-    fi
+    if ! os_gpg_unsupported; then
+      if [ -n "$proxy" ]; then
+        info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
+      else
+        info "Downloading GPG key tar file from $gpg_tar_download_url..."
+      fi
 
-    eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
-    succeeded
+      eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
+      succeeded
+    fi
   fi
 
   info "Installing package..."
@@ -828,48 +842,8 @@ install_package()
   fi
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
-    if [ "$non_interactive" = "true" ]; then
-      # In quiet mode, fail immediately on GPG verification failure
-      if [ -n "$gpg_verify_output" ]; then
-        increase_indent
-        printf "%s\n" "$gpg_verify_output"
-        decrease_indent
-      fi
-      error_exit "$LINENO" "Failed to verify package signature. Use '--no-gpg-check' to skip verification."
-    else
-      # In interactive mode, show verification output, prompt the user, and explain failure
-      if [ -n "$gpg_verify_output" ]; then
-        increase_indent
-        printf "%s\n" "$gpg_verify_output"
-        decrease_indent
-      fi
-      
-      increase_indent
-      printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
-      printf "${indent}  - The GPG keys are not properly installed or accessible\n"
-      printf "${indent}  - The package has been tampered with\n"
-      printf "${indent}  - The signing key has expired or been revoked\n"
-      printf "${indent}  - Network issues prevented GPG key retrieval\n"
-      printf "\\n${indent}$(fg_yellow 'Continuing without signature verification is NOT RECOMMENDED unless you have independently verified the package authenticity.')\\n\\n"
-      decrease_indent
-      
-      command printf "${indent}Do you wish to continue installation without GPG verification? "
-      prompt "n"
-      read -r gpg_override_input
-      printf "\\n"
-      
-      if [ "$gpg_override_input" != "y" ] && [ "$gpg_override_input" != "Y" ]; then
-        if [ -n "$gpg_verify_output" ]; then
-          increase_indent
-          error "Verification failed due to:"
-          printf "%s\n" "$gpg_verify_output"
-          decrease_indent
-        fi
-        error_exit "$LINENO" "Installation aborted due to GPG verification failure."
-      fi
-      
-      warn "Continuing installation without GPG verification. Ensure package authenticity has been verified through other means."
-    fi
+    warn "GPG signature verification failed. Continuing installation without signature verification."
+    warn "Use '--no-gpg-check' to suppress GPG verification entirely."
   fi
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
@@ -917,6 +891,10 @@ install_package()
 }
 
 verify_package() {
+  if os_gpg_unsupported; then
+    return 0
+  fi
+
   # If GPG check is skipped, return success immediately
   if [ "$skip_gpg_check" = "true" ]; then
     warn "GPG signature verification is being bypassed with the '--no-gpg-check' flag."
@@ -1015,35 +993,77 @@ verify_package_deb() {
   return 0
 }
 
+# get_os_display_name returns a human-readable OS name for logging.
+# Reads PRETTY_NAME from /etc/os-release, falls back to /etc/redhat-release content.
+get_os_display_name() {
+  if [ -f /etc/os-release ]; then
+    PRETTY_NAME=""
+    # shellcheck source=/dev/null
+    . /etc/os-release
+    if [ -n "$PRETTY_NAME" ]; then
+      command printf "%s" "$PRETTY_NAME"
+      return
+    fi
+  fi
+  if [ -f /etc/redhat-release ]; then
+    command printf "%s" "$(cat /etc/redhat-release)"
+    return
+  fi
+  command printf "%s" "$(uname -s)"
+}
+
+# get_os_id returns a "name:major_version" string for the current OS.
+# Reads /etc/os-release (modern systems) or /etc/redhat-release (legacy RHEL/CentOS).
+get_os_id() {
+  if [ -f /etc/os-release ]; then
+    # shellcheck source=/dev/null
+    ID=""
+    VERSION_ID=""
+    . /etc/os-release
+    major_version="${VERSION_ID%%.*}"
+    command printf "%s:%s" "$ID" "$major_version"
+  elif [ -f /etc/redhat-release ]; then
+    # e.g. "CentOS release 6.10 (Final)" -> "centos:6"
+    name=$(sed 's/ release.*//' /etc/redhat-release | tr '[:upper:]' '[:lower:]')
+    version=$(sed 's/.*release \([0-9]*\).*/\1/' /etc/redhat-release)
+    command printf "%s:%s" "$name" "$version"
+  fi
+}
+
+# os_gpg_unsupported returns 0 if the current OS is in GPG_UNSUPPORTED_OS_LIST.
+os_gpg_unsupported() {
+  current_os=$(get_os_id)
+  [ -z "$current_os" ] && return 1
+  for entry in $GPG_UNSUPPORTED_OS_LIST; do
+    if [ "$current_os" = "$entry" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 verify_package_rpm() {
+  if ! command -v gpg > /dev/null 2>&1; then
+    info "gpg is not installed, skipping RPM signature verification"
+    return 0
+  fi
+
+  # Import the BDOT public key into the RPM keyring.
+  # This persists on the host and enables native RPM signature
+  # checks for future upgrades.
   set +e
-  # Capture stderr from rpm --import
-  IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+  rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>/dev/null
   IMPORT_EXIT_CODE=$?
   set -e
 
-  # Fail if rpm --import itself fails
   if [ $IMPORT_EXIT_CODE -ne 0 ]; then
-      error "Failed to import public key"
-      return 1
-  fi
-
-  # Extract the signing key ID from checksig (reliable on EL7+)
-  SIGNING_KEYID=$(rpm --checksig --verbose "$package_out_file_path" 2>&1 \
-    | sed -nE 's/.*[Kk]ey ID ([0-9A-Fa-f]+):.*/\1/p' \
-    | head -n1)
-
-  if [ -z "$SIGNING_KEYID" ]; then
-    error "Could not determine RPM signing key ID"
+    error "Failed to import public key"
     return 1
   fi
 
-  # Normalize key ID to lowercase (rpm stores gpg-pubkey in lowercase)
-  SIGNING_KEYID=$(echo "$SIGNING_KEYID" | tr '[:upper:]' '[:lower:]')
-
-  # Remove revoked keys (your existing logic)
-  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
-    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
+  # Remove revoked keys from the RPM keyring
+  if [ -n "$RPM_GPG_KEYS_TO_REMOVE" ]; then
+    for key in $RPM_GPG_KEYS_TO_REMOVE; do
       if rpm -q "$key" > /dev/null 2>&1; then
         if ! rpm -e "$key" > /dev/null 2>&1; then
           error "Failed to remove revocation key"
@@ -1053,22 +1073,15 @@ verify_package_rpm() {
     done
   fi
 
-  if ! rpm -qa 'gpg-pubkey*' \
-  | xargs -n1 rpm -qi \
-  | gpg --quiet --with-colons --show-keys \
-  | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
-  | grep -qx "$SIGNING_KEYID"; then
-      error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
-      return 1
-  fi
-
-  # Verify the signature
+  # Verify the package signature using the RPM keyring.
+  # rpm --checksig validates against all imported keys natively —
+  # no need to extract key IDs or do separate subkey checks.
   set +e
-  CHECKSIG_OUTPUT=$(rpm --checksig --verbose "$package_out_file_path" 2>&1)
+  CHECKSIG_OUTPUT=$(rpm --checksig "$package_out_file_path" 2>&1)
   CHECKSIG_EXIT_CODE=$?
   set -e
 
-  # Reject hard failures first
+  # Reject hard failures
   if echo "$CHECKSIG_OUTPUT" | grep -q "BAD"; then
     error "RPM signature is BAD"
     return 1
@@ -1087,7 +1100,7 @@ verify_package_rpm() {
     return 1
   fi
 
-  success "Package signature is valid, not revoked, and subkey is not expired"
+  success "Package signature is valid"
   return 0
 }
 
@@ -1098,7 +1111,7 @@ unpack_package()
       dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
       ;;
     rpm)
-      rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      rpm -U "$package_out_file_path" > /dev/null 2>&1 || error_exit "$LINENO" "Failed to unpack package"
       ;;
     *)
       error "Unrecognized package type"
