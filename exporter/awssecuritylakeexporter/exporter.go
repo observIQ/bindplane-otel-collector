@@ -29,6 +29,7 @@ import (
 	"github.com/parquet-go/parquet-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -67,7 +68,11 @@ func newExporter(cfg *Config, params exporter.Settings) (*securityLakeExporter, 
 	classToSchema := make(map[int]*parquet.Schema, len(cfg.CustomSources))
 	for _, src := range cfg.CustomSources {
 		classToSource[src.ClassID] = src.Name
-		schema := parquet.SchemaOf(schemaMap[src.ClassID])
+		sm, ok := schemaMap[src.ClassID]
+		if !ok {
+			return nil, fmt.Errorf("no schema for class %d", src.ClassID)
+		}
+		schema := parquet.SchemaOf(sm)
 		classToSchema[src.ClassID] = schema
 	}
 
@@ -145,7 +150,9 @@ func (e *securityLakeExporter) logsDataPusher(ctx context.Context, ld plog.Logs)
 
 				eventTime, err := extractEventTime(body)
 				if err != nil {
-					return fmt.Errorf("extracting event time: %w", err)
+					return consumererror.NewPermanent(
+						fmt.Errorf("extracting event time: %w", err),
+					)
 				}
 				eventDay := eventTime.UTC().Format("20060102")
 
@@ -216,10 +223,18 @@ func extractClassUID(record map[string]any) (int, bool) {
 // extractEventTime gets the time field from an OCSF record (epoch milliseconds).
 func extractEventTime(record map[string]any) (time.Time, error) {
 	if t, ok := record["time"]; ok {
-		if v, ok := t.(int64); ok {
-			return time.UnixMilli(v), nil
+		switch n := t.(type) {
+		case int64:
+			return time.UnixMilli(n), nil
+		case float64:
+			return time.UnixMilli(int64(n)), nil
+		case int:
+			return time.UnixMilli(int64(n)), nil
+		case int32:
+			return time.UnixMilli(int64(n)), nil
+		default:
+			return time.Time{}, fmt.Errorf("invalid type for field 'time': %T", t)
 		}
-		return time.Time{}, fmt.Errorf("invalid type for field 'time': %T", t)
 	}
 	return time.Time{}, fmt.Errorf("missing required field 'time'")
 }

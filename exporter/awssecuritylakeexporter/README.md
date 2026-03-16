@@ -89,6 +89,7 @@ processors:
 
 exporters:
   aws_security_lake:
+    ocsf_version: "1.1.0"
     region: "us-east-1"
     s3_bucket: "aws-security-data-lake-us-east-1-xxxxxxxxxxxx"
     account_id: "123456789012"

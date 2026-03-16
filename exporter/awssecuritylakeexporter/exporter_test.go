@@ -393,9 +393,19 @@ func TestExtractEventTime(t *testing.T) {
 			wantErr: "invalid type for field 'time'",
 		},
 		{
-			name:    "wrong type float64",
-			record:  map[string]any{"time": float64(1700000000000)},
-			wantErr: "invalid type for field 'time'",
+			name:   "float64",
+			record: map[string]any{"time": float64(1700000000000)},
+			want:   time.UnixMilli(1700000000000),
+		},
+		{
+			name:   "int",
+			record: map[string]any{"time": int(1700000000000)},
+			want:   time.UnixMilli(1700000000000),
+		},
+		{
+			name:   "int32",
+			record: map[string]any{"time": int32(1700000000)},
+			want:   time.UnixMilli(1700000000),
 		},
 	}
 
