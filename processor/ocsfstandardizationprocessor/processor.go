@@ -211,6 +211,8 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 			return false
 		}
 
+		log.Attributes().PutInt("ocsf.class_uid", int64(eventMapping.classID))
+
 		return true
 	}
 
