@@ -1,0 +1,164 @@
+version: 0.2.1
+title: VMware vCenter
+description: Log parser for VMware vCenter
+parameters:
+  - name: listen_port
+    description: A port which the agent will listen for vCenter messages
+    type: int
+    default: 5140
+  - name: listen_ip
+    description: The local IP address to listen for vCenter connections on
+    type: string
+    default: "0.0.0.0"
+  - name: max_buffer_size
+    description: Maximum size taken up by collected logs
+    type: string
+    default: "1024kib"
+    required: false
+  - name: enable_tls
+    description: Enable TLS for the vCenter listener
+    type: bool
+    default: false
+  - name: certificate_file
+    description: Path to the x509 PEM certificate or certificate chain to use for TLS
+    type: string
+    default: "/opt/cert"
+  - name: key_file
+    description: Path to the key file to use for TLS
+    type: string
+    default: "/opt/key"
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+    tcplog:
+      listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
+      max_log_size: {{ .max_buffer_size }}
+      attributes:
+        log_type: vmware_vcenter
+      add_attributes: true
+      {{ if .enable_tls }}
+      tls:
+        cert_file: {{ .certificate_file }}
+        key_file: {{ .key_file }}
+      {{ end }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        # vcenter will (sometimes) prepend an id to the messages, check
+        # for the id and drop it if it exists
+        # example: '257 <14>1. . . '
+        - id: prefix_router
+          type: router
+          routes:
+            - output: pre_parser
+              expr: 'body matches "^\\d* "'
+          default: vcenter_parser
+
+        - id: pre_parser
+          type: regex_parser
+          regex: '^(?P<drop>\d* )(?P<syslog_message>[\w\W]*)'
+
+        - id: remove_drop
+          type: remove
+          field: attributes.drop
+        
+        - id: move_syslog_message
+          type: move
+          from: attributes.syslog_message
+          to: body
+          output: vcenter_parser
+
+        - id: vcenter_parser
+          type: syslog_parser
+          protocol: rfc5424
+
+        {{ if eq .parse_to "body" }}
+        # Move syslog fields to body
+        # We do this rather than parsing to body in the syslog_parser as it handles timestamp and severity parsing
+        - id: move_priority
+          if: "attributes.priority != nil"
+          type: move
+          from: attributes.priority
+          to: body.priority
+        - id: move_facility
+          if: "attributes.facility != nil"
+          type: move
+          from: attributes.facility
+          to: body.facility
+        - id: move_hostname
+          if: "attributes.hostname != nil"
+          type: move
+          from: attributes.hostname
+          to: body.hostname
+        - id: move_appname
+          if: "attributes.appname != nil"
+          type: move
+          from: attributes.appname
+          to: body.appname
+        - id: move_proc_id
+          if: "attributes.proc_id != nil"
+          type: move
+          from: attributes.proc_id
+          to: body.proc_id
+        - id: move_msg_id
+          if: "attributes.msg_id != nil"
+          type: move
+          from: attributes.msg_id
+          to: body.msg_id
+        - id: move_message
+          if: "attributes.message != nil"
+          type: move
+          from: attributes.message
+          to: body.message
+        - id: move_structured_data
+          if: "attributes.structured_data != nil"
+          type: move
+          from: attributes.structured_data
+          to: body.structured_data
+        - id: move_version
+          if: "attributes.version != nil"
+          type: move
+          from: attributes.version
+          to: body.version
+        {{ end }}
+
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+        {{ end }}
+  service:
+    pipelines:
+      logs:
+        receivers: [tcplog]

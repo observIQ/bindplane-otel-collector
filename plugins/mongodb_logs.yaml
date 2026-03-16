@@ -1,0 +1,188 @@
+version: 0.2.1
+title: MongoDB
+description: Log parser for MongoDB
+parameters:
+  - name: log_paths
+    description: The path of the log files
+    type: "[]string"
+    default:
+      - "/var/log/mongodb/mongodb.log*"
+      - "/var/log/mongodb/mongod.log*"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      exclude:
+        {{ range $fp := .log_paths }}
+        - '{{ $fp }}*.gz'
+        {{end}}
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: router
+          default: legacy_parser
+          routes:
+            - expr: 'body matches "^{.*}$|^{.*}\\n$"'
+              output: 4_4_parser
+
+        - id: legacy_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\S+)\s+(?P<severity>\w+)\s+(?P<component>[\w-]+)\s+\[(?P<context>\S+)\]\s+(?P<message>.*)$'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            #2019-02-06T09:22:43.967-0500
+            layout: '%Y-%m-%dT%H:%M:%S.%f%z'
+          severity:
+            parse_from: {{ .parse_to }}.severity
+            mapping:
+              fatal: F
+              error: E
+              warn: W
+              info: I
+              debug:
+                - D
+                - D1
+                - D2
+                - D3
+                - D4
+                - D5
+          output: add_log_type
+
+        # Example log line:
+        # {"t":{"$date":"2022-04-26T16:15:44.876+00:00"},"s":"I",  "c":"INDEX",    "id":20345,   "ctx":"LogicalSessionCacheRefresh","msg":"Index build: done building","attr":{"buildUUID":null,"namespace":"config.system.sessions","index":"lsidTTLIndex","commitTimestamp":null}}
+        - id: 4_4_parser
+          type: json_parser
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.t.$$date
+            #2020-11-03T14:24:07.436-05:00
+            layout: '%Y-%m-%dT%H:%M:%S.%f%j'
+          severity:
+            parse_from: {{ .parse_to }}.s
+            mapping:
+              fatal: F
+              error: E
+              warn: W
+              info: I
+              debug:
+                - D
+                - D1
+                - D2
+                - D3
+                - D4
+                - D5
+          output: move_component
+        # Commented out remove operatore out and output until remove operator is added in.
+        # Tracking in PR https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/9545
+          #output: remove_t
+
+
+        # - id: remove_t
+        #   type: remove
+        #   field: body.t
+
+        - id: move_component
+          type: move
+          from: {{ .parse_to }}.c
+          to: {{ .parse_to }}.component
+
+        - id: move_context
+          type: move
+          from: {{ .parse_to }}.ctx
+          to: {{ .parse_to }}.context
+
+        - id: move_message
+          type: move
+          from: {{ .parse_to }}.msg
+          to: {{ .parse_to }}.message
+
+        # When message is 'WiredTiger message', data.attr.message
+        # always exists, and should be promoted to message
+        - id: wiredtiger_router
+          type: router
+          default: add_log_type
+          routes:
+            - expr: '{{ .parse_to }}.message == "WiredTiger message"'
+              output: move_wiredtiger_type
+
+        - id: move_wiredtiger_type
+          type: move
+          from: {{ .parse_to }}.message
+          to: {{ .parse_to }}.message_type
+          output: move_wiredtiger_msg
+
+        - id: move_wiredtiger_msg
+          type: move
+          from: {{ .parse_to }}.attr.message
+          to: {{ .parse_to }}.message
+          output: add_log_type
+        {{ end }}
+          
+        - id: add_log_type
+          type: add
+          field: 'attributes.log_type'
+          value: 'mongodb'
+        
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          - filelog

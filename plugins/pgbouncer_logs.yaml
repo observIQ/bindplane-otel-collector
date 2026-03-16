@@ -1,0 +1,113 @@
+version: 0.0.2
+title: PgBouncer
+description: Log parser for PgBouncer
+parameters:
+  - name: file_path
+    description: The absolute path to the PgBouncer logs
+    type: "[]string"
+    default:
+      - "/var/log/pgbouncer/pgbouncer.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: pgbouncer_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}(\s*[^\d\s]{3})?)\s*(\[)?(?P<pid>\d+)(\])? (?P<severity>\w+) (?P<message>.*)'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info: log
+              info2: stats
+              debug: noise
+          output: time_parser_router
+
+        # Handle different timestamps
+        - id: time_parser_router
+          type: router
+          default: message_router
+          routes:
+            - output: time_parser_with_timezone
+              expr: 'attributes.timestamp != nil and attributes.timestamp matches "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}\\s[^\\d\\s]{3}"'
+            - output: time_parser_without_timezone
+              expr: 'attributes.timestamp != nil and attributes.timestamp matches "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}"'
+
+        - id: time_parser_with_timezone
+          type: time_parser
+          parse_from: attributes.timestamp
+          layout: '%Y-%m-%d %H:%M:%S.%L %Z'
+          output: message_router
+
+        - id: time_parser_without_timezone
+          type: time_parser
+          parse_from: attributes.timestamp
+          layout: '%Y-%m-%d %H:%M:%S.%L'
+          output: message_router
+
+        - id: message_router
+          type: router
+          default: add_type
+          routes:
+            - expr: 'attributes.message matches "^[Ss]tats: "'
+              output: stats_parser
+            - expr: 'attributes.message matches "^[CS]-\\w*"'
+              output: request_parser
+
+        - id: stats_parser
+          type: regex_parser
+          parse_from: attributes.message
+          regex: '^[Ss]tats: (?P<xacts_per_second>\d+)[^,]*,\s(?P<queries_per_second>\d+)[^,]*,\sin\s(?P<in_bytes_per_second>\d+)[^,]*,\sout\s(?P<out_bytes_per_second>\d+)[^,]*,\sxact\s(?P<xact_microsecond>\d+)[^,]*,\squery\s(?P<query_microsecond>\d+)\sus(,)?\swait(\stime)?\s(?P<wait_time_microsecond>\d+).*'
+          output: add_type
+
+        - id: request_parser
+          type: regex_parser
+          parse_from: attributes.message
+          regex: '^[CS]-\w*:\s\(?(?P<db_name>\w*)\)?\/\(?(?P<user_name>[^@]*)\)?@(?P<host>[^:]*):(?P<port>\d*)\s*'
+          output: add_type
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'pgbouncer'
+        
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

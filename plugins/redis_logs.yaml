@@ -1,0 +1,139 @@
+version: 0.0.2
+title: Redis
+description: Log parser for Redis
+parameters:
+  - name: file_path
+    description: The absolute path to the Redis logs
+    type: "[]string"
+    default:
+      # Default log path on Ubuntu / Debian
+      - "/var/log/redis/redis-server.log"
+      # Default log path built from src (6379 is the default redis port)
+      - "/var/log/redis_6379.log"
+      # Default log path on CentOS / RHEL
+      - "/var/log/redis/redis.log"
+      # Default log path on SLES
+      - "/var/log/redis/default.log"
+      # Default log path from one click installer (6379 is the default redis port)
+      - "/var/log/redis/redis_6379.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '\[?(?:\d+):?(?:[A-Z])?\]?\s+(?:\d{2}\s+\w+(?:\s+\d{4})?\s+\d{2}:\d{2}:\d{2}.\d{3})\s+(?:[\*|#|\-|\.])'
+      operators:
+        # Example log line (Redis 3+): 534:M 28 Apr 2020 11:30:29.988 * DB loaded from disk: 0.002 seconds
+        # Example log line (Redis <3): [4018] 14 Nov 07:01:22.119 * Background saving terminated with success
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"] 
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^\[?(?P<pid>\d+):?(?P<role>[A-Z])?\]?\s+(?P<timestamp>\d{2}\s+\w+(?:\s+\d{4})?\s+\d{2}:\d{2}:\d{2}.\d{3})\s+(?P<level>[\*|#|\-|\.])\s+(?P<message>.*)'
+          severity:
+            parse_from: attributes.level
+            mapping:
+              warn: '#'
+              info: '-'
+              debug: ','
+              info2: '*'
+
+        - id: time_router
+          type: router
+          routes:
+            - output: time_parser_1
+              expr: attributes.timestamp matches '\\d{2}\\s+\\w+\\s+\\d{2}:\\d{2}:\\d{2}\\.\\d{3}'
+            - output: time_parser_2
+              expr: attributes.timestamp matches '\\d{2}\\s+\\w+\\s+\\d{4}\\s+\\d{2}:\\d{2}:\\d{2}.\\d{3}'
+
+        - id: time_parser_1
+          type: time_parser
+          parse_from: attributes.timestamp
+          layout: '%d %b %H:%M:%S.%s'
+          output: role_router
+
+        - id: time_parser_2
+          type: time_parser
+          parse_from: attributes.timestamp
+          layout: '%d %b %Y %H:%M:%S.%s'
+          output: role_router
+
+        - id: role_router
+          type: router
+          routes:
+          - output: add_sentinel_role
+            expr: attributes.role == 'X'
+          - output: add_rdb_role
+            expr: attributes.role == 'C'
+          - output: add_slave_role
+            expr: attributes.role == 'S'
+          - output: add_master_role
+            expr: attributes.role == 'M'
+          default: add_type
+
+        - id: add_sentinel_role
+          type: add
+          field: attributes.role
+          value: 'sentinel'
+          output: add_type
+
+        - id: add_rdb_role
+          type: add
+          field: attributes.role
+          value: 'RDB/AOF_writing_child'
+          output: add_type
+
+        - id: add_slave_role
+          type: add
+          field: attributes.role
+          value: 'slave'
+          output: add_type
+
+        - id: add_master_role
+          type: add
+          field: attributes.role
+          value: 'master'
+          output: add_type
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'redis'
+    
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

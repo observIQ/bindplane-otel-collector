@@ -1,0 +1,164 @@
+version: 0.0.2
+title: Active Directory Logs
+description: Log parser for Active Directory
+parameters:
+  - name: enable_dns_server
+    description: Enable to collect DNS server logs
+    type: bool
+    default: true
+  - name: enable_dfs_replication
+    description: Enable to collect DFS replication logs
+    type: bool
+    default: true
+  - name: enable_file_replication
+    description: Enable to collect file replication logs
+    type: bool
+    default: false
+  - name: poll_interval
+    description: Set the rate that logs are being collected
+    type: string
+    default: 1s
+  - name: max_reads
+    description: Maximum number of logs collected
+    type: int
+    default: 1000
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    windowseventlog/general:
+      channel: "Directory Service"
+      max_reads: {{ .max_reads }}
+      poll_interval: '{{ .poll_interval }}'
+      start_at: '{{ .start_at }}'
+      attributes:
+        log_type: "active_directory.general"
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
+    windowseventlog/web_services:
+      channel: "Active Directory Web Services"
+      max_reads: {{ .max_reads }}
+      poll_interval: '{{ .poll_interval }}'
+      start_at: '{{ .start_at }}'
+      attributes:
+        log_type: "active_directory.web_services"
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
+    {{ if .enable_dns_server }}
+    windowseventlog/dns:
+      channel: "DNS Server"
+      max_reads: {{ .max_reads }}
+      poll_interval: '{{ .poll_interval }}'
+      start_at: '{{ .start_at }}'
+      attributes:
+        log_type: "active_directory.dns"
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
+    {{ end }}
+    {{ if .enable_dfs_replication }}
+    windowseventlog/dfs:
+      channel: "DFS Replication"
+      max_reads: {{ .max_reads }}
+      poll_interval: '{{ .poll_interval }}'
+      start_at: '{{ .start_at }}'
+      attributes:
+        log_type: "active_directory.dfs"
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
+    {{ end }}
+    {{ if .enable_file_replication }}
+    windowseventlog/frs:
+      channel: "File Replication Service"
+      max_reads: {{ .max_reads }}
+      poll_interval: '{{ .poll_interval }}'
+      start_at: '{{ .start_at }}'
+      attributes:
+        log_type: "active_directory.frs"
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
+    {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers:
+          - windowseventlog/general
+          - windowseventlog/web_services
+          {{ if .enable_dns_server }}
+          - windowseventlog/dns
+          {{ end }}
+          {{ if .enable_dfs_replication }}
+          - windowseventlog/dfs
+          {{ end }}
+          {{ if .enable_file_replication }}
+          - windowseventlog/frs
+          {{ end }}

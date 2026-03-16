@@ -1,0 +1,351 @@
+version: 0.0.1
+title: Cockroach Database Metrics
+description: Metrics receiver for Cockroach Database
+parameters:
+  - name: endpoint
+    description: Endpoint used for HTTP requests from the DB Console
+    type: string
+    default: localhost:8080
+  - name: username
+    description: Username to access sql database (only needed if database is secure)
+    type: string
+    default: ""
+  - name: password
+    description: Password to access sql database (only needed if database is secure)
+    type: string
+    default: ""
+  - name: scrape_interval
+    description: Time in between every scrape request
+    type: string
+    default: 60s
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: ca_file_path
+    description: file path for CA certification file for CockroachDB
+    type: string
+    required: false
+  - name: cert_file_path
+    description: File path for CockroachDB certification file.
+    type: string
+    required: false
+  - name: key_file_path
+    description: File path for CockroachDB private key
+    type: string
+    required: false
+  - name: insecure_skip_verify
+    description: option to enable insecure flag (allows self signed certificates)
+    type: bool
+    default: false
+    required: false
+  - name: server_name
+    description: name of the server
+    type: string
+    required: false
+    default: ""
+
+template: |
+  receivers:
+    prometheus/cockroachdb:
+      config:
+        scrape_configs:
+          - job_name: 'cockroachdb'
+            scrape_interval: '{{ .scrape_interval }}'
+            metrics_path: "_status/vars"
+            static_configs:
+              - targets: ['{{ .endpoint }}']
+            {{ if and .username .password }}
+            basic_auth:
+              username: '{{ .username }}'
+              password: '{{ .password }}'
+            tls_config:
+              insecure_skip_verify: {{ .insecure_skip_verify }}
+              server_name: {{ .server_name }} 
+              ca_file: {{ .ca_file_path }} 
+              cert_file: {{ .cert_file_path }}
+              key_file: {{ .key_file_path }}
+            {{ end }}
+            metric_relabel_configs:
+              # Include only a few key metrics
+              - source_labels: [ __name__ ]
+                regex: "(round_trip_latency)|\
+                  (round_trip_latency_sum)|\
+                  (round_trip_latency_count)|\
+                  (round_trip_latency_bucket)|\
+                  (sql_distsql_exec_latency)|\
+                  (sql_distsql_exec_latency_sum)|\
+                  (sql_distsql_exec_latency_count)|\
+                  (sql_distsql_exec_latency_bucket)|\
+                  (sql_exec_latency)|\
+                  (sql_exec_latency_sum)|\
+                  (sql_exec_latency_count)|\
+                  (sql_exec_latency_bucket)|\
+                  (sql_service_latency)|\
+                  (sql_service_latency_sum)|\
+                  (sql_service_latency_count)|\
+                  (sql_service_latency_bucket)|\
+                  (sql_query_count)|\
+                  (txn_abandons)|\
+                  (txn_aborts)|\
+                  (txn_commits)|\
+                  (txn_durations.*)|\
+                  (exec_error)|\
+                  (timeseries_write_errors)|\
+                  (sys_cpu_sys_percent)|\
+                  (sys_cpu_user_percent)|\
+                  (sys_cpu_user_ns)|\
+                  (sys_cpu_sys_ns)|\
+                  (capacity_.*)|\
+                  (syscount)|\
+                  (liveness_livenodes)|\
+                  (liveness_heartbeatfailures)|\
+                  (liveness_heartbeatlatency.*)|\
+                  (sql_insert_count)|\
+                  (sql_delete_count)|\
+                  (sql_update_count)|\
+                  (sql_select_count)|\
+                  (sql_stats_mem_current)|\
+                  (sql_mem_distsql_current)|\
+                  (sql_mem_distsql_max.*)|\
+                  (sql_stats_mem_max.*)|\
+                  (sql_mem_sql_session_current)|\
+                  (sql_mem_sql_session_max.*)|\
+                  (sql_mem_sql_txn_current)|\
+                  (sql_mem_sql_txn_max.*)"
+                action: keep
+
+  processors:
+    filter/cockroachdb:
+      # Filter out prometheus scraping meta-metrics.
+      metrics:
+        exclude:
+          match_type: strict
+          metric_names:
+            - scrape_samples_post_metric_relabeling
+            - scrape_series_added
+            - scrape_duration_seconds
+            - scrape_duration
+            - scrape_samples_scraped
+            - up
+
+    metricstransform/cockroachdb:
+      transforms:
+        # Rename from prometheus metric name to OTel metric name.
+        # We cannot do this with metric_relabel_configs, as the prometheus receiver does not
+        # allow metric renames at this time.
+        - include: round_trip_latency
+          match_type: strict
+          action: update
+          new_name: "crdb.round_trip.latency"
+        - include: sql_distsql_exec_latency
+          match_type: strict
+          action: update
+          new_name: "crdb.sql.distsql.exec.latency"
+        - include: sql_exec_latency
+          match_type: strict
+          action: update
+          new_name: "crdb.sql.exec.latency"
+        - include: sql_service_latency
+          match_type: strict
+          action: update
+          new_name: "crdb.sql.service.latency"
+        - include: txn_aborts
+          match_type: strict
+          action: update
+          new_name: "crdb.transaction.aborts"
+        - include: sql_query_count
+          match_type: strict
+          action: update
+          new_name: crdb.sql.query.count
+        - include: txn_abandons
+          match_type: strict
+          action: update
+          new_name: "crdb.transaction.abandons"
+        - include: txn_commits
+          match_type: strict
+          action: update
+          new_name: "crdb.transaction.commits.count"
+        - include: txn_durations
+          match_type: strict
+          action: update
+          new_name: "crdb.transaction.durations.time"
+        - include: exec_error
+          match_type: strict
+          action: update
+          new_name: "crdb.exec.errors.count"
+        - include: timeseries_write_errors
+          match_type: strict
+          action: update
+          new_name: "crdb.timeseries.write.errors.count"
+        - include: sys_cpu_user_percent
+          match_type: strict
+          action: update
+          new_name: "crdb.sys.cpu.user.utilization"
+        - include: sys_cpu_sys_percent
+          match_type: strict
+          action: update
+          new_name: "crdb.sys.cpu.sys.utilization"
+        - include: sys_cpu_user_ns
+          match_type: strict
+          action: update
+          new_name: "crdb.sys.cpu.user.time"
+        - include: sys_cpu_sys_ns
+          match_type: strict
+          action: update
+          new_name: "crdb.sys.cpu.sys.time"
+        - include: liveness_livenodes
+          match_type: strict
+          action: update
+          new_name: "crdb.liveness.livenodes"
+        - include: liveness_heartbeatfailures
+          match_type: strict
+          action: update
+          new_name: "crdb.liveness.heartbeat_failures"
+        - include: liveness_heartbeatlatency
+          match_type: strict
+          action: update
+          new_name: "crdb.liveness.heartbeat_latency"
+        - include: syscount
+          match_type: strict
+          action: update
+          new_name: "crdb.sys.pairs.count"
+        - include: sql_stats_mem_current
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.current"
+        - include: sql_mem_distsql_current
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.distsql.current"
+        - include: sql_mem_distsql_max
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.distsql.max"
+        - include: sql_stats_mem_max
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.max"
+        - include: sql_mem_sql_session_current
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.session.current"
+        - include: sql_mem_sql_session_max
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.session.max"
+        - include: sql_mem_sql_txn_current
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.transaction.current"
+        - include: sql_mem_sql_txn_max
+          match_type: strict
+          action: update
+          new_name: "crdb.mem.sql.transaction.max"
+        # Combine several different capacity metrics into one
+        - include: ^capacity_(?P<state>used|reserved|available)$$
+          match_type: regexp
+          action: combine
+          new_name: "crdb.capacity.usage"
+        # Combine several dml query counts into one
+        - include: ^sql_(?P<command>insert|delete|update|select)_count$$
+          match_type: regexp
+          action: combine
+          new_name: "crdb.sql.dml.query.count"
+
+    transform/cockroachdb:
+      metric_statements:
+        - context: metric
+          statements:
+          - set(description, "Distribution of round-trip latencies with other nodes") where name == "crdb.round_trip.latency"
+          - set(unit, "ns") where name == "crdb.round_trip.latency"
+
+          - set(description, "Latency of SQL statement executions running on the distributed execution engine. This metric does not include the time to parse and plan the statement.") where name == "crdb.sql.distsql.exec.latency"
+          - set(unit, "ns") where name == "crdb.sql.distsql.exec.latency"
+
+          - set(description, "Latency of all SQL statement executions. This metric does not include the time to parse and plan the statement.") where name == "crdb.sql.exec.latency"
+          - set(unit, "ns") where name == "crdb.sql.exec.latency"
+
+          - set(description, "Latency of SQL request execution, including the time to parse and plan the statement.") where name == "crdb.sql.service.latency"
+          - set(unit, "ns") where name == "crdb.sql.service.latency"
+
+          - set(description, "Number of SQL queries") where name == "crdb.sql.query.count"
+          - set(unit, "{queries}") where name == "crdb.sql.query.count"
+
+          - set(description, "Number of abandoned KV transactions") where name == "crdb.transaction.abandons.count"
+          - set(unit, "{transactions}") where name == "crdb.transaction.abandons.count"
+
+          - set(description, "Number of aborted KV transactions") where name == "crdb.transaction.aborts.count"
+          - set(unit, "{transactions}") where name == "crdb.transaction.aborts.count"
+
+          - set(description, "Number of committed KV transactions (including 1PC)") where name == "crdb.transaction.commits.count"
+          - set(unit, "{transactions}") where name == "crdb.transaction.commits.count"
+
+          - set(description, "KV transaction durations for all transactions") where name == "crdb.transaction.durations.time"
+          - set(unit, "ns") where name == "crdb.transaction.durations.time"
+
+          - set(description, "Number of batch KV requests that failed to execute on this node") where name == "crdb.exec.errors.count"
+          - set(unit, "{requests}") where name == "crdb.exec.errors.count"
+
+          - set(description, "Total errors encountered while attempting to write metrics to disk") where name == "crdb.timeseries.write.errors.count"
+          - set(unit, "{errors}") where name == "crdb.timeseries.write.errors.count"
+
+          - set(description, "Current user cpu percentage") where name == "crdb.sys.cpu.user.utilization"
+          - set(unit, "%") where name == "crdb.sys.cpu.user.utilization"
+
+          - set(description, "Current system cpu percentage") where name == "crdb.sys.cpu.sys.utilization"
+          - set(unit, "%") where name == "crdb.sys.cpu.sys.utilization"
+
+          - set(description, "Time cpu spent running user code on a given node over a time interval") where name == "crdb.sys.cpu.user.time"
+          - set(unit, "ns") where name == "crdb.sys.cpu.user.time"
+
+          - set(description, "Time cpu spent running system code on a given node over a time interval") where name == "crdb.sys.cpu.sys.time"
+          - set(unit, "ns") where name == "crdb.sys.cpu.sys.time"
+
+          - set(description, "Total storage capacity") where name == "crdb.capacity.usage"
+          - set(unit, "Bytes") where name == "crdb.capacity.usage"
+
+          - set(description, "Number of live nodes in the cluster (will be 0 if this node is not itself live)") where name == "crdb.liveness.livenodes"
+          - set(unit, "{nodes}") where name == "crdb.liveness.livenodes"
+
+          - set(description, "Number of failed node liveness heartbeats from this node") where name == "crdb.liveness.heartbeat_failures"
+          - set(unit, "{nodes}") where name == "crdb.liveness.heartbeat_failures"
+          
+          - set(description, "Node liveness heartbeat latency") where name == "crdb.liveness.heartbeat_latency"
+          - set(unit, "ns") where name == "crdb.liveness.heartbeat_latency"
+
+          - set(description, "Current sql statement memory usage") where name == "crdb.mem.sql.current"
+          - set(unit, "By") where name == "crdb.mem.sql.current"
+
+          - set(description, "Current sql statement memory usage for distsql") where name == "crdb.mem.distsql.current"
+          - set(unit, "By") where name == "crdb.mem.distsql.current"
+
+          - set(description, "Memory usage per sql statement for distsql") where name == "crdb.mem.distsql.max"
+          - set(unit, "By") where name == "crdb.mem.distsql.max"
+
+          - set(description, "Memory usage per sql statement") where name == "crdb.mem.sql.max"
+          - set(unit, "By") where name == "crdb.mem.sql.max"
+
+          - set(description, "Current sql session memory usage") where name == "crdb.mem.sql.session.current"
+          - set(unit, "By") where name == "crdb.mem.sql.session.current"
+
+          - set(description, "Memory usage per sql session") where name == "crdb.mem.sql.session.max"
+          - set(unit, "By") where name == "crdb.mem.sql.session.max"
+
+          - set(description, "Current sql transaction memory usage") where name == "crdb.mem.sql.transaction.current"
+          - set(unit, "By") where name == "crdb.mem.sql.transaction.current"
+
+          - set(description, "Memory usage per sql transaction") where name == "crdb.mem.sql.transaction.max"
+          - set(unit, "By") where name == "crdb.mem.sql.transaction.max"
+
+          - set(description, "Count of system KV pairs") where name == "crdb.sys.pairs.count"
+          - set(unit, "{pairs}") where name == "crdb.sys.pairs.count"
+
+          - set(description, "Number of SQL SELECT, INSERT, DELETE, UPDATE, statements successfully executed") where name == "crdb.sql.dml.query.count"
+          - set(unit, "{statements}") where name == "crdb.sql.dml.query.count"
+  
+  service:
+    pipelines:
+      metrics/cockroachdb:
+        receivers: [prometheus/cockroachdb]
+        processors: [filter/cockroachdb, metricstransform/cockroachdb, transform/cockroachdb]

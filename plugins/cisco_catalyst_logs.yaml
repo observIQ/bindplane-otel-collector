@@ -1,0 +1,82 @@
+version: 0.1.1
+title: Cisco Catalyst
+description: Log parser for Cisco Catalyst
+parameters:
+  - name: listen_port
+    description: A port which the agent will listen for udp messages
+    type: int
+    default: 5140
+  - name: listen_ip
+    description: A UDP ip address
+    type: string
+    default: "0.0.0.0"
+  - name: add_attributes
+    description: Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port labels.
+    type: bool
+    default: true
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    udplog:
+      listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
+      attributes:
+        log_type: 'cisco_catalyst'
+      add_attributes: {{.add_attributes}}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: regex_router
+          type: router
+          default: catalyst_parser
+          routes:
+            - expr: 'body matches "^<[^>]+>"'
+              output: syslog_beginning_parser
+
+        - id: syslog_beginning_parser
+          type: regex_parser
+          parse_from: body
+          regex: '^<(?P<priority>[^>]+)>(\s*)?(?P<message>[\s\S]*)'
+
+        - id: catalyst_parser
+          type: regex_parser
+          regex: '^(?P<sequence_number>\d+):\s+(\*)?(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}.\w{3}):\s+%(?P<facility_text>[^-]+)-(?P<severity>\d+)-(?P<mnemonic>[^:]+):\s*(?P<message>.*)'
+          parse_from: attributes.message
+          timestamp:
+            parse_from: attributes.timestamp
+            layout_type: strptime
+            layout: '%b %d %H:%M:%S.%L'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              fatal: 0
+              error3: 1
+              error2: 2
+              error: 3
+              warn2: 4
+              warn: 5
+              info: 6
+              debug: 7
+        {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers: [udplog]

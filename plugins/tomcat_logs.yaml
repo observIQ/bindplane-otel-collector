@@ -1,0 +1,175 @@
+version: 0.3.1
+title: Apache Tomcat
+description: Log parser for Apache Tomcat
+parameters:
+  - name: enable_access_log
+    description: Enable to collect Apache Tomcat access logs
+    type: bool
+    default: true
+  - name: access_log_path
+    description: Path to access log file
+    type: "[]string"
+    default:
+      - "/usr/local/tomcat/logs/localhost_access_log.*.txt"
+  - name: access_retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: enable_catalina_log
+    description: Enable to collect Apache Tomcat catalina logs
+    type: bool
+    default: true
+  - name: catalina_log_path
+    description: Path to catalina log file
+    type: "[]string"
+    default:
+      - "/usr/local/tomcat/logs/catalina.out"
+  - name: catalina_retain_raw_logs
+    description: When enabled will preserve the original log message on the body in a `raw_log` key
+    type: bool
+    default: false
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: timezone
+    description: Timezone to use when parsing the timestamp.
+    type: timezone
+    default: UTC
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    {{ if .enable_access_log }}
+    filelog/access:
+      storage: file_storage
+      include:
+        {{ range $fp := .access_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: tomcat.access
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .access_retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<status>\d+) (?P<bytes_sent>[^\s]+)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            location: {{ .timezone }}
+            layout: '%d/%b/%Y:%H:%M:%S %z'
+          severity:
+            parse_from: {{ .parse_to }}.status
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+        {{ if and .access_retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_catalina_log }}
+    filelog/catalina:
+      storage: file_storage
+      include:
+        {{ range $fp := .catalina_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2}.\d{3}'
+      attributes:
+        log_type: tomcat.catalina
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .catalina_retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '(?P<timestamp>\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2}.\d{3})\s(?P<tomcat_severity>\w+)\s\[(?P<thread>[^\[\]]+(?:\[[\d:]+\])?)\]\s(?P<tc_source>[^ ]+)\s(?P<message>[\s\S]+)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            location: {{ .timezone }}
+            layout: '%d-%b-%Y %H:%M:%S.%L'
+          severity:
+            parse_from: {{ .parse_to }}.tomcat_severity
+            mapping:
+              info: config
+              fatal2: severe
+              debug:
+                - fine
+                - finer
+                - finest
+        {{ if and .catalina_retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+        {{ end }}
+    {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_access_log }}
+          - filelog/access
+          {{ end }}
+
+          {{ if .enable_catalina_log }}
+          - filelog/catalina
+          {{ end }}

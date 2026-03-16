@@ -1,0 +1,141 @@
+version: 0.1.1
+title: HAProxy
+description: Log parser for HAProxy
+parameters:
+  - name: file_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    default:
+      - "/var/log/haproxy/haproxy.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  # HAProxy timestamps do not include a timestamp, so we need to set
+  # it explicitly.
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: initial_router
+          type: router
+          routes:
+            - output: http_parser
+              expr: 'body matches "^\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+[^\\s]+\\s+[^\\[]+\\[[^\\]]+\\]:(\\s)?[^:]+:[^\\s]+\\s+\\[[^\\]]+\\]\\s+[^\\s]+\\s+[^/]+/[^\\s]+[^/]+/[^/]+/[^/]+/[^/]+/[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[^\\s]+\\s+[\\w-]{4}\\s+[^/]+/[^/]+/[^/]+/[^/]+/[^\\s]+\\s+[^/]+/[^\\s]+ ({[\\w\\d[:ascii:]]+}\\s)?({[\\w\\d[:ascii:]]+}\\s)?\"\\S+ +[^ ]*( [^/]*/[^\\\"]*|[^\\\"]*)?"'
+              attributes:
+                frontend_type: http
+            - output: tcp_parser
+              expr: 'body matches "^\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+[^\\s]+\\s+[^\\[]+\\[[^\\]]+\\]:(\\s)?[^:]+:[^\\s]+\\s+\\[[^\\]]+\\]\\s+[^\\s]+\\s+[^/]+/[^\\s]+"'
+              attributes:
+                frontend_type: tcp
+            - output: general_parser
+              expr: 'body matches "^\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+[^\\s]+\\s+[^\\[]+\\[[^\\]]+\\]: \\[[^\\]]+\\]"'
+            - output: startup_parser
+              expr: 'body matches "^\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+[^\\s]+\\s+[^\\[]+\\[[^\\]]+\\]:(\\s)?.*"'
+
+        # HTTP parser parses a http access log and maps it's status code to the log entry's severity.
+        - id: http_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<process_name>[^\[]+)\[(?P<pid>[^\]]+)\]:(\s)?(?P<client_ip>[^:]+):(?P<client_port>[^\s]+)\s+\[(?P<accept_date>[^\]]+)\]\s+(?P<frontend_name_transport>[^\s]+)\s+(?P<backend_name>[^/]+)/(?P<server_name>[^\s]+)?(?P<client_request_send_time>[^/]+)/(?P<queue_wait_time>[^/]+)/(?P<response_time>[^/]+)/(?P<response_send_time>[^/]+)/(?P<client_request_active_time>[^\s]+)\s+(?P<status>[^\s]+)\s+(?P<bytes_read>[^\s]+)\s+(?P<captured_request_cookie>[^\s]+)\s+(?P<captured_response_cookie>[^\s]+)\s+(?P<termination_state>[\w-]{4})\s+(?P<process_concurrent_connections>[^/]+)/(?P<frontend_concurrent_connections>[^/]+)/(?P<backend_concurrent_connections>[^/]+)/(?P<server_concurrent_connections>[^/]+)/(?P<retries>[^\s]+)\s+(?P<server_queue>[^/]+)/(?P<backend_queue>[^\s]+) ({[\w\d[:ascii:]]+}\s)?({[\w\d[:ascii:]]+}\s)?"(?P<method>\S+) +(?P<uri>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?'
+          severity:
+            parse_from: attributes.status
+            mapping:
+              info: 2xx
+              warn: 3xx
+              warn2: 4xx
+              error: 5xx
+          output: uri_parser
+
+        - id: uri_parser
+          type: uri_parser
+          parse_from: attributes.uri
+          output: time_parser
+
+        # TCP parser parses a TCP access log. These logs do not contain a value that can map to severity.
+        - id: tcp_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<process_name>[^\[]+)\[(?P<pid>[^\]]+)\]:(\s)?(?P<client_ip>[^:]+):(?P<client_port>[^\s]+)\s+\[(?P<accept_date>[^\]]+)\]\s+(?P<frontend_name_transport>[^\s]+)\s+(?P<backend_name>[^/]+)/(?P<server_name>[^\s]+)?(?P<queue_wait_time>[^/]+)/(?P<server_response_time>[^/]+)/(?P<session_duration>[^\s]+)\s+(?P<bytes_read>[^\s]+)\s+(?P<termination_state>[\w-]{2})\s+(?P<process_concurrent_connections>[^/]+)/(?P<frontend_concurrent_connections>[^/]+)/(?P<backend_concurrent_connections>[^/]+)/(?P<server_concurrent_connections>[^/]+)/(?P<retries>[^\s]+)\s+(?P<server_queue>[^/]+)/(?P<backend_queue>[\d]+)'
+          output: tcp_add_severity
+
+        # TCP access logs do not indicate severity, default to info.
+        - id: tcp_add_severity
+          type: add
+          field: attributes.severity
+          value: info
+          output: tcp_severity_parser
+        
+        - id: tcp_severity_parser
+          type: severity_parser
+          parse_from: attributes.severity
+          output: time_parser
+
+        # General parser handles general logs not pertaining to TCP or HTTP access traffic. These logs have a severity embedded in them,
+        # which is used to map to the log entries severity value.
+        - id: general_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<process_name>[^\[]+)\[(?P<pid>[^\]]+)\]: \[(?P<severity>[^\]]+)\]'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              fatal: EMERG
+              fatal2: ALERT
+              fatal3: CRIT
+              error: ERR
+              warn: WARNING
+              info2: NOTICE
+              info: INFO
+              debug: DEBUG
+          output: time_parser
+
+        # Startup parser will extract timestamp, host, process, pid and leave
+        # message unparsed. This parser is called for startup log entries, such as "Proxy http started."
+        - id: startup_parser
+          type: regex_parser
+          regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<process_name>[^\[]+)\[(?P<pid>[^\]]+)\]'
+          output: time_parser
+
+        - type: time_parser
+          parse_from: attributes.timestamp
+          layout_type: gotime
+          layout: 'Jan 02 15:04:05'
+          location: {{ .timezone }}
+          output: add_type
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'haproxy'
+        {{ end }}
+    
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

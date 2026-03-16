@@ -1,0 +1,163 @@
+version: 0.0.3
+title: Couchbase Metrics
+description: Metrics receiver for Couchbase
+parameters:
+  - name: endpoint
+    description: Address to scrape metrics from
+    type: string
+    default: localhost:8091
+  - name: username
+    description: Username to use as header of every scrape request
+    type: string
+    required: true
+  - name: password
+    description: Password to use as header of every scrape request
+    type: string
+    required: true
+  - name: scrape_interval
+    description: Time in between every scrape request
+    type: string
+    default: 60s
+template: |
+  receivers:
+    prometheus/couchbase:
+      config:
+        scrape_configs:
+          - job_name: 'couchbase'
+            scrape_interval: '{{ .scrape_interval }}'
+            static_configs:
+              - targets: ['{{ .endpoint }}']
+            basic_auth:
+              username: '{{ .username }}'
+              password: '{{ .password }}'
+            metric_relabel_configs:
+              # Include only a few key metrics
+              - source_labels: [ __name__ ]
+                regex: "(kv_ops)|\
+                  (kv_vb_curr_items)|\
+                  (kv_num_vbuckets)|\
+                  (kv_ep_cursor_memory_freed_bytes)|\
+                  (kv_total_memory_used_bytes)|\
+                  (kv_ep_num_value_ejects)|\
+                  (kv_ep_mem_high_wat)|\
+                  (kv_ep_mem_low_wat)|\
+                  (kv_ep_tmp_oom_errors)|\
+                  (kv_ep_oom_errors)"
+                action: keep
+
+  processors:
+    filter/couchbase:
+      # Filter out prometheus scraping meta-metrics.
+      metrics:
+        exclude:
+          match_type: strict
+          metric_names:
+            - scrape_samples_post_metric_relabeling
+            - scrape_series_added
+            - scrape_duration_seconds
+            - scrape_samples_scraped
+            - up
+
+    metricstransform/couchbase:
+      transforms:
+        # Rename from prometheus metric name to OTel metric name.
+        # We cannot do this with metric_relabel_configs, as the prometheus receiver does not
+        # allow metric renames at this time.
+        - include: kv_ops
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.operation.count"
+        - include: kv_vb_curr_items
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.item.count"
+        - include: kv_num_vbuckets
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.vbucket.count"
+        - include: kv_ep_cursor_memory_freed_bytes
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.memory.usage.free"
+        - include: kv_total_memory_used_bytes
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.memory.usage.used"
+        - include: kv_ep_num_value_ejects
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.item.ejection.count"
+        - include: kv_ep_mem_high_wat
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.memory.high_water_mark.limit"
+        - include: kv_ep_mem_low_wat
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.memory.low_water_mark.limit"
+        - include: kv_ep_tmp_oom_errors
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.error.oom.count.recoverable"
+        - include: kv_ep_oom_errors
+          match_type: strict
+          action: update
+          new_name: "couchbase.bucket.error.oom.count.unrecoverable"
+        # Combine couchbase.bucket.error.oom.count.x and couchbase.bucket.memory.usage.x
+        # metrics.
+        - include: '^couchbase\.bucket\.error\.oom\.count\.(?P<error_type>unrecoverable|recoverable)$$'
+          match_type: regexp
+          action: combine
+          new_name: "couchbase.bucket.error.oom.count"
+        - include: '^couchbase\.bucket\.memory\.usage\.(?P<state>free|used)$$'
+          match_type: regexp
+          action: combine
+          new_name: "couchbase.bucket.memory.usage"
+        # Aggregate "result" label on operation count to keep label sets consistent across the metric datapoints
+        - include: 'couchbase.bucket.operation.count'
+          match_type: strict
+          action: update
+          operations:
+            - action: aggregate_labels
+              label_set: ["bucket", "op"]
+              aggregation_type: sum
+
+    transform/couchbase:
+      metric_statements:
+        - context: metric
+          statements:
+          - convert_gauge_to_sum("cumulative", true) where name == "couchbase.bucket.operation.count"
+          - set(description, "Number of operations on the bucket.") where name == "couchbase.bucket.operation.count"
+          - set(unit, "{operations}") where name == "couchbase.bucket.operation.count"
+
+          - convert_gauge_to_sum("cumulative", false) where name == "couchbase.bucket.item.count"
+          - set(description, "Number of items that belong to the bucket.") where name == "couchbase.bucket.item.count"
+          - set(unit, "{items}") where name == "couchbase.bucket.item.count"
+
+          - convert_gauge_to_sum("cumulative", false) where name == "couchbase.bucket.vbucket.count"
+          - set(description, "Number of non-resident vBuckets.") where name == "couchbase.bucket.vbucket.count"
+          - set(unit, "{vbuckets}") where name == "couchbase.bucket.vbucket.count"
+
+          - convert_gauge_to_sum("cumulative", false) where name == "couchbase.bucket.memory.usage"
+          - set(description, "Usage of total memory available to the bucket.") where name == "couchbase.bucket.memory.usage"
+          - set(unit, "By") where name == "couchbase.bucket.memory.usage"
+
+          - convert_gauge_to_sum("cumulative", true) where name == "couchbase.bucket.item.ejection.count"
+          - set(description, "Number of item value ejections from memory to disk.") where name == "couchbase.bucket.item.ejection.count"
+          - set(unit, "{ejections}") where name == "couchbase.bucket.item.ejection.count"
+
+          - convert_gauge_to_sum("cumulative", true) where name == "couchbase.bucket.error.oom.count"
+          - set(description, "Number of out of memory errors.") where name == "couchbase.bucket.error.oom.count"
+          - set(unit, "{errors}") where name == "couchbase.bucket.error.oom.count"
+
+          - set(description, "The memory usage at which items will be ejected.") where name == "couchbase.bucket.memory.high_water_mark.limit"
+          - set(unit, "By") where name == "couchbase.bucket.memory.high_water_mark.limit"
+
+          - set(description, "The memory usage at which ejections will stop that were previously triggered by a high water mark breach.") where name == "couchbase.bucket.memory.low_water_mark.limit"
+          - set(unit, "By") where name == "couchbase.bucket.memory.low_water_mark.limit"
+
+  service:
+    pipelines:
+      metrics/couchbase:
+        receivers: [prometheus/couchbase]
+        processors: [filter/couchbase, metricstransform/couchbase, transform/couchbase]

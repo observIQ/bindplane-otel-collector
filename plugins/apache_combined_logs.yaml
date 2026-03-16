@@ -1,0 +1,87 @@
+version: 0.2.1
+title: Apache Combined
+description: Log parser for Apache combined format
+parameters:
+  - name: file_path
+    type: "[]string"
+    description: Paths to Apache combined formatted log files
+    default:
+      - "/var/log/apache_combined.log"
+  - name: start_at
+    type: string
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: apache_combined
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<time>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*) "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.time
+            layout: '%d/%b/%Y:%H:%M:%S %z'
+          severity:
+            parse_from: {{ .parse_to }}.status
+            preset: none
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+
+
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

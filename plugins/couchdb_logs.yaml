@@ -1,0 +1,92 @@
+version: 0.0.2
+title: CouchDB
+description: Log parser for CouchDB
+parameters:
+  - name: log_paths
+    description: The absolute path to the CouchDB logs
+    type: "[]string"
+    default:
+      - "/var/log/couchdb/couchdb.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      multiline: 
+        line_start_pattern: '^\[\w+\]'
+      attributes:
+        log_type: couchdb
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: id_router
+          type: router
+          routes:
+            - output: couchdb_access_parser
+              expr: $ matches '^\\[(\\w*)\\] ([\\d\\-\\.:TZ]+) (\\S+)@([^\\s]+) \\<([^ ]*)\\> [\\w-]+ ([^ ]*) ([^ ]*) (([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([\\d]*))'
+            - output: couchdb_parser
+              expr: $ matches '^\\[(\\w*)\\] ([\\d\\-\\.:TZ]+) (\\S+)@([^\\s]+) ([\\s\\S]*(\\<([^>]+)\\>)[\\s\\S]*)'
+        - id: couchdb_access_parser
+          type: regex_parser
+          regex: '^\[(?P<level>\w*)\] (?P<timestamp>[\d\-\.:TZ]+) (?P<node>\S+)@(?P<host>[^\s]+) \<(?P<pid>[^ ]*)\> [\w-]+ (?P<http_request_serverIp>[^ ]*) (?P<http_request_remoteIp>[^ ]*) (?P<message>(?P<remote_user>[^ ]*) (?P<http_request_requestMethod>[^ ]*) (?P<path>[^ ]*) (?P<http_request_status>[^ ]*) (?P<status_message>[^ ]*) (?P<http_request_responseSize>[\d]*))'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+          severity:
+            parse_from: attributes.level
+            mapping:
+              info: notice
+              warn: warn
+              error: err
+              error2: crit
+              fatal: emerg
+          output: end_filter
+        - id: couchdb_parser
+          type: regex_parser
+          regex: '^\[(?P<level>\w*)\] (?P<timestamp>[\d\-\.:TZ]+) (?P<node>\S+)@(?P<host>[^\s]+) (?P<message>[\s\S]*(\<(?P<pid>[^>]+)\>)[\s\S]*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+          severity:
+            parse_from: attributes.level
+            mapping:
+              info: notice
+              warn: warn
+              error: err
+              error2: crit
+              fatal: emerg
+          output: end_filter
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+        {{ end }}
+  service:
+    pipelines:
+      logs:
+        receivers:
+          - filelog

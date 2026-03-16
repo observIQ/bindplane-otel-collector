@@ -1,0 +1,67 @@
+version: 0.0.2
+title: Windows DHCP
+description: Log parser for Windows DHCP
+parameters:
+  - name: file_path
+    type: "[]string"
+    default:
+      - "C:/Windows/System32/dhcp/DhcpSrvLog-*.log"
+  - name: start_at
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+      {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+      {{ end }}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'microsoft_dhcp'
+      operators: 
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: windows_dhcp_router
+          type: router
+          routes:
+            - output: windows_dhcp_parser
+              expr: body matches '^\\d+,\\d{2}\\/\\d{2}\\/\\d{2},\\d{2}:\\d{2}:\\d{2}'
+        - id: windows_dhcp_parser
+          type: regex_parser
+          regex: '^(?P<id>\d+),(?P<timestamp>\d{2}\/\d{2}\/\d{2},\d{2}:\d{2}:\d{2}),(?P<description>[^,]+),(?P<ip_address>[^,]*),(?P<hostname>[^,]*),(?P<mac_address>[^,]*),(?P<username>[^,]*),(?P<transaction_id>[^,]*),(?P<q_result>[^,]*),(?P<probation_time>[^,]*),(?P<correlation_id>[^,]*),(?P<dhc_id>[^,]*),(?P<vendor_class_hex>[^,]*)(,(?P<vendor_class_ascii>[^,]*),(?P<user_Class_hex>[^,]*),(?P<user_class_ascii>[^,]*),(?P<relay_agent_info>[^,]*),(?P<dns_reg_error>[^,]*))?'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%m/%d/%y,%H:%M:%S'
+        {{ end }}
+    
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          - filelog

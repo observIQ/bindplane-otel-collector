@@ -1,0 +1,221 @@
+version: 0.0.2
+title: PostgreSQL
+description: |
+  Log parser for PostgreSQL. 
+  This plugin supports normal logging and slow query logging.
+  Slow query logging can be enabled via the following steps:
+
+    1. Open postgresql.conf (found by running psql -U postgres -c 'SHOW config_file')
+    2. Replace the line #log_min_duration_statement = -1 with log_min_duration_statement = 1000.
+       This will log all queries executing longer than 1000ms (1s).
+    3. Save the configuration and restart PostgreSQL
+parameters:
+  - name: postgresql_log_path
+    description: Path to the PostgreSQL log file
+    type: "[]string"
+    default:
+      # Default log paths for Debain / Ubuntu
+      - "/var/log/postgresql/postgresql*.log"
+      # Default log paths for SLES
+      - "/var/lib/pgsql/data/log/postgresql*.log"
+      # Default log paths for CentOS / RHEL
+      - "/var/lib/pgsql/*/data/log/postgresql*.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .postgresql_log_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3,}'
+      attributes:
+        log_type: 'postgresql.general'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body  
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3,} \w+)\s*\[(?P<tid>\d+)\](?:\s+(?P<role>\S*)@(?P<user>\S*))?\s*(?P<level>\w+):\s+(?P<message>(?:\s*duration:\s*(?P<duration>[\d\.:]*)\s*ms\s*)?.*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%F %T %Z'
+          # Log level mapping from https://www.postgresql.org/docs/14/runtime-config-logging.html#RUNTIME-CONFIG-SEVERITY-LEVELS
+          severity:
+            parse_from: attributes.level
+            mapping:
+              debug: 'DEBUG1'
+              debug2: 'DEBUG2'
+              debug3: 'DEBUG3'
+              debug4:
+                - 'DEBUG4'
+                - 'DEBUG5'
+                - 'DETAIL'
+                - 'STATEMENT'
+                - 'HINT'
+              info:
+                - 'INFO'
+                - 'LOG'
+                - 'NOTICE'
+              error: 'ERROR'
+              warn: 'WARNING'
+              fatal:
+                - 'FATAL'
+                - 'PANIC'
+
+        # If duration field is not empty it's a slow query log
+        - id: slow_query
+          type: add
+          if: 'attributes.duration != ""'
+          field: attributes.log_type
+          value: 'postgresql.slow_query'
+
+        # If user matches a remote call send to client_address parser
+        - type: router
+          default: statement_router
+          routes:
+            - output: client_address_regex_parser
+              expr: 'attribute.user != nil and attribute.user matches "[\\w\\.]*\\([\\d]*\\)"'
+
+        - id: client_address_regex_parser
+          type: regex_parser
+          parse_from: attributes.user
+          regex: '(?P<user>[^\(]*)\((?P<client_address_port>[^\)]*)\)'
+          output: statement_router
+
+        # If log has a statement to parse send on to statement parsers
+        - id: statement_router
+          type: router
+          default: end_filter
+          routes:
+            - output: statement_regex_parser
+              expr: 'attributes.message matches "STATEMENT:\\s+|statement:\\s+"'
+
+        - id: statement_regex_parser
+          type: regex_parser
+          parse_from: attributes.message
+          regex: '(STATEMENT:\s*|statement:\s*)(?P<statement>[\w\W]+)'
+
+        - id: sql_command_alter
+          type: add
+          if: 'attributes.statement matches "^ALTER|^alter"'
+          field: attributes.sql_command
+          value: "ALTER"
+
+        - id: sql_command_commit
+          type: add
+          if: 'attributes.statement matches "^COMMIT|^commit"'
+          field: attributes.sql_command
+          value: "COMMIT"
+
+        - id: sql_command_copy
+          type: add
+          if: 'attributes.statement matches "^COPY|^copy"'
+          field: attributes.sql_command
+          value: "COPY"
+
+        - id: sql_command_create
+          type: add
+          if: 'attributes.statement matches "^CREATE|^create"'
+          field: attributes.sql_command
+          value: "CREATE"
+
+        - id: sql_command_delete
+          type: add
+          if: 'attributes.statement matches "^DELETE|^delete"'
+          field: attributes.sql_command
+          value: "DELETE"
+
+        - id: sql_command_drop
+          type: add
+          if: 'attributes.statement matches "^DROP|^drop"'
+          field: attributes.sql_command
+          value: "DROP"
+
+        - id: sql_command_grant
+          type: add
+          if: 'attributes.statement matches "^GRANT|^grant"'
+          field: attributes.sql_command
+          value: "GRANT"
+
+        - id: sql_command_insert
+          type: add
+          if: 'attributes.statement matches "^INSERT|^insert"'
+          field: attributes.sql_command
+          value: "INSERT"
+
+        - id: sql_command_revoke
+          type: add
+          if: 'attributes.statement matches "^REVOKE|^revoke"'
+          field: attributes.sql_command
+          value: "REVOKE"
+
+        - id: sql_command_rollback
+          type: add
+          if: 'attributes.statement matches "^ROLLBACK|^rollback"'
+          field: attributes.sql_command
+          value: "ROLLBACK"
+
+        - id: sql_command_select
+          type: add
+          if: 'attributes.statement matches "^SELECT|^select"'
+          field: attributes.sql_command
+          value: "SELECT"
+
+        - id: sql_command_truncate
+          type: add
+          if: 'attributes.statement matches "^TRUNCATE|^truncate"'
+          field: attributes.sql_command
+          value: "TRUNCATE"
+
+        - id: sql_command_update
+          type: add
+          if: 'attributes.statement matches "^UPDATE|^update"'
+          field: attributes.sql_command
+          value: "UPDATE"
+
+        - id: sql_command_vacuum
+          type: add
+          if: 'attributes.statement matches "^VACUUM|^vacuum"'
+          field: attributes.sql_command
+          value: "VACUUM"
+
+        # Noop filter to allow an exit point for other operators to go to if they are a leaf in the pipeline
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+        {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

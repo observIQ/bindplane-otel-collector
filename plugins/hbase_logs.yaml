@@ -1,0 +1,179 @@
+version: 0.1.1
+title: Apache HBase
+description: Log parser for Apache HBase
+parameters:
+  - name: enable_master_log
+    description: Enable to collect HBase master logs
+    type: bool
+    default: true
+  - name: master_log_path
+    description: The absolute path to the HBase master logs
+    type: "[]string"
+    default:
+      - "/usr/local/hbase*/logs/hbase*-master-*.log"
+  - name: enable_region_log
+    description: Enable to collect HBase region logs
+    type: bool
+    default: true
+  - name: region_log_path
+    description: The absolute path to the HBase region logs
+    type: "[]string"
+    default:
+      - "/usr/local/hbase*/logs/hbase*-regionserver-*.log"
+  - name: enable_zookeeper_log
+    description: Enable to collect HBase zookeeper logs
+    type: bool
+    default: false
+  - name: zookeeper_log_path
+    description: The absolute path to the HBase zookeeper logs
+    type: "[]string"
+    default:
+      - "/usr/local/hbase*/logs/hbase*-zookeeper-*.log"
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    {{ if .enable_master_log }}
+    filelog/master:
+      include:
+        {{ range $fp := .master_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      attributes:
+        log_type: hbase.master
+      multiline:
+          line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\s+|^\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.hbase_severity
+        - type: regex_parser
+          if: 'body matches "\\w+ \\w+ \\d{2} \\d{2}:\\d{2}:\\d{2} \\w+ \\d{4}"'
+          regex: '^(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}) (?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_region_log }}
+    filelog/region:
+      include:
+        {{ range $fp := .region_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      attributes:
+        log_type: hbase.region
+      multiline:
+       line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\s+|^\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.hbase_severity
+        - type: regex_parser
+          if: 'body matches "\\w+ \\w+ \\d{2} \\d{2}:\\d{2}:\\d{2} \\w+ \\d{4}"'
+          regex: '^(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}) (?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_zookeeper_log }}
+    filelog/zookeeper:
+      include:
+        {{ range $fp := .zookeeper_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      attributes:
+        log_type: hbase.zookeeper
+      multiline:
+       line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\s+|^\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.hbase_severity
+        - type: regex_parser
+          if: 'body matches "\\w+ \\w+ \\d{2} \\d{2}:\\d{2}:\\d{2} \\w+ \\d{4}"'
+          regex: '^(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}) (?P<message>(?s).*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
+    {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_master_log }}
+          - filelog/master
+          {{ end }}
+
+          {{ if .enable_region_log }}
+          - filelog/region
+          {{ end }}
+
+          {{ if .enable_zookeeper_log }}
+          - filelog/zookeeper
+          {{ end }}

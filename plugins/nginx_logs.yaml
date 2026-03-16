@@ -1,0 +1,188 @@
+version: 0.0.2
+title: NGINX
+description: Log parser for NGINX
+parameters:
+  # The observiq log format is defined as:
+  # log_format observiq '{"remote_addr":"$remote_addr","remote_user":"$remote_user","time_local":"$time_local","request":"$request","status":"$status","body_bytes_sent":"$body_bytes_sent","http_referer":"$http_referer","http_user_agent":"$http_user_agent","request_length":"$request_length","request_time":"$request_time","upstream_addr":"$upstream_addr","upstream_response_length":"$upstream_response_length","upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","proxy_add_x_forwarded_for":"$proxy_add_x_forwarded_for","bytes_sent":"$bytes_sent","time_iso8601":"$time_iso8601","upstream_connect_time":"$upstream_connect_time","upstream_header_time":"$upstream_header_time","http_x_forwarded_for":"$http_x_forwarded_for"}';
+  # See https://docs.nginx.com/nginx/admin-guide/monitoring/logging/#setting-up-the-access-log for more information on configuring log format
+  - name: log_format
+    description: Specifies the format of the access log entries. When choosing 'default', the agent will expect the log entries to match the default nginx log format. When choosing 'observiq', the agent will expect the log entries to match an optimized JSON format that adheres to the observIQ specification. See the Nginx documentation for more information.
+    type: string
+    supported:
+      - default
+      - observiq
+    default: default
+  - name: enable_access_log
+    description: Enable access log collection
+    type: bool
+    default: true
+  - name: access_log_paths
+    description: Path to access log file
+    type: "[]string"
+    default:
+      - "/var/log/nginx/access.log*"
+  - name: enable_error_log
+    description: Enable error log collection
+    type: bool
+    default: true
+  - name: error_log_paths
+    description: Path to error log file
+    type: "[]string"
+    default:
+      - "/var/log/nginx/error.log*"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: encoding
+    description: Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected
+    type: string
+    supported:
+      - nop
+      - utf-8
+      - utf-16le
+      - utf-16be
+      - ascii
+      - big5
+    default: utf-8
+  - name: data_flow
+    description: High mode keeps all entries, low mode filters out based on http request status
+    type: string
+    supported:
+      - high
+      - low
+    default: high
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    {{ if .enable_access_log }}
+    filelog/access_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .access_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      attributes:
+        log_type: 'nginx.access'
+      start_at: {{ .start_at }}
+      encoding: {{ .encoding }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        {{ if eq .log_format "default" }}
+        - type: regex_parser
+          regex: '^(?P<http_request_remoteIp>[^ ]*) (?P<host>[^ ]*) (?P<user>[^ ]*) \[(?P<time_local>[^\]]*)\] "(?P<http_request_requestMethod>\S+)(?: +(?P<http_request_requestUrl>[^\"]*?)(?: +(?P<http_request_protocol>\S+))?)?" (?P<http_request_status>[^ ]*) (?P<http_request_responseSize>[^ ]*)(?: "(?P<http_request_referer>[^\"]*)" "(?P<http_request_userAgent>[^\"]*)")?$'
+          timestamp:
+            parse_from: "attributes.time_local"
+            layout: '%d/%b/%Y:%H:%M:%S %z'
+          severity:
+            parse_from: "attributes.http_request_status"
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+        {{end}} # End default log format parsing
+        
+        {{ if eq .log_format "observiq" }}
+        - id: access_parser
+          type: json_parser
+          timestamp:
+            parse_from: "attributes.time_local"
+            layout: '%d/%b/%Y:%H:%M:%S %z'
+          severity:
+            parse_from: "attributes.status"
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+        - id: move_status
+          type: move
+          from: attributes.status
+          to: attributes.http_request_status
+        - id: request_parser
+          type: regex_parser
+          parse_from: "attributes.request"
+          if: 'attributes.request != nil and attributes.request matches "\\S+ +[^ ]* "'
+          regex: '(?P<http_request_requestMethod>\S+) +(?P<http_request_requestUrl>[^ ]*) ((?P<http_request_protocol>[^/]*)/(?P<http_request_protocol_version>.*)|.*)?'
+        {{end}} # end observiq format parsing
+        {{ if eq .data_flow "low" }}
+        - id: filter
+          type: filter
+          expr: 'attributes.http_request_status == nil or not (attributes.http_request_status matches "[45][0-9]{2}")'
+        - id: retain
+          type: retain
+          fields:
+            - attributes.http_request_status
+            - attributes.http_request_requestUrl
+            - attributes.request_time
+        {{ end }}
+        {{ end }}
+    {{end}} # end access log receiver
+
+    {{ if .enable_error_log }}
+    filelog/error_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .error_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      attributes:
+        log_type: 'nginx.error'
+      start_at: {{ .start_at }}
+      encoding: {{ .encoding }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<time>\d+[./-]\d+[./-]\d+[- ]\d+:\d+:\d+) \[(?P<log_level>[^\]]*)\] (?P<pid>\d+)#(?P<tid>\d+):(?: \*(?P<connection>\d+))? (?P<message>.*?)(?:, client: (?P<client>[^,]+))?(?:, server: (?P<server>[^,]+))?(?:, request: "(?P<request>[^"]*)")?(?:, subrequest: \"(?P<subrequest>[^\"]*)\")?(?:, upstream: \"(?P<upstream>[^"]*)\")?(?:, host: \"(?P<host>[^\"]*)\")?(?:, referrer: \"(?P<referer>[^"]*)\")?$'
+          timestamp:
+            parse_from: "attributes.time"
+            layout: '%Y/%m/%d %T'
+          severity:
+            parse_from: "attributes.log_level"
+            mapping:
+              error2: crit
+              error3: emerg
+        {{ end }}
+    {{end}} # end error log receiver
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_access_log }}
+          - filelog/access_log
+          {{ end }}
+          {{ if .enable_error_log }}
+          - filelog/error_log
+          {{ end }}

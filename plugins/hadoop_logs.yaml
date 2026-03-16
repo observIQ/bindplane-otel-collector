@@ -1,0 +1,117 @@
+version: 0.0.3
+title: Apache Hadoop
+description: Log parser for Apache Hadoop
+parameters:
+  - name: enable_datanode_logs
+    description: Enable collection of Hadoop data node logs
+    type: bool
+    default: true
+  - name: datanode_log_path
+    description: The absolute path to the data node logs
+    type: "[]string"
+    default:
+      - "/usr/local/hadoop/logs/hadoop-*-datanode-*.log"
+  - name: enable_resourcemgr_logs
+    description: Enable the collection of ResourceManager logs
+    type: bool
+    default: true
+  - name: resourcemgr_log_path
+    description: The absolute path to the DataNode logs
+    type: "[]string"
+    default:
+      - "/usr/local/hadoop/logs/hadoop-*-resourcemgr-*.log"
+  - name: enable_namenode_logs
+    description: Enable collection of Hadoop NameNode logs
+    type: bool
+    default: true
+  - name: namenode_log_path
+    description: The absolute path to the NameNode logs
+    type: "[]string"
+    default:
+      - "/usr/local/hadoop/logs/hadoop-*-namenode-*.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ if .enable_datanode_logs }}
+        {{ range $fp := .datanode_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+        {{ end }}
+        {{ if .enable_resourcemgr_logs }}
+        {{ range $fp := .resourcemgr_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+        {{ end }}
+        {{ if .enable_namenode_logs }}
+        {{ range $fp := .namenode_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+        {{ end }}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3} [A-Z]+'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        # Set log_type attribute based on file name
+        - type: router
+          routes:
+            - attributes:
+                log_type: hadoop.datanode
+              expr: attributes["log.file.name"] contains "datanode"
+              output: regex_parser
+            - attributes:
+                log_type: hadoop.resource_manager
+              expr: attributes["log.file.name"] contains "resourcemanager"
+              output: regex_parser
+            - attributes:
+                log_type: hadoop.namenode
+              expr: attributes["log.file.name"] contains "namenode"
+              output: regex_parser  
+            - attributes:
+                log_type: hadoop
+              expr: 'true'
+              output: regex_parser          
+
+        - type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}),\d{3}\s(?P<severity>[A-Z]*)\s(?P<fqcn>[A-Za-z0-9\.\$]+):\s(?P<message>(?s)\S.*\S)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+        {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers:
+          - filelog

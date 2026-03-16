@@ -1,0 +1,68 @@
+version: 0.0.2
+title: RabbitMQ
+description: Log parser for RabbitMQ
+parameters:
+  - name: daemon_log_paths
+    description: The absolute path to the RabbitMQ Daemon logs
+    type: "[]string"
+    default: ["/var/log/rabbitmq/rabbit@*.log"]
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .daemon_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      multiline:
+        line_start_pattern: '\d+-\d+-\d+ \d+:\d+:\d+\.\d+\+\d+:\d+'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: rabbitmq
+      operators:
+        # Example of log line:
+        # 2022-04-18 12:03:53.856675+00:00 [info] <0.230.0> Running boot step rabbit_looking_glass defined by app rabbit
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}) \[(?P<severity>[a-z]+)\] \<(?P<process_id>\d+\.\d+\.\d+)\> (?P<message>.*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S.%s%j'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: 'noti'
+        {{ end }}
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

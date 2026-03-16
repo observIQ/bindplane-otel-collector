@@ -1,0 +1,104 @@
+version: 0.0.3
+title: Common Event Format
+description: File Input Common Event Format Parser
+parameters:
+  - name: file_log_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory.
+    type: "[]string"
+    required: true
+  - name: exclude_file_log_path
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory
+    type: "[]string"
+    default: []
+  - name: log_type
+    type: string
+    description: Adds the specified 'Type' as a label to each log message.
+    default: "cef"
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: start_at
+    type: string
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .file_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      exclude:
+        {{ range $fp := .exclude_file_log_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      operators:  
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+((?P<hostname>[^\s]+)\s+)?(?P<cef_headers>[\d\D]+)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout_type: gotime
+            layout: 'Jan 02 15:04:05'
+            location: {{ .timezone }}
+
+        - type: csv_parser
+          parse_from: attributes.cef_headers
+          header: 'version|device_vendor|device_product|device_version|signature_id|name|severity|extensions'
+          delimiter: "|"
+
+        - type: regex_parser
+          if: 'attributes.version != nil and attributes.version matches "CEF:[^\\|]*"'
+          regex: 'CEF:(?P<version>[^\|]*)'
+          parse_from: attributes.version
+
+        - type: severity_parser
+          if: 'attributes.severity != nil'
+          parse_from: attributes.severity
+          preset: none
+          mapping:
+            info:
+              - min: 0
+                max: 3
+              - low
+            warn:
+              - min: 4
+                max: 6
+              - medium
+            error:
+              - min: 7
+                max: 8
+              - high
+            fatal:
+              - min: 9
+                max: 10
+              - very-high
+
+        - id: add_log_type
+          type: add
+          field: attributes.log_type
+          value: {{ .log_type }}
+        {{ end }}
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

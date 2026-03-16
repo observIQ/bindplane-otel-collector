@@ -1,0 +1,266 @@
+version: 0.5.1
+title: Kubernetes Container Logs
+description: Log parser for Kubernetes Container logs. This plugin is meant to be used with the OpenTelemetry Operator for Kubernetes (https://github.com/open-telemetry/opentelemetry-operator).
+parameters:
+  - name: log_source
+    description: Where to read container logs from
+    type: string
+    supported:
+      - file
+      - journald
+    default: file
+  - name: log_paths
+    type: "[]string"
+    description: A list of file glob patterns that match the file paths to be read
+    default:
+      - "/var/log/containers/*.log"
+  - name: journald_path
+    type: string
+    description: The path to read journald container logs from
+    default: /var/log/journal
+  - name: exclude_file_log_path
+    type: "[]string"
+    description: A list of file glob patterns to exclude from reading
+    default:
+      # Excludes logs for the collector
+      - "/var/log/containers/observiq-*-collector-*"
+      - "/var/log/containers/bindplane-*-agent-*"
+  - name: body_json_parsing
+    type: bool
+    description: If the application log is detected as json, parse the values into the log entry's body.
+    default: true
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: log_driver
+    description: >-
+      The container runtime's log driver used to write container logs to disk.
+      Valid options include `auto`, `docker-json-file` and `containerd-cri`.
+      When set to `auto`, the format will be detected using regex. Format detection
+      is convenient but comes with the cost of performing a regex match against every
+      log entry read by the filelog receiver.
+    type: "string"
+    supported:
+      - auto
+      # https://docs.docker.com/config/containers/logging/json-file/
+      - docker-json-file
+      # This format is not well documented: https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/logs/logs.go#L125-L169
+      - containerd-cri
+    default: auto
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+
+  receivers:
+    {{ if eq .log_source "file" }}
+    filelog:
+        storage: file_storage
+        include:
+          {{ range $fp := .log_paths }}
+            - '{{ $fp }}'
+          {{end}}
+        start_at: {{ .start_at }}
+        attributes:
+          log_type: "k8s.container_logs"
+        exclude:
+          {{ range $fp := .exclude_file_log_path }}
+            - '{{ $fp }}'
+          {{end}}
+        poll_interval: 500ms
+        operators:
+          {{ if .parse }}
+          {{ if eq .log_driver "auto" }}
+          - type: router
+            routes:
+              - expr: 'body matches "^[^{]"'
+                output: containerd_cri_parser
+            default: docker_json_file_parser
+          {{ end }}
+
+          {{ if or (eq .log_driver "docker-json-file") (eq .log_driver "auto") }}
+          # The raw message looks like this:
+          # {"log":"I0618 14:30:29.641678       1 logs.go:59] http: TLS handshake error from 192.168.49.2:56222: EOF\n","stream":"stderr","time":"2022-06-18T14:30:29.641732743Z"}
+          - type: json_parser
+            id: docker_json_file_parser
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+            output: log-to-body
+          {{ end }}
+
+          {{ if or (eq .log_driver "containerd-cri") (eq .log_driver "auto") }}
+          # The raw message looks like this:
+          # 2022-06-18T16:52:59.639114537Z stdout F {"message":"registered Stackdriver tracing","severity":"info","timestamp":"2022-06-18T16:52:59.639034532Z"}
+          - id: containerd_cri_parser
+            type: regex_parser
+            regex: '^(?P<time>[^\s]+) (?P<stream>\w+) (?P<partial>\w)? ?(?P<log>.*)'
+          - type: recombine
+            source_identifier: attributes["log.file.name"]
+            combine_field: attributes.log
+            is_last_entry: "attributes.partial == 'F'"
+          - type: remove
+            field: attributes.partial
+          - id: time_parser_router
+            type: router
+            routes:
+              # Containerd can have a couple timestamp formats depending if the node has local time set
+              - output: local_containerd_timestamp_parser
+                expr: 'attributes.time != nil and attributes.time matches "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}[\\+-]\\d{2}:\\d{2}"'
+              - output: utc_containerd_timestamp_parser
+                expr: 'attributes.time != nil and attributes.time matches "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3,9}Z"'
+
+          - type: time_parser
+            id: local_containerd_timestamp_parser
+            parse_from: attributes.time
+            layout: '%Y-%m-%dT%H:%M:%S.%s%j'
+            output: log-to-body
+
+          - type: time_parser
+            id: utc_containerd_timestamp_parser
+            parse_from: attributes.time
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+            output: log-to-body
+          {{ end }}
+
+          # The raw body does not contain anything useful considering timestamp has been promotoed to
+          # the log entries timestamp, therefore we move attributes.log (the actual container log message)
+          # to body.
+          - type: move
+            id: log-to-body
+            from: attributes.log
+            to: body
+
+          # Initial severity is derived from the stream field, which can be
+          # "stderr" or "stdout"
+          - type: severity_parser
+            parse_from: attributes.stream
+            mapping:
+              info: stdout
+              error: stderr
+
+          # Parse body as json if the body appears to be json
+          {{ if .body_json_parsing }}
+          - type: json_parser
+            if: body matches "^{.*}\\s*$"
+            parse_from: body
+            parse_to: body
+
+          # After parsing the log body as json, parse severity
+          # or level if present, with severity taking precedence.
+          - type: router
+            default: file_name_parser
+            routes:
+              - expr: 'body.severity != nil'
+                output: body_severity_parser
+              - expr: 'body.level != nil'
+                output: body_level_parser
+          - type: severity_parser
+            id: body_severity_parser
+            parse_from: body.severity
+            output: file_name_parser
+          - type: severity_parser
+            id: body_level_parser
+            parse_from: body.level
+            output: file_name_parser
+          {{ end }}
+
+          # Detect pod, namespace, and container names from the file name.
+          - type: regex_parser
+            id: file_name_parser
+            regex: '^(?P<pod>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?P<namespace>[^_]+)_(?P<container>.+)-'
+            parse_from: attributes["log.file.name"]
+            cache:
+              size: 500
+              
+          # Semantic conventions for k8s
+          # https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md#kubernetes
+          - type: move
+            from: attributes.pod
+            to: resource["k8s.pod.name"]
+          - type: move
+            from: attributes.namespace
+            to: resource["k8s.namespace.name"]
+          - type: move
+            from: attributes.container
+            to: resource["k8s.container.name"]
+          {{ end }}
+    {{ end }}
+
+    {{ if eq .log_source "journald" }}
+    journald:
+      storage: file_storage
+      directory: {{ .journald_path }}
+      operators:
+        {{ if .parse }}
+        - type: router
+          routes:
+            - expr: 'body._COMM == "dockerd-current" and body.CONTAINER_NAME != nil'
+              output: filter
+
+        - type: filter
+          expr: 'body.CONTAINER_NAME matches "otc-container"'
+          drop_ratio: 1.0
+
+        - type: regex_parser
+          regex: '^k8s_(?P<container>[-a-z0-9_]+)_(?P<pod>[-a-z0-9\.]+)_(?P<namespace>[-a-z0-9]+)_[-a-z0-9]+_\d+'
+          parse_from: body.CONTAINER_NAME
+
+        - type: move
+          from: attributes.container
+          to: resource["k8s.container.name"]
+
+        - type: move
+          from: attributes.pod
+          to: resource["k8s.pod.name"]
+
+        - type: move
+          from: attributes.namespace
+          to: resource["k8s.namespace.name"]
+
+        - type: move
+          from: body._HOSTNAME
+          to: resource["k8s.node.name"]
+
+        - type: move
+          from: body.MESSAGE
+          to: body
+
+        # Parse body as json if the body appears to be json
+        {{ if .body_json_parsing }}
+        - type: json_parser
+          if: body matches "^{.*}\\s*$"
+          parse_from: body
+          parse_to: body
+        {{ end }}
+
+        - type: add
+          field: attributes.log_type
+          value: container
+        {{ end }}
+    {{ end }}
+
+  service:
+    extensions:
+      - file_storage
+    pipelines:
+      logs:
+        receivers:
+          {{ if eq .log_source "file" }}
+          - filelog
+          {{ else if eq .log_source "journald" }}
+          - journald
+          {{ end }}

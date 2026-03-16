@@ -1,0 +1,103 @@
+version: 0.1.1
+title: Apache Zookeeper
+description: Log parser for Apache Zookeeper
+parameters:
+  - name: file_path
+    description: The absolute path to the Zookeeper logs
+    type: "[]string"
+    default:
+      - "/home/kafka/kafka/logs/zookeeper.log"
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: regex_router
+          type: router
+          routes: 
+            - expr: 'body matches "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2},\\d{3})\\s\\[myid:(?P<myid>\\d+)?\\].*"'
+              output: my_id_regex
+          default: no_id_regex 
+
+        - id: my_id_regex
+          type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s\[myid:(?P<myid>\d+)?\]\s-\s(?P<zookeeper_severity>\w+)\s+\[(?P<thread>.+):(?P<source>.+)@(?P<line>\d+)\]\s+-\s*(?P<message>[^\n]*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.zookeeper_severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+          output: add_type
+
+        - id: no_id_regex
+          type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s-\s(?P<zookeeper_severity>\w+)\s+\[(?P<thread>.+):(?P<source>.+)@(?P<line>\d+)\]\s+-\s*(?P<message>[^\n]+)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.zookeeper_severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'zookeeper'
+        {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

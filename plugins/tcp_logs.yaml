@@ -1,0 +1,63 @@
+version: 0.0.1
+title: TCP
+description: Log receiver for TCP
+parameters:
+  - name: listen_port
+    description: A port which the agent will listen for tcp messages
+    type: int
+    required: true
+  - name: listen_ip
+    description: The local IP address to listen for TCP connections on
+    type: string
+    default: "0.0.0.0"
+  - name: log_type
+    description: Adds the specified 'Type' as a label to each log message.
+    type: string
+    default: tcp
+  - name: add_attributes
+    description: Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port attributes
+    type: bool
+    default: false
+  - name: enable_tls
+    description: Enable TLS for the TCP listener
+    type: bool
+    default: false
+  - name: tls_certificate_path
+    description: File path for the X509 TLS certificate chain
+    type: string
+  - name: tls_private_key_path
+    description: File path for the X509 TLS private key chain
+    type: string
+  - name: tls_min_version
+    description: Minimum version of TLS to use
+    type: string
+    supported:
+      - "1.0"
+      - "1.1"
+      - "1.2"
+      - "1.3"
+    default: "1.2"
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+    tcplog:
+      listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
+      {{ if .parse }}
+      add_attributes: {{ .add_attributes }}
+      {{ end }}
+      attributes:
+        log_type: '{{ .log_type }}'
+      {{ if .enable_tls }}
+      tls:
+        {{ if .tls_certificate_path }}cert_file: '{{ .tls_certificate_path }}'{{ end }}
+        {{ if .tls_private_key_path }}key_file: '{{ .tls_private_key_path }}'{{ end }}
+        min_version: '{{ .tls_min_version }}'
+      {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers: [tcplog]

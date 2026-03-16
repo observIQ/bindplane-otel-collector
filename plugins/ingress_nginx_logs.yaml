@@ -1,0 +1,117 @@
+version: 0.0.1
+title: Ingress NGINX
+description: Log parser for Ingress NGINX
+parameters:
+  - name: file_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    default:
+      - "/var/log/containers/ingress-nginx-controller*.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  # An optional cluster name
+  - name: cluster_name
+    description: Optional cluster name to be included in logs
+    type: string
+    default: ""
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+      filelog:
+        include:
+          {{ range $fp := .file_path }}
+          - '{{ $fp }}'
+          {{ end }}
+        start_at: {{ .start_at }}
+        {{ if .cluster_name }}
+        resource:
+          k8s.cluster.name: {{ .cluster_name }}
+        {{ end }}
+        operators:
+          # Initial log object looks like this:
+          # '{"log":"NGINX Ingress controller\n","stream":"stdout","time":"2022-05-18T01:27:30.100955955Z"}'
+
+          - type: json_parser
+
+          # Move the request message to body
+          - type: move
+            from: attributes.log
+            to: body
+
+          {{ if .parse }}
+          # Detect log type
+          - type: router
+            routes:
+              - output: access_parser
+                expr: 'body matches "\\S+ - \\S+ \\[[^\\]]+\\] \"\\S+ +[^ ]* ([^/]*/.*|.*)?\" \\d+ \\d+ \"\\S+\" \"[^\"]+\" \\d+ [\\d\\.]+ \\[[^\\]]*\\] \\[\\s*\\] \\S+ [\\d-]+ [\\d\\.-]+ [\\d-]+ [a-z0-9]+"'
+              - output: controller_parser
+                expr: 'body matches "\\w\\d{4} \\d{2}:\\d{2}:\\d{2}.\\d+\\s+\\d+\\s+[^:]*:[^\\]]*"'
+
+          - id: controller_parser
+            type: regex_parser
+            # 'time' field replaces 'time' field from initial json parser.
+            regex: '(?P<severity>\w)(?P<time>\d{4} \d{2}:\d{2}:\d{2}.\d+)\s+(?P<pid>\d+)\s+(?P<src>[^:]*):(?P<src_line>[^\]]*)\] (?P<message>.*)'
+            severity:
+              parse_from: attributes.severity
+              mapping:
+                debug: d
+                info: i
+                warn: w
+                error: e
+                critical: c
+            timestamp:
+              parse_from: attributes.time
+              layout: '%m%d %H:%M:%S.%s'
+            output: controller_cleanup
+
+          - id: controller_cleanup
+            type: move
+            from: attributes.message
+            to: body
+            output: metadata_parser
+
+          - id: access_parser
+            type: regex_parser
+            # 'time' field replaces 'time' field from initial json parser.
+            regex: '(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time>[^\]]+)\] "(?P<method>\S+) +(?P<path>[^ ]*) ((?P<protocol>[^/]*)/(?P<protocol_version>.*)|.*)?" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>\S+)" "(?P<http_user_agent>[^"]+)" (?P<request_length>\d+) (?P<request_time>[\d\.]+) \[(?P<proxy_upstream_name>[^\]]*)\] \[(?P<proxy_alternative_upstream_name>\s*)\] (?P<upstream_addr>\S+) (?P<upstream_response_length>[\d-]+) (?P<upstream_response_time>[\d\.-]+) (?P<upstream_status>[\d-]+) (?P<request_id>[a-z0-9]+)'
+            timestamp:
+              parse_from: attributes.time
+              layout: '%d/%b/%Y:%H:%M:%S %z'
+            severity:
+              parse_from: attributes.status
+              mapping:
+                info: 2xx
+                info2: 3xx
+                warn: 4xx
+                error: 5xx
+            output: path_parser
+
+          - id: path_parser
+            type: uri_parser
+            parse_from: attributes.path
+            output: metadata_parser
+
+          - id: metadata_parser
+            type: regex_parser
+            regex: '^(?P<pod_name>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?P<namespace>[^_]+)_(?P<container_name>.+)-(?P<container_id>[a-z0-9]{64})\.log$'
+            parse_from: attributes["log.file.name"]
+            output: add_type
+          {{ end }}
+
+          - id: add_type
+            type: add
+            field: attributes.log_type
+            value: ingress-nginx
+    
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

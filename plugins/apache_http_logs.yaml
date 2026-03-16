@@ -1,0 +1,222 @@
+version: 0.1.1
+title: Apache HTTP Server
+description: |
+  Log parser for Apache HTTP Server
+  For optimal Apache HTTP parsing and enrichment, we recommend choosing 'observIQ' log format in which log Apache logging configuration is modified to output log entries as JSON files.
+
+  Steps for updating config file apache2.conf:
+    1. Add the access Logformat and error ErrorLogFormat to the main apache configuration.
+       On Debian based systems, this can be found in /etc/apache2/apache2.conf
+    2. Modify CustomLog in sites-available configurations to use 'observiq' for the access log format.
+        ex: CustomLog ${env:APACHE_LOG_DIR}/access.log observiq
+    3. Restart Apache Http Server
+
+  The 'observIQ' log format is defined for access logs and error logs as follows:
+  Logformat "{\"timestamp\":\"%{%Y-%m-%dT%T}t.%{usec_frac}t%{%z}t\",\"remote_addr\":\"%a\",\"protocol\":\"%H\",\"method\":\"%m\",\"query\":\"%q\",\"path\":\"%U\",\"status\":\"%>s\",\"http_user_agent\":\"%{User-agent}i\",\"http_referer\":\"%{Referer}i\",\"remote_user\":\"%u\",\"body_bytes_sent\":\"%b\",\"request_time_microseconds\":\"%D\",\"http_x_forwarded_for\":\"%{X-Forwarded-For}i\"}" observiq
+  ErrorLogFormat "{\"time\":\"%{cu}t\",\"module\":\"%-m\",\"client\":\"%-a\",\"http_x_forwarded_for\":\"%-{X-Forwarded-For}i\",\"log_level\":\"%-l\",\"pid\":\"%-P\",\"tid\":\"%-T\",\"message\":\"%-M\",\"logid\":{\"request\":\"%-L\",\"connection\":\"%-{c}L\"},\"request_note_name\":\"%-{name}n\"}"
+parameters:
+  - name: log_format
+    description: When choosing the 'default' option, the agent will expect and parse logs in a format that matches the default logging configuration. When choosing the 'observIQ' option, the agent will expect and parse logs in an optimized JSON format that adheres to the observIQ specification, requiring an update to the apache2.conf file.
+    type: string
+    supported:
+      - default
+      - observiq
+    default: default
+  - name: enable_access_log
+    description: Enable to collect Apache HTTP Server access logs
+    type: bool
+    default: true
+  - name: access_log_path
+    description: Path to access log file
+    type: "[]string"
+    default:
+      - "/var/log/apache2/access.log"
+  - name: enable_error_log
+    description: Enable to collect Apache HTTP Server error logs
+    type: bool
+    default: true
+  - name: error_log_path
+    description: Path to error log file
+    type: "[]string"
+    default:
+      - "/var/log/apache2/error.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured data. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+  {{ if .enable_access_log }}
+    filelog/access_log:
+      include:
+        # {{ range $fp := .access_log_path }}
+        - '{{ $fp }}'
+        # {{end}}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'apache_http.access'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: access_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if and .parse (eq .log_format "default") }}
+        - id: access_regex_parser
+          type: regex_parser
+          regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<timestamp>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%d/%b/%Y:%H:%M:%S %z'
+          severity:
+            parse_from: attributes.status
+            preset: none
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+          output: end_filter
+        {{ end }}
+
+        {{ if .parse }}
+        - id: access_json_parser
+          type: json_parser
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%s%z'
+          severity:
+            parse_from: attributes.status
+            preset: none
+            mapping:
+              info: 2xx
+              info2: 3xx
+              warn: 4xx
+              error: 5xx
+          output: access_protocol_parser
+        
+        - id: access_protocol_parser
+          type: regex_parser
+          parse_from: attributes.protocol
+          regex: '(?P<protocol>[^/]*)/(?P<protocol_version>.*)'
+          output: end_filter
+        {{ end }}
+
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+    {{ end }}
+
+  {{ if .enable_error_log }}
+    filelog/error_log:
+      include:
+        {{ range $fp := .error_log_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      # {{ if eq .log_format "default" }}
+      multiline:
+        line_start_pattern: '\[(?P<time>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}\.\d+ \d+)\] '
+      # {{ end }}
+      attributes:
+        log_type: 'apache_http.error'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: error_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if and .parse (eq .log_format "default") }}
+        - id: error_regex_parser
+          type: regex_parser
+          regex: '^\[(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}\.\d+ \d+)\] \[(?P<module>\w+):(?P<log_level>[\w\d]+)\] \[pid (?P<pid>\d+)(?::tid (?P<tid>[\d]+))?\](?: \[client (?P<client>[^\]]*)\])? (?P<error_code>[^:]+): (?P<message>.*)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%a %b %d %T.%s %Y'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.log_level
+            mapping:
+              info2: notice
+              error2: crit
+              error3: alert
+              fatal2: emerg
+              trace:
+                - trace1
+                - trace2
+                - trace3
+                - trace4
+                - trace5
+                - trace6
+                - trace7
+                - trace8
+          output: end_filter
+        {{ end }}
+
+        {{ if .parse }}
+        - id: error_json_parser
+          type: json_parser
+          timestamp:
+            parse_from: attributes.time
+            layout: '%Y-%m-%d %H:%M:%S.%s'
+            location: {{ .timezone }}
+          severity:
+            parse_from: attributes.log_level
+            mapping:
+              info2: notice
+              error2: crit
+              error3: alert
+              fatal2: emerg
+              trace:
+                - trace1
+                - trace2
+                - trace3
+                - trace4
+                - trace5
+                - trace6
+                - trace7
+                - trace8
+          output: error_message_parser
+
+        - id: error_message_parser
+          type: regex_parser
+          parse_from: attributes.message
+          regex: '(?P<error_code>[^:]*):(?P<message>.*)'
+          output: end_filter
+        {{ end }}
+
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+  {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers:  
+        #  {{ if .enable_access_log }}
+          - filelog/access_log
+        # {{ end }}
+        # {{ if .enable_error_log }}
+          - filelog/error_log
+        # {{ end }}

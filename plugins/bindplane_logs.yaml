@@ -1,0 +1,76 @@
+version: 0.1.0
+title: Bindplane Logs
+description: Log parser for Bindplane Observability Pipeline.
+parameters:
+  - name: log_paths
+    type: "[]string"
+    description: A list of file glob patterns that match the file paths to be read
+    default:
+      - "/var/log/bindplane/bindplane.log"
+  - name: exclude_file_log_path
+    type: "[]string"
+    description: A list of file glob patterns to exclude from reading
+    default:
+      - "/var/log/bindplane/bindplane-*.log.gz"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .log_paths }}
+          - '{{ $fp }}'
+        {{ end }}
+      exclude:
+        {{ range $fp := .exclude_file_log_path }}
+          - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: "bindplane"
+      operators:
+        {{ if .parse }}
+        - type: json_parser
+          parse_from: body
+          parse_to: body
+          severity:
+            parse_from: body.level
+          timestamp:
+            parse_from: body.timestamp
+            layout_type: gotime
+            # ISO 8601
+            #       2022-10-18T17:46:17.580Z
+            #       2022-10-21T16:00:32.942-0400
+            layout: 2006-01-02T15:04:05.999Z0700
+        
+        # Cleanup raw severity and time fields after setting
+        # the entry's Severity and Timestamp.
+        - type: remove
+          field: body.level
+        - type: remove
+          field: body.timestamp
+        {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          - filelog

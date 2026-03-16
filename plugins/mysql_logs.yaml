@@ -1,0 +1,716 @@
+version: 0.0.2
+title: MySQL
+description: |
+  Log parser for MySQL.
+  This plugin supports error logging as well as query logging.
+
+  To enable general query logging run the following with an admin user:
+   SET GLOBAL general_log_file = '/var/log/mysql/general.log';
+   SET GLOBAL general_log = 'ON';
+
+  To enable slow query logging run the following with an admin user:
+    SET GLOBAL slow_query_log_file = '/var/log/mysql/slow-query.log';
+    SET GLOBAL slow_query_log = 'ON';
+parameters:
+  - name: enable_general_log
+    description: Enable to collect MySQL general logs
+    type: bool
+    default: true
+  - name: general_log_paths
+    description: Path to general log file
+    type: "[]string"
+    default:
+      - "/var/log/mysql/general.log"
+  - name: enable_slow_log
+    description: Enable to collect MySQL slow query logs
+    type: bool
+    default: true
+  - name: slow_query_log_paths
+    description: Path to slow query log file
+    type: "[]string"
+    default:
+      - "/var/log/mysql/slow*.log"
+  - name: enable_error_log
+    description: Enable to collect MySQL error logs
+    type: bool
+    default: true
+  - name: error_log_paths
+    description: Path to mysqld log file
+    type: "[]string"
+    default:
+      # Default log path for CentOS / RHEL
+      - "/var/log/mysqld.log"
+      # Default log path for SLES
+      - "/var/log/mysql/mysqld.log"
+      # Default log path for Debian / Ubuntu
+      - "/var/log/mysql/error.log"
+  - name: enable_mariadb_audit_log
+    description: Enable to collect MySQL audit logs provided by MariaDB Audit plugin
+    type: bool
+    default: false
+  - name: mariadb_audit_log_paths
+    description: Path to audit log file created by MariaDB plugin
+    type: "[]string"
+    default:
+      - "/var/log/mysql/audit.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    {{ if .enable_slow_log }}
+    filelog/slow_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .slow_query_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '# Time: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z\s|/\w+/\w+/mysqld,'
+      operators:
+        # Example of log line:
+        # # Time: 2022-04-25T16:58:49.001283Z
+        # # User@Host: root[root] @ localhost []  Id:    12
+        # # Query_time: 0.038360  Lock_time: 0.000035 Rows_sent: 0  Rows_examined: 0
+        # SET timestamp=1650905928;
+        # create table stuff (
+        # id int
+        # );
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: slow_query_router
+          type: router
+          routes:
+            - output: slow_query_regex_parser
+              expr: 'body startsWith "# Time: "'
+              attributes:
+                log_type: 'mysql.slow_query'
+            - output: server_start_regex_parser
+              expr: 'body matches "/\\w+/\\w+/mysqld"'
+              attributes:
+                log_type: 'mysql.server-start'
+
+        - id: server_start_regex_parser
+          type: regex_parser
+          regex: '(?P<path>/\w+/\w+/mysqld),\sVersion:\s(?P<version>[\s\d\D]+)\.\s(?P<started_with>[\s\d\D]+)'
+          output: end_filter
+
+        - id: slow_query_regex_parser
+          type: regex_parser
+          regex: '# Time: (?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s# User@Host:\s+(?P<dbuser>[^\[]*)\[(?P<dbname>[^\]]*)\]\s+@\s+((?P<host>[^\s]+)\s)?\[(?P<ip_address>[\w\d\.:]*)\]\s+Id:\s+(?P<tid>\d+)\s+#\s+Query_time:\s+(?P<query_time>[\d\.]+)\s+Lock_time:\s+(?P<lock_time>[\d\.]+)\s+Rows_sent:\s+(?P<rows_sent>\d+)\s+Rows_examined:\s(?P<rows_examined>\d+)\s+(?P<query>(?s).*[^\s])'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+        
+        - id : slow_query_extra_fields_parser
+          type: regex_parser
+          if : attributes.query contains "Thread_id"
+          regex:  '(?:Thread_id:\s+(?P<thread_id>\d+))?(?:\s+Errno:\s(?P<errorNumber>\d+))?(?:\s+Killed:\s(?P<killed>\d+))?(?:\s+Bytes_received:\s(?P<bytesReceived>\d+))?(?:\s+Bytes_sent:\s(?P<bytesSent>\d+))?(?:\s+Read_first:\s(?P<readFirst>\d+))?(?:\s+Read_last:\s(?P<readLast>\d+))?(?:\s+Read_key:\s(?P<readKey>\d+))?(?:\s+Read_next:\s(?P<readNext>\d+))?(?:\s+Read_prev:\s(?P<readPrev>\d+))?(?:\s+Read_rnd:\s(?P<readRnd>\d+))?(?:\s+Read_rnd_next:\s(?P<readRndNext>\d+))?(?:\s+Sort_merge_passes:\s(?P<sortMergePasses>\d+))?(?:\s+Sort_range_count:\s(?P<sortRangeCount>\d+))?(?:\s+Sort_rows:\s(?P<sortRows>\d+))?(?:\s+Sort_scan_count:\s(?P<sortScanCount>\d+))?(?:\s+Created_tmp_disk_tables:\s(?P<createdTmpDiskTables>\d+))?(?:\s+Created_tmp_tables:\s(?P<createdTmpTables>\d+))?(?:\s+Start:\s(?P<startTime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z))?(?:\s+End:\s(?P<endTime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z))?(?P<query>(?s).*[^\s])'
+          parse_from: attributes.query
+
+        - id: query_exists_router
+          type: router
+          default: end_filter
+          routes:
+            - output: slow_query_sql_command_router
+              expr: 'attributes.query != nil'
+
+        - id: slow_query_sql_command_router
+          type: router
+          default: end_filter
+          routes:
+            - output: end_filter
+              expr: 'attributes.query matches "^ALTER|^alter"'
+              attributes:
+                sql_command: 'ALTER'
+            - output: end_filter
+              expr: 'attributes.query matches "^ANALYZE|^analyze"'
+              attributes:
+                sql_command: 'ANALYZE'
+            - output: end_filter
+              expr: 'attributes.query matches "^BEGIN|^begin"'
+              attributes:
+                sql_command: 'BEGIN'
+            - output: end_filter
+              expr: 'attributes.query matches "^CACHE|^cache"'
+              attributes:
+                sql_command: 'CACHE'
+            - output: end_filter
+              expr: 'attributes.query matches "^CALL|^call"'
+              attributes:
+                sql_command: 'CALL'
+            - output: end_filter
+              expr: 'attributes.query matches "^CHANGE|^change"'
+              attributes:
+                sql_command: 'CHANGE'
+            - output: end_filter
+              expr: 'attributes.query matches "^CHECK|^check"'
+              attributes:
+                sql_command: 'CHECK'
+            - output: end_filter
+              expr: 'attributes.query matches "^COMMIT|^commit"'
+              attributes:
+                sql_command: 'COMMIT'
+            - output: end_filter
+              expr: 'attributes.query matches "^COPY|^copy"'
+              attributes:
+                sql_command: 'COPY'
+            - output: end_filter
+              expr: 'attributes.query matches "^CREATE|^create"'
+              attributes:
+                sql_command: 'CREATE'
+            - output: end_filter
+              expr: 'attributes.query matches "^DELETE|^delete"'
+              attributes:
+                sql_command: 'DELETE'
+            - output: end_filter
+              expr: 'attributes.query matches "^DO|^do"'
+              attributes:
+                sql_command: 'DO'
+            - output: end_filter
+              expr: 'attributes.query matches "^DROP|^drop"'
+              attributes:
+                sql_command: 'DROP'
+            - output: end_filter
+              expr: 'attributes.query matches "^EXECUTE|^execute"'
+              attributes:
+                sql_command: 'EXECUTE'
+            - output: end_filter
+              expr: 'attributes.query matches "^FLUSH|^flush"'
+              attributes:
+                sql_command: 'FLUSH'
+            - output: end_filter
+              expr: 'attributes.query matches "^GRANT|^grant"'
+              attributes:
+                sql_command: 'GRANT'
+            - output: end_filter
+              expr: 'attributes.query matches "^HANDLER|^handler"'
+              attributes:
+                sql_command: 'HANDLER'
+            - output: end_filter
+              expr: 'attributes.query matches "^INSERT|^insert"'
+              attributes:
+                sql_command: 'INSERT'
+            - output: end_filter
+              expr: 'attributes.query matches "^IMPORT|^import"'
+              attributes:
+                sql_command: 'IMPORT'
+            - output: end_filter
+              expr: 'attributes.query matches "^INSTALL|^install"'
+              attributes:
+                sql_command: 'INSTALL'
+            - output: end_filter
+              expr: 'attributes.query matches "^LOAD|^load"'
+              attributes:
+                sql_command: 'LOAD'
+            - output: end_filter
+              expr: 'attributes.query matches "^LOCK|^lock"'
+              attributes:
+                sql_command: 'LOCK'
+            - output: end_filter
+              expr: 'attributes.query matches "^OPTIMIZE|^optimize"'
+              attributes:
+                sql_command: 'OPTIMIZE'
+            - output: end_filter
+              expr: 'attributes.query matches "^PREPARE|^prepare"'
+              attributes:
+                sql_command: 'PREPARE'
+            - output: end_filter
+              expr: 'attributes.query matches "^PURGE|^purge"'
+              attributes:
+                sql_command: 'PURGE'
+            - output: end_filter
+              expr: 'attributes.query matches "^RELEASE|^release"'
+              attributes:
+                sql_command: 'RELEASE'
+            - output: end_filter
+              expr: 'attributes.query matches "^RENAME|^rename"'
+              attributes:
+                sql_command: 'RENAME'
+            - output: end_filter
+              expr: 'attributes.query matches "^REPAIR|^repair"'
+              attributes:
+                sql_command: 'REPAIR'
+            - output: end_filter
+              expr: 'attributes.query matches "^REPLACE|^replace"'
+              attributes:
+                sql_command: 'REPLACE'
+            - output: end_filter
+              expr: 'attributes.query matches "^RESET|^reset"'
+              attributes:
+                sql_command: 'RESET'
+            - output: end_filter
+              expr: 'attributes.query matches "^REVOKE|^revoke"'
+              attributes:
+                sql_command: 'REVOKE'
+            - output: end_filter
+              expr: 'attributes.query matches "^ROLLBACK|^rollback"'
+              attributes:
+                sql_command: 'ROLLBACK'
+            - output: end_filter
+              expr: 'attributes.query matches "^SAVEPOINT|^savepoint"'
+              attributes:
+                sql_command: 'SAVEPOINT'
+            - output: end_filter
+              expr: 'attributes.query matches "^SELECT|^select"'
+              attributes:
+                sql_command: 'SELECT'
+            - output: end_filter
+              expr: 'attributes.query matches "^SET|^set"'
+              attributes:
+                sql_command: 'SET'
+            - output: end_filter
+              expr: 'attributes.query matches "^SHOW|^show"'
+              attributes:
+                sql_command: 'SHOW'
+            - output: end_filter
+              expr: 'attributes.query matches "^START|^start"'
+              attributes:
+                sql_command: 'START'
+            - output: end_filter
+              expr: 'attributes.query matches "^STOP|^stop"'
+              attributes:
+                sql_command: 'STOP'
+            - output: end_filter
+              expr: 'attributes.query matches "^TABLE|^table"'
+              attributes:
+                sql_command: 'TABLE'
+            - output: end_filter
+              expr: 'attributes.query matches "^TRUNCATE|^truncate"'
+              attributes:
+                sql_command: 'TRUNCATE'
+            - output: end_filter
+              expr: 'attributes.query matches "^UNINSTALL|^uninstall"'
+              attributes:
+                sql_command: 'UNINSTALL'
+            - output: end_filter
+              expr: 'attributes.query matches "^UNLOCK|^unlock"'
+              attributes:
+                sql_command: 'UNLOCK'
+            - output: end_filter
+              expr: 'attributes.query matches "^UPDATE|^update"'
+              attributes:
+                sql_command: 'UPDATE'
+            - output: end_filter
+              expr: 'attributes.query matches "^VALUES|^values"'
+              attributes:
+                sql_command: 'VALUES'
+            - output: end_filter
+              expr: 'attributes.query matches "^WITH|^with"'
+              attributes:
+                sql_command: 'WITH'
+            - output: end_filter
+              expr: 'attributes.query matches "^XA|^xa"'
+              attributes:
+                sql_command: 'XA'
+        
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_error_log }}
+    filelog/error_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .error_log_paths }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'mysql.error'
+      multiline:
+        line_start_pattern: '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z'
+      operators:
+        # Example of log line:
+        # 2022-04-25T12:06:16.500574Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(?P<tid>\d+)\s+\[(?P<mysql_severity>[^\]]+)]\s+(?P<message>[\d\D\s]+)'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+          severity:
+            parse_from: attributes.mysql_severity
+            mapping:
+              error:
+                - error
+              warn:
+                - warning
+              info:
+                - system
+              info2:
+                - note
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_general_log }}
+    filelog/general_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .general_log_paths }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z|/\w+/\w+/mysqld,'
+      operators:
+        # Example of log line:
+        # /usr/sbin/mysqld, Version: 5.7.27-log (MySQL Community Server (GPL)). started with:
+        # Tcp port: 0  Unix socket: /var/lib/mysql/mysql.sock
+        # Time                 Id Command    Argument
+        # 
+        # 2020-06-19T13:06:37.479323Z	    1 Query	DROP PREPARE stmt;
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: router
+          routes:
+            - output: general_regex_parser
+              expr: 'body matches "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+Z"'
+              attributes:
+                log_type: 'mysql.general'
+            - output: server_start_regex_parser
+              expr: 'body matches "/\\w+/\\w+/mysqld"'
+              attributes:
+                log_type: 'mysql.server-start'
+            
+        - id: server_start_regex_parser
+          type: regex_parser
+          regex: '(?P<path>/\w+/\w+/mysqld),\sVersion:\s(?P<version>[\s\d\D]+)\.\s(?P<started_with>[\s\d\D]+)'
+          output: end_filter
+
+        - id: general_regex_parser
+          type: regex_parser
+          regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(?P<tid>\d+)\s+(?P<command>\w+)(\s+(?P<message>(?s).+\S))?'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%dT%H:%M:%S.%sZ'
+
+        - id: command_exist_router
+          type: router
+          default: end_filter
+          routes:
+            - output: general_sql_command_router
+              expr: 'attributes.command != nil and attributes.command == "Query"'
+
+        - id: general_sql_command_router
+          type: router
+          default: end_filter
+          routes:
+            - output: end_filter
+              expr: 'attributes.message matches "^ALTER|^alter"'
+              attributes:
+                sql_command: 'ALTER'
+            - output: end_filter
+              expr: 'attributes.message matches "^ANALYZE|^analyze"'
+              attributes:
+                sql_command: 'ANALYZE'
+            - output: end_filter
+              expr: 'attributes.message matches "^BEGIN|^begin"'
+              attributes:
+                sql_command: 'BEGIN'
+            - output: end_filter
+              expr: 'attributes.message matches "^CACHE|^cache"'
+              attributes:
+                sql_command: 'CACHE'
+            - output: end_filter
+              expr: 'attributes.message matches "^CALL|^call"'
+              attributes:
+                sql_command: 'CALL'
+            - output: end_filter
+              expr: 'attributes.message matches "^CHANGE|^change"'
+              attributes:
+                sql_command: 'CHANGE'
+            - output: end_filter
+              expr: 'attributes.message matches "^CHECK|^check"'
+              attributes:
+                sql_command: 'CHECK'
+            - output: end_filter
+              expr: 'attributes.message matches "^COMMIT|^commit"'
+              attributes:
+                sql_command: 'COMMIT'
+            - output: end_filter
+              expr: 'attributes.message matches "^COPY|^copy"'
+              attributes:
+                sql_command: 'COPY'
+            - output: end_filter
+              expr: 'attributes.message matches "^CREATE|^create"'
+              attributes:
+                sql_command: 'CREATE'
+            - output: end_filter
+              expr: 'attributes.message matches "^DELETE|^delete"'
+              attributes:
+                sql_command: 'DELETE'
+            - output: end_filter
+              expr: 'attributes.message matches "^DO|^do"'
+              attributes:
+                sql_command: 'DO'
+            - output: end_filter
+              expr: 'attributes.message matches "^DROP|^drop"'
+              attributes:
+                sql_command: 'DROP'
+            - output: end_filter
+              expr: 'attributes.message matches "^EXECUTE|^execute"'
+              attributes:
+                sql_command: 'EXECUTE'
+            - output: end_filter
+              expr: 'attributes.message matches "^FLUSH|^flush"'
+              attributes:
+                sql_command: 'FLUSH'
+            - output: end_filter
+              expr: 'attributes.message matches "^GRANT|^grant"'
+              attributes:
+                sql_command: 'GRANT'
+            - output: end_filter
+              expr: 'attributes.message matches "^HANDLER|^handler"'
+              attributes:
+                sql_command: 'HANDLER'
+            - output: end_filter
+              expr: 'attributes.message matches "^INSERT|^insert"'
+              attributes:
+                sql_command: 'INSERT'
+            - output: end_filter
+              expr: 'attributes.message matches "^IMPORT|^import"'
+              attributes:
+                sql_command: 'IMPORT'
+            - output: end_filter
+              expr: 'attributes.message matches "^INSTALL|^install"'
+              attributes:
+                sql_command: 'INSTALL'
+            - output: end_filter
+              expr: 'attributes.message matches "^LOAD|^load"'
+              attributes:
+                sql_command: 'LOAD'
+            - output: end_filter
+              expr: 'attributes.message matches "^LOCK|^lock"'
+              attributes:
+                sql_command: 'LOCK'
+            - output: end_filter
+              expr: 'attributes.message matches "^OPTIMIZE|^optimize"'
+              attributes:
+                sql_command: 'OPTIMIZE'
+            - output: end_filter
+              expr: 'attributes.message matches "^PREPARE|^prepare"'
+              attributes:
+                sql_command: 'PREPARE'
+            - output: end_filter
+              expr: 'attributes.message matches "^PURGE|^purge"'
+              attributes:
+                sql_command: 'PURGE'
+            - output: end_filter
+              expr: 'attributes.message matches "^RELEASE|^release"'
+              attributes:
+                sql_command: 'RELEASE'
+            - output: end_filter
+              expr: 'attributes.message matches "^RENAME|^rename"'
+              attributes:
+                sql_command: 'RENAME'
+            - output: end_filter
+              expr: 'attributes.message matches "^REPAIR|^repair"'
+              attributes:
+                sql_command: 'REPAIR'
+            - output: end_filter
+              expr: 'attributes.message matches "^REPLACE|^replace"'
+              attributes:
+                sql_command: 'REPLACE'
+            - output: end_filter
+              expr: 'attributes.message matches "^RESET|^reset"'
+              attributes:
+                sql_command: 'RESET'
+            - output: end_filter
+              expr: 'attributes.message matches "^REVOKE|^revoke"'
+              attributes:
+                sql_command: 'REVOKE'
+            - output: end_filter
+              expr: 'attributes.message matches "^ROLLBACK|^rollback"'
+              attributes:
+                sql_command: 'ROLLBACK'
+            - output: end_filter
+              expr: 'attributes.message matches "^SAVEPOINT|^savepoint"'
+              attributes:
+                sql_command: 'SAVEPOINT'
+            - output: end_filter
+              expr: 'attributes.message matches "^SELECT|^select"'
+              attributes:
+                sql_command: 'SELECT'
+            - output: end_filter
+              expr: 'attributes.message matches "^SET|^set"'
+              attributes:
+                sql_command: 'SET'
+            - output: end_filter
+              expr: 'attributes.message matches "^SHOW|^show"'
+              attributes:
+                sql_command: 'SHOW'
+            - output: end_filter
+              expr: 'attributes.message matches "^START|^start"'
+              attributes:
+                sql_command: 'START'
+            - output: end_filter
+              expr: 'attributes.message matches "^STOP|^stop"'
+              attributes:
+                sql_command: 'STOP'
+            - output: end_filter
+              expr: 'attributes.message matches "^TABLE|^table"'
+              attributes:
+                sql_command: 'TABLE'
+            - output: end_filter
+              expr: 'attributes.message matches "^TRUNCATE|^truncate"'
+              attributes:
+                sql_command: 'TRUNCATE'
+            - output: end_filter
+              expr: 'attributes.message matches "^UNINSTALL|^uninstall"'
+              attributes:
+                sql_command: 'UNINSTALL'
+            - output: end_filter
+              expr: 'attributes.message matches "^UNLOCK|^unlock"'
+              attributes:
+                sql_command: 'UNLOCK'
+            - output: end_filter
+              expr: 'attributes.message matches "^UPDATE|^update"'
+              attributes:
+                sql_command: 'UPDATE'
+            - output: end_filter
+              expr: 'attributes.message matches "^VALUES|^values"'
+              attributes:
+                sql_command: 'VALUES'
+            - output: end_filter
+              expr: 'attributes.message matches "^WITH|^with"'
+              attributes:
+                sql_command: 'WITH'
+            - output: end_filter
+              expr: 'attributes.message matches "^XA|^xa"'
+              attributes:
+                sql_command: 'XA'
+
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_mariadb_audit_log }}
+    filelog/mariadb_audit_log:
+      storage: file_storage
+      include:
+        {{ range $fp := .mariadb_audit_log_paths }}
+        - '{{ $fp }}'
+        {{ end }}
+      start_at: {{ .start_at }}
+      operators:
+        # Example of log line:
+        # 20210317 11:41:24,oiq-int-mysql,root,localhost,4,0,"FAILED ""CONNECT""",,,0
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: single_quote_router
+          type: router
+          default: mariadb_audit_regex_parser_lt
+          routes:
+            - output: mariadb_audit_regex_parser_gt
+              expr: 'body matches "^(?P<time>\\d{6})"'
+        
+        - id: mariadb_audit_regex_parser_gt
+          type: regex_parser
+          regex: '^(?P<timestamp>\d{6} \d{2}:\d{2}:\d{2})\s+\[(?P<level>[^\]]+)]\s+(?P<message>.*)$'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%y%m%d  %H:%M:%S'
+          severity:
+            parse_from: attributes.level
+            mapping:
+              error:
+                - error
+              warn:
+                - warning
+              info:
+                - system
+              info2:
+                - note
+          output: add_type
+
+        - id: mariadb_audit_regex_parser_lt
+          type: regex_parser
+          regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+(?P<tid>\d+))?(?:\s+\[(?P<level>[^\]]+)])?\s+(?P<message>.*)$'
+          timestamp:
+            parse_from: attributes.timestamp
+            layout: '%Y-%m-%d %H:%M:%S'
+          severity:
+            parse_from: attributes.level
+            mapping:
+              error:
+                - error
+              warn:
+                - warning
+              info:
+                - system
+              info2:
+                - note
+          output: add_type
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'mysql.audit'
+        {{ end }}
+    {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_slow_log }}
+          - filelog/slow_log
+          {{ end }}
+          {{ if .enable_error_log }}
+          - filelog/error_log
+          {{ end }}
+          {{ if .enable_general_log }}
+          - filelog/general_log
+          {{ end }}
+          {{ if .enable_mariadb_audit_log }}
+          - filelog/mariadb_audit_log
+          {{ end }}

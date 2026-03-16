@@ -1,0 +1,352 @@
+version: 0.5.1
+title: IIS
+description: Log parser for IIS
+parameters:
+  - name: file_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    default:
+      - "C:/inetpub/logs/LogFiles/W3SVC*/**/*.log"
+  - name: log_format
+    description: "The format of the IIS logs. For more information on the various log formats, see: https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525807%28v=vs.90%29"
+    type: "string"
+    supported:
+      - w3c
+      - iis
+      - ncsa
+    default: w3c
+  - name: w3c_header
+    description: "The W3C header which specifies the field names. Only applicable if log_format is w3c. Fields are automatically detected if unspecified. 'start_at' must be beginning if unspecified."
+    type: "string"
+  - name: exclude_file_log_path
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory
+    type: "[]string"
+    default: []
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: include_file_name
+    description: Enable to include file name in logs
+    type: bool
+    default: true
+  - name: include_file_path
+    description: Enable to include file path in logs
+    type: bool
+    default: true
+  - name: include_file_name_resolved
+    description: Enable to include file name resolved in logs
+    type: bool
+    default: false
+  - name: include_file_path_resolved
+    description: Enable to include file path resolved in logs
+    type: bool
+    default: false
+  - name: max_concurrent_files
+    description: Max number of W3C files that will be open during a batch
+    type: int
+    default: 1024
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`).
+    type: string
+    supported:
+      - beginning
+      - end
+    default: beginning
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    # W3C format
+    {{if eq .log_format "w3c"}}
+    filelog:
+      storage: file_storage
+      include: 
+      {{ range $i, $fp := .file_path }}
+        - '{{ $fp }}'
+      {{ end }}
+      {{ if .exclude_file_log_path }}  
+      exclude: 
+      {{ range $i, $efp := .exclude_file_log_path }}
+        - '{{ $efp }}'
+      {{ end }}
+      {{ end }}
+      {{ if not .w3c_header }}
+      header:
+        pattern: "^#"
+        metadata_operators:
+          - type: regex_parser
+            regex: "^#Fields: (?P<header_fields>.*)$"
+            if: 'body startsWith "#Fields: "'
+      {{ end }}
+      include_file_name: {{ .include_file_name }}
+      include_file_path: {{ .include_file_path }}
+      include_file_name_resolved: {{ .include_file_name_resolved }}
+      include_file_path_resolved: {{ .include_file_path_resolved }}
+      start_at: {{ .start_at }}
+      max_concurrent_files: {{ .max_concurrent_files }}
+      operators: 
+      {{ if .save_log_record_original }}
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
+      {{ end }}
+      - type: filter
+        expr: 'body matches "^#"'
+
+      {{ if .retain_raw_logs }}
+      - id: save_raw_log
+        type: copy
+        from: body
+        to: attributes.raw_log
+      {{ end }}
+
+      {{ if .parse }}
+      - type: csv_parser
+        {{ if .w3c_header }}
+        header: '{{ .w3c_header }}'
+        {{ else }}
+        header_attribute: 'header_fields'
+        {{ end }}
+        parse_to: {{ .parse_to }}
+        delimiter: " "
+        ignore_quotes: true
+
+      {{ if not .w3c_header }}
+      - type: remove
+        field: "attributes.header_fields"
+      {{ end }}
+
+      - type: severity_parser
+        if: '{{ .parse_to }}["sc-status"] != nil'
+        parse_from: '{{ .parse_to }}["sc-status"]'
+        mapping:
+            info: 2xx
+            info2: 3xx
+            warn: 4xx
+            error: 5xx
+
+      # If both date & time field exists, parse the timestamp
+      - type: router
+        routes:
+        - output: add_timestamp
+          expr: '{{ .parse_to }}.date != nil and {{ .parse_to }}.time != nil'
+        default: add_log_type
+
+      # Combines data + time fields into timestamp field
+      - id: add_timestamp
+        type: add
+        field: {{ .parse_to }}.timestamp
+        value: EXPR({{ .parse_to }}.date + " " + {{ .parse_to }}.time)
+
+      # Remove date field
+      - id: remove_date
+        type: remove
+        field: {{ .parse_to }}.date
+
+      # Remove time field
+      - id: remove_time
+        type: remove
+        field: {{ .parse_to }}.time
+
+      - id: time_parser
+        type: time_parser
+        if: '{{ .parse_to }}.timestamp != nil'
+        parse_from: {{ .parse_to }}.timestamp
+        layout: '%Y-%m-%d %H:%M:%S'
+        location: {{.timezone}}
+      {{ end }}
+
+      - id: add_log_type
+        type: add
+        field: 'attributes.log_type'
+        value: 'microsoft_iis'
+
+      {{ if and .retain_raw_logs (eq .parse_to "body")}}
+      - id: move_raw_log
+        type: move
+        from: attributes.raw_log
+        to: body.raw_log
+      {{ end }}
+
+    {{end}}
+    # IIS format
+    {{if eq .log_format "iis"}}
+    filelog:
+      storage: file_storage
+      include: 
+      {{ range $i, $fp := .file_path }}
+        - '{{ $fp }}'
+      {{ end }}
+      {{ if .exclude_file_log_path }}  
+      exclude: 
+      {{ range $i, $efp := .exclude_file_log_path }}
+        - '{{ $efp }}'
+      {{ end }}
+     {{ end }}
+      include_file_name: {{ .include_file_name }}
+      include_file_path: {{ .include_file_path }}
+      include_file_name_resolved: {{ .include_file_name_resolved }}
+      include_file_path_resolved: {{ .include_file_path_resolved }}
+      start_at: {{ .start_at }}
+      max_concurrent_files: {{ .max_concurrent_files }}
+      operators: 
+      {{ if .save_log_record_original }}
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
+      {{ end }}
+      {{ if .retain_raw_logs }}
+      - id: save_raw_log
+        type: copy
+        from: body
+        to: attributes.raw_log
+      {{ end }}
+      {{ if .parse }}
+      - type: regex_parser
+        regex: '^(?P<c_ip>[^,]+), (?P<cs_username>[^,]+), (?P<date>[^,]+), (?P<time>[^,]+), (?P<s_sitename>[^,]+), (?P<s_computername>[^,]+), (?P<s_ip>[^,]+), (?P<time_taken>[^,]+), (?P<cs_bytes>[^,]+), (?P<sc_bytes>[^,]+), (?P<sc_status>[^,]+), (?P<sc_win32_status>[^,]+), (?P<cs_method>[^,]+), (?P<cs_uri_stem>[^,]+), (?P<cs_uri_query>[^,]+),$'
+        parse_to: {{ .parse_to }}
+        severity:
+          parse_from: '{{ .parse_to }}["sc_status"]'
+          mapping:
+            info: 2xx
+            info2: 3xx
+            warn: 4xx
+            error: 5xx
+
+      - id: add_timestamp
+        type: add
+        if: '{{ .parse_to }}.date != nil and {{ .parse_to }}.time != nil'
+        field: {{ .parse_to }}.timestamp
+        value: EXPR({{ .parse_to }}.date + " " + {{ .parse_to }}.time)
+
+      # Remove date field
+      - id: remove_date
+        type: remove
+        if: '{{ .parse_to }}.date != nil'
+        field: {{ .parse_to }}.date
+
+      # Remove time field
+      - id: remove_time
+        type: remove
+        if: '{{ .parse_to }}.time != nil'
+        field: {{ .parse_to }}.time
+
+      - id: time_parser
+        type: time_parser
+        if: '{{ .parse_to }}.timestamp != nil'
+        parse_from: {{ .parse_to }}.timestamp
+        layout: '%q/%g/%Y %H:%M:%S'
+        location: {{.timezone}}
+      {{ end }}
+
+      - id: add_log_type
+        type: add
+        field: 'attributes.log_type'
+        value: 'microsoft_iis'
+
+      {{ if and .retain_raw_logs (eq .parse_to "body")}}
+      - id: move_raw_log
+        type: move
+        from: attributes.raw_log
+        to: body.raw_log
+      {{ end }}
+
+    {{end}}
+
+    # NCSA format
+    {{if eq .log_format "ncsa"}}
+    filelog:
+      storage: file_storage
+      include:
+      {{ range $i, $fp := .file_path }}
+        - '{{ $fp }}'
+      {{ end }}
+      {{ if .exclude_file_log_path }}  
+      exclude: 
+      {{ range $i, $efp := .exclude_file_log_path }}
+        - '{{ $efp }}'
+      {{ end }}
+     {{ end }}
+      include_file_name: {{ .include_file_name }}
+      include_file_path: {{ .include_file_path }}
+      include_file_name_resolved: {{ .include_file_name_resolved }}
+      include_file_path_resolved: {{ .include_file_path_resolved }}
+      start_at: {{ .start_at }}
+      max_concurrent_files: {{ .max_concurrent_files }}
+      operators: 
+      {{ if .save_log_record_original }}
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
+      {{ end }}
+      {{ if .retain_raw_logs }}
+      - id: save_raw_log
+        type: copy
+        from: body
+        to: attributes.raw_log
+      {{ end }}
+      {{ if .parse }}
+      - type: regex_parser
+        # Note: The second, uncaptured group here is "Remote log name". This value is always "-" in IIS, so we don't include it
+        regex: '^(?P<c_ip>[^\s]+) (?:[^\s]+) (?P<cs_username>[^\s]+) \[(?P<timestamp>[^]]+)\] "(?P<cs_method>[^\s]+) (?P<cs_uri_stem>[^\s?]+)(?:\?(?P<cs_uri_query>[^\s]+))? (?P<cs_version>[^\s]+)" (?P<sc_status>[^\s]+) (?P<sc_bytes>[^\s]+)$'
+        parse_to: {{ .parse_to }}
+        severity:
+          parse_from: '{{ .parse_to }}["sc_status"]'
+          mapping:
+            info: 2xx
+            info2: 3xx
+            warn: 4xx
+            error: 5xx
+        timestamp:
+          parse_from: {{ .parse_to }}.timestamp
+          layout: '%d/%b/%Y:%H:%M:%S %z'
+
+      {{ end }}
+      
+      - id: add_log_type
+        type: add
+        field: 'attributes.log_type'
+        value: 'microsoft_iis'
+
+      {{ if and .retain_raw_logs (eq .parse_to "body")}}
+      - id: move_raw_log
+        type: move
+        from: attributes.raw_log
+        to: body.raw_log
+      {{ end }}
+    {{end}}
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          - filelog

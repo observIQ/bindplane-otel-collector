@@ -1,0 +1,79 @@
+version: 0.0.2
+title: CSV
+description: Log parser for CSV
+parameters:
+  - name: log_paths
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    required: true
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: exclude_log_paths
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory.
+    type: "[]string"
+    default: []
+  - name: header
+    description: Comma separated header string to be used as keys
+    type: string
+    required: true
+  - name: encoding
+    description: Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected
+    type: string
+    supported:
+      - nop
+      - utf-8
+      - utf-16le
+      - utf-16be
+      - ascii
+      - big5
+    default: utf-8
+  - name: log_type
+    description: Adds the specified 'Type' as a label to each log message
+    type: string
+    default: csv
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the CSV fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      {{ if .exclude_file_log_path }}
+      exclude:
+        {{ range $fp := .exclude_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      {{end}}
+      encoding: '{{ .encoding }}'
+      attributes:
+        log_type: '{{ .log_type }}'
+      operators:
+        {{ if .parse }}
+        - type: csv_parser
+          header: {{ .header }}
+        {{ end }}
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

@@ -1,0 +1,212 @@
+version: 0.2.2
+title: W3C
+description: Log Parser for W3C
+parameters:
+  - name: file_log_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory.
+    type: "[]string"
+    required: true
+  - name: exclude_file_log_path
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory.
+    type: "[]string"
+    default: []
+  - name: encoding
+    description: Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected.
+    type: string
+    supported:
+      - utf-8
+      - utf-16le
+      - utf-16be
+      - ascii
+      - big5
+    default: utf-8
+  - name: log_type
+    description: Adds the specified 'Type' as a label to each log message.
+    type: string
+    default: w3c
+  - name: start_at
+    description: At startup, where to start reading logs from the file. Must be set to "beginning" if 'header' is not specified or if 'delete_after_read' is being used.
+    type: string
+    supported:
+      - beginning
+      - end
+    default: beginning
+  - name: max_concurrent_files
+    description: Max number of W3C files that will be open during a batch
+    type: int
+    default: 1024
+  - name: timestamp_layout
+    description: Optional timestamp layout which will parse a timestamp field
+    type: string
+    default: "%Y-%m-%d %H:%M:%S"
+  - name: timestamp_parse_from
+    description: Field to parse the timestamp from, required if 'timestamp_layout' is set
+    type: string
+  - name: timestamp_layout_type
+    description: Optional timestamp layout type for parsing the timestamp, suggested if 'timestamp_layout' is set
+    type: string
+    supported:
+      - strptime
+      - gotime
+      - epoch
+    default: strptime
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: parse_to
+    description: Where the data will parse to
+    type: string
+    supported:
+      - attributes
+      - body
+    default: body
+  - name: delete_after_read
+    description: Will delete static log files once they are completely read. When set, 'start_at' must be set to beginning.
+    type: bool
+    default: false
+  - name: include_file_name
+    description: Include File Name as a label
+    type: bool
+    default: true
+  - name: include_file_path
+    description: Include File Path as a label
+    type: bool
+    default: false
+  - name: include_file_name_resolved
+    description: Same as include_file_name, however, if file name is a symlink, the underlying file's name will be set as a label
+    type: bool
+    default: false
+  - name: include_file_path_resolved
+    description: Same as include_file_path, however, if file path is a symlink, the underlying file's path will be set as a label
+    type: bool
+    default: false
+  - name: header
+    description: The W3C header which specifies the field names. Field names will be auto detected if unspecified.
+    type: "string"
+  - name: delimiter
+    description: Delimiter character used between fields (Defaults to a tab character)
+    type: string
+    default: "\t"
+  - name: header_delimiter
+    description: Delimiter character used between header fields (Defaults to the value of 'delimiter')
+    type: string
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    filelog:
+      storage: file_storage
+      start_at: '{{ .start_at }}'
+      max_concurrent_files: {{ .max_concurrent_files }}
+      delete_after_read: {{ .delete_after_read }}
+      include_file_name: {{ .include_file_name }}
+      include_file_path: {{ .include_file_path }}
+      include_file_name_resolved: {{ .include_file_name_resolved }}
+      include_file_path_resolved: {{ .include_file_path_resolved }}
+      include:
+      {{ range $i, $fp := .file_log_path  }}
+        - '{{ $fp }}'
+      {{ end }}
+      {{ if .exclude_file_log_path }}
+      exclude:
+      {{ range $i, $efp := .exclude_file_log_path  }}
+        - '{{ $efp }}'
+      {{ end }}
+      {{ end }}
+      {{ if .encoding }}
+      encoding: '{{ .encoding }}'
+      {{ end }}
+      {{ if not .header }}
+      header:
+        pattern: "^#"
+        metadata_operators:
+          - type: regex_parser
+            regex: "^#Fields: (?P<header_fields>.*)$"
+            if: 'body startsWith "#Fields: "'
+      {{ end }}
+      attributes:
+        log_type: {{ .log_type }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: filter
+          expr: 'body matches "^#"'
+        - type: csv_parser
+          ignore_quotes: true
+          parse_to: {{ .parse_to }}
+          delimiter: '{{ .delimiter }}'
+          {{ if .header_delimiter }} 
+          header_delimiter: '{{ .header_delimiter }}'
+          {{ end }}
+          {{ if .header }}
+          header: '{{ .header }}'
+          {{ else }}
+          header_attribute: 'header_fields'
+          {{ end }}
+
+        {{ if not .header }}
+        - type: remove
+          field: "attributes.header_fields"
+        {{ end }}
+
+        # If both date & time field exists, parse the timestamp
+        - type: router
+          routes:
+          - output: add_timestamp
+            expr: '{{ .parse_to }}.date != nil and {{ .parse_to }}.time != nil'
+          default: time_parser
+
+        # Combines data + time fields into timestamp field
+        - id: add_timestamp
+          type: add
+          field: {{ .parse_to }}.timestamp
+          value: EXPR({{ .parse_to }}.date + " " + {{ .parse_to }}.time)
+
+        # Remove date field
+        - id: remove_date
+          type: remove
+          field: {{ .parse_to }}.date
+
+        # Remove time field
+        - id: remove_time
+          type: remove
+          field: {{ .parse_to }}.time
+
+        - id: time_parser
+          type: time_parser
+          {{ if .timestamp_parse_from }}
+          if: '{{ .timestamp_parse_from }} != nil'
+          parse_from: {{ .timestamp_parse_from }}
+          {{ else }}
+          if: '{{ .parse_to }}.timestamp != nil'
+          parse_from: {{ .parse_to }}.timestamp
+          {{ end }}
+          layout: '{{ .timestamp_layout }}'
+          layout_type: {{ .timestamp_layout_type }}
+          location: {{.timezone}}
+        {{ end }}
+          
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]

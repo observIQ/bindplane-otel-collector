@@ -1,0 +1,483 @@
+version: 0.0.2
+title: CockroachDB
+description: Log parser for CockroachDB
+parameters:
+  - name: enable_health_log
+    description: Enable to collect health logs
+    type: bool
+    default: true
+  - name: health_log_path
+    description: The absolute path to the CockroachDB health logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-health.log"
+  - name: enable_dev_log
+    description: Enable to collect general Dev logs.
+    type: bool
+    default: true
+  - name: dev_log_path
+    description: The absolute path to the CockroachDB Dev Logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach.log"
+  - name: enable_error_log
+    description: Enable to collect stderr logs.
+    type: bool
+    default: true
+  - name: error_log_path
+    description: The absolute path to the CockroachDB stderr logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-stderr.log"
+  - name: enable_sql_schema_log
+    description: Enable to collect sql schema logs.
+    type: bool
+    default: true
+  - name: sql_schema_log_path
+    description: The absolute path to the CockroachDB sql schema logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-sql-schema.log"
+  - name: enable_telemetry_log
+    description: Enable to collect telemetry logs.
+    type: bool
+    default: true
+  - name: telemetry_log_path
+    description: The absolute path to the CockroachDB telemetry logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-telemetry.log"
+  - name: enable_kv_distribution_log
+    description: Enable to collect kv distribution logs.
+    type: bool
+    default: true
+  - name: kv_distribution_log_path
+    description: The absolute path to the CockroachDB kv distribution logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-kv-distribution.log"
+  - name: enable_pebble_log
+    description: Enable to collect cockroachdb pebble logs.
+    type: bool
+    default: true
+  - name: pebble_log_path
+    description: The absolute path to the CockroachDB pebble logs
+    type: "[]string"
+    default:
+      - "/var/log/cockroach-data/logs/cockroach-pebble.log"
+  - name: start_at
+    description: At startup, where to start reading logs from the file ('beginning' or 'end')
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    {{ if .enable_health_log }}
+    filelog/cockroachdb_health_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .health_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.health'
+      operators:
+        {{ if .save_log_record_original}}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity: 
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_dev_log }}
+    filelog/cockroachdb_dev_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .dev_log_path}}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline: 
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.dev'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+
+    
+    {{ if .enable_error_log }}
+    filelog/cockroachdb_error_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .error_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.error'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_sql_schema_log }}
+    filelog/cockroachdb_sql_schema_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .sql_schema_log_path }}
+        - '{{ $fp }}' 
+        {{ end }} 
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.schema'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+    
+    {{ if .enable_telemetry_log }}
+    filelog/cockroachdb_telemetry_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .telemetry_log_path }}
+        - '{{ $fp }}' 
+        {{ end }} 
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.telemetry'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+
+    {{ if .enable_kv_distribution_log }}
+    filelog/cockroachdb_kv_distribution_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .kv_distribution_log_path }}
+         - '{{ $fp }}'
+        {{ end }} 
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.kv.distribution'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+    
+    {{ if .enable_pebble_log }}
+    filelog/cockroachdb_pebble_logs:
+      storage: file_storage
+      include:
+        {{ range $fp := .pebble_log_path }}
+         - '{{ $fp }}'
+        {{ end }} 
+      multiline:
+        line_start_pattern: '[IWEF]\d{6}\s\d{2}:\d{2}:\d{2}\.\d{6}\s'
+      start_at: {{ .start_at }}
+      attributes:
+        log_type: 'cockroach.pebble'
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
+          parse_to: {{ .parse_to }}
+          timestamp:
+            parse_from: {{ .parse_to }}.timestamp
+            layout: '%y%m%d %H:%M:%S.%f'
+            location: {{ .timezone }}
+          severity:
+            parse_from: {{ .parse_to }}.Type
+            preset: none
+            mapping:
+              info: I
+              warn: W
+              error: E
+              fatal: F
+        {{ end }}
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+    {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_health_log }}
+          - filelog/cockroachdb_health_logs
+          {{ end }}
+          {{ if .enable_dev_log }}
+          - filelog/cockroachdb_dev_logs
+          {{ end }}
+          {{ if .enable_error_log }}
+          - filelog/cockroachdb_error_logs
+          {{ end }}
+          {{ if .enable_sql_schema_log }}
+          - filelog/cockroachdb_sql_schema_logs
+          {{ end }}
+          {{ if .enable_telemetry_log }}
+          - filelog/cockroachdb_telemetry_logs
+          {{ end }}
+          {{ if .enable_kv_distribution_log }}
+          - filelog/cockroachdb_kv_distribution_logs
+          {{ end }}
+          {{ if .enable_pebble_log }}
+          - filelog/cockroachdb_pebble_logs
+          {{ end }}

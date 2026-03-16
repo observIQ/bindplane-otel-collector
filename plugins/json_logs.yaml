@@ -1,0 +1,63 @@
+version: 0.0.1
+title: JSON
+description: Log parser for JSON
+parameters:
+  - name: log_paths
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    required: true
+  - name: exclude_log_paths
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory
+    type: "[]string"
+    default: []
+  - name: encoding
+    description: Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected.
+    type: string
+    supported:
+      - nop
+      - utf-8
+      - utf-16le
+      - utf-16be
+    default: utf-8
+  - name: log_type
+    description: Adds the specified 'Type' as a label to each log message
+    type: string
+    default: json
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: parse
+    description: When enabled, parses the JSON fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+    filelog:
+      include:
+        {{ range $fp := .log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      {{ if .exclude_log_paths }}
+      exclude:
+        {{ range $fp := .exclude_log_paths }}
+        - '{{ $fp }}'
+        {{end}}
+      {{end}}
+      encoding: '{{ .encoding }}'
+      attributes:
+        log_type: '{{ .log_type }}'
+      operators:
+      {{ if .parse }}
+      - type: json_parser
+        parse_from: body
+      {{ end }}
+
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]

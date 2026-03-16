@@ -1,0 +1,248 @@
+version: 0.1.1
+title: Apache Kafka
+description: Log parser for Apache Kafka
+parameters:
+  - name: enable_server_log
+    description: Enable to collect Apache Kafka server logs
+    type: bool
+    default: true
+  - name: server_log_path
+    description: Apache Kafka server log path
+    type: "[]string"
+    default:
+      - "/home/kafka/kafka/logs/server.log*"
+  - name: enable_controller_log
+    description: Enable to collect Apache Kafka controller logs
+    type: bool
+    default: true
+  - name: controller_log_path
+    description: Apache Kafka controller log path
+    type: "[]string"
+    default:
+      - "/home/kafka/kafka/logs/controller.log*"
+  - name: enable_state_change_log
+    description: Enable to collect Apache Kafka state change logs
+    type: bool
+    default: true
+  - name: state_change_log_path
+    description: Apache Kafka state-change log path
+    type: "[]string"
+    default:
+      - "/home/kafka/kafka/logs/state-change.log*"
+  - name: enable_log_cleaner_log
+    description: Enable to collect Apache Kafka log cleaner logs
+    type: bool
+    default: true
+  - name: log_cleaner_log_path
+    description: Apache Kafka log-cleaner log path
+    type: "[]string"
+    default:
+      - "/home/kafka/kafka/logs/log-cleaner.log*"
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }}
+  receivers:
+    {{ if .enable_server_log }}
+    filelog/server:
+      storage: file_storage
+      include:
+        {{ range $fp := .server_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+          timestamp:
+            parse_from: attributes.time
+            layout: '%F %T,%L'
+            location: {{ .timezone }}
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'kafka.server'
+    {{ end }}
+
+    {{ if .enable_controller_log }}
+    filelog/controller:
+      storage: file_storage
+      include:
+        {{ range $fp := .controller_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+          timestamp:
+            parse_from: attributes.time
+            layout: '%F %T,%L'
+            location: {{ .timezone }}
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'kafka.controller'
+    {{ end }}
+
+    {{ if .enable_state_change_log }}
+    filelog/state:
+      storage: file_storage
+      include:
+        {{ range $fp := .state_change_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+          timestamp:
+            parse_from: attributes.time
+            layout: '%F %T,%L'
+            location: {{ .timezone }}
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'kafka.state_change'
+    {{ end }}
+
+    {{ if .enable_log_cleaner_log }}
+    filelog/cleaner:
+      storage: file_storage
+      include:
+        {{ range $fp := .log_cleaner_log_path }}
+        - '{{ $fp }}'
+        {{ end }}
+      multiline:
+        line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
+      start_at: {{ .start_at }}
+      operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - type: regex_parser
+          regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
+          severity:
+            parse_from: attributes.severity
+            mapping:
+              info2: notice
+              error2: critical
+              error3: alert
+              fatal2: emergency
+              fatal3: catastrophe
+          timestamp:
+            parse_from: attributes.time
+            layout: '%F %T,%L'
+            location: {{ .timezone }}
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: 'kafka.cleaner'
+    {{ end }}
+
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers:
+          {{ if .enable_server_log }}
+          - filelog/server
+          {{ end }}
+
+          {{ if .enable_controller_log }}
+          - filelog/controller
+          {{ end }}
+
+          {{ if .enable_state_change_log }}
+          - filelog/state
+          {{ end }}
+
+          {{ if .enable_log_cleaner_log }}
+          - filelog/cleaner
+          {{ end }}

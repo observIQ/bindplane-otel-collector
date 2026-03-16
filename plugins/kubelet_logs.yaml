@@ -1,0 +1,88 @@
+version: 0.3.0
+title: Kubernetes Kubelet
+description: Log parser for Kubelet journald logs
+parameters:
+  - name: journald_directory
+    description: Directory containing journal files to read entries from
+    type: string
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: timezone
+    description: Timezone to use when parsing the timestamp
+    type: timezone
+    default: UTC
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+template: |
+  receivers:
+    journald:
+      {{ if .journald_directory }}
+      directory: {{ .journald_directory }}
+      {{ end }}
+      start_at: {{ .start_at }}
+      units:
+        - kubelet
+      operators:
+          # Semantic conventions says node name should be a resource.
+          - type: move
+            from: body._HOSTNAME
+            to: resource["k8s.node.name"]
+          # Replace journald body with application's log message
+          - type: move
+            from: body.MESSAGE
+            to: body
+          {{ if .retain_raw_logs }}
+          - id: save_raw_log
+            type: copy
+            from: body
+            to: attributes.raw_log
+          {{ end }}
+          {{ if .parse }}
+          # Parse kubelet klog formatted message
+          - type: regex_parser
+            regex: '(?P<severity>\w)(?P<timestamp>\d{4} \d{2}:\d{2}:\d{2}.\d+)\s+(?P<pid>\d+)\s+(?P<src>[^:]*):(?P<src_line>[^\]]*)\] (?P<message>.*)'
+            parse_to: {{ .parse_to }}
+            severity:
+              parse_from: {{ .parse_to }}.severity
+              mapping:
+                debug: d
+                info: i
+                warn: w
+                error: e
+                fatal: c
+            timestamp:
+              parse_from: {{ .parse_to }}.timestamp
+              layout: '%m%d %H:%M:%S.%s'
+              location: {{ .timezone }}
+          {{ end }}
+          - type: add
+            field: attributes.log_type
+            value: kubelet
+          {{ if and .retain_raw_logs (eq .parse_to "body")}}
+          - id: move_raw_log
+            type: move
+            from: attributes.raw_log
+            to: body.raw_log
+          {{ end }}
+  service:
+    pipelines:
+      logs:
+        receivers: [journald]

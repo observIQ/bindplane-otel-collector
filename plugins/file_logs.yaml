@@ -1,0 +1,136 @@
+version: 0.3.0
+title: File
+description: Log parser for generic files
+parameters:
+  - name: file_path
+    description: Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory
+    type: "[]string"
+    required: true
+  - name: exclude_file_path
+    description: Specify a single path or multiple paths to exclude one or many files from being read. You may also use a wildcard (*) to exclude multiple files from being read within a directory
+    type: "[]string"
+    default: []
+  # Optional multiline handling
+  - name: multiline_line_start_pattern
+    description: A Regex pattern that matches the start of a multiline log entry in the log file
+    type: string
+    default: ""
+  - name: encoding
+    description: Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected
+    type: string
+    supported:
+      - nop
+      - utf-8
+      - utf-16le
+      - utf-16be
+      - ascii
+      - big5
+    default: utf-8
+  - name: parse_format
+    description: Format of parsed logs (`none`, `json`, or `regex`)
+    type: string
+    supported:
+      - none
+      - json
+      - regex
+    default: none
+  # Required when parse_format is 'regex'
+  - name: regex_pattern
+    description: Pattern for regex parsed log
+    type: string
+    default: ""
+  - name: log_type
+    description: Adds the specified 'Type' as a label to each log message
+    type: string
+    default: "file"
+  - name: include_file_name
+    description: Whether to add the file name as the attribute log.file.name.
+    type: bool
+    default: true
+  - name: include_file_path
+    description: Whether to add the file path as the attribute log.file.path.
+    type: bool
+    default: false
+  - name: start_at
+    description: At startup, where to start reading logs from the file (`beginning` or `end`)
+    type: string
+    supported:
+      - beginning
+      - end
+    default: end
+  - name: retain_raw_logs
+    description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
+    type: bool
+    default: false
+  - name: parse_to
+    description: Where to parse structured log parts
+    type: string
+    supported:
+      - body
+      - attributes
+    default: body
+  - name: offset_storage_dir
+    description: The directory that the offset storage file will be created
+    type: string
+    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
+template: |
+  extensions:
+    file_storage:
+      directory: {{ .offset_storage_dir }} 
+
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+        {{ range $fp := .file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      exclude:
+        {{ range $fp := .exclude_file_path }}
+        - '{{ $fp }}'
+        {{end}}
+      start_at: {{ .start_at }}
+      multiline:
+        line_start_pattern: '{{ .multiline_line_start_pattern }}'
+      encoding: {{ .encoding }}
+      include_file_name: {{ .include_file_name }}
+      include_file_path: {{ .include_file_path }}
+      operators:
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
+        {{ end }}
+        {{ if and .parse (eq .parse_format "json") }}
+        - type: json_parser
+          parse_to: {{ .parse_to }}
+        {{ end }}
+
+        {{ if and .parse (eq .parse_format "regex") }}
+        - type: regex_parser
+          regex: {{ .regex_pattern }}
+          parse_to: {{ .parse_to }}
+        {{ end }}
+
+        - id: add_type
+          type: add
+          field: attributes.log_type
+          value: {{ .log_type }}
+
+        {{ if and .retain_raw_logs (eq .parse_to "body")}}
+        - id: move_raw_log
+          type: move
+          from: attributes.raw_log
+          to: body.raw_log
+        {{ end }}
+  service:
+    extensions: [file_storage]
+    pipelines:
+      logs:
+        receivers: [filelog]
