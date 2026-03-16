@@ -6,8 +6,8 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-contrib/expr v0.0.1
 	github.com/observiq/bindplane-otel-contrib/internal/osinfo v0.0.1
+	github.com/observiq/bindplane-otel-contrib/pkg/expr v0.0.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.147.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
@@ -108,4 +108,4 @@ require (
 
 replace github.com/observiq/bindplane-otel-contrib/internal/osinfo => ../../internal/osinfo
 
-replace github.com/observiq/bindplane-otel-contrib/expr => ../../expr
+replace github.com/observiq/bindplane-otel-contrib/pkg/expr => ../../pkg/expr

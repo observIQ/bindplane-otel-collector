@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-contrib/expr
+module github.com/observiq/bindplane-otel-contrib/pkg/expr
 
 go 1.25.7
 

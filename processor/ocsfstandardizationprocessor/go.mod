@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationp
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-contrib/expr v0.0.1
+	github.com/observiq/bindplane-otel-contrib/pkg/expr v0.0.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.53.0
 	go.opentelemetry.io/collector/component/componenttest v0.147.0
@@ -82,4 +82,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-contrib/expr => ../../expr
+replace github.com/observiq/bindplane-otel-contrib/pkg/expr => ../../pkg/expr

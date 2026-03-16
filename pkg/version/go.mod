@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-contrib/version
+module github.com/observiq/bindplane-otel-contrib/pkg/version
 
 go 1.25.7
 

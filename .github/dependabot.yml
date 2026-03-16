@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
-    directory: "/counter"
+    directory: "/pkg/counter"
     schedule:
       interval: "weekly"
     ignore:
@@ -12,7 +12,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/expr"
+    directory: "/pkg/expr"
     schedule:
       interval: "weekly"
     ignore:
@@ -23,7 +23,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/snapshot"
+    directory: "/pkg/snapshot"
     schedule:
       interval: "weekly"
     ignore:
@@ -34,7 +34,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/version"
+    directory: "/pkg/version"
     schedule:
       interval: "weekly"
     ignore:

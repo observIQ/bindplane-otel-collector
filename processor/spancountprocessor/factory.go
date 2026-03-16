@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-contrib/expr"
+	"github.com/observiq/bindplane-otel-contrib/pkg/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"

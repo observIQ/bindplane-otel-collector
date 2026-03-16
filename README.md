@@ -12,10 +12,11 @@ processor/      Custom processors
 exporter/       Custom exporters
 extension/      Custom extensions
 internal/       Shared internal packages
-counter/        Counter module
-expr/           Expression module
-snapshot/       Snapshot module
-version/        Version module
+pkg/            Public utility packages
+  counter/      Counter module
+  expr/         Expression module
+  snapshot/     Snapshot module
+  version/      Version module
 ```
 
 ## Development

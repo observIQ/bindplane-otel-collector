@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-contrib/snapshot
+module github.com/observiq/bindplane-otel-contrib/pkg/snapshot
 
 go 1.25.7
 

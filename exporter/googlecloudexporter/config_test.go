@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
-	"github.com/observiq/bindplane-otel-contrib/version"
+	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
