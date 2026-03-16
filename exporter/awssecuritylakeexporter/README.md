@@ -79,6 +79,12 @@ receivers:
 processors:
   ocsf:
     # Transform logs into OCSF format
+  batch:
+    send_batch_size: 10000 # flush when 10000 events per classID
+    timeout: 5m # or every 5m
+    send_batch_max_size: 0 # no hard upper limit
+    metadata_keys: ["classID"] # batch per classID
+    metadata_cardinality_limit: 1000
 
 exporters:
   aws_security_lake:

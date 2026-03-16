@@ -59,6 +59,8 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		config,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
+		exporterhelper.WithStart(exp.Start),
+		exporterhelper.WithShutdown(exp.Shutdown),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
 		exporterhelper.WithQueue(cfg.QueueBatchConfig),
 		exporterhelper.WithRetry(cfg.BackOffConfig),

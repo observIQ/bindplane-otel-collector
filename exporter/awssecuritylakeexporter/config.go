@@ -21,7 +21,6 @@ import (
 
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
-	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -57,7 +56,6 @@ type Config struct {
 	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"`
 	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
 	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
-	TLS              configtls.ClientConfig                                   `mapstructure:"tls"`
 
 	// OCSFVersion is the OCSF version to use for the logs.
 	OCSFVersion OCSFVersion `mapstructure:"ocsf_version"`
@@ -68,7 +66,7 @@ type Config struct {
 	// S3Bucket is the name of the Security Lake S3 bucket. (required)
 	S3Bucket string `mapstructure:"s3_bucket"`
 
-	// SourceName is the custom source name registered in Security Lake. (required)
+	// CustomSources is the custom source name registered in Security Lake. (required)
 	CustomSources []SecurityLakeCustomSource `mapstructure:"custom_sources"`
 
 	// AccountID is the AWS account ID used in the partition path. (required)
@@ -83,18 +81,6 @@ type Config struct {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if err := c.TimeoutConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.BackOffConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.QueueBatchConfig.Validate(); err != nil {
-		return err
-	}
-	if err := c.TLS.Validate(); err != nil {
-		return err
-	}
 	if c.Region == "" {
 		return errors.New("region is required")
 	}
@@ -118,7 +104,7 @@ func (c *Config) Validate() error {
 	if c.OCSFVersion == "" {
 		return errors.New("ocsf_version is required")
 	}
-	if !slices.Contains(ocsfVersions, c.OCSFVersion) {
+	if !slices.Contains(ocsfVersions, c.OCSFVersion) || getSchemaMap(c.OCSFVersion) == nil {
 		return fmt.Errorf("invalid ocsf_version: %s", c.OCSFVersion)
 	}
 	return nil
