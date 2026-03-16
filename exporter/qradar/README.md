@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/qradar).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # QRadar Exporter
 
 The QRadar Exporter is designed for forwarding logs to a QRadar instance using its Syslog endpoint. This exporter supports customization of data export types and various configuration options to tailor the connection and data handling to specific needs.

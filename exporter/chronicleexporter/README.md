@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/chronicleexporter).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Chronicle Exporter
 
 **Currently only v2 of the ingestion API is supported**

@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/splunksearchapireceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Splunk Search API Receiver
 This receiver collects Splunk events using the [Splunk Search API](https://docs.splunk.com/Documentation/Splunk/9.3.1/RESTREF/RESTsearch).
 

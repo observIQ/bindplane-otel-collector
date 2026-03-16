@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/googlecloudstorageexporter).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Google Cloud Storage Exporter
 
 This exporter allows you to export logs, metrics, and traces to Google Cloud Storage. Telemetry is exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto).

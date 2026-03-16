@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/telemetrygeneratorreceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Telemetry Generator Receiver
 This receiver is used to generate synthetic telemetry for testing and configuration purposes. 
 

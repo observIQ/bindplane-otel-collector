@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/maskprocessor).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Mask Processor
 This processor is used to detect and mask sensitive data.
 

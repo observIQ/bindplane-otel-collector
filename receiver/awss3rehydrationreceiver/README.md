@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/awss3rehydrationreceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # AWS S3 Rehydration Receiver
 
 Rehydrates OTLP from AWS S3 that was stored using the [awss3exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.98.0/exporter/awss3exporter/README.md).

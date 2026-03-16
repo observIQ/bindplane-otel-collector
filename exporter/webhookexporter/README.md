@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/webhookexporter).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Webhook Exporter
 
 The webhook exporter sends telemetry data to a webhook endpoint.

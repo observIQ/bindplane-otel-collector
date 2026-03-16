@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/pebbleextension).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Pebble Extension
 
 The Pebble Extension provides persistent storage for OpenTelemetry Collector components using [Pebble](https://github.com/cockroachdb/pebble), a high-performance embedded key-value database written in Go. Each component receives an isolated Pebble instance for data isolation and reliability.

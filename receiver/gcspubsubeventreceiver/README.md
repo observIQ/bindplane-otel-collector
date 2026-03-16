@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/gcspubsubeventreceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # GCS Pub/Sub Event Receiver
 
 The GCS Pub/Sub Event Receiver consumes GCS event notifications for object finalization events (`OBJECT_FINALIZE`) delivered via Google Cloud Pub/Sub and emits the GCS object's contents as log records.

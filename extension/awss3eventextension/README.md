@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/awss3eventextension).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # AWS S3 Event Extension
 
 The AWS S3 Event Extension downloads newly created S3 objects to a specified directory. It reads from an SQS queue, consuming events which indicate that a new object has been created in S3. It supports multiple SQS notification formats, including `s3:ObjectCreated:*` (default) and Crowdstrike FDR.

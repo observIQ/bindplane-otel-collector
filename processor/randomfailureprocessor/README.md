@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/randomfailureprocessor).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Random Failure Processor
 
 The random failure processor is used for testing error resiliency in the collector.

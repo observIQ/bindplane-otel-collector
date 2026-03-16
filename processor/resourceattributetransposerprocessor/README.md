@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/resourceattributetransposerprocessor).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Resource Attribute Transposer Processor
 This processor copies a resource level attribute to all individual logs or metric data points associated with the resource.
 If the key already exists, no action is taken (the attribute _**IS NOT**_ overwritten)

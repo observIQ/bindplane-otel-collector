@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/googlemanagedprometheusexporter).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Google Managed Prometheus Exporter
 
 This exporter can be used to send metrics to Google Cloud Managed Service for Prometheus. It is an extension of the official

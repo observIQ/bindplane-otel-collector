@@ -156,6 +156,9 @@ For a list of possible command line arguments to use with the BDOT Collector, ru
 
 ### Included Components
 
+> [!NOTE]
+> Custom Bindplane components (receivers, processors, exporters, and extensions) have moved to [observiq/bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib). The copies in this repository are retained for reference and will be removed after September 2026.
+
 #### Receivers
 
 For supported receivers and their documentation see [receivers](/docs/receivers.md).

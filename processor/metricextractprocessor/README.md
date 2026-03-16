@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/metricextractprocessor).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Metric Extract Processor
 
 This processor is used to extract metrics from logs.

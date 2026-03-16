@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/googlecloudstoragerehydrationreceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Google Cloud Storage Rehydration Receiver
 
 This receiver rehydrates OTLP data from Google Cloud Storage that was previously stored using the [Google Cloud Storage Exporter](../../exporter/googlecloudstorageexporter/README.md).

@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/opampgateway).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # OpAMP Gateway Extension
 
 | Status  |           |

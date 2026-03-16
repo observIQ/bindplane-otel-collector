@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/badgerextension).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # Badger Extension
 
 The Badger Extension provides persistent storage for OpenTelemetry Collector components using [BadgerDB](https://github.com/dgraph-io/badger), a fast embeddable key-value database written in Go. Each component receives an isolated BadgerDB instance for data isolation and reliability.

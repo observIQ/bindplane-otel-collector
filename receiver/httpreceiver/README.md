@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/httpreceiver).**
+> This copy is retained for reference and will be removed after September 2026.
+
 # HTTP Receiver
 This receiver is capable of collecting logs for a variety of services, serving as a default HTTP log receiver. Anything that is able to send logs to an endpoint using HTTP will be able to utilize this receiver.
 
