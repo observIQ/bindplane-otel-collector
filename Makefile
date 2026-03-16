@@ -15,6 +15,16 @@ INTEGRATION_TEST_ARGS?=-tags integration
 
 TOOLS_MOD_DIR := ./internal/tools
 
+# Directories migrated to the contrib repo, excluded from testing.
+# Keep in sync with the components filter in .github/workflows/checks.yml.
+MIGRATED_MODULE_PATTERNS := receiver/ processor/ exporter/ extension/ \
+	counter expr version \
+	internal/aws internal/azureblob internal/blobconsume internal/exporterutils \
+	internal/measurements internal/osinfo internal/storageclient internal/testutils
+
+# Generate gosec -exclude-dir flags from migrated module patterns
+GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
+
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -232,25 +242,12 @@ tidy:
 gosec:
 	gosec \
 	  -exclude-dir=updater \
-	  -exclude-dir=receiver/sapnetweaverreceiver \
-	  -exclude-dir=extension/bindplaneextension \
-	  -exclude-dir=processor/snapshotprocessor \
-	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
-	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
-	  -exclude-dir=exporter/chronicleexporter/protos/api \
-	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
-	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
-	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
-	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
-	  -exclude-dir=extension/opampgateway/internal/metadata \
+	  -exclude-dir=cmd/plugindocgen \
+	  $(GOSEC_MIGRATED_EXCLUDES) \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
-	cd extension/bindplaneextension; gosec ./...
-	cd processor/snapshotprocessor; gosec ./...
-	cd receiver/sapnetweaverreceiver; gosec ./...
-	cd processor/ocsfstandardizationprocessor; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
