@@ -165,7 +165,7 @@ func (e *securityLakeExporter) logsDataPusher(ctx context.Context, ld plog.Logs)
 				p, ok := partitions[key]
 				if !ok {
 					p = &partition{
-						records:   make([]map[string]any, 0, 64),
+						records:   make([]map[string]any, 0),
 						schema:    schema,
 						eventTime: eventTime,
 					}
