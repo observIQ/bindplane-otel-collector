@@ -8,6 +8,7 @@ receivers:
 
 processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.146.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.146.0
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.146.0
   - gomod: github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor v0.0.0
     path: ../../../processor/ocsfstandardizationprocessor

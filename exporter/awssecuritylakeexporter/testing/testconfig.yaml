@@ -50,12 +50,14 @@ processors:
           - from: 'body["status"]'
             to: "status"
 
+  groupbyattrs:
+    keys:
+      - ocsf.class_id
+
   batch:
     send_batch_size: 100 # flush when 100 events per classID
     timeout: 5s # or every 200ms
     send_batch_max_size: 0 # no hard upper limit
-    metadata_keys: ["classID"] # batch per classID
-    metadata_cardinality_limit: 1000
 
 exporters:
   # debug:
@@ -77,5 +79,5 @@ service:
   pipelines:
     logs:
       receivers: [telemetrygeneratorreceiver]
-      processors: [transform, ocsf_standardization, batch]
+      processors: [transform, ocsf_standardization, groupbyattrs, batch]
       exporters: [aws_security_lake]
