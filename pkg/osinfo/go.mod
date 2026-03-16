@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-contrib/internal/osinfo
+module github.com/observiq/bindplane-otel-contrib/pkg/osinfo
 
 go 1.25.7
 

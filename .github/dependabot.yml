@@ -268,7 +268,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/internal/osinfo"
+    directory: "/pkg/osinfo"
     schedule:
       interval: "weekly"
     ignore:

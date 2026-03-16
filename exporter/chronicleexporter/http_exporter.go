@@ -29,7 +29,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter/protos/api"
-	"github.com/observiq/bindplane-otel-contrib/internal/osinfo"
+	"github.com/observiq/bindplane-otel-contrib/pkg/osinfo"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
