@@ -299,6 +299,13 @@ function Main {
 
     Get-Msi -Url $resolvedUrl -Destination $msiPath
 
+    $sig = Get-AuthenticodeSignature -FilePath $msiPath
+    if ($sig.Status -ne 'Valid') {
+        Fail "MSI signature verification failed: $($sig.StatusMessage)"
+    }
+
+    Write-Info "MSI signature verification successful"
+
     $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
 
     Write-Info "Running: msiexec $($msiArgs -join ' ')"
@@ -307,7 +314,11 @@ function Main {
     $exitCode = $proc.ExitCode
 
     # Clean up downloaded MSI
-    Remove-Item -Path $msiPath -Force -ErrorAction SilentlyContinue
+    try {
+        Remove-Item -Path $msiPath -Force
+    } catch {
+        Write-Warn "Failed to remove MSI: $_"
+    }
 
     switch ($exitCode) {
         0    { Write-Info "Installation completed successfully." }
