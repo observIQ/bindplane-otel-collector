@@ -211,6 +211,17 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
+    directory: "/extension/opampgateway"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/extension/pebbleextension"
     schedule:
       interval: "weekly"
@@ -326,6 +337,14 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/exporterutils"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
   ### PROCESSORS ###
   - package-ecosystem: "gomod"
     directory: "/processor/datapointcountprocessor"
@@ -384,6 +403,17 @@ updates:
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/processor/metricstatsprocessor"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/processor/ocsfstandardizationprocessor"
     schedule:
       interval: "weekly"
     ignore:
@@ -484,6 +514,17 @@ updates:
   ### RECEIVERS ###
   - package-ecosystem: "gomod"
     directory: "/receiver/awss3eventreceiver"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/receiver/gcspubsubeventreceiver"
     schedule:
       interval: "weekly"
     ignore:

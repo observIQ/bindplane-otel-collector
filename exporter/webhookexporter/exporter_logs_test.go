@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configoptional"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -129,18 +130,11 @@ func TestLogsDataPusher(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name: "server error",
-			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
-			expectedError: "failed to send request: method=POST, url=",
-		},
-		{
-			name: "server error includes request body and status",
+			name: "server error permanent",
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 			},
-			expectedError: "body=",
+			expectedError: "400 Bad Request",
 		},
 		{
 			name: "connection error",
@@ -196,6 +190,89 @@ func TestLogsDataPusher(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestSendLogsRetryableVsPermanentErrors(t *testing.T) {
+	testCases := []struct {
+		name         string
+		statusCode   int
+		permanentErr bool
+	}{
+		// Retryable per OTLP spec
+		{
+			name:         "429 Too Many Requests is retryable",
+			statusCode:   http.StatusTooManyRequests,
+			permanentErr: false,
+		},
+		{
+			name:         "502 Bad Gateway is retryable",
+			statusCode:   http.StatusBadGateway,
+			permanentErr: false,
+		},
+		{
+			name:         "503 Service Unavailable is retryable",
+			statusCode:   http.StatusServiceUnavailable,
+			permanentErr: false,
+		},
+		{
+			name:         "504 Gateway Timeout is retryable",
+			statusCode:   http.StatusGatewayTimeout,
+			permanentErr: false,
+		},
+		// Permanent errors
+		{
+			name:         "400 Bad Request is permanent",
+			statusCode:   http.StatusBadRequest,
+			permanentErr: true,
+		},
+		{
+			name:         "401 Unauthorized is permanent",
+			statusCode:   http.StatusUnauthorized,
+			permanentErr: true,
+		},
+		{
+			name:         "403 Forbidden is permanent",
+			statusCode:   http.StatusForbidden,
+			permanentErr: true,
+		},
+		{
+			name:         "404 Not Found is permanent",
+			statusCode:   http.StatusNotFound,
+			permanentErr: true,
+		},
+		{
+			name:         "500 Internal Server Error is permanent",
+			statusCode:   http.StatusInternalServerError,
+			permanentErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tc.statusCode)
+			}))
+			defer server.Close()
+
+			cfg := &SignalConfig{
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: server.URL,
+				},
+				Verb:        POST,
+				ContentType: "application/json",
+			}
+
+			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			require.NoError(t, err)
+			err = exp.start(context.Background(), componenttest.NewNopHost())
+			require.NoError(t, err)
+
+			err = exp.sendLogs(context.Background(), []any{"test log"})
+			require.Error(t, err)
+			require.Equal(t, tc.permanentErr, consumererror.IsPermanent(err),
+				"expected permanentErr=%v for status %d", tc.permanentErr, tc.statusCode)
 		})
 	}
 }

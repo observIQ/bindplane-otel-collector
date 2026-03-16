@@ -22,8 +22,8 @@ EXT?=
 endif
 
 SNAPSHOT := $(shell git rev-parse --short HEAD)
-PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
-CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
+PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | grep -v 'version' | tail -n1)
+CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | grep -v 'version' | tail -n1)
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
 
@@ -189,14 +189,12 @@ test-other:
 		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
 	fi
 	@set -e; for dir in $(ALL_MODULES); do \
-		if [ "$${dir}" = "." ]; then \
-			continue; \
-		elif echo "$${dir}" | grep -qE "^(receiver|processor|exporter|extension)/"; then \
-			continue; \
-		else \
+		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
 			(cd "$${dir}" && \
 				echo "running tests in $${dir}" && \
 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		else \
+			echo "skipping running tests in $${dir}"; \
 		fi; \
 	done
 
@@ -237,17 +235,22 @@ gosec:
 	  -exclude-dir=receiver/sapnetweaverreceiver \
 	  -exclude-dir=extension/bindplaneextension \
 	  -exclude-dir=processor/snapshotprocessor \
+	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=exporter/chronicleexporter/protos/api \
+	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
+	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
+	  -exclude-dir=extension/opampgateway/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 	cd extension/bindplaneextension; gosec ./...
 	cd processor/snapshotprocessor; gosec ./...
 	cd receiver/sapnetweaverreceiver; gosec ./...
+	cd processor/ocsfstandardizationprocessor; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -361,9 +364,6 @@ release-prep:
 	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
 	./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
-	@cp -r ./signature/gpg release_deps/gpg
-	@rm release_deps/gpg/revocations.md
-	@rm release_deps/gpg/deb-revocations/.keep
 	@cp config/example.yaml release_deps/config.yaml
 	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
@@ -372,6 +372,9 @@ release-prep:
 .PHONY: release-prep-gpg
 release-prep-gpg:
 	$(MAKE) release-prep
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
 	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
 
 # Build and sign, skip release and ignore dirty git tree
@@ -382,9 +385,30 @@ release-test:
 	if [ ! -e "./observiq-otel-collector-arm64.msi" ]; then touch ./observiq-otel-collector-arm64.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
+.PHONY: release-containers-test
+release-containers-test:
+	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+	mkdir -p tmp
+	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
+	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
+	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
+
+.PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+agent-linux-amd64:
+	GOARCH=amd64 GOOS=linux $(MAKE) agent
+agent-linux-arm64:
+	GOARCH=arm64 GOOS=linux $(MAKE) agent
+agent-linux-ppc64le:
+	GOARCH=ppc64le GOOS=linux $(MAKE) agent
+
 build-single:
+	$(MAKE)
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
+.PHONY: release-test-single
+release-test-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
 
 .PHONY: for-all
 for-all:

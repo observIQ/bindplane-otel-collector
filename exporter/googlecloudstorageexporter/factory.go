@@ -65,6 +65,11 @@ func createMetricsExporter(ctx context.Context, params exporter.Settings, config
 	if err != nil {
 		return nil, fmt.Errorf("new metrics exporter: %w", err)
 	}
+	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
+	exp.telemetry = telemetry
 	return exporterhelper.NewMetrics(
 		ctx,
 		params,
@@ -86,6 +91,11 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 	if err != nil {
 		return nil, fmt.Errorf("new logs exporter: %w", err)
 	}
+	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
+	exp.telemetry = telemetry
 	return exporterhelper.NewLogs(
 		ctx,
 		params,
@@ -107,6 +117,11 @@ func createTracesExporter(ctx context.Context, params exporter.Settings, config 
 	if err != nil {
 		return nil, fmt.Errorf("new traces exporter: %w", err)
 	}
+	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
+	exp.telemetry = telemetry
 	return exporterhelper.NewTraces(
 		ctx,
 		params,
