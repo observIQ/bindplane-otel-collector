@@ -148,65 +148,87 @@ misspell:
 misspell-fix:
 	misspell -w $(ALLDOC)
 
+# Directories migrated to the contrib repo, excluded from testing.
+# Keep in sync with the components filter in .github/workflows/checks.yml.
+MIGRATED_MODULE_PATTERNS := receiver/ processor/ exporter/ extension/ \
+	counter expr version \
+	internal/aws internal/azureblob internal/blobconsume internal/exporterutils \
+	internal/measurements internal/osinfo internal/storageclient internal/testutils
+
 .PHONY: test
 test:
-	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
-
-.PHONY: test-receivers
-test-receivers:
+	@echo "running tests in root"
+	@gotestsum --rerun-fails --packages="./..." -- -race
 	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		if [ "$${dir}" = "." ]; then continue; fi; \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then \
+			echo "skipping migrated module $${dir}"; \
+			continue; \
 		fi; \
+		(cd "$${dir}" && \
+			echo "running tests in $${dir}" && \
+			gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
 	done
 
-.PHONY: test-processors
-test-processors:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
+# .PHONY: test-receivers
+# test-receivers:
+# 	@set -e; for dir in $(ALL_MODULES); do \
+# 		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
+# 			(cd "$${dir}" && \
+# 				echo "running tests in $${dir}" && \
+# 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+# 		fi; \
+# 	done
 
-.PHONY: test-exporters
-test-exporters:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
+# .PHONY: test-processors
+# test-processors:
+# 	@set -e; for dir in $(ALL_MODULES); do \
+# 		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
+# 			(cd "$${dir}" && \
+# 				echo "running tests in $${dir}" && \
+# 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+# 		fi; \
+# 	done
 
-.PHONY: test-extensions
-test-extensions:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
+# .PHONY: test-exporters
+# test-exporters:
+# 	@set -e; for dir in $(ALL_MODULES); do \
+# 		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
+# 			(cd "$${dir}" && \
+# 				echo "running tests in $${dir}" && \
+# 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+# 		fi; \
+# 	done
 
-.PHONY: test-other
-test-other:
-	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
-	if [ -n "$$PACKAGES" ]; then \
-		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
-	fi
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		else \
-			echo "skipping running tests in $${dir}"; \
-		fi; \
-	done
+# .PHONY: test-extensions
+# test-extensions:
+# 	@set -e; for dir in $(ALL_MODULES); do \
+# 		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
+# 			(cd "$${dir}" && \
+# 				echo "running tests in $${dir}" && \
+# 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+# 		fi; \
+# 	done
+
+# .PHONY: test-other
+# test-other:
+# 	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
+# 	if [ -n "$$PACKAGES" ]; then \
+# 		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
+# 	fi
+# 	@set -e; for dir in $(ALL_MODULES); do \
+# 		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
+# 			(cd "$${dir}" && \
+# 				echo "running tests in $${dir}" && \
+# 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+# 		else \
+# 			echo "skipping running tests in $${dir}"; \
+# 		fi; \
+# 	done
 
 .PHONY: test-no-race
 test-no-race:
