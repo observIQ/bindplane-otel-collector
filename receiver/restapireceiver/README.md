@@ -1,6 +1,6 @@
 > [!WARNING]
-> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/restapireceiver).**
-> This copy is retained for reference and will be removed after September 2026.
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/restapireceiver).**
+> This module is retained for reference and will be removed after September 2026.
 
 # REST API Receiver
 

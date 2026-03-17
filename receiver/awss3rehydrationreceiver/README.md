@@ -1,6 +1,6 @@
 > [!WARNING]
-> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/awss3rehydrationreceiver).**
-> This copy is retained for reference and will be removed after September 2026.
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/awss3rehydrationreceiver).**
+> This module is retained for reference and will be removed after September 2026.
 
 # AWS S3 Rehydration Receiver
 

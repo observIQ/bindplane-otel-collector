@@ -1,6 +1,6 @@
 > [!WARNING]
-> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/metricextractprocessor).**
-> This copy is retained for reference and will be removed after September 2026.
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/metricextractprocessor).**
+> This module is retained for reference and will be removed after September 2026.
 
 # Metric Extract Processor
 

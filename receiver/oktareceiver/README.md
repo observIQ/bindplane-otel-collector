@@ -1,6 +1,6 @@
 > [!WARNING]
-> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/oktareceiver).**
-> This copy is retained for reference and will be removed after September 2026.
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/oktareceiver).**
+> This module is retained for reference and will be removed after September 2026.
 
 # Okta Receiver
 This receiver is capable of collecting logs from an Okta domain.

@@ -1,6 +1,6 @@
 > [!WARNING]
-> **This component has moved to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/m365receiver).**
-> This copy is retained for reference and will be removed after September 2026.
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/m365receiver).**
+> This module is retained for reference and will be removed after September 2026.
 
 # Microsoft 365 Receiver
 Receives metrics from [Microsoft 365](https://www.microsoft365.com/)
