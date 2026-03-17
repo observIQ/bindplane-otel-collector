@@ -15,6 +15,16 @@ INTEGRATION_TEST_ARGS?=-tags integration
 
 TOOLS_MOD_DIR := ./internal/tools
 
+# Directories migrated to the contrib repo, excluded from testing.
+# Keep in sync with the components filter in .github/workflows/checks.yml.
+MIGRATED_MODULE_PATTERNS := receiver/ processor/ exporter/ extension/ \
+	counter expr version \
+	internal/aws internal/azureblob internal/blobconsume internal/exporterutils \
+	internal/measurements internal/osinfo internal/storageclient internal/testutils
+
+# Generate gosec -exclude-dir flags from migrated module patterns
+GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
+
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -37,7 +47,7 @@ version:
 # Builds just the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
@@ -140,62 +150,21 @@ misspell-fix:
 
 .PHONY: test
 test:
-	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
-
-.PHONY: test-receivers
-test-receivers:
+	@echo "running tests in root"
+	@gotestsum --rerun-fails --packages="./..." -- -race
 	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		if [ "$${dir}" = "." ]; then continue; fi; \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then \
+			echo "skipping migrated module $${dir}"; \
+			continue; \
 		fi; \
-	done
-
-.PHONY: test-processors
-test-processors:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-exporters
-test-exporters:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-extensions
-test-extensions:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-other
-test-other:
-	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
-	if [ -n "$$PACKAGES" ]; then \
-		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
-	fi
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		else \
-			echo "skipping running tests in $${dir}"; \
-		fi; \
+		(cd "$${dir}" && \
+			echo "running tests in $${dir}" && \
+			gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
 	done
 
 .PHONY: test-no-race
@@ -232,25 +201,12 @@ tidy:
 gosec:
 	gosec \
 	  -exclude-dir=updater \
-	  -exclude-dir=receiver/sapnetweaverreceiver \
-	  -exclude-dir=extension/bindplaneextension \
-	  -exclude-dir=processor/snapshotprocessor \
-	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
-	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
-	  -exclude-dir=exporter/chronicleexporter/protos/api \
-	  -exclude-dir=exporter/googlecloudstorageexporter/internal/metadata \
-	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
-	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
-	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
-	  -exclude-dir=extension/opampgateway/internal/metadata \
+	  -exclude-dir=cmd/plugindocgen \
+	  $(GOSEC_MIGRATED_EXCLUDES) \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
-	cd extension/bindplaneextension; gosec ./...
-	cd processor/snapshotprocessor; gosec ./...
-	cd receiver/sapnetweaverreceiver; gosec ./...
-	cd processor/ocsfstandardizationprocessor; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -265,6 +221,11 @@ MOD_PATH_EXCLUDES := ./cmd/plugindocgen
 check-mod-paths:
 	@FAILED=0; \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
 		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
 		if [ "$${dir}" = "." ]; then \
@@ -294,6 +255,11 @@ check-dependabot:
 	@FAILED=0; \
 	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		if [ "$${dir}" = "." ]; then \
 			EXPECTED="/"; \
 		else \
@@ -415,9 +381,18 @@ for-all:
 	@echo "running $${CMD} in root"
 	@$${CMD}
 	@set -e; for dir in $(ALL_MODULES); do \
+	  if [ "$${dir}" = "." ]; then continue; fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
 	  (cd "$${dir}" && \
-	  	echo "running $${CMD} in $${dir}" && \
-	 	$${CMD} ); \
+	    echo "running $${CMD} in $${dir}" && \
+	    $${CMD} ); \
 	done
 
 # Release a new version of the agent. This will also tag all submodules
@@ -439,9 +414,16 @@ release:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ $${dir} == \. ]; then \
 	  	continue; \
-	  else \
-	    echo "$${dir}" | sed -e "s+^./++" -e 's+$$+/$(version)+' | awk '{print $1}' | git tag $$(cat)  ; \
 	  fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
+	  echo "$${dir}" | sed -e "s+^./++" -e 's+$$+/$(version)+' | awk '{print $$1}' | git tag $$(cat); \
 	done
 
 	@git push --tags

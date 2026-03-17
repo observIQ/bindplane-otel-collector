@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/routereceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Route Receiver
 This receiver is used to receive telemetry routed from other pipelines.
 

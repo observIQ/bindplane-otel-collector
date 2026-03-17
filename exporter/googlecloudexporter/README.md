@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/googlecloudexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official

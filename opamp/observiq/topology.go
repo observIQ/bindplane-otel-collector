@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
-	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
+	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
