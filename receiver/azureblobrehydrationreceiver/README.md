@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/azureblobrehydrationreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Azure Blob Storage Rehydration Receiver
 Rehydrates OTLP from Azure Blob Storage that was stored using the Azure Blob Exporter [../../exporter/azureblobexporter/README.md].
 

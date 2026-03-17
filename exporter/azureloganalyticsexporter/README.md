@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/azureloganalyticsexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Azure Log Analytics Exporter
 
 This exporter allows you to export logs to Azure Log Analytics via the Log Analytics Ingestion API. Logs are exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto) if the raw_log_field is not supplied, otherwise they are supplied in the form
