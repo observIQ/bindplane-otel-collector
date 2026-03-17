@@ -436,6 +436,20 @@ clean:
 scan-licenses:
 	lichen --config=./license.yaml $$(find dist/collector_* dist/updater_*)
 
+# Generate SBOM markdown and CSV from go-licenses.
+# Requires go-licenses: go install github.com/google/go-licenses@latest
+# Outputs: NOTICE (raw CSV), sbom.md, sbom.csv
+# Use VALIDATE=1 to enable pkg.go.dev URL validation (slow, ~10min)
+.PHONY: generate-sbom
+generate-sbom:
+	@command -v go-licenses > /dev/null 2>&1 || (echo "go-licenses not found. Run: go install github.com/google/go-licenses@latest" && exit 1)
+	@command -v ruby > /dev/null 2>&1 || (echo "ruby not found" && exit 1)
+	@if [ "$(VALIDATE)" = "1" ]; then \
+		ruby generate_sbom.rb --validate; \
+	else \
+		ruby generate_sbom.rb; \
+	fi
+
 .PHONY: generate
 generate:
 	$(MAKE) for-all CMD="go generate ./..."
