@@ -150,62 +150,21 @@ misspell-fix:
 
 .PHONY: test
 test:
-	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
-
-.PHONY: test-receivers
-test-receivers:
+	@echo "running tests in root"
+	@gotestsum --rerun-fails --packages="./..." -- -race
 	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		if [ "$${dir}" = "." ]; then continue; fi; \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then \
+			echo "skipping migrated module $${dir}"; \
+			continue; \
 		fi; \
-	done
-
-.PHONY: test-processors
-test-processors:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-exporters
-test-exporters:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-extensions
-test-extensions:
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		fi; \
-	done
-
-.PHONY: test-other
-test-other:
-	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
-	if [ -n "$$PACKAGES" ]; then \
-		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
-	fi
-	@set -e; for dir in $(ALL_MODULES); do \
-		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
-			(cd "$${dir}" && \
-				echo "running tests in $${dir}" && \
-				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
-		else \
-			echo "skipping running tests in $${dir}"; \
-		fi; \
+		(cd "$${dir}" && \
+			echo "running tests in $${dir}" && \
+			gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
 	done
 
 .PHONY: test-no-race
@@ -262,6 +221,11 @@ MOD_PATH_EXCLUDES := ./cmd/plugindocgen
 check-mod-paths:
 	@FAILED=0; \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
 		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
 		if [ "$${dir}" = "." ]; then \
@@ -291,6 +255,11 @@ check-dependabot:
 	@FAILED=0; \
 	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		if [ "$${dir}" = "." ]; then \
 			EXPECTED="/"; \
 		else \
@@ -412,9 +381,18 @@ for-all:
 	@echo "running $${CMD} in root"
 	@$${CMD}
 	@set -e; for dir in $(ALL_MODULES); do \
+	  if [ "$${dir}" = "." ]; then continue; fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
 	  (cd "$${dir}" && \
-	  	echo "running $${CMD} in $${dir}" && \
-	 	$${CMD} ); \
+	    echo "running $${CMD} in $${dir}" && \
+	    $${CMD} ); \
 	done
 
 # Release a new version of the agent. This will also tag all submodules
@@ -436,9 +414,16 @@ release:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ $${dir} == \. ]; then \
 	  	continue; \
-	  else \
-	    echo "$${dir}" | sed -e "s+^./++" -e 's+$$+/$(version)+' | awk '{print $1}' | git tag $$(cat)  ; \
 	  fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
+	  echo "$${dir}" | sed -e "s+^./++" -e 's+$$+/$(version)+' | awk '{print $$1}' | git tag $$(cat); \
 	done
 
 	@git push --tags
