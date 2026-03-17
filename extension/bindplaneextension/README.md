@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/bindplaneextension).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Bindplane Extension
 
 This extension is used by Bindplane in custom distributions to store Bindplane specific information.

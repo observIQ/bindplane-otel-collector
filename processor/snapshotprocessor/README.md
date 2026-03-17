@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/snapshotprocessor).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Snapshot Processor
 
 The snapshot processor is used in custom distributions of the collector to provide snapshot functionality in Bindplane. It is not currently included in the official `bindplane-agent`.

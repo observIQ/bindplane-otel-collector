@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/awss3eventreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # AWS S3 Event Receiver
 
 The AWS S3 Event Receiver consumes S3 event notifications for object creation events (`s3:ObjectCreated:*`) and emits the S3 object as the string body of a log record.
