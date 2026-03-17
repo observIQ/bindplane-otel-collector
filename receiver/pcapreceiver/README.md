@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/pcapreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # PCAP Receiver
 
 The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native tools (`tcpdump` on macOS/Linux, `Npcap` on Windows) to capture packets directly from a network interface.

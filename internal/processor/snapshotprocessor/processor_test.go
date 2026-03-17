@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/internal/report"
-	"github.com/observiq/bindplane-otel-collector/internal/report/snapshot/mocks"
+	"github.com/observiq/bindplane-otel-contrib/pkg/snapshot/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.opentelemetry.io/collector/pdata/plog"
