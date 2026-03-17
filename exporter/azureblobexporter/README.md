@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/azureblobexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Azure Blob Exporter
 
 This exporter allows you to export metrics, traces, and logs to Azure Blob Storage. Telemetry is exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto).

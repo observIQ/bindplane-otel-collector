@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/bindplaneauditlogs).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Bindplane Audit Logs Receiver
 
 This receiver is capable of collecting audit logs from a Bindplane instance.
