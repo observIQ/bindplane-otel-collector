@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/removeemptyvaluesprocessor).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Remove Empty Values Processor
 
 This processor removes empty values from telemetry's attributes and resource attributes, as well as from log record's body.

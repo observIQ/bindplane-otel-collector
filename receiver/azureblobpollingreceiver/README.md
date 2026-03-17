@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/azureblobpollingreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Azure Blob Storage Polling Receiver
 
 Continuously polls Azure Blob Storage at configurable intervals and dynamically adjusts the time window to collect only new data from each interval. This receiver is designed for ongoing data collection from Azure Blob Storage that was stored using the Azure Blob Exporter [../../exporter/azureblobexporter/README.md].

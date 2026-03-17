@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/sapnetweaverreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # SAP Netweaver Receiver
 This receiver collects metrics from SAP Netweaver instance based on the [SAPControl Web Service Interface](https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html). Stats are collected from the `GetAlertTree` and `EnqGetLockTable` methods.
 
