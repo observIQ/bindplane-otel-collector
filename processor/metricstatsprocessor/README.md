@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/metricstatsprocessor).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Metric Stats Processor
 This processor calculates statistics from metrics over a configurable interval, allowing for metrics to be sampled at a higher rate, or to reduce the volume of metric data from push-based sources.
 

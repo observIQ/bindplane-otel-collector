@@ -15,10 +15,11 @@
 package factories
 
 import (
-	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
-	"github.com/observiq/bindplane-otel-collector/extension/badgerextension"
-	"github.com/observiq/bindplane-otel-collector/extension/opampgateway"
-	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension"
+	"github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension"
+	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension"
+	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway"
+	"github.com/observiq/bindplane-otel-contrib/extension/pebbleextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
@@ -40,6 +41,7 @@ import (
 )
 
 var defaultExtensions = []extension.Factory{
+	ackextension.NewFactory(),
 	avrologencodingextension.NewFactory(),
 	awss3eventextension.NewFactory(),
 	badgerextension.NewFactory(),

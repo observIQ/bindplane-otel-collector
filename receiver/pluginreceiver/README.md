@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/pluginreceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Plugin Receiver
 
 The Plugin Receiver is designed to run templated OpenTelemetry pipelines. This allows users to store complex workflows within a plugin that is loaded by the receiver.
