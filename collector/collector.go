@@ -25,7 +25,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/factories"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
-	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
+	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 )

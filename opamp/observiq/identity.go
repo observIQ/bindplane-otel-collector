@@ -18,8 +18,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"github.com/observiq/bindplane-otel-collector/opamp"
+	"github.com/observiq/bindplane-otel-contrib/pkg/osinfo"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )

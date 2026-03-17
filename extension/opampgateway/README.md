@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/opampgateway).**
+> This module is retained for reference and will be removed after September 2026.
+
 # OpAMP Gateway Extension
 
 | Status  |           |
@@ -46,10 +50,10 @@ graph LR
     UC -- "ws (...)" --> S
 ```
 
-1. The gateway opens `upstream_connections` persistent WebSocket connections to
+1. The gateway opens `server.connections` persistent WebSocket connections to
    the upstream OpAMP server.
 2. The gateway listens for incoming agent WebSocket connections on the
-   configured `opamp_server.endpoint`.
+   configured `listener.endpoint`.
 3. When an agent connects, the gateway authenticates it by sending an
    `OpampGatewayConnect` custom message upstream and waiting for an
    `OpampGatewayConnectResult` response. If rejected, the agent receives the
@@ -65,21 +69,24 @@ graph LR
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `upstream_opamp_address` | string | *(required)* | WebSocket URL of the upstream OpAMP server. Must use `ws://` or `wss://` scheme. |
-| `secret_key` | string | `""` | Secret key sent as `Authorization: Secret-Key <value>` header on upstream connections. |
-| `upstream_connections` | int | `1` | Number of persistent WebSocket connections to maintain to the upstream server. |
-| `opamp_server.endpoint` | string | `"0.0.0.0:0"` | Address the downstream server listens on for agent connections. |
-| `opamp_server.tls` | [TLS config](https://pkg.go.dev/go.opentelemetry.io/collector/config/configtls#ServerConfig) | *(none)* | TLS configuration for the downstream server. |
+| `server.endpoint` | string | *(required)* | WebSocket URL of the upstream OpAMP server. Must use `ws://` or `wss://` scheme. |
+| `server.headers` | map | *(none)* | HTTP headers sent on upstream connections (e.g. `Authorization`). |
+| `server.tls` | [TLS config](https://pkg.go.dev/go.opentelemetry.io/collector/config/configtls#ClientConfig) | *(none)* | TLS configuration for the upstream client connection. |
+| `server.connections` | int | `1` | Number of persistent WebSocket connections to maintain to the upstream server. |
+| `listener.endpoint` | string | `"0.0.0.0:0"` | Address the downstream server listens on for agent connections. |
+| `listener.tls` | [TLS config](https://pkg.go.dev/go.opentelemetry.io/collector/config/configtls#ServerConfig) | *(none)* | TLS configuration for the downstream server. |
 
 ### Example
 
 ```yaml
 extensions:
   opampgateway:
-    upstream_opamp_address: wss://opamp.example.com/v1/opamp
-    secret_key: ${env:OPAMP_SECRET_KEY}
-    upstream_connections: 3
-    opamp_server:
+    server:
+      endpoint: wss://opamp.example.com/v1/opamp
+      headers:
+        Authorization: "Secret-Key ${env:OPAMP_SECRET_KEY}"
+      connections: 3
+    listener:
       endpoint: 0.0.0.0:4320
       tls:
         cert_file: /etc/otel/server.crt
@@ -94,8 +101,9 @@ service:
 ```yaml
 extensions:
   opampgateway:
-    upstream_opamp_address: ws://opamp-server:4320/v1/opamp
-    opamp_server:
+    server:
+      endpoint: ws://opamp-server:4320/v1/opamp
+    listener:
       endpoint: 0.0.0.0:4320
 
 service:
@@ -124,5 +132,5 @@ attribute (`upstream` or `downstream`):
 |--------|------|------|-------------|
 | `opampgateway.connections` | Sum (int) | `{connections}` | Current number of active connections. |
 | `opampgateway.messages` | Sum (int, monotonic) | `{messages}` | Total messages forwarded. |
-| `opampgateway.message.bytes` | Sum (int, monotonic) | `B` | Total bytes forwarded. |
+| `opampgateway.messages.bytes` | Sum (int, monotonic) | `B` | Total bytes forwarded. |
 | `opampgateway.messages.latency` | Histogram (int) | `ms` | Time spent in the gateway before forwarding a message. |

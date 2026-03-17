@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/datapointcountprocessor).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Datapoint Count Processor
 
 This processor is used to convert the number of datapoints received during an interval into a metric.

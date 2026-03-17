@@ -32,7 +32,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/opamp/mocks"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
-	"github.com/observiq/bindplane-otel-collector/version"
+	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/stretchr/testify/assert"

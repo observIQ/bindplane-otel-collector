@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/observiq/bindplane-otel-collector/internal/report"
-	"github.com/observiq/bindplane-otel-collector/internal/report/snapshot"
+	"github.com/observiq/bindplane-otel-contrib/pkg/snapshot"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"

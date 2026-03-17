@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/processor/lookupprocessor).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Lookup Processor
 This processor is used to lookup values in a csv file.
 
