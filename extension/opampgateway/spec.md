@@ -30,20 +30,6 @@ opampgateway/
     metadatatest/          Generated telemetry test helpers
 ```
 
-### Why root vs internal?
-
-The root package is the public surface consumed by the OTel Collector's factory
-registry. It exports only `NewFactory()` and `Config`/`OpAMPServer`. All
-implementation lives in `internal/gateway/` so it cannot be imported by external
-packages. This keeps the public API minimal and allows free refactoring of
-internals.
-
-`Config` stays in the root package because `component.Config` must be returned
-by `defaultConfig()` in the factory. The internal package defines its own
-`Settings` struct to receive the resolved configuration values (including the
-`*tls.Config` produced from `configtls.ServerConfig.LoadTLSConfig`). This
-avoids a circular import between root and internal.
-
 ## Architecture
 
 ### Connection Model

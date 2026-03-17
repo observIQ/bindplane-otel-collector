@@ -30,7 +30,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/logging"
 	"github.com/observiq/bindplane-otel-collector/internal/service"
 	"github.com/observiq/bindplane-otel-collector/opamp"
-	"github.com/observiq/bindplane-otel-collector/version"
+	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
