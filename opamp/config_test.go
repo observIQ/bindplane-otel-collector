@@ -950,7 +950,7 @@ tls_config:
 				_, err = rand.Read(nonce)
 				require.NoError(t, err)
 
-				plaintext := []byte("b92222ee-a1fc-4bb1-98db-26de3448541b")
+				plaintext := []byte(secretKeyContents)
 				ciphertext := base64.StdEncoding.EncodeToString(aesGCM.Seal(nonce, nonce, plaintext, nil))
 
 				configContents := fmt.Sprintf(`
