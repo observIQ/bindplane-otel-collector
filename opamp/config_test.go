@@ -15,8 +15,12 @@
 package opamp
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -913,6 +917,58 @@ tls_config:
 						KeyFile:            &keyPath,
 						CertFile:           &certPath,
 					},
+				}
+
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+				assert.Equal(t, expectedConfig, cfg)
+			},
+		},
+		{
+			desc: "Successful Parse With AES Encrypted Values",
+			testFunc: func(t *testing.T) {
+				// 32-byte AES key, base64-encoded
+				aesKeyBase64 := "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+
+				// Set the env var that the aesprovider reads
+				require.NoError(t, os.Setenv("OTEL_AES_CREDENTIAL_PROVIDER", aesKeyBase64))
+				defer func() {
+					require.NoError(t, os.Unsetenv("OTEL_AES_CREDENTIAL_PROVIDER"))
+				}()
+
+				// Encrypt the secret key value using the same method as the server
+				aesKey, err := base64.StdEncoding.DecodeString(aesKeyBase64)
+				require.NoError(t, err)
+
+				block, err := aes.NewCipher(aesKey)
+				require.NoError(t, err)
+
+				aesGCM, err := cipher.NewGCM(block)
+				require.NoError(t, err)
+
+				nonce := make([]byte, aesGCM.NonceSize())
+				_, err = rand.Read(nonce)
+				require.NoError(t, err)
+
+				plaintext := []byte("b92222ee-a1fc-4bb1-98db-26de3448541b")
+				ciphertext := base64.StdEncoding.EncodeToString(aesGCM.Seal(nonce, nonce, plaintext, nil))
+
+				configContents := fmt.Sprintf(`
+endpoint: localhost:1234
+secret_key: ${aes:%s}
+agent_id: %s
+`, ciphertext, testAgentIDString)
+
+				tmpDir := t.TempDir()
+				configPath := filepath.Join(tmpDir, "manager.yml")
+
+				err = os.WriteFile(configPath, []byte(configContents), os.ModePerm)
+				require.NoError(t, err)
+
+				expectedConfig := &Config{
+					Endpoint:  "localhost:1234",
+					SecretKey: &secretKeyContents,
+					AgentID:   testAgentID,
 				}
 
 				cfg, err := ParseConfig(configPath)
