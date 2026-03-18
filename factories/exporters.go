@@ -16,6 +16,7 @@ package factories
 
 import (
 	"github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter"
+	"github.com/observiq/bindplane-otel-contrib/exporter/awssecuritylakeexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter"
@@ -65,6 +66,7 @@ var defaultExporters = []exporter.Factory{
 	awsemfexporter.NewFactory(),
 	awskinesisexporter.NewFactory(),
 	awss3exporter.NewFactory(),
+	awssecuritylakeexporter.NewFactory(),
 	awsxrayexporter.NewFactory(),
 	azureblobexporter.NewFactory(),
 	azuremonitorexporter.NewFactory(),
