@@ -27,10 +27,10 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
-	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
+	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
 	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client"

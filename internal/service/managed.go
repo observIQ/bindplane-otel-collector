@@ -19,7 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/internal/measurements"
+	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
 	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
