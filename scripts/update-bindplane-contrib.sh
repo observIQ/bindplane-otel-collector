@@ -23,8 +23,10 @@ if [ -z "$TARGET_VERSION" ]; then
 fi
 
 # Directories migrated to the contrib repo — must not be modified here.
-# Keep in sync with MIGRATED_MODULE_PATTERNS in the Makefile.
-MIGRATED_PREFIXES="receiver/ processor/ exporter/ extension/ counter/ expr/ version/ internal/aws/ internal/azureblob/ internal/blobconsume/ internal/exporterutils/ internal/measurements/ internal/osinfo/ internal/storageclient/ internal/testutils/"
+# Single source of truth: migrated-modules.txt in the repo root.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MIGRATED_PREFIXES=$(tr '\n' ' ' < "$REPO_ROOT/migrated-modules.txt")
 
 is_migrated() {
     mod="$1"

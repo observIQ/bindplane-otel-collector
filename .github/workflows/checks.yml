@@ -27,6 +27,7 @@ jobs:
         id: filter
         with:
           # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
+          # Components list should be based on source of truth 'migrated-modules.txt' in root of repo
           filters: |
             checks:
               - '.github/workflows/checks.yml'
