@@ -1,0 +1,15 @@
+receiver/
+processor/
+exporter/
+extension/
+counter
+expr
+version
+internal/aws
+internal/azureblob
+internal/blobconsume
+internal/exporterutils
+internal/measurements
+internal/osinfo
+internal/storageclient
+internal/testutils
