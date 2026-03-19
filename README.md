@@ -99,15 +99,11 @@ To install directly with the appropriate package manager, and how to configure O
 
 ### Windows
 
-To install the BDOT Collector on Windows run the Powershell command below to install the MSI with no UI.
+Install the BDOT Collector using the PowerShell command below. The script automatically selects the correct MSI for the system architecture (amd64 or arm64).
 
 ```pwsh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/observiq-otel-collector.msi" /quiet
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content))
 ```
-
-Alternately, for an interactive installation [download the latest MSI](https://github.com/observIQ/bindplane-otel-collector/releases/latest).
-
-After downloading the MSI, simply double click it to open the installation wizard. Follow the instructions to configure and install the BDOT Collector.
 
 For more installation information, and how to configure OpAMP, see [installing on Windows](/docs/installation-windows.md).
 
