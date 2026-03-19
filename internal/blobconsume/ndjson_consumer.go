@@ -68,15 +68,18 @@ func (n *NDJSONLogsConsumer) Consume(ctx context.Context, entityContent []byte) 
 			continue
 		}
 
-		record := logRecords.AppendEmpty()
-		record.SetObservedTimestamp(now)
-		if err := record.Body().SetEmptyMap().FromRaw(parsed); err != nil {
+		tempBody := pcommon.NewMap()
+		if err := tempBody.FromRaw(parsed); err != nil {
 			n.logger.Warn("Skipping line, failed to set body",
 				zap.Int("line_number", i+1),
 				zap.Error(err))
 			skipped++
 			continue
 		}
+
+		record := logRecords.AppendEmpty()
+		record.SetObservedTimestamp(now)
+		tempBody.CopyTo(record.Body().SetEmptyMap())
 	}
 
 	if skipped > 0 {
