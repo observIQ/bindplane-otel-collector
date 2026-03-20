@@ -991,9 +991,18 @@ install_package() {
         # We'll want to restart.
         info "Restarting service..."
         # AIX does not support service "restart", so stop and start instead
-        stopsrc -g bpcollector
+        stopsrc -g bpcollector || error_exit "$LINENO" "Failed to request service stop"
+        # Wait for the service to actually stop before starting it again
+        _stop_wait=0
+        while ! lssrc -s bindplane-otel-collector | grep -q inoperative; do
+          _stop_wait=$((_stop_wait + 1))
+          if [ "$_stop_wait" -ge 30 ]; then
+            error_exit "$LINENO" "Service did not stop within 30 seconds"
+          fi
+          sleep 1
+        done
         # Start the service with the proper environment variables
-        startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)" || error_exit "$LINENO" "Failed to start service"
         succeeded
         ;;
       *inoperative*)
