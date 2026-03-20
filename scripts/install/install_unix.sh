@@ -999,6 +999,9 @@ install_package() {
           if [ "$_stop_wait" -ge 30 ]; then
             error_exit "$LINENO" "Service did not stop within 30 seconds"
           fi
+          if [ $((_stop_wait % 5)) -eq 0 ]; then
+            info "Still waiting for service to stop... (${_stop_wait}s)"
+          fi
           sleep 1
         done
         # Start the service with the proper environment variables
