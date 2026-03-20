@@ -592,7 +592,7 @@ ask_clean_install() {
 
   if [ -f "$SUPERVISOR_YML_PATH" ]; then
     # Check for default config file hash
-    cfg_file_hash=$(sha256sum "$SUPERVISOR_YML_PATH" | awk '{print $1}')
+    cfg_file_hash=$(shasum -a 256 "$SUPERVISOR_YML_PATH" | awk '{print $1}')
     if [ "$cfg_file_hash" = "$DEFAULT_SUPERVISOR_CFG_HASH" ]; then
       # config matches default config, mark clean_install as true
       clean_install="true"
@@ -1561,6 +1561,22 @@ main() {
   if [ -z "$version" ]; then
     # shellcheck disable=SC2153
     version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ] && [ -n "$package_path" ]; then
+    # Extract version from package filename
+    # Format: bindplane-otel-collector-v{VERSION}-{OS}-{ARCH}.{EXT}
+    # Strip prefix, extension, and the last two hyphen-separated segments (os-arch)
+    _fname=$(basename "$package_path")
+    _fname=${_fname%.tar.gz}; _fname=${_fname%.deb}; _fname=${_fname%.rpm}
+    _fname=${_fname#bindplane-otel-collector-v}
+    # Remove trailing -os-arch (last two segments)
+    _arch=${_fname##*-}; _fname=${_fname%-"$_arch"}
+    _os=${_fname##*-}; _fname=${_fname%-"$_os"}
+    # Strip SNAPSHOT suffix if present (e.g. -SNAPSHOT-c0098f8b0)
+    _fname=$(echo "$_fname" | sed 's/-SNAPSHOT-[0-9a-f]*$//')
+    version="$_fname"
+    unset _fname _arch _os
   fi
 
   if [ -z "$version" ]; then
