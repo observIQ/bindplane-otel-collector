@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
-  version: "v2.0.0-aix-alpha.3"
+  version: "v2.0.0-aix-alpha.4"
   output_path: ./builder
 conf_resolver:
   default_uri_scheme: "env"
@@ -50,6 +50,7 @@ processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.145.0
   - gomod: github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.93.0
