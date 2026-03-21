@@ -53,6 +53,7 @@ DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba69080405
 
 # Set up the supervisor timeout values (AIX needs higher values due to slow I/O)
 if [ "$(uname -s)" = "AIX" ]; then
+  PREREQS="$PREREQS iostat"
   config_apply_timeout="150"
   bootstrap_timeout="120"
 else
@@ -656,6 +657,7 @@ check_prereqs() {
   os_arch_check
   package_type_check
   dependencies_check
+  aix_iostat_check
   user_check
   success "Prerequisite check complete!"
   decrease_indent
@@ -844,6 +846,22 @@ package_type_check()
         error_exit "$LINENO" "Could not find dpkg or rpm on the system"
       fi
   fi
+}
+
+# AIX requires the sys0 iostat kernel attribute to be enabled for per-process
+# I/O accounting. Without it, process disk I/O metrics will not be available.
+aix_iostat_check() {
+  if [ "$(uname -s)" != "AIX" ]; then
+    return
+  fi
+
+  info "Checking AIX iostat kernel attribute..."
+  _iostat_val=$(lsattr -El sys0 -a iostat 2>/dev/null | awk '{print $2}')
+  if [ "$_iostat_val" != "true" ]; then
+    failed
+    error_exit "$LINENO" "AIX kernel attribute 'iostat' is not enabled. Per-process I/O metrics require this. Enable with: chdev -l sys0 -a iostat=true (reboot required)"
+  fi
+  succeeded
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
