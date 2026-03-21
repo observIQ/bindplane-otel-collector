@@ -110,4 +110,4 @@ replaces:
   # Can be removed when upstream adds AIX support
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver => github.com/Dylan-M/opentelemetry-collector-contrib/receiver/hostmetricsreceiver 4fad3a4107f0096f1898f4e0cba927062d414aec
   # AIX patches for gopsutil - can be removed when upstream merges AIX support
-  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 cac2cca45cf9933b9510ce9e2cc09c2bae343d63
+  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 954114c294060c77e2e8bf50bb65a9d3d24c72e6
