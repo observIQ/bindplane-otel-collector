@@ -180,6 +180,9 @@ jobs:
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
+          # TODO(AIX alpha): Uncomment when AIX exits alpha to include AIX artifacts in the archive
+          # cp ./dist/*tar.gz ./artifacts 2>/dev/null || true
+          # cp ./dist/*SHA256SUMS ./artifacts 2>/dev/null || true
           tar -czvf bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
       - name: Sign artifact archive
         run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz
@@ -280,3 +283,53 @@ jobs:
             artifacts yum upload stable-rpm \
             --location us-central1 \
             --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
+
+  # AIX release job — runs in parallel with the main release job.
+  # AIX is currently in alpha; artifacts are uploaded to GCS only.
+  # GitHub release upload is commented out until AIX exits alpha.
+  release-aix:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    steps:
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_PROJECT_ID }}
+          credentials_json: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_CREDENTIALS }}
+      - name: Install Gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.4
+          cache: false
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+      - name: Install Tools
+        run: make install-tools
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Run GoReleaser (AIX)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --config .goreleaser-aix.yml --timeout 120m
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+      # TODO(AIX alpha): Uncomment when AIX exits alpha to upload artifacts to the GitHub release.
+      # - name: Upload AIX artifacts to GitHub release
+      #   run: gh release upload ${{ github.ref_name }} ./dist/*tar.gz ./dist/*SHA256SUMS --clobber
+      #   env:
+      #     GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
