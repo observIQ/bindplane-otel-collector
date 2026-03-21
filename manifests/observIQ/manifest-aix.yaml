@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
-  version: "v2.0.0-aix-alpha.8"
+  version: "v2.0.0-aix-alpha.9"
   output_path: ./builder
 conf_resolver:
   default_uri_scheme: "env"
@@ -108,6 +108,6 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/version => ../version
   # AIX patches for hostmetricsreceiver - dynamic OS check + nil guards for process scraper
   # Can be removed when upstream adds AIX support
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver => github.com/Dylan-M/opentelemetry-collector-contrib/receiver/hostmetricsreceiver 538060b1885b99da1422b2fb8b28eed038dbbcc6
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver => github.com/Dylan-M/opentelemetry-collector-contrib/receiver/hostmetricsreceiver 4fad3a4107f0096f1898f4e0cba927062d414aec
   # AIX patches for gopsutil - can be removed when upstream merges AIX support
   - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 cac2cca45cf9933b9510ce9e2cc09c2bae343d63
