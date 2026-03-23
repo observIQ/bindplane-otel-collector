@@ -21,7 +21,7 @@ Because the updater interacts with the service manager, and may edit privileged 
 9. The updater updates the service configuration.
 10. The updater starts the agent again, monitoring for agent to be healthy.
     * If the agent is determined to be healthy, the updater exits
-    * If the agent is determined unhealthy or doesn't report healthy within 10 seconds, a rollback is initiated. 
+    * If the agent is determined unhealthy or doesn't report healthy within 30 seconds, a rollback is initiated. 
 11. Upon exit, the updater removes the tmp directory.
 
 ## Agent Status Monitoring
@@ -29,7 +29,7 @@ The agent saves its current state (installing, installation failed, or installat
 
 If the agent starts, is able to run successfully, and has its expected version (the version we are upgrading to), the agent will write that the installation was successful to the JSON file. Otherwise, it will write that the installation failed, and will expect the updater to perform a rollback.
 
-If the file indicates the installation failed, or the file still indicates the agent is in an installing state after 10 seconds, a rollback to the previous version is initiated by the updater.
+If the file indicates the installation failed, or the file still indicates the agent is in an installing state after 30 seconds, a rollback to the previous version is initiated by the updater.
 
 If the file indicates the installation was successful, then the updater exits.
 

@@ -42,6 +42,10 @@ const (
 	// DefaultSystemdUnitFilePath is the default path to the systemd unit file
 	// for the collector service.
 	DefaultSystemdUnitFilePath = "/usr/lib/systemd/system/observiq-otel-collector.service"
+
+	// monitoringTimeout is the maximum time the updater will wait for the new
+	// collector binary to start up and report a successful install status.
+	monitoringTimeout = 30 * time.Second
 )
 
 // Updater is a struct that can be used to perform a collector update
@@ -206,7 +210,7 @@ func (u *Updater) Update() error {
 	}
 
 	// Create a context with timeout to wait for a success or failed status
-	checkCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	checkCtx, cancel := context.WithTimeout(context.Background(), monitoringTimeout)
 	defer cancel()
 
 	u.logger.Debug("Installation successful, begin monitor for success")
