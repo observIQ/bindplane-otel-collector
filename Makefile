@@ -17,10 +17,7 @@ TOOLS_MOD_DIR := ./internal/tools
 
 # Directories migrated to the contrib repo, excluded from testing.
 # Keep in sync with the components filter in .github/workflows/checks.yml.
-MIGRATED_MODULE_PATTERNS := receiver/ processor/ exporter/ extension/ \
-	counter expr version \
-	internal/aws internal/azureblob internal/blobconsume internal/exporterutils \
-	internal/measurements internal/osinfo internal/storageclient internal/testutils
+MIGRATED_MODULE_PATTERNS := $(shell cat migrated-modules.txt)
 
 # Generate gosec -exclude-dir flags from migrated module patterns
 GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))

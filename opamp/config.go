@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/oklog/ulid/v2"
 	"github.com/open-telemetry/opamp-go/client/types"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/provider/envprovider"
 	"go.opentelemetry.io/collector/confmap/provider/fileprovider"
@@ -284,6 +285,7 @@ func ParseConfig(configLocation string) (*Config, error) {
 		ProviderFactories: []confmap.ProviderFactory{
 			fileprovider.NewFactory(),
 			envprovider.NewFactory(),
+			aesprovider.NewFactory(),
 		},
 		ConverterFactories: []confmap.ConverterFactory{},
 		DefaultScheme:      "env",
