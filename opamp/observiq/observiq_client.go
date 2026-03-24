@@ -312,6 +312,12 @@ func (c *Client) Disconnect(ctx context.Context) error {
 func (c *Client) onConnectHandler(_ context.Context) {
 	c.logger.Info("Successfully connected to server")
 
+	// check if we are in the middle of a package update, skip package status handling if true
+	if c.safeGetUpdatingPackage() {
+		c.logger.Debug("re-established OpAMP connection during package update - skip prematurely validating package status before update is complete")
+		return
+	}
+
 	// See if we can retrieve the PackageStatuses where the collector package is in an installing state
 	pkgStatuses, err := c.getVerifiedPackageStatuses()
 	if err != nil {
