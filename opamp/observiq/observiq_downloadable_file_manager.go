@@ -20,7 +20,6 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"crypto/subtle"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -100,7 +99,7 @@ func (m DownloadableFileManager) downloadFile(downloadURL string, outPath string
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("got non-200 status code (%d)", resp.StatusCode)
+		return fmt.Errorf("got non-200 status code (%d) from %s", resp.StatusCode, downloadURL)
 	}
 
 	outPathClean := filepath.Clean(outPath)
@@ -135,7 +134,7 @@ func getOutputFilePath(basePath, downloadURL string) (string, error) {
 	}
 
 	if url.Path == "" {
-		return "", errors.New("input url must have path")
+		return "", fmt.Errorf("input url %q must have path", downloadURL)
 	}
 
 	return filepath.Join(basePath, filepath.Base(url.Path)), nil
@@ -163,7 +162,7 @@ func (m DownloadableFileManager) verifyContentHash(contentPath string, expectedF
 
 	actualContentHash := fileHash.Sum(nil)
 	if subtle.ConstantTimeCompare(expectedFileHash, actualContentHash) == 0 {
-		return errors.New("file hash did not match expected")
+		return fmt.Errorf("file hash did not match expected (expected: %x, actual: %x)", expectedFileHash, actualContentHash)
 	}
 
 	return nil
@@ -189,7 +188,7 @@ func unarchive(archivePath, extractPath string) error {
 			return fmt.Errorf("extract .zip: %w", err)
 		}
 	} else {
-		return fmt.Errorf("unsupported file type: %s", archivePath)
+		return fmt.Errorf("unsupported file type: %s (supported: .tar.gz, .zip)", archivePath)
 	}
 
 	return nil

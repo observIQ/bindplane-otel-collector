@@ -65,7 +65,7 @@ func NewCollectorMonitor(logger *zap.Logger, installDir string) (Monitor, error)
 	var err error
 	collectorMonitor.currentStatus, err = collectorMonitor.stateManager.LoadStatuses()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load package statues: %w", err)
+		return nil, fmt.Errorf("failed to load package statuses: %w", err)
 	}
 
 	return collectorMonitor, nil
@@ -104,7 +104,7 @@ func (c *CollectorMonitor) MonitorForSuccess(ctx context.Context, packageName st
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("timed out waiting for collector to report successful update: %w", ctx.Err())
 		case <-ticker.C:
 			packageStatus, err := c.stateManager.LoadStatuses()
 			switch {

@@ -333,6 +333,10 @@ func (c *Client) onConnectHandler(_ context.Context) {
 		if collectorPkgStatus.ServerOfferedVersion != version.Version() {
 			errMsg := fmt.Sprintf("Failed because of collector version mismatch: expected %s, actual %s",
 				collectorPkgStatus.ServerOfferedVersion, version.Version())
+			c.logger.Error("Collector version mismatch after update",
+				zap.String("expected_version", collectorPkgStatus.ServerOfferedVersion),
+				zap.String("actual_version", version.Version()),
+			)
 			c.failPackageInstall(pkgStatuses, errMsg, false)
 
 			return

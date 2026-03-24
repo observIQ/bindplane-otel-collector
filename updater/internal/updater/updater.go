@@ -92,7 +92,7 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 		}
 	}
 
-	return "", errors.New("Group not found in systemd unit file")
+	return "", fmt.Errorf("Group not found in systemd unit file %s", u.installedSystemdUnitPath)
 }
 
 // generateLinuxServiceFiles writes necessary service files to the install directory
