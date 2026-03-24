@@ -1,0 +1,307 @@
+apiVersion: bindplane.observiq.com/v1
+kind: ProcessorType
+metadata:
+  name: threat_enrichment
+  displayName: Threat Enrichment
+  description: Enriches log telemetry by looking up field values (for example IPs, domains, process names) against indicator lists. When a value matches a rule's filter, sets threat.matched and threat.rule. This ProcessorType exposes up to three indicator rules; the collector supports any number of rules and optional per-rule filter overrides via raw YAML (not exposed here—see repo config/bindplane/README.md).
+  labels:
+    category: Security
+  icon: /icons/processors/filter.svg
+spec:
+  version: 1.0.0
+  supportedPlatforms:
+    - linux
+    - macos
+    - windows
+    - kubernetes-daemonset
+    - kubernetes-deployment
+    - kubernetes-gateway
+    - openshift-daemonset
+    - openshift-deployment
+    - openshift-gateway
+    - azure-container-apps-gateway
+    - secops
+  parameters:
+    - name: storage_section
+      label: Storage
+      type: sectionHeader
+      options:
+        gridColumns: 12
+
+    - name: enable_storage
+      label: Enable Persistent Storage
+      description: Persist processor state using a storage extension (optional).
+      type: bool
+      default: false
+
+    - name: storage_id
+      label: Storage Extension ID
+      description: Component ID of the storage extension (for example file_storage).
+      type: string
+      default: file_storage
+      relevantIf:
+        - name: enable_storage
+          operator: equals
+          value: true
+
+    - name: filter_section
+      label: Default filter
+      description: Filter algorithm and sizing for all rules (matches threatenrichmentprocessor filter config).
+      type: sectionHeader
+      options:
+        gridColumns: 12
+
+    - name: filter_kind
+      label: Filter algorithm
+      description: Probabilistic filter backing each rule's indicator set (bloom, cuckoo, scalable_cuckoo, vacuum).
+      type: enum
+      required: true
+      validValues:
+        - bloom
+        - cuckoo
+        - scalable_cuckoo
+        - vacuum
+      default: bloom
+      options:
+        gridColumns: 12
+        subHeader: Filter
+
+    - name: filter_estimated_count
+      label: Estimated count (Bloom)
+      description: Expected number of indicators; required for Bloom (must be greater than zero).
+      type: int
+      default: 100000
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: bloom
+
+    - name: filter_false_positive_rate
+      label: False positive rate (Bloom)
+      description: Target false positive rate strictly between 0 and 1 (for example 0.01 for 1%).
+      type: float
+      default: 0.01
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: bloom
+
+    - name: filter_max_estimated_count
+      label: Max estimated count (Bloom)
+      description: Optional upper bound for Bloom sizing; leave 0 to omit and use collector defaults.
+      type: int
+      default: 0
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: bloom
+
+    - name: filter_capacity
+      label: Capacity (Cuckoo)
+      description: Expected number of elements for the cuckoo filter (must be greater than zero).
+      type: int
+      default: 100000
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: cuckoo
+
+    - name: filter_capacity_vacuum
+      label: Capacity (Vacuum)
+      description: Expected number of elements for the vacuum filter (must be greater than zero).
+      type: int
+      default: 100000
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: vacuum
+
+    - name: filter_initial_capacity
+      label: Initial capacity (scalable Cuckoo)
+      description: Initial capacity; use 0 for library default.
+      type: int
+      default: 0
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: scalable_cuckoo
+
+    - name: filter_load_factor
+      label: Load factor (scalable Cuckoo)
+      description: Load factor; use 0 for library default.
+      type: float
+      default: 0
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: scalable_cuckoo
+
+    - name: filter_fingerprint_bits
+      label: Fingerprint bits (Vacuum)
+      description: Fingerprint size in bits for the vacuum filter (default in collector is 8).
+      type: int
+      default: 8
+      relevantIf:
+        - name: filter_kind
+          operator: equals
+          value: vacuum
+
+    - name: rules_section
+      label: Indicator rules
+      type: sectionHeader
+      options:
+        gridColumns: 12
+
+    - name: rule_1_name
+      label: Rule 1 — name
+      description: Identifier for this indicator set; becomes threat.rule when matched.
+      type: string
+      required: true
+      default: ips
+      options:
+        gridColumns: 12
+        subHeader: Rules
+
+    - name: rule_1_indicator_file
+      label: Rule 1 — indicator file
+      description: Path to indicator values (one per line or a JSON array of strings).
+      type: string
+      required: true
+
+    - name: rule_1_lookup_fields
+      label: Rule 1 — lookup fields
+      description: Log attribute keys to check, or body to use the log body (same semantics as the collector config).
+      type: strings
+      required: true
+      default:
+        - body
+      options:
+        gridColumns: 12
+
+    - name: rule_2_enabled
+      label: Enable rule 2
+      type: bool
+      default: false
+
+    - name: rule_2_name
+      label: Rule 2 — name
+      type: string
+      default: domains
+      required: true
+      relevantIf:
+        - name: rule_2_enabled
+          operator: equals
+          value: true
+
+    - name: rule_2_indicator_file
+      label: Rule 2 — indicator file
+      type: string
+      required: true
+      relevantIf:
+        - name: rule_2_enabled
+          operator: equals
+          value: true
+
+    - name: rule_2_lookup_fields
+      label: Rule 2 — lookup fields
+      type: strings
+      required: true
+      default:
+        - body
+      options:
+        gridColumns: 12
+      relevantIf:
+        - name: rule_2_enabled
+          operator: equals
+          value: true
+
+    - name: rule_3_enabled
+      label: Enable rule 3
+      type: bool
+      default: false
+
+    - name: rule_3_name
+      label: Rule 3 — name
+      type: string
+      default: process_names
+      required: true
+      relevantIf:
+        - name: rule_3_enabled
+          operator: equals
+          value: true
+
+    - name: rule_3_indicator_file
+      label: Rule 3 — indicator file
+      type: string
+      required: true
+      relevantIf:
+        - name: rule_3_enabled
+          operator: equals
+          value: true
+
+    - name: rule_3_lookup_fields
+      label: Rule 3 — lookup fields
+      type: strings
+      required: true
+      default:
+        - body
+      options:
+        gridColumns: 12
+      relevantIf:
+        - name: rule_3_enabled
+          operator: equals
+          value: true
+
+  logs:
+    templates:
+      - match:
+          - component: "github.com/observiq/bindplane-otel-collector/processor/threatenrichmentprocessor"
+            operator: ">="
+            version: "0.0.0"
+        processors: |
+          - threatenrichment:
+              filter:
+                kind: {{ .filter_kind }}
+                {{- if eq .filter_kind "bloom" }}
+                estimated_count: {{ .filter_estimated_count }}
+                false_positive_rate: {{ .filter_false_positive_rate }}
+                {{- if gt .filter_max_estimated_count 0 }}
+                max_estimated_count: {{ .filter_max_estimated_count }}
+                {{- end }}
+                {{- end }}
+                {{- if or (eq .filter_kind "cuckoo") (eq .filter_kind "vacuum") }}
+                capacity: {{ if eq .filter_kind "vacuum" }}{{ .filter_capacity_vacuum }}{{ else }}{{ .filter_capacity }}{{ end }}
+                {{- end }}
+                {{- if eq .filter_kind "scalable_cuckoo" }}
+                initial_capacity: {{ .filter_initial_capacity }}
+                load_factor: {{ .filter_load_factor }}
+                {{- end }}
+                {{- if eq .filter_kind "vacuum" }}
+                fingerprint_bits: {{ .filter_fingerprint_bits }}
+                {{- end }}
+              rules:
+                - name: {{ .rule_1_name | quote }}
+                  indicator_file: {{ .rule_1_indicator_file | quote }}
+                  lookup_fields:
+                  {{- range $f := .rule_1_lookup_fields }}
+                    - {{ $f | quote }}
+                  {{- end }}
+                {{- if .rule_2_enabled }}
+                - name: {{ .rule_2_name | quote }}
+                  indicator_file: {{ .rule_2_indicator_file | quote }}
+                  lookup_fields:
+                  {{- range $f := .rule_2_lookup_fields }}
+                    - {{ $f | quote }}
+                  {{- end }}
+                {{- end }}
+                {{- if .rule_3_enabled }}
+                - name: {{ .rule_3_name | quote }}
+                  indicator_file: {{ .rule_3_indicator_file | quote }}
+                  lookup_fields:
+                  {{- range $f := .rule_3_lookup_fields }}
+                    - {{ $f | quote }}
+                  {{- end }}
+                {{- end }}
+              {{- if .enable_storage }}
+              storage: {{ .storage_id | quote }}
+              {{- end }}

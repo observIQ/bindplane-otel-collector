@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/samplingprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/spancountprocessor"
+	"github.com/observiq/bindplane-otel-collector/processor/threatenrichmentprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor"
@@ -96,6 +97,7 @@ var defaultProcessors = []processor.Factory{
 	spanprocessor.NewFactory(),
 	throughputmeasurementprocessor.NewFactory(),
 	tailsamplingprocessor.NewFactory(),
+	threatenrichmentprocessor.NewFactory(),
 	topologyprocessor.NewFactory(),
 	transformprocessor.NewFactory(),
 	unrollprocessor.NewFactory(),

@@ -45,6 +45,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.95.0
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.95.0
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.95.0
+	github.com/observiq/bindplane-otel-collector/receiver/unixsocketreceiver v1.95.0
 	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.95.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/open-telemetry/opamp-go v0.23.0
@@ -211,6 +212,8 @@ require (
 )
 
 require (
+	github.com/bits-and-blooms/bloom/v3 v3.7.1
+	github.com/goccy/go-json v0.10.5
 	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.13
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.95.0
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.95.0
@@ -240,6 +243,8 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.147.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.147.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.147.0
+	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
+	github.com/twmb/murmur3 v1.1.8
 	go.opentelemetry.io/collector/extension/extensiontest v0.147.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.147.0
 	go.opentelemetry.io/collector/processor/processortest v0.147.0
@@ -264,7 +269,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 v4.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/ClickHouse/ch-go v0.71.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0 // indirect
 	github.com/Code-Hex/go-generics-cache v1.5.1 // indirect
@@ -405,6 +410,7 @@ require (
 	github.com/axiomhq/hyperloglog v0.2.6 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
+	github.com/bits-and-blooms/bitset v1.24.2 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
@@ -463,7 +469,6 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
 	github.com/go-openapi/validate v0.25.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
@@ -525,6 +530,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.95.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/exporterutils v1.95.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.95.0 // indirect
+	github.com/observiq/blitz v0.12.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.147.0 // indirect
@@ -596,7 +602,6 @@ require (
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	github.com/twmb/franz-go/pkg/sasl/kerberos v1.1.0 // indirect
 	github.com/twmb/franz-go/plugin/kzap v1.1.2 // indirect
-	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.22 // indirect
@@ -957,7 +962,7 @@ require (
 	go.opentelemetry.io/contrib/propagators/b3 v1.40.0 // indirect
 	go.opentelemetry.io/contrib/zpages v0.65.0 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
-	go.opentelemetry.io/otel/exporters/prometheus v0.60.0 // indirect
+	go.opentelemetry.io/otel/exporters/prometheus v0.62.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0
@@ -1116,6 +1121,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiv
 replace github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver => ./receiver/splunksearchapireceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver => ./receiver/telemetrygeneratorreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/unixsocketreceiver => ./receiver/unixsocketreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver => ./receiver/windowseventtracereceiver
 
