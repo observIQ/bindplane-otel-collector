@@ -21,9 +21,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.date={{ .Date }}
+      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=v{{ .Version }}
+      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash={{ .FullCommit }}
+      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.date={{ .Date }}
 
 dockers:
   - id: ubuntu-arm64
