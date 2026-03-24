@@ -206,7 +206,7 @@ func (u *Updater) Update() error {
 	}
 
 	// Create a context with timeout to wait for a success or failed status
-	checkCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	checkCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	u.logger.Debug("Installation successful, begin monitor for success")
