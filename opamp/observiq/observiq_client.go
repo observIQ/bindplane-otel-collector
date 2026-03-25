@@ -355,6 +355,7 @@ func (c *Client) onConnectHandler(_ context.Context) {
 		if err := os.Remove(packagestate.DefaultFileName); err != nil {
 			c.logger.Warn("Failed to remove package status artifact", zap.Error(err))
 		}
+		c.logger.Info("Removed package status artifact after upgrade attempt")
 	}
 }
 
