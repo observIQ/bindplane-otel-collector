@@ -229,7 +229,13 @@ func (u *Updater) Update() error {
 		return fmt.Errorf("failed while monitoring for success: %w", err)
 	}
 
-	// Successful update
+	// Remove package status artifact
+	if err := os.Remove(packagestate.DefaultFileName); err != nil {
+		u.logger.Error("Failed to remove package status artifact", zap.Error(err))
+	} else {
+		u.logger.Debug("Package status artifact removed")
+	}
+
 	u.logger.Info("Update Complete")
 	return nil
 }
