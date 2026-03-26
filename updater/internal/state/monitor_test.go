@@ -198,7 +198,7 @@ func TestCollectorMonitorMonitorForSuccess(t *testing.T) {
 
 				err := collectorMonitor.MonitorForSuccess(ctx, "my_package")
 				assert.ErrorIs(t, err, context.Canceled)
-				assert.ErrorContains(t, err, "timed out waiting for collector to report successful update")
+				assert.ErrorContains(t, err, "context done while waiting for collector to report successful update")
 			},
 		},
 		{
