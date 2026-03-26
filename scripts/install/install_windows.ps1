@@ -51,6 +51,9 @@
 .PARAMETER MsiUrl
     Override the full MSI download URL. If set, Version and arch detection are ignored.
 
+.PARAMETER MsiFile
+    Path to a local MSI file to install. Skips all download and version resolution steps.
+
 .EXAMPLE
     .\install_windows.ps1 -Version "1.94.0" -EnableManagement "1" `
         -OpAMPEndpoint "<your_endpoint>" `
@@ -90,6 +93,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$MsiUrl,
+
+    [Parameter(Mandatory = $false)]
+    [string]$MsiFile,
 
     [Parameter(Mandatory = $false)]
     [switch]$Interactive,
@@ -273,31 +279,44 @@ function Main {
         return
     }
 
-    # Resolve the MSI URL
-    if ($MsiUrl) {
-        $resolvedUrl = $MsiUrl
-        $msiFileName = Split-Path $MsiUrl -Leaf
+    $tmpDir = [System.IO.Path]::GetTempPath()
+    $logPath = Join-Path $tmpDir "observiq-otel-collector-install.log"
+    $cleanupMsi = $false
+
+    if ($MsiFile) {
+        # Use the locally provided MSI file directly
+        $msiPath = $MsiFile
+        if (-not (Test-Path -Path $msiPath -PathType Leaf)) {
+            Fail "MSI file not found: $msiPath"
+        }
+        Write-Info "Using local MSI: $msiPath"
     }
     else {
-        $msiFileName = Get-MsiName
-        if (-not $Version -or $Version -eq "latest") {
-            $resolvedVersion = Get-LatestVersion
-            if (-not $resolvedVersion) {
-                Fail "Could not determine latest version to install."
-            }
-            Write-Info "Latest version: $resolvedVersion"
-            $resolvedUrl = "$DOWNLOAD_BASE/v$($resolvedVersion.TrimStart('v'))/$msiFileName"
+        # Resolve the MSI URL
+        if ($MsiUrl) {
+            $resolvedUrl = $MsiUrl
+            $msiFileName = Split-Path $MsiUrl -Leaf
         }
         else {
-            $resolvedUrl = "$DOWNLOAD_BASE/v$($Version.TrimStart('v'))/$msiFileName"
+            $msiFileName = Get-MsiName
+            if (-not $Version -or $Version -eq "latest") {
+                $resolvedVersion = Get-LatestVersion
+                if (-not $resolvedVersion) {
+                    Fail "Could not determine latest version to install."
+                }
+                Write-Info "Latest version: $resolvedVersion"
+                $resolvedUrl = "$DOWNLOAD_BASE/v$($resolvedVersion.TrimStart('v'))/$msiFileName"
+            }
+            else {
+                $resolvedUrl = "$DOWNLOAD_BASE/v$($Version.TrimStart('v'))/$msiFileName"
+            }
         }
+
+        $msiPath = Join-Path $tmpDir $msiFileName
+        $cleanupMsi = $true
+
+        Get-Msi -Url $resolvedUrl -Destination $msiPath
     }
-
-    $tmpDir = [System.IO.Path]::GetTempPath()
-    $msiPath = Join-Path $tmpDir $msiFileName
-    $logPath = Join-Path $tmpDir "observiq-otel-collector-install.log"
-
-    Get-Msi -Url $resolvedUrl -Destination $msiPath
 
     $sig = Get-AuthenticodeSignature -FilePath $msiPath
     if ($sig.Status -ne 'Valid') {
@@ -313,11 +332,13 @@ function Main {
     $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
     $exitCode = $proc.ExitCode
 
-    # Clean up downloaded MSI
-    try {
-        Remove-Item -Path $msiPath -Force
-    } catch {
-        Write-Warn "Failed to remove MSI: $_"
+    # Clean up downloaded MSI (not user-provided files)
+    if ($cleanupMsi) {
+        try {
+            Remove-Item -Path $msiPath -Force
+        } catch {
+            Write-Warn "Failed to remove MSI: $_"
+        }
     }
 
     switch ($exitCode) {
