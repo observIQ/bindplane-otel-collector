@@ -104,7 +104,7 @@ func (c *CollectorMonitor) MonitorForSuccess(ctx context.Context, packageName st
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timed out waiting for collector to report successful update: %w", ctx.Err())
+			return fmt.Errorf("context done while waiting for collector to report successful update: %w", ctx.Err())
 		case <-ticker.C:
 			packageStatus, err := c.stateManager.LoadStatuses()
 			switch {
