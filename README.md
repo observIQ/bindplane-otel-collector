@@ -102,7 +102,7 @@ To install directly with the appropriate package manager, and how to configure O
 Install the BDOT Collector using the PowerShell command below. The script automatically selects the correct MSI for the system architecture (amd64 or arm64).
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content))
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1")))
 ```
 
 For more installation information, and how to configure OpAMP, see [installing on Windows](/docs/installation-windows.md).
