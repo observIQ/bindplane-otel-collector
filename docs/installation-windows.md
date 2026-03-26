@@ -4,27 +4,27 @@
 
 To install the agent on Windows, run the PowerShell command below. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
 
-> **Note:** The install script is available as of release v1.94.0. For earlier versions, see the [manual installation](#manual-installation) instructions below.
+> **Note:** The install script is available as of release v1.96.0. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content))
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1")))
 ```
 
 To install a specific version, pass the `-Version` parameter:
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Version "1.94.0"
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Version "v1.96.0"
 ```
 
 For an interactive installation with the installer UI, add `-Interactive`:
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Interactive
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Interactive
 ```
 
 ### Manual Installation
 
-For versions prior to v1.94.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/observiq-otel-collector.msi` (or `observiq-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
+For versions prior to v1.96.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/observiq-otel-collector.msi` (or `observiq-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
 
 Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
@@ -33,7 +33,7 @@ Installation artifacts are signed. Information on verifying the signature can be
 To install the agent with an OpAMP connection configuration, pass the management flags to the install script:
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) `
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) `
     -EnableManagement "1" `
     -OpAMPEndpoint "<your_endpoint>" `
     -OpAMPSecretKey "<secret-key>"
@@ -43,17 +43,17 @@ To read more about the generated connection configuration file see [OpAMP docs](
 
 ## Configuring the Agent
 
-After installing, the `observiq-otel-collector` service will be running and ready for configuration! 
+After installing, the `observiq-otel-collector` service will be running and ready for configuration!
 
 The agent logs to `C:\Program Files\observIQ OpenTelemetry Collector\log\collector.log` by default.
 
-By default, the config file for the agent can be found at `C:\Program Files\observIQ OpenTelemetry Collector\config.yaml`. When changing the configuration,the agent service must be restarted in order for config changes to take effect.
+By default, the config file for the agent can be found at `C:\Program Files\observIQ OpenTelemetry Collector\config.yaml`. When changing the configuration, the agent service must be restarted in order for config changes to take effect.
 
 For more information on configuring the agent, see the [OpenTelemetry docs](https://opentelemetry.io/docs/collector/configuration/).
 
 **Logging**
 
-Logs from the agent will appear in `<install_dir>/log` (`C:\Program Files\observIQ OpenTelemetry Collector\log` by default). 
+Logs from the agent will appear in `<install_dir>/log` (`C:\Program Files\observIQ OpenTelemetry Collector\log` by default).
 
 Stderr for the agent process can be found at `<install_dir>/log/observiq_collector.err` (`C:\Program Files\observIQ OpenTelemetry Collector\log\observiq_collector.err` by default).
 
@@ -67,7 +67,7 @@ Locate the "observIQ Distro for OpenTelemetry Collector" service, right click th
 
 ![The services dialog](./screenshots/windows/stop-restart-service.png)
 
-Alternatively, the Powershell command below may be run to restart the agent service.
+Alternatively, the PowerShell command below may be run to restart the agent service.
 ```pwsh
 Restart-Service -Name "observiq-otel-collector"
 ```
@@ -83,7 +83,7 @@ Locate the "observIQ Distro for OpenTelemetry Collector" service, right click th
 
 ![The services dialog](./screenshots/windows/stop-restart-service.png)
 
-Alternatively, the Powershell command below may be run to stop the agent service.
+Alternatively, the PowerShell command below may be run to stop the agent service.
 ```pwsh
 Stop-Service -Name "observiq-otel-collector"
 ```
@@ -99,7 +99,7 @@ Locate the "observIQ Distro for OpenTelemetry Collector" service, right click th
 
 ![The services dialog](./screenshots/windows/start-service.png)
 
-Alternatively, the Powershell command below may be run to start the agent service.
+Alternatively, the PowerShell command below may be run to start the agent service.
 ```pwsh
 Start-Service -Name "observiq-otel-collector"
 ```
@@ -109,7 +109,7 @@ Start-Service -Name "observiq-otel-collector"
 To uninstall the agent, run the install script with the `-Uninstall` flag:
 
 ```pwsh
-& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Uninstall
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Uninstall
 ```
 
 Alternatively, uninstall through the control panel via the "Uninstall a program" dialog.

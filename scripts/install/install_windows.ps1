@@ -158,8 +158,9 @@ function Get-MsiName {
 
 function Get-LatestVersion {
     try {
-        $version = Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest" -UseBasicParsing |
-            Select-Object -ExpandProperty Content
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $wc = New-Object System.Net.WebClient
+        $version = $wc.DownloadString("https://bdot.bindplane.com/latest")
         return $version.Trim()
     }
     catch {
@@ -177,7 +178,9 @@ function Get-Msi {
 
     Write-Info "Downloading MSI from $Url"
     try {
-        Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile($Url, $Destination)
     }
     catch {
         Fail "Failed to download MSI: $_"
