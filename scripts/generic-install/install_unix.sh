@@ -205,14 +205,80 @@ download_and_install() {
     fi
 }
 
-detect_package_type() {
-    if command -v dpkg >/dev/null 2>&1; then
-        pkg_type="deb"
-    elif command -v rpm >/dev/null 2>&1; then
-        pkg_type="rpm"
-    else
-        pkg_type="tar.gz"
+# detect_distro_package_type prints the native package type ("deb" or "rpm") for
+# this system. It uses a multi-layer fallback chain so that the presence of a
+# cross-packaging tool (e.g. dpkg installed on Fedora) does not cause a wrong result.
+#
+# Fallback order:
+#   1. /etc/os-release ID and ID_LIKE  (RHEL 7+, SLES 12+, all modern distros)
+#   2. Distro-specific files           (RHEL 5, SLES 11, older CentOS/Fedora)
+#   3. High-level package managers     (apt-get, dnf, yum, zypper)
+#   4. Low-level packaging tools       (dpkg, rpm — least reliable)
+#
+# Prints nothing and returns 1 if detection fails.
+detect_distro_package_type() {
+    # 1. /etc/os-release — most reliable on modern systems
+    if [ -f /etc/os-release ]; then
+        _os_id=$(. /etc/os-release && echo "$ID")
+        _os_id_like=$(. /etc/os-release && echo "${ID_LIKE:-}")
+
+        _os_ids="$_os_id $_os_id_like"
+        case "$_os_ids" in
+            *debian*|*ubuntu*|*raspbian*|*linuxmint*)
+                echo "deb"
+                return 0
+                ;;
+            *rhel*|*centos*|*fedora*|*rocky*|*almalinux*|*amzn*|*sles*|*suse*|*opensuse*)
+                echo "rpm"
+                return 0
+                ;;
+        esac
     fi
+
+    # 2. Distro-specific files (covers RHEL 5, SLES 11 SP4, and similar legacy systems)
+    if [ -f /etc/debian_version ]; then
+        echo "deb"
+        return 0
+    fi
+
+    if [ -f /etc/redhat-release ] || [ -f /etc/centos-release ] || [ -f /etc/fedora-release ]; then
+        echo "rpm"
+        return 0
+    fi
+
+    if [ -f /etc/SuSE-release ]; then
+        echo "rpm"
+        return 0
+    fi
+
+    # 3. High-level package managers (stronger signal than the low-level tools)
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "deb"
+        return 0
+    fi
+
+    if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1; then
+        echo "rpm"
+        return 0
+    fi
+
+    # 4. Last resort: low-level tools. These are the least reliable because
+    # cross-packaging tools (e.g. dpkg on an RPM system) can cause false positives.
+    if command -v dpkg >/dev/null 2>&1; then
+        echo "deb"
+        return 0
+    fi
+
+    if command -v rpm >/dev/null 2>&1; then
+        echo "rpm"
+        return 0
+    fi
+
+    return 1
+}
+
+detect_package_type() {
+    pkg_type=$(detect_distro_package_type) || pkg_type="tar.gz"
     echo "Auto-detected package type: $pkg_type"
 }
 
@@ -256,11 +322,11 @@ uninstall() {
     fi
 
     # Remove package if it was installed via package manager
-    if command -v dpkg >/dev/null 2>&1; then
-        dpkg -r "$DISTRIBUTION" >/dev/null 2>&1 || true
-    elif command -v rpm >/dev/null 2>&1; then
-        rpm -e "$DISTRIBUTION" >/dev/null 2>&1 || true
-    fi
+    _uninstall_pkg_type=$(detect_distro_package_type) || true
+    case "$_uninstall_pkg_type" in
+        deb) dpkg -r "$DISTRIBUTION" >/dev/null 2>&1 || true ;;
+        rpm) rpm -e "$DISTRIBUTION" >/dev/null 2>&1 || true ;;
+    esac
 
     rm -rf "$INSTALL_DIR"
     echo "Uninstallation complete"
