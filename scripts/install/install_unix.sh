@@ -1477,7 +1477,34 @@ main() {
     version=$COLLECTOR_VERSION
   fi
 
-  if [ -z "$version" ]; then
+  if [ -z "$version" ] && [ -n "$package_path" ]; then
+    # Extract version from package filename. Handles two naming conventions:
+    #   tar.gz (AIX): bindplane-otel-collector-v{VERSION}-{OS}-{ARCH}.tar.gz (dash-separated)
+    #   deb/rpm:      bindplane-otel-collector_v{VERSION}_{OS}_{ARCH}.{ext}  (underscore-separated)
+    _fname=$(basename "$package_path")
+    _fname=${_fname%.tar.gz}; _fname=${_fname%.deb}; _fname=${_fname%.rpm}
+    # Detect separator: underscore for deb/rpm, dash for tar.gz
+    case "$_fname" in
+      *_v*)
+        # Underscore format: strip prefix up to _v, then remove _os_arch suffix
+        _fname=${_fname#*_v}
+        _arch=${_fname##*_}; _fname=${_fname%_"$_arch"}
+        _os=${_fname##*_}; _fname=${_fname%_"$_os"}
+        ;;
+      *)
+        # Dash format: strip prefix up to -v, then remove -os-arch suffix
+        _fname=${_fname#bindplane-otel-collector-v}
+        _arch=${_fname##*-}; _fname=${_fname%-"$_arch"}
+        _os=${_fname##*-}; _fname=${_fname%-"$_os"}
+        ;;
+    esac
+    # Strip SNAPSHOT suffix if present (e.g. -SNAPSHOT-c0098f8b0)
+    _fname=$(echo "$_fname" | sed 's/-SNAPSHOT-[0-9a-f]*$//')
+    version="$_fname"
+    unset _fname _arch _os
+  fi
+
+  if [ -z "$version" ] && [ -z "$package_path" ]; then
     version=$(latest_version)
   fi
 
