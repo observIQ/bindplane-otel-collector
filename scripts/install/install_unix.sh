@@ -31,6 +31,8 @@ if command -v systemctl >/dev/null 2>&1; then
   SVC_PRE=systemctl
 elif command -v service >/dev/null 2>&1; then
   SVC_PRE=service
+elif command -v mkssys > /dev/null 2>&1; then
+  SVC_PRE=mkssys
 fi
 
 # Script Constants
@@ -48,6 +50,16 @@ indent=""
 non_interactive=false
 error_mode=false
 skip_gpg_check=false
+
+# Set up the supervisor timeout values (AIX needs higher values due to slow I/O)
+if [ "$OS_TYPE" = "AIX" ]; then
+  PREREQS="$PREREQS iostat"
+  config_apply_timeout="150"
+  bootstrap_timeout="120"
+else
+  config_apply_timeout="30"
+  bootstrap_timeout="5"
+fi
 
 # Configurable username and group for BDOT
 : "${BDOT_USER:=bdot}"
@@ -73,7 +85,7 @@ offline_installation=false
 RPM_GPG_KEYS_TO_REMOVE=[]
 
 # Colors
-if [ "$non_interactive" = "false" ]; then
+if [ "$non_interactive" = "false" ] && [ "$OS_TYPE" != AIX ]; then
   num_colors=$(tput colors 2>/dev/null)
   if test -n "$num_colors" && test "$num_colors" -ge 8; then
     bold="$(tput bold)"
@@ -109,7 +121,7 @@ fi
 # Helper Functions
 printf() {
   if [ "$non_interactive" = "false" ] || [ "$error_mode" = "true" ]; then
-    if command -v sed >/dev/null; then
+    if [ "$OS_TYPE" != "AIX" ] && command -v sed >/dev/null; then
       command printf -- "$@" | sed -r "$sed_ignore s/^/$indent/g" # Ignore sole reset characters if defined
     else
       # Ignore $* suggestion as this breaks the output
@@ -1248,8 +1260,11 @@ create_supervisor_config() {
   command printf '  reports_available_components: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
-  command printf '  config_apply_timeout: 30s\n' >>"$supervisor_yml_path"
-  command printf '  bootstrap_timeout: 5s\n' >>"$supervisor_yml_path"
+  command printf '  config_apply_timeout: %ss\n' $config_apply_timeout >>"$supervisor_yml_path"
+  command printf '  bootstrap_timeout: %ss\n' $bootstrap_timeout >>"$supervisor_yml_path"
+  if [ "$OS_TYPE" = "AIX" ]; then
+    command printf '  orphan_detection_interval: 120s\n' >>"$supervisor_yml_path"
+  fi
   command printf '  args: ["--feature-gates", "service.AllowNoPipelines"]\n' >>"$supervisor_yml_path"
 
   if [ -n "$OPAMP_LABELS" ]; then
