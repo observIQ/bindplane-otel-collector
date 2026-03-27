@@ -41,6 +41,7 @@ TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env 
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo shasum|sha256sum"
+SUGGESTED_TOOLS="jq bash awk"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -786,6 +787,21 @@ dependencies_check() {
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+
+  MISSING_SUGGESTED=''
+  for tool in $SUGGESTED_TOOLS; do
+    if ! command -v "$tool" >/dev/null; then
+      if [ -z "$MISSING_SUGGESTED" ]; then
+        MISSING_SUGGESTED="${fg_yellow}$tool${reset}"
+      else
+        MISSING_SUGGESTED="$MISSING_SUGGESTED, ${fg_yellow}$tool${reset}"
+      fi
+    fi
+  done
+
+  if [ -n "$MISSING_SUGGESTED" ]; then
+    warn "The following recommended tools were not found. Installation will continue, but these are useful for troubleshooting: [$MISSING_SUGGESTED]"
+  fi
 }
 
 # Maps a resolved alternate prereq to a command variable with full flags.
