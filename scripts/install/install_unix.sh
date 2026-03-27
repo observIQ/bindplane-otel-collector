@@ -468,7 +468,11 @@ set_proxy() {
 }
 
 set_os_arch() {
-  os_arch=$(uname -m)
+  if [ "$OS_TYPE" = "AIX" ]; then
+    os_arch=$(uname -p)
+  else
+    os_arch=$(uname -m)
+  fi
   case "$os_arch" in
   # arm64 strings. These are from https://stackoverflow.com/questions/45125516/possible-values-for-uname-m
   aarch64 | arm64 | aarch64_be | armv8b | armv8l)
@@ -483,6 +487,13 @@ set_os_arch() {
     ;;
   ppc64le)
     os_arch="ppc64le"
+    ;;
+  powerpc)
+    if [ "$OS_TYPE" = "AIX" ] && command -v bootinfo > /dev/null && [ "$(bootinfo -y)" = "64" ]; then
+      os_arch="ppc64"
+    else
+      error_exit "$LINENO" "uname returned arch of 'powerpc', but OS is either not AIX or not 64 bit. 'uname -s': $OS_TYPE, 'bootinfo -y': $(bootinfo -y)"
+    fi
     ;;
   # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
   arm | armv6l | armv7l)
@@ -712,7 +723,7 @@ offline_check()
 os_check() {
   info "Checking that the operating system is supported..."
   case "$OS_TYPE" in
-  Linux)
+  Linux | AIX)
     succeeded
     ;;
   *)
