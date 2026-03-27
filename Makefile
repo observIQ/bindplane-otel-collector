@@ -302,11 +302,11 @@ add-license:
 
 # update-otel attempts to update otel dependencies in go.mods,
 # and update the otel versions in the docs.
-# Usage: make update-otel OTEL_VERSION=vx.x.x CONTRIB_VERSION=vx.x.x PDATA_VERSION=vx.x.x-rcx
+# Usage: make update-otel OTEL_VERSION=vx.x.x CONTRIB_VERSION=vx.x.x PDATA_VERSION=vx.x.x-rcx BDOT_CONTRIB_VERSION=vx.x.x
 .PHONY: update-otel
 update-otel:
 	./scripts/update-otel.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(PDATA_VERSION)"
-	./scripts/update-docs.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)"
+	./scripts/update-docs.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(BDOT_CONTRIB_VERSION)"
 	$(MAKE) tidy
 # Double make tidy - this unfortunately is needed due to the order in which modules are tidied.
 # The modules this seems to effect are plugindocgen and bindplaneextension
@@ -317,6 +317,13 @@ update-otel:
 .PHONY: update-modules
 update-modules:
 	./scripts/update-module-version.sh "$(NEW_VERSION)"
+	$(MAKE) tidy
+
+# update-contrib updates all bindplane-otel-contrib dependencies to the new version.
+# Usage: make update-contrib BDOT_CONTRIB_VERSION=vx.x.x
+.PHONY: update-contrib
+update-contrib:
+	./scripts/update-bindplane-contrib.sh "$(BDOT_CONTRIB_VERSION)"
 	$(MAKE) tidy
 
 # Downloads and setups dependencies that are packaged with binary

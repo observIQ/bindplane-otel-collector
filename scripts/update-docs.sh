@@ -26,24 +26,24 @@ if [ -z "$CONTRIB_TARGET_VERSION" ]; then
     exit 1
 fi
 
+BDOT_CONTRIB_VERSION=$3
+if [ -z "$BDOT_CONTRIB_VERSION" ]; then
+    echo "Must specify a target bindplane contrib version"
+    exit 1
+fi
+
 read -r -d '' DOC_FILES << EOF
 docs/processors.md
 docs/extensions.md
 docs/connectors.md
 docs/exporters.md
 docs/receivers.md
-processor/datapointcountprocessor/README.md
-processor/logcountprocessor/README.md
-processor/metricextractprocessor/README.md
-processor/spancountprocessor/README.md
-exporter/googlecloudexporter/README.md
-exporter/googlemanagedprometheusexporter/README.md
 EOF
 
 for doc in $DOC_FILES
 do
     echo "$doc"
-    # Point contrib links to new version
+    # Point otel contrib links to new version
     sed -i '' -Ee \
         "s|https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v[^/]*|https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/$CONTRIB_TARGET_VERSION|" \
         "$doc"
@@ -53,5 +53,19 @@ do
     # Point core links to new version
     sed -i '' -Ee \
         "s|https://github.com/open-telemetry/opentelemetry-collector/blob/v[^/]*|https://github.com/open-telemetry/opentelemetry-collector/blob/$TARGET_VERSION|" \
+        "$doc"
+    # Point bindplane contrib links to new version
+    sed -i '' -Ee \
+        "s|https://github.com/observiq/bindplane-otel-contrib/blob/v[^/]*|https://github.com/observiq/bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
+        "$doc"
+    sed -i '' -Ee \
+        "s|https://github.com/observiq/bindplane-otel-contrib/tree/v[^/]*|https://github.com/observiq/bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
+        "$doc"
+    # Normalize any bindplane contrib links pointing to main
+    sed -i '' -Ee \
+        "s|https://github.com/observiq/bindplane-otel-contrib/blob/main|https://github.com/observiq/bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
+        "$doc"
+    sed -i '' -Ee \
+        "s|https://github.com/observiq/bindplane-otel-contrib/tree/main|https://github.com/observiq/bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
         "$doc"
 done

@@ -38,7 +38,7 @@ echo 'spec:' >>"$OUTPUT_DIR/$VERSION.yaml"
 echo "  hash: available-components-$VERSION" >>"$OUTPUT_DIR/$VERSION.yaml"
 echo '  components:' >>"$OUTPUT_DIR/$VERSION.yaml"
 
-cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/receiver/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/receiver/receivertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
+cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/receiver/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/receiver/receivertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
     printf "    receivers:\n      sub_component_details:\n"
     myMap["activedirectoryds"] = "active_directory_ds"
     myMap["dockerstats"] = "docker_stats"
@@ -77,7 +77,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   printf "\n"
 }' >>"$OUTPUT_DIR/$VERSION.yaml"
 
-cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/connector/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/connector/connectortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
+cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/connector/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/connector/connectortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    connectors:\n      sub_component_details:\n"
 } {
   split($NF, parts, " ")
@@ -96,7 +96,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   } END { printf "\n"
 }' >>"$OUTPUT_DIR/$VERSION.yaml"
 
-cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/exporter/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/exporter/exportertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
+cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/exporter/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/exporter/exportertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    exporters:\n      sub_component_details:\n"
   myMap["splunkhec"] = "splunk_hec"
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
@@ -135,7 +135,7 @@ if [ -n "$enhance_indexing_s3_exporter_version" ]; then
 EOF
 fi
 
-cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/extension/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/extension/extensiontest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
+cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/extension/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/extension/extensiontest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    extensions:\n      sub_component_details:\n"
   myMap["filestorage"] = "file_storage"
   myMap["redisstorage"] = "redis_storage"
@@ -174,7 +174,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   } END { printf "\n"
 }' >>"$OUTPUT_DIR/$VERSION.yaml"
 
-cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/processor/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/processor/processortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
+cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/processor/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/processor/processortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    processors:\n      sub_component_details:\n"
   myMap["tailsampling"] = "tail_sampling"
   myMap["probabilisticsampler"] = "probabilistic_sampler"
