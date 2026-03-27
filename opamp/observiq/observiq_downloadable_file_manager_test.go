@@ -126,7 +126,7 @@ func TestGetOutputFilePath(t *testing.T) {
 			name:        "Input url has no path",
 			basepath:    filepath.Join("/", "tmp", "observiq-otel-collector-update"),
 			url:         "http://example.com",
-			expectedErr: "input url must have path",
+			expectedErr: `input url "http://example.com" must have path`,
 		},
 	}
 
