@@ -110,7 +110,28 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 		}
 	}
 
-	return "", errors.New("Group not found in systemd unit file")
+	return "", fmt.Errorf("Group not found in systemd unit file %s", u.installedSystemdUnitPath)
+}
+
+// readEnvironmentFromSystemdFile reads the systemd unit file and extracts
+// the value of the given Environment= key. Returns the value if found,
+// or an empty string if not found.
+func (u *Updater) readEnvironmentFromSystemdFile(key string) (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	prefix := []byte("Environment=" + key + "=")
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, prefix) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, prefix))), nil
+		}
+	}
+
+	return "", nil
 }
 
 // readEnvironmentFromSystemdFile reads the systemd unit file and extracts
@@ -272,7 +293,7 @@ func (u *Updater) Update() error {
 	}
 
 	// Create a context with timeout to wait for a success or failed status
-	checkCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	checkCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	u.logger.Debug("Installation successful, begin monitor for success")
@@ -295,7 +316,13 @@ func (u *Updater) Update() error {
 		return fmt.Errorf("failed while monitoring for success: %w", err)
 	}
 
-	// Successful update
+	// Remove package status artifact
+	if err := os.Remove(packagestate.DefaultFileName); err != nil {
+		u.logger.Error("Failed to remove package status artifact", zap.Error(err))
+	} else {
+		u.logger.Debug("Package status artifact removed")
+	}
+
 	u.logger.Info("Update Complete")
 	return nil
 }

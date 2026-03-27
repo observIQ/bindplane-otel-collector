@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -312,33 +313,54 @@ func (c *Client) Disconnect(ctx context.Context) error {
 func (c *Client) onConnectHandler(_ context.Context) {
 	c.logger.Info("Successfully connected to server")
 
-	// See if we can retrieve the PackageStatuses where the collector package is in an installing state
+	// check if we are in the middle of a package update, skip package status handling if true
+	if c.safeGetUpdatingPackage() {
+		c.logger.Debug("re-established OpAMP connection during package update - skip prematurely validating package status before update is complete")
+		return
+	}
+
 	pkgStatuses, err := c.getVerifiedPackageStatuses()
 	if err != nil {
 		c.logger.Error("Problem with PackageStatuses", zap.Error(err))
 		return
 	}
-
 	collectorPkgStatus := pkgStatuses.Packages[packagestate.CollectorPackageName]
-	// If we were not installing before the connection, nothing else to do
-	if collectorPkgStatus.Status != protobufs.PackageStatusEnum_PackageStatusEnum_Installing {
-		return
-	}
 
-	// If in the middle of an install and we just connected, this is most likely becasue the collector was just spun up fresh by the Updater.
+	// If in the middle of an install and we just connected, this is most likely because the collector was just spun up fresh by the Updater.
 	// If the current version matches the server offered version, this implies a good install and so we should set the PackageStatuses and
 	// send it to the OpAMP Server. If the version does not match, just change the PackageStatues JSON so that the Updater can start rollback.
+	if collectorPkgStatus.Status == protobufs.PackageStatusEnum_PackageStatusEnum_Installing {
+		if collectorPkgStatus.ServerOfferedVersion != version.Version() {
+			errMsg := fmt.Sprintf("Failed because of collector version mismatch: expected %s, actual %s",
+				collectorPkgStatus.ServerOfferedVersion, version.Version())
+			c.logger.Error("Collector version mismatch after update",
+				zap.String("expected_version", collectorPkgStatus.ServerOfferedVersion),
+				zap.String("actual_version", version.Version()),
+			)
+			c.failPackageInstall(pkgStatuses, errMsg, false)
 
-	if collectorPkgStatus.ServerOfferedVersion != version.Version() {
-		errMsg := fmt.Sprintf("Failed because of collector version mismatch: expected %s, actual %s",
-			collectorPkgStatus.ServerOfferedVersion, version.Version())
-		c.failPackageInstall(pkgStatuses, errMsg, false)
+			return
+		}
 
+		// Installation of new collector was successful!
+		c.finishPackageInstall(pkgStatuses)
 		return
 	}
 
-	// Installation of new collector was successful!
-	c.finishPackageInstall(pkgStatuses)
+	// If the package status is "failed", this most likely means an update was attempted and the new binary failed.
+	// The Updater has removed the new binary, rolled back the old binary, and re-started it. The current process
+	// is the old binary that was restored. At this point the OpAMP client has already initialized itself with the
+	// status contained in the package state file as part of the client connection process. We can safely delete
+	// the package state file, however we cannot update the stored state on the client (i.e. c.opampClient.SetPackageStatuses(pkgStatuses)).
+	// Doing so would wipe the state before the client can report the failure. Deleting just the file though is safe. After the initial
+	// state is reported as part of the connection process, future queries of this file for package state will return a default "installed" status.
+	// This is good because after reporting the initial error, we don't want to persist an upgrade failure.
+	if collectorPkgStatus.Status == protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed {
+		if err := os.Remove(packagestate.DefaultFileName); err != nil {
+			c.logger.Warn("Failed to remove package status artifact", zap.Error(err))
+		}
+		c.logger.Info("Removed package status artifact after upgrade attempt")
+	}
 }
 
 func (c *Client) onConnectFailedHandler(_ context.Context, err error) {
