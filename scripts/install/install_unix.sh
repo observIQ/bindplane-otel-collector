@@ -1053,7 +1053,7 @@ install_package() {
       systemctl enable --now bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
       succeeded
     fi
-  else
+  elif [ "$SVC_PRE" = "service" ]; then
     case "$(service bindplane-otel-collector status)" in
     *running*)
       # The service is running.
@@ -1069,6 +1069,47 @@ install_package() {
       succeeded
       ;;
     esac
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    case "$(lssrc -g "$AIX_SRC_GROUP" | grep collector)" in
+      *active*)
+        # Service is already running. install_aix() handles stop/start for
+        # upgrades, so if we reach here active the service was already restarted.
+        info "Service is running."
+        succeeded
+        ;;
+      *inoperative*)
+        info "Starting service..."
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)"
+        succeeded
+        ;;
+      *)
+        info "Creating, enabling and starting service..."
+        # Add the service, removing it if it already exists in order
+        # to make sure we have the most recent version
+        if lssrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+          rmssys -s "$AIX_SRC_SUBSYSTEM"
+        fi
+        mkssys -s "$AIX_SRC_SUBSYSTEM" -G "$AIX_SRC_GROUP" -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u root)" -S -n15 -f9 -a '--config /opt/bindplane-otel-collector/supervisor.yaml'
+
+        # Install the service to start on boot
+        # Removing it if it exists, in order to have the most recent version
+        if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+          rmitab "$AIX_SRC_GROUP"
+        fi
+        # shellcheck disable=SC2016
+        # The inittab entry must use literal values (not variables) because it is
+        # evaluated by init at boot time, outside of this script's environment.
+        mkitab "$AIX_SRC_GROUP"':23456789:once:startsrc -g '"$AIX_SRC_GROUP"' -e "$(cat /etc/bdot.env)"'
+
+        # Start the service with the proper environment variables
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)"
+
+        succeeded
+        ;;
+    esac
+  else
+    # This is an error state that should never be reached
+    error_exit "Found an invalid SVC_PRE value in install_package()"
   fi
 
   success "BDOT installation complete!"
