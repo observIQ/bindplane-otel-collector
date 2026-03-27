@@ -1320,10 +1320,54 @@ install_aix()
   # Create the install & storage directories
   mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
 
-  # Fresh install — no running binaries to worry about, extract directly
-  gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector
-  if [ $? -ne 0 ]; then
-    error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
+  # Check if this is an upgrade (service already exists and is running)
+  _aix_was_running=false
+  if lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q active; then
+    _aix_was_running=true
+
+    # AIX locks running binaries against all modifications (rm, mv, overwrite),
+    # so we extract to a staging dir, stop the service, then copy into place.
+    _aix_stage="/opt/bindplane-otel-collector/.staging"
+    rm -rf "$_aix_stage"
+    mkdir -p "$_aix_stage" || error_exit "$LINENO" "Failed to create staging directory"
+    gunzip -c "$package_out_file_path" | tar -xvf - -C "$_aix_stage"
+    if [ $? -ne 0 ]; then
+      rm -rf "$_aix_stage"
+      error_exit "$LINENO" "Failed to extract package to staging directory"
+    fi
+
+    # AIX does not support service "restart", so stop and start instead
+    info "Stopping service for binary replacement..."
+    stopsrc -g "$AIX_SRC_GROUP" || error_exit "$LINENO" "Failed to request service stop"
+    _stop_wait=0
+    while ! lssrc -s "$AIX_SRC_SUBSYSTEM" | grep -q inoperative; do
+      _stop_wait=$((_stop_wait + 1))
+      if [ "$_stop_wait" -ge 30 ]; then
+        rm -rf "$_aix_stage"
+        error_exit "$LINENO" "Service did not stop within 30 seconds"
+      fi
+      if [ $((_stop_wait % 5)) -eq 0 ]; then
+        info "Still waiting for service to stop... (${_stop_wait}s)"
+      fi
+      sleep 1
+    done
+
+    # Release any cached shared libraries
+    slibclean > /dev/null 2>&1
+
+    # Copy staged files into the install directory
+    cp -Rf "$_aix_stage"/* /opt/bindplane-otel-collector/
+    if [ $? -ne 0 ]; then
+      rm -rf "$_aix_stage"
+      error_exit "$LINENO" "Failed to copy files from staging to /opt/bindplane-otel-collector"
+    fi
+    rm -rf "$_aix_stage"
+  else
+    # Fresh install — no running binaries to worry about, extract directly
+    gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector
+    if [ $? -ne 0 ]; then
+      error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
+    fi
   fi
 
   # Move files to appropriate locations
@@ -1335,6 +1379,13 @@ install_aix()
   # Set ownership
   chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" /opt/bindplane-otel-collector > /dev/null 2>&1
   chown "$COLLECTOR_USER":"$COLLECTOR_GROUP" /etc/bdot.env > /dev/null 2>&1
+
+  # If the service was running before, start it back up.
+  # For fresh installs, the service management section later handles the initial start.
+  if [ "$_aix_was_running" = true ]; then
+    info "Restarting service with new binaries..."
+    startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)" || error_exit "$LINENO" "Failed to start service"
+  fi
 }
 
 unpack_package()
