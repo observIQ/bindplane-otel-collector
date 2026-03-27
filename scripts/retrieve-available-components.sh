@@ -79,10 +79,14 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
 
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/connector/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/connector/connectortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    connectors:\n      sub_component_details:\n"
+  myMap["signaltometrics"] = "signal_to_metrics"
 } {
   split($NF, parts, " ")
   name=parts[1]
   sub("connector$", "", name)
+  if (name in myMap) {
+    name = myMap[name]
+  }
   namespace=$0
   
   if (!first) {
@@ -180,7 +184,6 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["probabilisticsampler"] = "probabilistic_sampler"
   myMap["memorylimiter"] = "memory_limiter"
   myMap["logdeduplication"] = "logdedup"
-  myMap["signaltometrics"] = "signal_to_metrics"
   myMap["k8sattributes"] = "k8s_attributes"
   myMap["ocsfstandardization"] = "ocsf_standardization"
 } {
