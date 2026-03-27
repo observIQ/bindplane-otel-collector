@@ -1081,6 +1081,11 @@ verify_package() {
         return 1
       fi
       ;;
+    mkssys)
+      if ! verify_package_aix; then
+        return 1
+      fi
+      ;;
     rpm)
       if ! verify_package_rpm; then
         return 1
@@ -1231,6 +1236,57 @@ verify_package_rpm() {
   fi
 
   success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
+# Verify AIX tar.gz package using GPG detached signature.
+# The release process produces a .gpg.sig file alongside the tar.gz.
+verify_package_aix() {
+  if [ -z "$GPG_CMD" ]; then
+    info "neither gpg nor gpg2 is installed, skipping signature verification"
+    return 0
+  fi
+
+  # Import the public key
+  if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+    error "Failed to import public key"
+    return 1
+  fi
+
+  # Import any revocation keys
+  if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
+    for key in "$TMP_DIR/gpg/deb-revocations/"*; do
+      if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$key" > /dev/null 2>&1; then
+        error "Failed to import revocation key"
+        return 1
+      fi
+    done
+  fi
+
+  # Look for the detached GPG signature file
+  _sig_file="${package_out_file_path}.gpg.sig"
+  if [ ! -f "$_sig_file" ]; then
+    error "GPG signature file not found: $_sig_file"
+    return 1
+  fi
+
+  # Verify the detached signature
+  set +e
+  VERIFY_OUTPUT=$(GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --verify "$_sig_file" "$package_out_file_path" 2>&1)
+  VERIFY_EXIT_CODE=$?
+  set -e
+
+  if [ $VERIFY_EXIT_CODE -ne 0 ]; then
+    error "GPG signature verification failed"
+    if [ -n "$VERIFY_OUTPUT" ]; then
+      increase_indent
+      error "$VERIFY_OUTPUT"
+      decrease_indent
+    fi
+    return 1
+  fi
+
+  success "Package GPG signature is valid"
   return 0
 }
 
