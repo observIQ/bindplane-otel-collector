@@ -1017,6 +1017,8 @@ require (
 // Local component replaces
 replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagestate
 
+replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
+
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1

@@ -26,5 +26,3 @@ require (
 	go.opentelemetry.io/collector/pdata/xpdata v0.148.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )
-
-replace github.com/observiq/bindplane-otel-collector/internal/report => ../../internal/report
