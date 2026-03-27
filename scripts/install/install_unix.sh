@@ -722,15 +722,63 @@ dependencies_check() {
   info "Checking for script dependencies..."
   FAILED_PREREQS=''
   for prerequisite in $PREREQS; do
-    if command -v "$prerequisite" >/dev/null; then
-      continue
-    else
-      if [ -z "$FAILED_PREREQS" ]; then
-        FAILED_PREREQS="${fg_red}$prerequisite${reset}"
-      else
-        FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
-      fi
-    fi
+    # Support alternate tools with pipe syntax (e.g. "shasum|sha256sum").
+    # Checks each alternate in order via command -v. The first one found is
+    # resolved, and a command variable is created with the full invocation
+    # including any required flags (see resolve_alternate_cmd).
+    case "$prerequisite" in
+      *"|"*)
+        _found=false
+        # Temporarily change the field separator to pipe so we can iterate
+        # over each alternate tool in the "tool1|tool2|toolN" entry
+        _save_IFS="$IFS"; IFS="|"
+        for _alt in $prerequisite; do
+          IFS="$_save_IFS"
+          if command -v "$_alt" >/dev/null; then
+            _found=true
+            resolve_alternate_cmd "$prerequisite" "$_alt"
+            break
+          fi
+          IFS="|"
+        done
+        IFS="$_save_IFS"
+        if [ "$_found" = false ]; then
+          # Build a human-readable display string from the pipe-separated
+          # alternatives. "shasum|sha256sum" becomes "shasum or sha256sum".
+          # Uses only shell builtins — no tr/sed — because those tools may
+          # themselves be the missing prereqs we're reporting on.
+          _display=""
+          _tmp_IFS="$IFS"; IFS="|"
+          for _item in $prerequisite; do
+            if [ -z "$_display" ]; then
+              _display="$_item"
+            else
+              _display="$_display or $_item"
+            fi
+          done
+          IFS="$_tmp_IFS"
+          # Each missing prereq group is added to FAILED_PREREQS, separated
+          # by commas. The final error message lists all missing prereqs:
+          # e.g. "curl, shasum or sha256sum, gpg2 or gpg"
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}${_display}${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}${_display}${reset}"
+          fi
+        fi
+        ;;
+      *)
+        if command -v "$prerequisite" >/dev/null; then
+          continue
+        else
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}$prerequisite${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
+          fi
+        fi
+        ;;
+    esac
   done
 
   if [ -n "$FAILED_PREREQS" ]; then
@@ -738,6 +786,20 @@ dependencies_check() {
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+}
+
+# Maps a resolved alternate prereq to a command variable with full flags.
+# $1 = the prereq entry (e.g. "shasum|sha256sum")
+# $2 = the resolved binary (e.g. "shasum")
+resolve_alternate_cmd() {
+  case "$1" in
+    "shasum|sha256sum")
+      case "$2" in
+        shasum)    SHA256CMD="shasum -a 256" ;;
+        sha256sum) SHA256CMD="sha256sum" ;;
+      esac
+      ;;
+  esac
 }
 
 # This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
