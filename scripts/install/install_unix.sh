@@ -497,7 +497,7 @@ set_os_arch() {
 # Set the package type before install
 set_package_type() {
   # if package_path is set get the file extension otherwise look at what's available on the system
-  if [ -n "$package_path" ]; then
+  if [ -n "$package_path" ] && [ "$OS_TYPE" != "AIX" ]; then
     case "$package_path" in
     *.deb)
       package_type="deb"
@@ -510,12 +510,14 @@ set_package_type() {
       ;;
     esac
   else
-    if command -v dpkg >/dev/null 2>&1; then
-      package_type="deb"
-    elif command -v rpm >/dev/null 2>&1; then
-      package_type="rpm"
+    if command -v dpkg > /dev/null 2>&1; then
+        package_type="deb"
+    elif command -v mkssys > /dev/null 2>&1; then
+        package_type="mkssys"
+    elif command -v rpm > /dev/null 2>&1; then
+        package_type="rpm"
     else
-      error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+        error_exit "$LINENO" "Could not find mkssys, dpkg or rpm on the system"
     fi
   fi
 
@@ -873,13 +875,28 @@ user_check()
 package_type_check()
 {
   info "Checking for package manager..."
-  if command -v dpkg >/dev/null 2>&1; then
-    succeeded
-  elif command -v rpm >/dev/null 2>&1; then
-    succeeded
+  if command -v dpkg > /dev/null 2>&1; then
+      succeeded
+  # Check ALL of the AIX commands needed
+  elif command -v mkssys > /dev/null 2>&1 \
+    && command -v mkgroup > /dev/null 2>&1 \
+    && command -v useradd > /dev/null 2>&1 \
+    && command -v startsrc > /dev/null 2>&1 \
+    && command -v stopsrc > /dev/null 2>&1 \
+    && command -v lssrc > /dev/null 2>&1 \
+    && command -v mkitab > /dev/null 2>&1 \
+    && command -v rmitab > /dev/null 2>&1 \
+    && command -v lsitab > /dev/null 2>&1; then
+      succeeded
+  elif command -v rpm > /dev/null 2>&1; then
+      succeeded
   else
-    failed
-    error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      failed
+      if [ "$OS_TYPE" = "AIX" ]; then
+        error_exit "$LINENO" "Could not find AIX installation tools on the system"
+      else
+        error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      fi
   fi
 }
 
