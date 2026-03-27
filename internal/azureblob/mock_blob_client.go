@@ -128,6 +128,66 @@ func (_c *MockBlobClient_DownloadBlob_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ListPrefixes provides a mock function with given fields: ctx, containerName, prefix
+func (_m *MockBlobClient) ListPrefixes(ctx context.Context, containerName string, prefix string) ([]string, error) {
+	ret := _m.Called(ctx, containerName, prefix)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPrefixes")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]string, error)); ok {
+		return rf(ctx, containerName, prefix)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []string); ok {
+		r0 = rf(ctx, containerName, prefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, containerName, prefix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockBlobClient_ListPrefixes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPrefixes'
+type MockBlobClient_ListPrefixes_Call struct {
+	*mock.Call
+}
+
+// ListPrefixes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - containerName string
+//   - prefix string
+func (_e *MockBlobClient_Expecter) ListPrefixes(ctx interface{}, containerName interface{}, prefix interface{}) *MockBlobClient_ListPrefixes_Call {
+	return &MockBlobClient_ListPrefixes_Call{Call: _e.mock.On("ListPrefixes", ctx, containerName, prefix)}
+}
+
+func (_c *MockBlobClient_ListPrefixes_Call) Run(run func(ctx context.Context, containerName string, prefix string)) *MockBlobClient_ListPrefixes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockBlobClient_ListPrefixes_Call) Return(_a0 []string, _a1 error) *MockBlobClient_ListPrefixes_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockBlobClient_ListPrefixes_Call) RunAndReturn(run func(context.Context, string, string) ([]string, error)) *MockBlobClient_ListPrefixes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // StreamBlobs provides a mock function with given fields: ctx, container, prefix, errChan, blobChan, doneChan
 func (_m *MockBlobClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{}) {
 	_m.Called(ctx, container, prefix, errChan, blobChan, doneChan)
