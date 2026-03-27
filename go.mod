@@ -1040,3 +1040,10 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windo
 // Kafka exporter had breaking changes in v0.148.0, so pinning at v0.147.0 so we can notify users of changes.
 // https://linear.app/bindplane/issue/BPOP-4859/config-removed-exporterkafka-v01480
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.147.0
+
+// Mysql receiver had changes in v0.148.0 that we should notify users of, so pinning at v0.147.0 so we can notify users of changes
+// https://linear.app/bindplane/issue/BPOP-4863/config-default-changed-receivermysql-v01480
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.147.0
+
+// Postresql receiver had changes in v0.148.0 that we should notify users of, so pinning at v0.147.0 so we can notify users of changes
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.147.0

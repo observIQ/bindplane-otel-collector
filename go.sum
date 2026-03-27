@@ -1762,8 +1762,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasr
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver v0.148.0/go.mod h1:VTjrysXROFb9Yf2popT4WUi22oWv+Vw7zb267AHYSSs=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver v0.148.0 h1:+331rz0WBsEA1v/e8k9kfntwpTjQHynEtZIM8IKWG8c=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver v0.148.0/go.mod h1:6qPY6bbqn/IFFrr/TDZ9DQF4R1erQcXw6etTyzx57c4=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.148.0 h1:qPkcLqy8EkZA4oCVBBJNu8rI+zJDXiebBtyV0zjFzlE=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.148.0/go.mod h1:5aNuAAx7FnqU0MH8r2KBgs5W5Jeow2EQYWIXpANUiFw=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.147.0 h1:iwyAlhhbhVgxsgtnJ7F/47unOLEn6S+saFbXpp/jn1s=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.147.0/go.mod h1:Dvtun8y2nOrNjOwInNpYrS7ZV5CnaRjoGvQquw3v2f4=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.148.0 h1:yuJ06k+YiaJp1FvuN7Ec5ryF9cFsP/UPDQrEHo6GWgY=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.148.0/go.mod h1:PqNk+qp9AOg8aiRMANoaiTmI+YnjHIqRmwK9z5pVdIw=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver v0.148.0 h1:E3Dd8ccMl+inn0bc+aX1L3CqZ8Mh8x7dv2n8lVMYQaA=
@@ -1774,8 +1774,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfiler
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.148.0/go.mod h1:ZlPffxlArFuA+ipYOak6vx1GCInrtnsjju3yoTpFJWE=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver v0.148.0 h1:Oop+52kmJ5dcAiirmvVqcrEUvaobZNNQqtoMGOL071Y=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver v0.148.0/go.mod h1:AQuHWaUSECYq2AQx+2sPJEIw83zjCcVyz8dFWsWhV7U=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.148.0 h1:qgY3ouoERzb9ph8zKkVqOfnBs6BBeYocFvNUzFqx0dI=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.148.0/go.mod h1:eMt31t+tnJq6PL2jOHiHh0pvFEogLFDCgnXPEIBmDWI=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.147.0 h1:8O4F6WEiAwqg0yNGvJgdrBwUk0S20D4jioyB2PhxDGY=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.147.0/go.mod h1:x8FVTUs76ohAP6M7xSD7RfYY+ZcBwr+8/OaTYcnsP2M=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.148.0 h1:K+aZS3IdojTI0xtfZtt2qhp5zj4y3scPurje1TacgEw=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.148.0/go.mod h1:E2RDMAAOV4SbMNrPSUORSsJD7z1zzqSD3G7A+X4Pi0U=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver v0.148.0 h1:UOykcXGh6gaI3slB93q9jhUp3mHz0sOsd6/IibDn0pE=
