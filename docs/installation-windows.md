@@ -7,19 +7,19 @@ To install the agent on Windows, run the PowerShell command below. The script au
 > **Note:** The install script is available as of release v1.96.0. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1")))
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1")))
 ```
 
 To install a specific version, pass the `-Version` parameter:
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Version "v1.96.0"
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Version "v1.96.0"
 ```
 
 For an interactive installation with the installer UI, add `-Interactive`:
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Interactive
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Interactive
 ```
 
 ### Manual Installation
@@ -33,7 +33,7 @@ Installation artifacts are signed. Information on verifying the signature can be
 To install the agent with an OpAMP connection configuration, pass the management flags to the install script:
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) `
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) `
     -EnableManagement "1" `
     -OpAMPEndpoint "<your_endpoint>" `
     -OpAMPSecretKey "<secret-key>"
@@ -109,7 +109,7 @@ Start-Service -Name "observiq-otel-collector"
 To uninstall the agent, run the install script with the `-Uninstall` flag:
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1"))) -Uninstall
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Uninstall
 ```
 
 Alternatively, uninstall through the control panel via the "Uninstall a program" dialog.

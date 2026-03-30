@@ -92,7 +92,7 @@ To continue with the quick start, follow along below.
 Install BDOT Collector using the installation script below.
 
 ```sh
-sudo sh -c "$(curl -fsSlL https://github.com/observiq/bindplane-otel-collector/releases/latest/download/install_unix.sh)" install_unix.sh
+sudo sh -c "$(curl -fsSlL https://bdot.bindplane.com/<version>/install_unix.sh)" install_unix.sh
 ```
 
 To install directly with the appropriate package manager, and how to configure OpAMP, see [installing on Linux](/docs/installation-linux.md).
@@ -102,7 +102,7 @@ To install directly with the appropriate package manager, and how to configure O
 Install the BDOT Collector using the PowerShell command below. The script automatically selects the correct MSI for the system architecture (amd64 or arm64).
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/latest/install_windows.ps1")))
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1")))
 ```
 
 For more installation information, and how to configure OpAMP, see [installing on Windows](/docs/installation-windows.md).
@@ -112,7 +112,7 @@ For more installation information, and how to configure OpAMP, see [installing o
 Install BDOT Collector using the installation script below.
 
 ```sh
-sudo sh -c "$(curl -fsSlL https://github.com/observiq/bindplane-otel-collector/releases/latest/download/install_macos.sh)" install_macos.sh
+sudo sh -c "$(curl -fsSlL https://bdot.bindplane.com/<version>/install_macos.sh)" install_macos.sh
 ```
 
 For more installation information, and how to configure OpAMP, see [installing on macOS](/docs/installation-mac.md).
@@ -257,7 +257,7 @@ V1 distributions of the BDOT Collector use a custom OpAMP manager built into the
 
 ### V2
 
-V2 is the latest major release of the BDOT Collector. This version is currently in [Beta](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v2.0.0-beta.3). V2 distributions of the BDOT Collector use the [OpenTelemetry OpAMP supervisor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/cmd/opampsupervisor) to interface between the OpenTelemetry Collector and the OpAMP server run by Bindplane. For more information, [see this documentation](https://github.com/observIQ/bindplane-otel-collector/blob/release/v2.0.0/docs/supervisor.md).
+V2 is the latest major release of the BDOT Collector. This version is currently in [Beta](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v2.0.0-beta.12). V2 distributions of the BDOT Collector use the [OpenTelemetry OpAMP supervisor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/cmd/opampsupervisor) to interface between the OpenTelemetry Collector and the OpAMP server run by Bindplane. For more information, [see this documentation](https://github.com/observIQ/bindplane-otel-collector/blob/release/v2.0.0/docs/supervisor.md).
 
 ## Community
 
