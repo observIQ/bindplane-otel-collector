@@ -10,7 +10,6 @@ extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.148.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.148.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/bindplaneextension v1.1.1
-    path: "./extension/bindplaneextension"
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.148.0
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.148.0
@@ -19,11 +18,8 @@ processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.148.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.148.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.1.1
-    path: "./processor/snapshotprocessor"
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.1.1
-    path: "./processor/throughputmeasurementprocessor"
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.1.1
-    path: "./processor/topologyprocessor"
 receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.148.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.148.0
