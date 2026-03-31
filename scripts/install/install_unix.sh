@@ -417,10 +417,11 @@ setup_installation() {
 }
 
 set_file_names() {
+  _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
   if [ -z "$version" ]; then
-    package_file_name="${PACKAGE_NAME}_linux_${arch}.${package_type}"
+    package_file_name="${PACKAGE_NAME}_${_os_lower}_${os_arch}.${package_type}"
   else
-    package_file_name="${PACKAGE_NAME}_v${version}_linux_${arch}.${package_type}"
+    package_file_name="${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
   fi
   package_out_file_path="$TMP_DIR/$package_file_name"
 
