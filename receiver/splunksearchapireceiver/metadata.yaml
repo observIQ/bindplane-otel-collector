@@ -1,7 +1,0 @@
-type: splunksearchapi
-
-status:
-  class: receiver
-  stability:
-    alpha: [logs]
-  distributions: [observiq]

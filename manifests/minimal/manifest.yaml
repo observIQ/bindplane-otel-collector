@@ -41,10 +41,3 @@ providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.51.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
-  # replace used by bindplaneextension
-  - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
-  # replace statements for internal imports
-  - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
-  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
-  - github.com/observiq/bindplane-otel-collector/internal/topology => ../internal/topology
-  - github.com/observiq/bindplane-otel-collector/version => ../version

@@ -367,20 +367,3 @@ providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.51.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
-  # replace for datapointcountprocessor, logcountprocessor, and spancountprocessor
-  - github.com/observiq/bindplane-otel-collector/receiver/routereceiver => ../receiver/routereceiver
-  # replace used by bindplaneextension
-  - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
-  # replace statements for internal imports
-  - github.com/observiq/bindplane-otel-collector/internal/aws => ../internal/aws
-  - github.com/observiq/bindplane-otel-collector/internal/azureblob => ../internal/azureblob
-  - github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../internal/blobconsume
-  - github.com/observiq/bindplane-otel-collector/internal/counter => ../internal/counter
-  - github.com/observiq/bindplane-otel-collector/internal/expr => ../internal/expr
-  - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
-  - github.com/observiq/bindplane-otel-collector/internal/osinfo => ../internal/osinfo
-  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
-  - github.com/observiq/bindplane-otel-collector/internal/storageclient => ../internal/storageclient
-  - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
-  - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
-  - github.com/observiq/bindplane-otel-collector/version => ../version

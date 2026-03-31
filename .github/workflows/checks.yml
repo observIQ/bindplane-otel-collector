@@ -18,7 +18,6 @@ jobs:
       plugin-docs: ${{ steps.filter.outputs.plugin-docs == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
-      components: ${{ steps.filter.outputs.components }}
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -27,7 +26,6 @@ jobs:
         id: filter
         with:
           # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
-          # Components list should be based on source of truth 'migrated-modules.txt' in root of repo
           filters: |
             checks:
               - '.github/workflows/checks.yml'
@@ -51,24 +49,6 @@ jobs:
               - 'go.mod'
             dependabot:
               - '.github/dependabot.yml'
-            components:
-              - 'receiver/**'
-              - 'processor/**'
-              - 'exporter/**'
-              - 'extension/**'
-              - 'counter/**'
-              - 'expr/**'
-              - 'version/**'
-              - 'plugins/**'
-              - 'internal/aws/**'
-              - 'internal/azureblob/**'
-              - 'internal/blobconsume/**'
-              - 'internal/exporterutils/**'
-              - 'internal/measurements/**'
-              - 'internal/osinfo/**'
-              - 'internal/report/snapshot/**'
-              - 'internal/storageclient/**'
-              - 'internal/testutils/**'
 
   setup-tools:
     if: github.actor != 'dependabot[bot]'
@@ -285,22 +265,3 @@ jobs:
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Check Dependabot
         run: make check-dependabot
-
-  check-component-changes:
-    if: needs.detect-changes.outputs.components == 'true'
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
-    needs:
-      - detect-changes
-    steps:
-      - name: Fail on component changes
-        run: |
-          echo "::error::Changes detected in component directories that have been migrated to the bindplane-otel-contrib repository."
-          echo "The following directories must not be modified in this repository:"
-          echo "  receiver/, processor/, exporter/, extension/,"
-          echo "  internal/counter/, internal/expr/, version/, plugins/,"
-          echo "  internal/aws/, internal/azureblob/, internal/blobconsume/,"
-          echo "  internal/exporterutils/, internal/measurements/, internal/osinfo/,"
-          echo "  internal/report/snapshot/, internal/storageclient/, internal/testutils/"
-          echo ""
-          echo "Please make these changes in https://github.com/observIQ/bindplane-otel-contrib instead."
-          exit 1
