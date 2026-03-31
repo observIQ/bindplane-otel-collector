@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/receiver/restapireceiver).**
+> This module is retained for reference and will be removed after September 2026.
+
 # REST API Receiver
 
 The REST API receiver is a generic receiver that can pull data from any REST API endpoint. It supports both logs and metrics collection, with configurable authentication, pagination, and time-based offset tracking.
@@ -39,7 +43,9 @@ Alpha:
 | `oauth2` | object | | `false` | OAuth2 Client Credentials configuration (see below) |
 | `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
-| `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts fast and backs off when no data is returned, up to this maximum. |
+| `min_poll_interval` | duration | `10s` | `false` | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits. |
+| `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts at `min_poll_interval` and backs off when no data is returned, up to this maximum. |
+| `backoff_multiplier` | float | `2.0` | `false` | Multiplier for increasing the poll interval when no data or a partial page is returned. Must be greater than 1.0. |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
 
@@ -378,6 +384,18 @@ The receiver expects JSON responses in one of two formats:
 ```
 
 When using the second format, specify the field name in `response_field` (e.g., `"data"`).
+
+## Adaptive Polling
+
+The receiver uses adaptive polling to balance responsiveness with API rate limits. Instead of polling at a fixed interval, it adjusts the poll interval based on whether data is being returned.
+
+- **On startup**, the receiver polls at `min_poll_interval`.
+- **When a full page is returned** (indicating more data may be waiting), the interval resets to `min_poll_interval` to fetch remaining data quickly.
+- **When no data or a partial page is returned** (indicating the receiver is caught up), the interval is multiplied by `backoff_multiplier` each cycle, up to `max_poll_interval`.
+
+For example, with the defaults (`min_poll_interval: 10s`, `max_poll_interval: 5m`, `backoff_multiplier: 2.0`), the polling intervals when no new data arrives would be: 10s, 20s, 40s, 80s, 160s, 300s (capped at 5m). As soon as a full page of data is returned, the interval resets back to 10s.
+
+To poll at a fixed interval, set `min_poll_interval` and `max_poll_interval` to the same value.
 
 ## Checkpointing
 

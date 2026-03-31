@@ -3,8 +3,40 @@ on:
   pull_request:
 
 jobs:
+  # Detect which files changed to skip irrelevant jobs on PRs.
+  detect-changes:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # if this file changed, run all tests. if the makefile changed, run all tests.
+      go: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      updater: ${{ steps.filter.outputs.updater == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
+          filters: |
+            tests:
+              - '.github/workflows/tests.yml'
+            makefile:
+              - 'Makefile'
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            updater:
+              - 'updater/**'
+
   unit-tests:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
+    needs:
+      - detect-changes
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -16,25 +48,8 @@ jobs:
           # macOS - All tests
           - os: macos
             runner: namespace-profile-bindplane-default-macos-15
-          # Windows - Receivers
+          # Windows - All tests
           - os: windows
-            target: receivers
-            runner: namespace-profile-bindplane-default-windows-2022-8x16
-          # Windows - Processors
-          - os: windows
-            target: processors
-            runner: namespace-profile-bindplane-default-windows-2022-8x16
-          # Windows - Exporters
-          - os: windows
-            target: exporters
-            runner: namespace-profile-bindplane-default-windows-2022-8x16
-          # Windows - Extensions
-          - os: windows
-            target: extensions
-            runner: namespace-profile-bindplane-default-windows-2022-8x16
-          # Windows - Other
-          - os: windows
-            target: other
             runner: namespace-profile-bindplane-default-windows-2022-16x32
     runs-on: ${{ matrix.runner }}
     steps:
@@ -112,17 +127,7 @@ jobs:
       - name: Install Tools
         run: make install-tools-ci
 
-      - name: Run Component Tests
-        if: matrix.os == 'windows'
-        run: make test-${{ matrix.target }}
-        env:
-          TMPDIR: D:\Temp
-          TMP: D:\Temp  
-          TEMP: D:\Temp
-          GOTMPDIR: D:\Temp
-
       - name: Run All Tests
-        if: matrix.os != 'windows'
         run: make test
 
   test-summary:
@@ -133,8 +138,10 @@ jobs:
       - name: Check test results
         run: |
           if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
-            echo "✅ All tests passed"
+            echo "All tests passed"
+          elif [[ "${{ needs.unit-tests.result }}" == "skipped" ]]; then
+            echo "Tests skipped"
           else
-            echo "❌ Tests failed"
+            echo "Tests failed"
             exit 1
           fi

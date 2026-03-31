@@ -674,12 +674,16 @@ interactive_check()
 
 offline_check()
 {
-  # Ensure that both package_path and gpg_tar_path are either both set or both unset
-  if { [ -n "$package_path" ] && [ -z "$gpg_tar_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; }; then
-    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or neither should be specified."
+  # --file without --gpg-tar-file is allowed when --no-gpg-check is set
+  if [ -n "$package_path" ] && [ -z "$gpg_tar_path" ] && [ "$skip_gpg_check" != "true" ]; then
+    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or use --no-gpg-check to skip signature verification."
   fi
 
-  if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+  if [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+    error_exit "$LINENO" "--gpg-tar-file requires --file to be specified."
+  fi
+
+  if [ -n "$package_path" ]; then
     offline_installation=true
   fi
 }

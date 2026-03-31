@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/chronicleexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Chronicle Exporter
 
 **Currently only v2 of the ingestion API is supported**
@@ -37,6 +41,8 @@ The exporter can be configured using the following fields:
 | `collect_agent_metrics`         | bool              | `true`                                 | `false`  | Enables collecting metrics about the agent's process and log ingestion metrics              |
 | `batch_request_size_limit_grpc` | int               | `4000000`                              | `false`  | The maximum size, in bytes, allowed for a gRPC batch creation request.                      |
 | `batch_request_size_limit_http` | int               | `4000000`                              | `false`  | The maximum size, in bytes, allowed for a HTTP batch creation request.                      |
+| `api_version`                   | string            | `v1alpha`                              | `false`  | The API version to use. Valid values are `v1alpha` and `v1beta`. Only applies to HTTPS protocol.                           |
+| `override_endpoint`             | bool              | `false`                                | `false`  | Whether or not to ignore the Location field when constructing the endpoint. Only applies to HTTPS protocol.                  |
 
 ### Log Type
 

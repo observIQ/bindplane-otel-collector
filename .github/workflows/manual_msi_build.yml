@@ -6,10 +6,38 @@ on:
         description: "Collector Version"
         required: true
         default: "v0.0.1"
+      build_amd64:
+        description: "Build amd64 MSI"
+        type: boolean
+        default: true
+      build_arm64:
+        description: "Build arm64 MSI"
+        type: boolean
+        default: true
 
 jobs:
-  build-64bit-msi:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        shell: bash
+        run: |
+          matrix='{"include":[]}'
+          if [ "${{ inputs.build_amd64 }}" = "true" ]; then
+            matrix=$(echo $matrix | jq -c '.include += [{"arch":"amd64","msi_name":"bindplane-otel-collector.msi","msi_arch":"x64"}]')
+          fi
+          if [ "${{ inputs.build_arm64 }}" = "true" ]; then
+            matrix=$(echo $matrix | jq -c '.include += [{"arch":"arm64","msi_name":"bindplane-otel-collector-arm64.msi","msi_arch":"arm64"}]')
+          fi
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  build-msi:
+    needs: setup
     runs-on: windows-2022
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -22,11 +50,11 @@ jobs:
       - name: Release Prep
         run: make release-prep CURR_VERSION=${{ github.event.inputs.version }}
       - name: Build Windows Collector Binary
-        run: make collector
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
+        run: cp dist/collector_windows_${{ matrix.arch }}.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
-        run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
+        run: cp release_deps/supervisor_bin/opampsupervisor_windows_${{ matrix.arch }}.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -45,11 +73,11 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
-          unzip wix310-binaries.zip
+          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          unzip wix314-binaries.zip
         working-directory: C:/build
-      - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+      - name: Build MSI
+        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.event.inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
@@ -60,20 +88,20 @@ jobs:
       - name: Set variables for signing
         id: variables
         run: |
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
-      - name: Signing using keypair alias
+      - name: Sign MSI
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/bindplane-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
-      - name: "Upload MSI"
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: bindplane-otel-collector.msi
-          path: C:/build/bindplane-otel-collector.msi
+          name: ${{ matrix.msi_name }}
+          path: C:/build/${{ matrix.msi_name }}
           # Short lived because this is meant as an action for developers
           retention-days: 1

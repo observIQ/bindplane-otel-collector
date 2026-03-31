@@ -7,6 +7,7 @@ local
 .vagrant
 dist
 cosign.*
+*.msi.sig
 gpg.*
 *.msi
 *.exe
@@ -16,6 +17,7 @@ windows/**/wix
 windows/config.yaml
 windows/LICENSE
 windows/plugins
+windows/build/
 opentelemetry-java-contrib-jmx-metrics.jar
 VERSION.txt
 release_deps
@@ -54,3 +56,12 @@ perf-test/
 
 # Local planning docs
 **/MULTI_COLLECTOR_PLAN.md
+
+# JetBrains IDE files
+.idea/
+
+# OMC Agents
+.omc/
+
+# OCSF Schema files
+ocsf_schema.json

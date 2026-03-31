@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/snowflakeexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Snowflake Exporter
 
 This exporter allows logs, metrics, and traces to be sent to Snowflake, a cloud data warehouse service. This exporter utilizes the Go Snowflake Driver to send telemetry to a database in Snowflake.

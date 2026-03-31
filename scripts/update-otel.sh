@@ -80,8 +80,30 @@ if [ -z "$PDATA_TARGET_VERSION" ]; then
     exit 1
 fi
 
+# Directories migrated to the contrib repo — must not be modified here.
+# Single source of truth: migrated-modules.txt in the repo root.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MIGRATED_PREFIXES=$(tr '\n' ' ' < "$REPO_ROOT/migrated-modules.txt")
+
+is_migrated() {
+    mod="$1"
+    # Strip leading "./"
+    mod="${mod#./}"
+    for prefix in $MIGRATED_PREFIXES; do
+        case "$mod" in
+            ${prefix}*|${prefix%/}) return 0 ;;
+        esac
+    done
+    return 1
+}
+
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
 for local_mod in $LOCAL_MODULES; do
+    if is_migrated "$local_mod"; then
+        echo "Skipping migrated module $local_mod"
+        continue
+    fi
     # Run in a subshell so that the CD doesn't change this shell's current directory
     # Temporarily disable 'set -e' for this command so we can check its exit status
     set +e
@@ -92,7 +114,7 @@ for local_mod in $LOCAL_MODULES; do
         echo "Updating deps in $local_mod"
         cd "$local_mod"
         # go list will not work if module is not tidy, so we tidy first
-        go mod tidy -compat=1.24
+        go mod tidy -compat=1.25.7
 
         echo "  Tidied $local_mod"
 

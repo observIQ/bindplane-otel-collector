@@ -8,8 +8,17 @@ on:
         default: "v0.0.1"
 
 jobs:
-  build-64bit-msi:
+  build-msi:
     runs-on: windows-2022
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            msi_name: bindplane-otel-collector.msi
+            msi_arch: x64
+          - arch: arm64
+            msi_name: bindplane-otel-collector-arm64.msi
+            msi_arch: arm64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -22,12 +31,12 @@ jobs:
       # Needed until supervisor binary is released
       - name: Build Supervisor Binary
         run: make release-prep CURR_VERSION=${{ github.event.inputs.version }}
-      - name: Build Windows Collector Binary
-        run: make collector
+      - name: Build Windows Collector Binaries
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
+        run: cp dist/collector_windows_${{ matrix.arch }}.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
-        run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
+        run: cp release_deps/supervisor_bin/opampsupervisor_windows_${{ matrix.arch }}.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -46,11 +55,11 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
-          unzip wix310-binaries.zip
+          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          unzip wix314-binaries.zip
         working-directory: C:/build
-      - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+      - name: Build MSI
+        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.event.inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
@@ -61,29 +70,26 @@ jobs:
       - name: Set variables for signing
         id: variables
         run: |
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
-      - name: Signing using keypair alias
+      - name: Sign MSI
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/bindplane-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
-      - name: "Upload MSI"
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: bindplane-otel-collector.msi
-          path: C:/build/bindplane-otel-collector.msi
-          # Short lived because this is meant as an action for developers
+          name: ${{ matrix.msi_name }}
+          path: C:/build/${{ matrix.msi_name }}
           retention-days: 1
-      - name: "DEBUG: List dist/"
-        run: tree /F dist/
 
   release-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
-    needs: [build-64bit-msi]
+    needs: [build-msi]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -100,28 +106,38 @@ jobs:
         with:
           cache: go
 
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
-      - name: Retrieve Windows 64-bit MSI Installer
+      - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
           name: bindplane-otel-collector.msi
-          path: bindplane-otel-collector.msi
-      - name: Install Tools
-        run: make install-tools
+
+      - name: Retrieve Windows ARM64 MSI Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: bindplane-otel-collector-arm64.msi
+
+      - name: Install cosign
+        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+
+      - name: Sign AMD64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Sign ARM64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector-arm64.msi.sig ./bindplane-otel-collector-arm64.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Cache Goreleaser Build
         uses: namespacelabs/nscloud-cache-action@v1
@@ -156,8 +172,7 @@ jobs:
 
       - name: Debug list dist/
         run: |
-          tree dist/
-          du -sh dist/
+          ls -laR dist/
 
       - name: Sign Windows 64-bit ZIP Archive
         run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip
@@ -171,6 +186,7 @@ jobs:
           cp ./scripts/install/*.sh ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
+          cp ./bindplane-otel-collector-arm64.msi/bindplane-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts

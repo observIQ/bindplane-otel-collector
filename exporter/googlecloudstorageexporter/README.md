@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/exporter/googlecloudstorageexporter).**
+> This module is retained for reference and will be removed after September 2026.
+
 # Google Cloud Storage Exporter
 
 This exporter allows you to export logs, metrics, and traces to Google Cloud Storage. Telemetry is exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto).
@@ -111,3 +115,44 @@ my-folder-name/year=2021/month=01/day=01/hour=01/object-prefix_metrics_{random_i
 my-folder-name/year=2021/month=01/day=01/hour=01/object-prefix_logs_{random_id}.json.gz
 my-folder-name/year=2021/month=01/day=01/hour=01/object-prefix_traces_{random_id}.json.gz
 ```
+
+## Metrics
+
+### Exporter-Specific Metrics
+
+These metrics are emitted by the Google Cloud Storage exporter to provide observability into upload behavior.
+
+| Metric Name | Type | Unit | Description | Attributes |
+| --- | --- | --- | --- | --- |
+| `otelcol_exporter_payload_size` | Histogram | By | The size of the marshaled and optionally compressed payload in bytes. | `encoding`, `bucket` |
+| `otelcol_exporter_request_duration` | Histogram | ms | The duration of the GCS upload request in milliseconds. | `error`, `bucket`, `location` |
+| `otelcol_exporter_timeout_total` | Sum (monotonic) | {requests} | The number of upload requests that resulted in a timeout. | `bucket` |
+| `otelcol_exporter_upload_bytes_total` | Sum (monotonic) | By | The cumulative number of bytes uploaded to GCS. | `bucket` |
+| `otelcol_exporter_upload_inflight` | UpDownCounter | {uploads} | The number of uploads currently in flight. | `bucket` |
+
+#### Attributes
+
+| Attribute | Description | Values |
+| --- | --- | --- |
+| `encoding` | The encoding applied to the payload. | `json`, `json.gz` |
+| `bucket` | The name of the GCS bucket. | Config value |
+| `error` | The error classification for the request. | `none`, `timeout`, `unknown` |
+| `location` | The GCS bucket location. | Config value (e.g. `US`, `us-east1`) |
+
+### Standard Collector Exporter Metrics
+
+These metrics are automatically provided by the OpenTelemetry Collector exporter framework.
+
+| Metric Name | Type | Unit | Description |
+| --- | --- | --- | --- |
+| `otelcol_exporter_sent_spans` | Sum (monotonic) | {spans} | Number of spans successfully sent to destination. |
+| `otelcol_exporter_sent_metric_points` | Sum (monotonic) | {datapoints} | Number of metric points successfully sent to destination. |
+| `otelcol_exporter_sent_log_records` | Sum (monotonic) | {records} | Number of log records successfully sent to destination. |
+| `otelcol_exporter_send_failed_spans` | Sum (monotonic) | {spans} | Number of spans that failed to be sent to destination. |
+| `otelcol_exporter_send_failed_metric_points` | Sum (monotonic) | {datapoints} | Number of metric points that failed to be sent to destination. |
+| `otelcol_exporter_send_failed_log_records` | Sum (monotonic) | {records} | Number of log records that failed to be sent to destination. |
+| `otelcol_exporter_enqueue_failed_spans` | Sum (monotonic) | {spans} | Number of spans that failed to be added to the sending queue. |
+| `otelcol_exporter_enqueue_failed_metric_points` | Sum (monotonic) | {datapoints} | Number of metric points that failed to be added to the sending queue. |
+| `otelcol_exporter_enqueue_failed_log_records` | Sum (monotonic) | {records} | Number of log records that failed to be added to the sending queue. |
+| `otelcol_exporter_queue_size` | Gauge | {batches} | Current size of the retry queue (in batches). |
+| `otelcol_exporter_queue_capacity` | Gauge | {batches} | Fixed capacity of the retry queue (in batches). |

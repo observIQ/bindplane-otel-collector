@@ -33,10 +33,6 @@ import (
 
 const (
 	checkpointStorageKey = "restapi_checkpoint"
-
-	// Adaptive polling constants
-	minPollInterval   = 10 * time.Millisecond // Minimum poll interval (fastest polling rate)
-	backoffMultiplier = 2.0                   // Multiplier for increasing interval on empty responses
 )
 
 // checkpointData represents the data stored in the checkpoint.
@@ -116,26 +112,35 @@ func (b *baseReceiver) shutdownBase(ctx context.Context) error {
 	return nil
 }
 
-// adjustPollInterval adjusts the poll interval based on whether data was received.
-func (b *baseReceiver) adjustPollInterval(recordCount int) {
-	if recordCount > 0 {
-		// Data received - reset to minimum interval for responsive polling
-		if b.currentPollInterval != minPollInterval {
-			b.logger.Debug("resetting poll interval after receiving data",
-				zap.Duration("new_interval", minPollInterval),
+// pollResult contains the outcome of a poll cycle.
+type pollResult struct {
+	recordCount  int  // total records received across all pages
+	lastPageFull bool // true if the poll cycle ended because a page limit was hit, not because data ran out
+}
+
+// adjustPollInterval adjusts the poll interval based on the poll result.
+// Only resets to min interval when the last page was full (likely more data waiting).
+// When the response had data but the last page was partial, we're caught up — back off.
+func (b *baseReceiver) adjustPollInterval(result pollResult) {
+	if result.lastPageFull {
+		// Last page was full - likely more data waiting, poll aggressively
+		if b.currentPollInterval != b.cfg.MinPollInterval {
+			b.logger.Debug("resetting poll interval after full response",
+				zap.Duration("new_interval", b.cfg.MinPollInterval),
 				zap.Duration("previous_interval", b.currentPollInterval))
-			b.currentPollInterval = minPollInterval
+			b.currentPollInterval = b.cfg.MinPollInterval
 		}
 	} else {
-		// No data - increase interval (backoff) up to max
-		newInterval := time.Duration(float64(b.currentPollInterval) * backoffMultiplier)
+		// No data or partial page - increase interval (backoff) up to max
+		newInterval := time.Duration(float64(b.currentPollInterval) * b.cfg.BackoffMultiplier)
 		if newInterval > b.cfg.MaxPollInterval {
 			newInterval = b.cfg.MaxPollInterval
 		}
 		if newInterval != b.currentPollInterval {
-			b.logger.Debug("increasing poll interval due to no data",
+			b.logger.Debug("increasing poll interval",
 				zap.Duration("new_interval", newInterval),
-				zap.Duration("previous_interval", b.currentPollInterval))
+				zap.Duration("previous_interval", b.currentPollInterval),
+				zap.Int("record_count", result.recordCount))
 			b.currentPollInterval = newInterval
 		}
 	}
@@ -307,15 +312,15 @@ func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
 // startPolling starts the polling goroutine.
 func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 	// Initialize with minimum poll interval for responsive startup
-	r.currentPollInterval = minPollInterval
+	r.currentPollInterval = r.cfg.MinPollInterval
 
 	// Run immediately on startup
-	recordCount, err := r.poll(ctx)
+	result, err := r.poll(ctx)
 	if err != nil {
 		r.logger.Error("error on initial poll", zap.Error(err))
 		// Continue with periodic polling even if initial poll fails
 	}
-	r.adjustPollInterval(recordCount)
+	r.adjustPollInterval(result)
 
 	// Start periodic polling with adaptive timer
 	timer := time.NewTimer(r.currentPollInterval)
@@ -326,11 +331,11 @@ func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 		for {
 			select {
 			case <-timer.C:
-				recordCount, err := r.poll(ctx)
+				result, err := r.poll(ctx)
 				if err != nil {
 					r.logger.Error("error while polling", zap.Error(err))
 				}
-				r.adjustPollInterval(recordCount)
+				r.adjustPollInterval(result)
 				timer.Reset(r.currentPollInterval)
 			case <-ctx.Done():
 				return
@@ -340,12 +345,13 @@ func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// poll performs a single polling cycle. Returns the total number of records received.
-func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
+// poll performs a single polling cycle. Returns a pollResult with the total record count
+// and whether the last page was full (indicating more data may be available soon).
+func (r *restAPILogsReceiver) poll(ctx context.Context) (pollResult, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	totalRecords := 0
+	result := pollResult{}
 
 	// Build initial pagination parameters
 	params := buildPaginationParams(r.cfg, r.paginationState)
@@ -363,7 +369,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 		pageNum++
 		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
-			return totalRecords, err
+			return result, err
 		}
 
 		r.logger.Debug("fetched page",
@@ -393,9 +399,9 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 		// Convert to logs and consume
 		logs := convertJSONToLogs(data, r.logger)
 		if logs.LogRecordCount() > 0 {
-			totalRecords += logs.LogRecordCount()
+			result.recordCount += logs.LogRecordCount()
 			if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
-				return totalRecords, fmt.Errorf("failed to consume logs: %w", err)
+				return result, fmt.Errorf("failed to consume logs: %w", err)
 			}
 		}
 
@@ -407,6 +413,11 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 			zap.Time("current_timestamp_state", r.paginationState.CurrentTimestamp))
 
 		if !hasMore {
+			// Determine if we stopped because the page limit was reached (API may have more data)
+			// or because the data was exhausted (partial/empty last page).
+			if len(data) > 0 && r.cfg.Pagination.PageLimit > 0 && !checkPageLimit(r.cfg, r.paginationState) {
+				result.lastPageFull = true
+			}
 			break
 		}
 
@@ -418,12 +429,13 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	}
 
 	r.logger.Debug("poll cycle complete",
-		zap.Int("total_records", totalRecords),
+		zap.Int("total_records", result.recordCount),
 		zap.Int("pages_fetched", pageNum),
+		zap.Bool("last_page_full", result.lastPageFull),
 		zap.Time("final_timestamp_state", r.paginationState.CurrentTimestamp))
 
 	r.resetTimestampPagination()
-	return totalRecords, nil
+	return result, nil
 }
 
 // truncateRecord creates a preview of a record for logging, limiting to key fields.
@@ -558,15 +570,15 @@ func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
 // startPolling starts the polling goroutine.
 func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 	// Initialize with minimum poll interval for responsive startup
-	r.currentPollInterval = minPollInterval
+	r.currentPollInterval = r.cfg.MinPollInterval
 
 	// Run immediately on startup
-	recordCount, err := r.poll(ctx)
+	result, err := r.poll(ctx)
 	if err != nil {
 		r.logger.Error("error on initial poll", zap.Error(err))
 		// Continue with periodic polling even if initial poll fails
 	}
-	r.adjustPollInterval(recordCount)
+	r.adjustPollInterval(result)
 
 	// Start periodic polling with adaptive timer
 	timer := time.NewTimer(r.currentPollInterval)
@@ -577,11 +589,11 @@ func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 		for {
 			select {
 			case <-timer.C:
-				recordCount, err := r.poll(ctx)
+				result, err := r.poll(ctx)
 				if err != nil {
 					r.logger.Error("error while polling", zap.Error(err))
 				}
-				r.adjustPollInterval(recordCount)
+				r.adjustPollInterval(result)
 				timer.Reset(r.currentPollInterval)
 			case <-ctx.Done():
 				return
@@ -591,12 +603,13 @@ func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// poll performs a single polling cycle. Returns the total number of records received.
-func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
+// poll performs a single polling cycle. Returns a pollResult with the total record count
+// and whether the last page was full (indicating more data may be available soon).
+func (r *restAPIMetricsReceiver) poll(ctx context.Context) (pollResult, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	totalRecords := 0
+	result := pollResult{}
 
 	// Build initial pagination parameters
 	params := buildPaginationParams(r.cfg, r.paginationState)
@@ -614,7 +627,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 		pageNum++
 		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
-			return totalRecords, err
+			return result, err
 		}
 
 		r.logger.Debug("fetched page",
@@ -644,9 +657,9 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 		// Convert to metrics and consume
 		metrics := convertJSONToMetrics(data, &r.cfg.Metrics, r.logger)
 		if metrics.MetricCount() > 0 {
-			totalRecords += metrics.MetricCount()
+			result.recordCount += metrics.MetricCount()
 			if err := r.consumer.ConsumeMetrics(ctx, metrics); err != nil {
-				return totalRecords, fmt.Errorf("failed to consume metrics: %w", err)
+				return result, fmt.Errorf("failed to consume metrics: %w", err)
 			}
 		}
 
@@ -658,6 +671,11 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 			zap.Time("current_timestamp_state", r.paginationState.CurrentTimestamp))
 
 		if !hasMore {
+			// Determine if we stopped because the page limit was reached (API may have more data)
+			// or because the data was exhausted (partial/empty last page).
+			if len(data) > 0 && r.cfg.Pagination.PageLimit > 0 && !checkPageLimit(r.cfg, r.paginationState) {
+				result.lastPageFull = true
+			}
 			break
 		}
 
@@ -669,10 +687,11 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	}
 
 	r.logger.Debug("poll cycle complete",
-		zap.Int("total_records", totalRecords),
+		zap.Int("total_records", result.recordCount),
 		zap.Int("pages_fetched", pageNum),
+		zap.Bool("last_page_full", result.lastPageFull),
 		zap.Time("final_timestamp_state", r.paginationState.CurrentTimestamp))
 
 	r.resetTimestampPagination()
-	return totalRecords, nil
+	return result, nil
 }

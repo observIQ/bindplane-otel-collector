@@ -46,9 +46,9 @@ The steps are as follows:
 
 3. Run:
     ```sh
-    ./scripts/update-docs.sh {COLLECTOR_VERSION} {CONTRIB_VERSION}
+    ./scripts/update-docs.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {BDOT_CONTRIB_VERSION}
     ```
-    These should be the same versions used in the first step.
+    The collector and contrib versions should be the same as in step 1. The `BDOT_CONTRIB_VERSION` is the latest release version of [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib).
 
 4. Run `make install-tools`
 
@@ -61,6 +61,18 @@ The steps are as follows:
 If all was successful, the repo has had its OTEL dependencies updated to the latest version. 
 
 There is potential for tests to fail, deprecation issues, code changes, or a variety of other problems to arise, but once the above steps are successful the repo can be updated.
+
+## Updating bindplane-otel-contrib dependencies
+
+When [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib) publishes a new release, update the Go module dependencies in this repo:
+
+1. Run:
+    ```sh
+    make update-contrib BDOT_CONTRIB_VERSION=vx.x.x
+    ```
+    where `vx.x.x` is the new version of bindplane-otel-contrib.
+
+2. Run `make ci-checks` to verify the update.
 
 ## Releasing
 To release the agent, see [releasing documentation](releasing.md).

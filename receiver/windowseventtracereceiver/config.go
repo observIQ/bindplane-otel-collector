@@ -17,6 +17,7 @@ package windowseventtracereceiver
 
 import (
 	"fmt"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 )
@@ -91,6 +92,11 @@ func (cfg *Config) Validate() error {
 	for _, provider := range cfg.Providers {
 		if provider.Name == "" {
 			return fmt.Errorf("provider name cannot be empty; it must be a valid ETW provider name or GUID")
+		}
+		if strings.HasPrefix(provider.Name, "{") {
+			if err := validateProviderGUID(provider.Name); err != nil {
+				return err
+			}
 		}
 	}
 
