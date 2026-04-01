@@ -44,12 +44,12 @@ version:
 # Builds just the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -69,31 +69,31 @@ build-windows: build-windows-amd64 build-windows-arm64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
-	GOOS=linux GOARCH=ppc64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=linux GOARCH=ppc64 $(MAKE) build-binaries -j2
 
 .PHONY: build-linux-ppc64le
 build-linux-ppc64le:
-	GOOS=linux GOARCH=ppc64le $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=linux GOARCH=ppc64le $(MAKE) build-binaries -j2
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(MAKE) build-binaries -j2
 
 .PHONY: build-linux-arm64
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(MAKE) build-binaries -j2
 
 .PHONY: build-linux-arm
 build-linux-arm:
-	GOOS=linux GOARCH=arm $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(MAKE) build-binaries -j2
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(MAKE) build-binaries -j2
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(MAKE) build-binaries -j2
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
