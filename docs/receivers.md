@@ -28,7 +28,6 @@ Below is a list of supported receivers with links to their documentation pages.
 | collectd write_http Plugin JSON Receiver   | [collectdreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/collectdreceiver/README.md)                             |
 | Docker Stats Receiver                      | [dockerstatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/dockerstatsreceiver/README.md)                       |
 | Elasticsearch Receiver                     | [elasticsearchreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/elasticsearchreceiver/README.md)                   |
-| F5 BIG-IP Receiver                         | [bigipreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/bigipreceiver/README.md)                                   |
 | File Log Receiver                          | [filelogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/filelogreceiver/README.md)                               |
 | File Stats Receiver                        | [filestatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/filestatsreceiver/README.md)                           |
 | Fluentd Forward Receiver                   | [fluentforwardreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.148.0/receiver/fluentforwardreceiver/README.md)                   |

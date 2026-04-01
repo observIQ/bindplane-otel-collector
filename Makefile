@@ -199,10 +199,14 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=internal/tools \
-	  -exclude-dir=cmd/plugindocgen \
-	  ./...
+	@if [ -z "$$(go list ./... 2>/dev/null | grep -v 'internal/tools' | grep -v 'cmd/plugindocgen')" ]; then \
+		echo "gosec: no packages to scan, skipping"; \
+	else \
+		gosec \
+		  -exclude-dir=internal/tools \
+		  -exclude-dir=cmd/plugindocgen \
+		  ./...; \
+	fi
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -342,15 +346,6 @@ release-test:
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	if [ ! -e "./bindplane-otel-collector-arm64.msi" ]; then touch ./bindplane-otel-collector-arm64.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
-
-.PHONY: release-containers-test
-release-containers-test:
-	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
-	mkdir -p tmp
-	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
-	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
-	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
 agent-linux-amd64:
