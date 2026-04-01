@@ -1273,13 +1273,9 @@ uninstall() {
   banner "$(fg_green Uninstallation Complete!)"
 }
 
-main() {
-  # We do these checks before we process arguments, because
-  # some of these options bail early, and we'd like to be sure that those commands
-  # (e.g. uninstall) can run
-
-  bindplane_banner
-  check_prereqs
+parse_args() {
+  _do_uninstall=false
+  _do_help=false
 
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
@@ -1345,12 +1341,12 @@ main() {
         shift 1
         ;;
       -r | --uninstall)
-        uninstall
-        exit 0
+        _do_uninstall=true
+        shift 1
         ;;
       -h | --help)
-        usage
-        exit 0
+        _do_help=true
+        shift 1
         ;;
       -i | --clean-install)
         clean_install="true"
@@ -1371,6 +1367,25 @@ main() {
         ;;
       esac
     done
+  fi
+}
+
+main() {
+  # Parse arguments first so all flags are available to subsequent logic
+  parse_args "$@"
+
+  # Handle early-exit actions
+  if [ "$_do_help" = true ]; then
+    usage
+    exit 0
+  fi
+
+  bindplane_banner
+  check_prereqs
+
+  if [ "$_do_uninstall" = true ]; then
+    uninstall
+    exit 0
   fi
 
   if [ -z "$version" ]; then
