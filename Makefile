@@ -163,8 +163,10 @@ misspell-fix:
 
 .PHONY: test
 test:
-	@echo "running tests in root"
-	@gotestsum --rerun-fails --packages="./..." -- -race
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running tests in root"; \
+		gotestsum --rerun-fails --packages="./..." -- -race; \
+	fi
 	@set -e; for dir in $(ALL_MODULES); do \
 		if [ "$${dir}" = "." ]; then continue; fi; \
 		(cd "$${dir}" && \
@@ -174,7 +176,7 @@ test:
 
 .PHONY: test-no-race
 test-no-race:
-	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." "
+	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages=./..."
 
 .PHONY: test-with-cover
 test-with-cover:
@@ -183,7 +185,7 @@ test-with-cover:
 
 .PHONY: bench
 bench:
-	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench ^* ./..."
+	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench=. ./..."
 
 .PHONY: check-fmt
 check-fmt:
