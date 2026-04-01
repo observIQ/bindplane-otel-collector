@@ -154,12 +154,6 @@ jobs:
         with:
           path: ~/.cache/goreleaser
 
-      - name: Sign MSI
-        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
-        shell: bash
-        env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
-
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -195,8 +189,8 @@ jobs:
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
-          cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
-          cp ./bindplane-otel-collector-arm64.msi/bindplane-otel-collector-arm64.msi ./artifacts
+          cp ./bindplane-otel-collector.msi ./artifacts
+          cp ./bindplane-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
