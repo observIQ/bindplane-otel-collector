@@ -390,15 +390,6 @@ release:
 	@git tag $(version)
 	@git push --tags
 
-	@set -e; for dir in $(ALL_MODULES); do \
-	  if [ $${dir} == \. ]; then \
-	  	continue; \
-	  fi; \
-	  echo "$${dir}" | sed -e "s+^./++" -e 's+$$+/$(version)+' | awk '{print $$1}' | git tag $$(cat); \
-	done
-
-	@git push --tags
-
 .PHONY: clean
 clean:
 	rm -rf $(OUTDIR) builder/
