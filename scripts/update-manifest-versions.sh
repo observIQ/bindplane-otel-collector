@@ -42,14 +42,14 @@ fi
 
 # Check if the correct number of arguments are provided
 if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 <new_version_opentelemetry_contrib> <new_version_opentelemetry_collector> <new_version_bindplane_agent> <new_version_otel_stable>"
+    echo "Usage: $0 <new_version_opentelemetry_contrib> <new_version_opentelemetry_collector> <new_version_bindplane_contrib> <new_version_otel_stable>"
     exit 1
 fi
 
 # Assign arguments to variables
 new_version_opentelemetry_contrib="$1"
 new_version_opentelemetry_collector="$2"
-new_version_bindplane_agent="$3"
+new_version_bindplane_contrib="$3"
 new_version_otel_stable="$4"
 
 # Convert STABLE_MODULES to sed pattern, escaping dots and pipes
@@ -63,7 +63,7 @@ find manifests -type f -name "manifest.yaml" | while read -r file; do
     # First update all modules with their respective versions
     sed -i '' -E "s|(github.com/open-telemetry/opentelemetry-collector-contrib[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_opentelemetry_contrib|g" "$file"
     sed -i '' -E "s|(go.opentelemetry.io/collector[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_opentelemetry_collector|g" "$file"
-    sed -i '' -E "s|(github.com/observiq/bindplane-otel-collector[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_bindplane_agent|g" "$file"
+    sed -i '' -E "s|(github.com/observiq/bindplane-otel-contrib[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_bindplane_contrib|g" "$file"
 
     # Then override stable modules with stable version
     sed -i '' -E "s|(${stable_modules_pattern}[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_otel_stable|g" "$file"

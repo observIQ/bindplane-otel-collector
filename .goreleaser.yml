@@ -35,8 +35,6 @@ builds:
       - goos: darwin
         goarch: ppc64le
       - goos: windows
-        goarch: arm64
-      - goos: windows
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
@@ -60,8 +58,6 @@ builds:
       - goos: darwin
         goarch: ppc64le
       - goos: windows
-        goarch: arm64
-      - goos: windows
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
@@ -71,6 +67,9 @@ builds:
 # https://goreleaser.com/customization/archive/
 archives:
   - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
@@ -89,9 +88,9 @@ archives:
       - src: release_deps/bindplane-otel-collector
         dst: "install"
         strip_parent: true
-    format_overrides:
-      - goos: windows
-        format: zip
+      - src: release_deps/windows_service.json
+        dst: install
+        strip_parent: true
 
 nfpms:
   - id: collector
@@ -556,7 +555,7 @@ checksum:
   name_template: "{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS"
   algorithm: sha256
   extra_files:
-    - glob: "./bindplane-otel-collector.msi"
+    - glob: "./bindplane-otel-collector*.msi"
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -594,6 +593,7 @@ release:
     - glob: "./bindplane-otel-collector*.msi.sig"
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
+    - glob: "./scripts/install/install_windows.ps1"
     - glob: "./release_deps/gpg-keys.tar.gz"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
@@ -606,6 +606,7 @@ blobs:
       - glob: "./bindplane-otel-collector*.msi.sig"
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
+      - glob: "./scripts/install/install_windows.ps1"
       - glob: "./release_deps/gpg-keys.tar.gz"
 
 # https://goreleaser.com/customization/changelog/

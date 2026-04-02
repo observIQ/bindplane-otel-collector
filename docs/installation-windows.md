@@ -2,15 +2,29 @@
 
 ## Installing
 
-To install the agent on Windows, start Powershell as an administrator and run the command below to install the MSI with no UI.
+To install the agent on Windows, run the PowerShell command below as an administrator. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
+
+> **Note:** The install script is available as of release v2.0.0-beta.13. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
 ```pwsh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/bindplane-otel-collector.msi" /quiet
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1")))
 ```
 
-Alternately, for an interactive installation [download the latest MSI](https://github.com/observIQ/bindplane-otel-collector/releases/latest).
+To install a specific version, pass the `-Version` parameter:
 
-After downloading the MSI, simply double click it to open the installation wizard. Follow the instructions to configure and install the agent.
+```pwsh
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Version "v1.96.0"
+```
+
+For an interactive installation with the installer UI, add `-Interactive`:
+
+```pwsh
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Interactive
+```
+
+### Manual Installation
+
+For versions prior to v1.96.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/bindplane-otel-collector.msi` (or `bindplane-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
 
 Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
@@ -18,8 +32,11 @@ Installation artifacts are signed. Information on verifying the signature can be
 
 To install the agent and connect the supervisor to an OpAMP management platform, set the following flags.
 
-```sh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/bindplane-otel-collector.msi" /quiet ENABLEMANAGEMENT=1 OPAMPENDPOINT=<your_endpoint> OPAMPSECRETKEY=<secret-key>
+```pwsh
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) `
+    -EnableManagement "1" `
+    -OpAMPEndpoint "<your_endpoint>" `
+    -OpAMPSecretKey "<secret-key>"
 ```
 
 To read more about OpAMP management, see the [supervisor docs](./supervisor.md).
@@ -38,7 +55,7 @@ If this method of collector management does not work for your use case, see this
 
 **Logging**
 
-The agent logs to `<install_dir>/supervisor_storage/agent.log` (`C:\Program Files\observIQ OpenTelemetry Collector\supervisor_storage\agent.log` by default).
+Logs from the agent will appear in `<install_dir>/supervisor_storage/agent.log` (`C:\Program Files\observIQ OpenTelemetry Collector\supervisor_storage\agent.log` by default).
 
 Stderr for the supervisor process can be found at `<install_dir>/log/observiq_collector.err` (`C:\Program Files\observIQ OpenTelemetry Collector\log\observiq_collector.err` by default).
 
@@ -95,7 +112,13 @@ Start-Service -Name "bindplane-otel-collector"
 
 ## Uninstalling
 
-To uninstall the agent on Windows, navigate to the control panel, then to the "Uninstall a program" dialog.
+To uninstall the agent, run the install script with the `-Uninstall` flag:
+
+```pwsh
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Uninstall
+```
+
+Alternatively, uninstall through the control panel via the "Uninstall a program" dialog.
 
 ![The control panel](./screenshots/windows/control-panel-uninstall.png)
 

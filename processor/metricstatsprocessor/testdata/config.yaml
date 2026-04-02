@@ -1,6 +1,0 @@
-metricstats:
-  interval: 3m
-  include: '^test\.thing$$'
-  stats: [last]
-
-metricstats/defaults:

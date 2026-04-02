@@ -5,26 +5,35 @@ on:
       - "v[0-9]*"
 
 jobs:
-  build-64bit-msi:
+  build-msi:
     runs-on: windows-2022
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            msi_name: bindplane-otel-collector.msi
+            msi_arch: x64
+          - arch: arm64
+            msi_name: bindplane-otel-collector-arm64.msi
+            msi_arch: arm64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.25.7
       - name: Install Tools
         run: make install-tools
       # Needed until supervisor binary is released
       - name: Build Supervisor Binary
         run: make release-prep CURR_VERSION=${{ github.ref_name }}
       - name: Build Windows Collector Binary
-        run: make collector
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
+        run: cp dist/collector_windows_${{ matrix.arch }}.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
-        run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
+        run: cp release_deps/supervisor_bin/opampsupervisor_windows_${{ matrix.arch }}.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -43,11 +52,11 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
-          unzip wix310-binaries.zip
+          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          unzip wix314-binaries.zip
         working-directory: C:/build
-      - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.ref_name }} --arch amd64
+      - name: Build MSI
+        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.ref_name }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
@@ -58,28 +67,34 @@ jobs:
       - name: Set variables for signing
         id: variables
         run: |
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
-      - name: Signing using keypair alias
+      - name: Sign MSI
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/bindplane-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
-      - name: "Upload MSI"
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: bindplane-otel-collector.msi
-          path: C:/build/bindplane-otel-collector.msi
+          name: ${{ matrix.msi_name }}
+          path: C:/build/${{ matrix.msi_name }}
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
 
   release:
-    needs: [build-64bit-msi]
+    needs: [build-msi]
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
+      - name: Redirect temp directories
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
         with:
@@ -95,7 +110,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.25.7
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -123,11 +138,14 @@ jobs:
           registry: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.ORG_OBSERVIQ_PUBLIC_GCR_JSON_KEY }}
-      - name: Retrieve Windows 64-bit MSI Installer
+      - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
           name: bindplane-otel-collector.msi
-          path: bindplane-otel-collector.msi
+      - name: Retrieve Windows ARM64 MSI Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: bindplane-otel-collector-arm64.msi
       - name: Install Tools
         run: make install-tools
       - name: Build cosign key file
@@ -139,8 +157,13 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: ~/.cache/goreleaser
-      - name: Sign MSI
-        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
+      - name: Sign AMD64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Sign ARM64 MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector-arm64.msi.sig ./bindplane-otel-collector-arm64.msi
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -174,7 +197,8 @@ jobs:
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
-          cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
+          cp ./bindplane-otel-collector.msi ./artifacts
+          cp ./bindplane-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
@@ -190,6 +214,7 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
+          gsutil cp ./scripts/install/install_windows.ps1 gs://bdot-release/latest/install_windows.ps1
           gsutil cp ./release_deps/gpg-keys.tar.gz gs://bdot-release/latest/gpg-keys.tar.gz
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
