@@ -40,7 +40,7 @@ COLLECTOR_USER_LEGACY="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut"
+PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo shasum|sha256sum"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -574,8 +574,8 @@ ask_clean_install() {
   fi
 
   if [ -f "$SUPERVISOR_YML_PATH" ]; then
-    # Check for default config file hash
-    cfg_file_hash=$(sha256sum "$SUPERVISOR_YML_PATH" | awk '{print $1}')
+    # Check for default config file hash using resolved SHA-256 command
+    cfg_file_hash=$($SHA256CMD "$SUPERVISOR_YML_PATH" | awk '{print $1}')
     if [ "$cfg_file_hash" = "$DEFAULT_SUPERVISOR_CFG_HASH" ]; then
       # config matches default config, mark clean_install as true
       clean_install="true"
@@ -802,6 +802,9 @@ resolve_alternate_cmd() {
         shasum)    SHA256CMD="shasum -a 256" ;;
         sha256sum) SHA256CMD="sha256sum" ;;
       esac
+      ;;
+    "gpg2|gpg")
+      GPG_CMD="$2"
       ;;
   esac
 }
@@ -1030,8 +1033,8 @@ verify_package() {
 }
 
 verify_package_deb() {
-  if ! command -v gpg > /dev/null 2>&1; then
-    info "gpg is not installed, skipping signature verification"
+  if [ -z "$GPG_CMD" ]; then
+    info "neither gpg nor gpg2 is installed, skipping signature verification"
     return 0
   fi
 
@@ -1040,14 +1043,14 @@ verify_package_deb() {
     return 0
   fi
 
-  if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+  if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
     error "Failed to import public key"
     return 1
   fi
   # if there are any revocation keys, import them
   if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
     for key in "$TMP_DIR/gpg/deb-revocations/"*; do
-      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
+      if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$key" > /dev/null 2>&1; then
         error "Failed to import revocation key"
         return 1
       fi
@@ -1067,7 +1070,7 @@ verify_package_deb() {
   set +e
   # Run pipeline, capture both output and exit code
   OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
-          GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
+          GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
   EXIT_CODE=$?
   set -e
 
@@ -1132,7 +1135,7 @@ verify_package_rpm() {
 
   if ! rpm -qa 'gpg-pubkey*' \
   | xargs -n1 rpm -qi \
-  | gpg --quiet --with-colons --show-keys \
+  | $GPG_CMD --quiet --with-colons --show-keys \
   | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
   | grep -qx "$SIGNING_KEYID"; then
       error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
@@ -1442,6 +1445,11 @@ main() {
   if [ "$_do_help" = true ]; then
     usage
     exit 0
+  fi
+
+  # GPG is required unless --no-gpg-check was passed
+  if [ "$skip_gpg_check" != "true" ]; then
+    PREREQS="$PREREQS gpg2|gpg"
   fi
 
   bindplane_banner
