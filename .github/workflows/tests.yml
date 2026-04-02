@@ -3,8 +3,24 @@ on:
   pull_request:
 
 jobs:
+  # Graphite CI optimization: skip redundant CI runs for stacked PRs.
+  # See https://graphite.com/docs/stacking-and-ci
+  optimize_ci:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    outputs:
+      skip: ${{ steps.check_skip.outputs.skip }}
+    steps:
+      - name: Optimize CI
+        id: check_skip
+        uses: withgraphite/graphite-ci-action@26bc0dcdeaba101794931d67a464ecbb21a76a8b # v0.0.9 tag (no formal releases)
+        with:
+          graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+
   # Detect which files changed to skip irrelevant jobs on PRs.
   detect-changes:
+    if: ${{ needs.optimize_ci.outputs.skip != 'true' }}
+    needs: optimize_ci
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     permissions:
       contents: read
@@ -34,8 +50,9 @@ jobs:
               - 'updater/**'
 
   unit-tests:
-    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
+    if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true' }}
     needs:
+      - optimize_ci
       - detect-changes
     strategy:
       fail-fast: false
@@ -132,7 +149,7 @@ jobs:
 
   test-summary:
     if: always()
-    needs: [unit-tests]
+    needs: [optimize_ci, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check test results
