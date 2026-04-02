@@ -15,6 +15,9 @@
 
 set -e
 
+# Cache OS type to avoid repeated subshell forks
+OS_TYPE=$(uname -s)
+
 # Allow configurable runtime user/group (used for permissions and manager.yaml)
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
@@ -687,14 +690,13 @@ offline_check()
 # This will check if the operating system is supported.
 os_check() {
   info "Checking that the operating system is supported..."
-  os_type=$(uname -s)
-  case "$os_type" in
+  case "$OS_TYPE" in
   Linux)
     succeeded
     ;;
   *)
     failed
-    error_exit "$LINENO" "The operating system $(fg_yellow "$os_type") is not supported by this script."
+    error_exit "$LINENO" "The operating system $(fg_yellow "$OS_TYPE") is not supported by this script."
     ;;
   esac
 }
