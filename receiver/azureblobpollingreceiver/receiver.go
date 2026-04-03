@@ -64,6 +64,10 @@ type pollingReceiver struct {
 
 // newMetricsReceiver creates a new metrics specific receiver.
 func newMetricsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsumer consumer.Metrics) (*pollingReceiver, error) {
+	if cfg.BlobFormat != "" && cfg.BlobFormat != BlobFormatOTLP {
+		return nil, fmt.Errorf("blob_format %q is not supported for metrics pipelines, only %q is supported", cfg.BlobFormat, BlobFormatOTLP)
+	}
+
 	r, err := newPollingReceiver(id, logger, cfg)
 	if err != nil {
 		return nil, err
@@ -83,13 +87,30 @@ func newLogsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsu
 	}
 
 	r.supportedTelemetry = pipeline.SignalLogs
-	r.consumer = blobconsume.NewLogsConsumer(nextConsumer)
+
+	switch cfg.BlobFormat {
+	case BlobFormatJSON:
+		logger.Info("Using NDJSON blob format consumer")
+		r.consumer = blobconsume.NewNDJSONLogsConsumer(nextConsumer, logger)
+	case BlobFormatText:
+		logger.Info("Using raw text blob format consumer")
+		r.consumer = blobconsume.NewRawTextLogsConsumer(nextConsumer)
+	case BlobFormatOTLP, "":
+		logger.Info("Using OTLP blob format consumer")
+		r.consumer = blobconsume.NewLogsConsumer(nextConsumer)
+	default:
+		return nil, fmt.Errorf("unsupported blob_format %q, must be one of: %s, %s, %s", cfg.BlobFormat, BlobFormatOTLP, BlobFormatJSON, BlobFormatText)
+	}
 
 	return r, nil
 }
 
 // newTracesReceiver creates a new traces specific receiver.
 func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsumer consumer.Traces) (*pollingReceiver, error) {
+	if cfg.BlobFormat != "" && cfg.BlobFormat != BlobFormatOTLP {
+		return nil, fmt.Errorf("blob_format %q is not supported for traces pipelines, only %q is supported", cfg.BlobFormat, BlobFormatOTLP)
+	}
+
 	r, err := newPollingReceiver(id, logger, cfg)
 	if err != nil {
 		return nil, err
@@ -103,7 +124,7 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 
 // newPollingReceiver creates a new polling receiver
 func newPollingReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*pollingReceiver, error) {
-	azureClient, err := newAzureBlobClient(cfg.ConnectionString, cfg.BatchSize, cfg.PageSize)
+	azureClient, err := newAzureBlobClient(cfg.ConnectionString, cfg.BatchSize, cfg.PageSize, logger)
 	if err != nil {
 		return nil, fmt.Errorf("new Azure client: %w", err)
 	}
@@ -156,7 +177,7 @@ func (r *pollingReceiver) Start(ctx context.Context, host component.Host) error 
 	}
 	r.checkpoint = checkpoint
 
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	r.cancelFunc = cancel
 
 	go r.pollLoop(cancelCtx)
@@ -270,7 +291,10 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 	doneChan := make(chan struct{})
 
 	pollStartTime := time.Now()
-	r.logger.Info("Starting poll", zap.Time("poll_time", pollStartTime))
+	r.logger.Info("Starting poll",
+		zap.Time("poll_time", pollStartTime),
+		zap.Time("start", startingTime),
+		zap.Time("end", endingTime))
 
 	r.pullBlobs(ctx, startingTime, endingTime, doneChan, errChan, blobChan)
 
@@ -279,7 +303,7 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 
 func (r *pollingReceiver) pullBlobs(ctx context.Context, startingTime, endingTime time.Time, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo) {
 	// Determine prefixes to poll
-	prefixes := r.generatePrefixes(startingTime, endingTime)
+	prefixes := r.generatePrefixes(ctx, startingTime, endingTime)
 
 	// Stream blobs in a goroutine
 	go func() {
@@ -308,30 +332,38 @@ func (r *pollingReceiver) pullBlobs(ctx context.Context, startingTime, endingTim
 	}()
 }
 
-func (r *pollingReceiver) generatePrefixes(startingTime, endingTime time.Time) []*string {
-	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
-		// Generate prefixes based on time window
-		generated, err := generateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, r.cfg.RootFolder)
-		if err != nil {
-			r.logger.Error("Failed to generate time prefixes, falling back to root folder", zap.Error(err))
-			if r.cfg.RootFolder != "" {
-				return []*string{&r.cfg.RootFolder}
-			}
-			// we return a nil entry here to indicate that there is no prefix for this poll
-			// when there is no prefix, the StreamBlobs call will scan the entire container
-			return []*string{nil}
-		}
+func (r *pollingReceiver) generatePrefixes(ctx context.Context, startingTime, endingTime time.Time) []*string {
+	// Expand glob patterns in root_folder to discover actual directories.
+	// Returns nil when no root_folder is configured (scan everything),
+	// or an empty slice when a glob matched zero directories (scan nothing).
+	rootFolders := r.expandGlobRootFolders(ctx)
 
-		prefixes := []*string{}
-		for _, prefix := range generated {
-			innerPrefix := prefix
-			prefixes = append(prefixes, &innerPrefix)
-		}
-		return prefixes
+	if rootFolders != nil && len(rootFolders) == 0 {
+		// Glob matched zero directories — return empty to scan nothing
+		return []*string{}
 	}
 
-	if r.cfg.RootFolder != "" {
-		return []*string{&r.cfg.RootFolder}
+	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
+		var allPrefixes []*string
+		for _, root := range rootFolders {
+			prefixes := r.generatePrefixesForRoot(startingTime, endingTime, root)
+			allPrefixes = append(allPrefixes, prefixes...)
+		}
+		if len(allPrefixes) > 0 {
+			return allPrefixes
+		}
+		// we return a nil entry here to indicate that there is no prefix for this poll
+		// when there is no prefix, the StreamBlobs call will scan the entire container
+		return []*string{nil}
+	}
+
+	if len(rootFolders) > 0 {
+		prefixes := make([]*string, len(rootFolders))
+		for i := range rootFolders {
+			rootCopy := rootFolders[i]
+			prefixes[i] = &rootCopy
+		}
+		return prefixes
 	}
 
 	// we return a nil entry here to indicate that there is no prefix for this poll
@@ -339,8 +371,70 @@ func (r *pollingReceiver) generatePrefixes(startingTime, endingTime time.Time) [
 	return []*string{nil}
 }
 
+// expandGlobRootFolders expands glob patterns in root_folder by listing directory prefixes
+// from Azure. If root_folder contains no glob characters, returns it as-is with no API call.
+func (r *pollingReceiver) expandGlobRootFolders(ctx context.Context) []string {
+	if r.cfg.RootFolder == "" {
+		return nil
+	}
+
+	if !isGlobPattern(r.cfg.RootFolder) {
+		return []string{r.cfg.RootFolder}
+	}
+
+	staticPrefix, globPattern := splitGlobPrefix(r.cfg.RootFolder)
+
+	prefixes, err := r.azureClient.ListPrefixes(ctx, r.cfg.Container, staticPrefix)
+	if err != nil {
+		r.logger.Warn("Failed to list prefixes for glob expansion, falling back to literal root_folder",
+			zap.String("root_folder", r.cfg.RootFolder),
+			zap.Error(err))
+		return []string{r.cfg.RootFolder}
+	}
+
+	var matched []string
+	for _, p := range prefixes {
+		if matchGlob(globPattern, p) {
+			matched = append(matched, p)
+		}
+	}
+
+	if len(matched) == 0 {
+		r.logger.Warn("Glob pattern matched zero directories, no blobs will be scanned",
+			zap.String("root_folder", r.cfg.RootFolder),
+			zap.String("static_prefix", staticPrefix),
+			zap.Int("candidates", len(prefixes)))
+		return []string{}
+	}
+
+	r.logger.Info("Glob expanded root_folder",
+		zap.String("pattern", r.cfg.RootFolder),
+		zap.Strings("matched", matched))
+
+	return matched
+}
+
+// generatePrefixesForRoot generates time-based prefixes for a single root folder.
+func (r *pollingReceiver) generatePrefixesForRoot(startingTime, endingTime time.Time, rootFolder string) []*string {
+	generated, err := generateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, rootFolder)
+	if err != nil {
+		r.logger.Error("Failed to generate time prefixes, falling back to root folder",
+			zap.String("root_folder", rootFolder),
+			zap.Error(err))
+		return []*string{&rootFolder}
+	}
+
+	prefixes := make([]*string, len(generated))
+	for i, prefix := range generated {
+		p := prefix
+		prefixes[i] = &p
+	}
+	return prefixes
+}
+
 func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo, pollStartTime time.Time, startingTime, endingTime time.Time) {
 	totalProcessed := 0
+	totalListed := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -348,7 +442,9 @@ func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan st
 			return
 		case <-doneChan:
 			r.logger.Info("Poll completed",
+				zap.Int("total_listed", totalListed),
 				zap.Int("total_processed", totalProcessed),
+				zap.Int("total_skipped", totalListed-totalProcessed),
 				zap.Int("duration_seconds", int(time.Since(pollStartTime).Seconds())))
 
 			// Update checkpoint with poll time
@@ -366,7 +462,9 @@ func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan st
 		case br, ok := <-blobChan:
 			if !ok {
 				r.logger.Info("Poll completed",
+					zap.Int("total_listed", totalListed),
 					zap.Int("total_processed", totalProcessed),
+					zap.Int("total_skipped", totalListed-totalProcessed),
 					zap.Int("duration_seconds", int(time.Since(pollStartTime).Seconds())))
 
 				// Update checkpoint with poll time
@@ -379,9 +477,9 @@ func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan st
 				}
 				return
 			}
+			totalListed += len(br)
 			numProcessed := r.processBlobs(ctx, br, startingTime, endingTime)
 			totalProcessed += numProcessed
-			r.logger.Debug("Processed batch of blobs", zap.Int("num_processed", numProcessed))
 		}
 	}
 }
@@ -389,6 +487,8 @@ func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan st
 func (r *pollingReceiver) processBlobs(ctx context.Context, blobs []*azureblob.BlobInfo, startingTime, endingTime time.Time) (numProcessedBlobs int) {
 	r.logger.Debug("Received a batch of blobs, parsing through them", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
+	skippedFilename := 0
+	skippedOther := 0
 
 blobLoop:
 	for _, blob := range blobs {
@@ -407,6 +507,7 @@ blobLoop:
 					zap.String("blob", blob.Name),
 					zap.String("filename", filename),
 					zap.String("pattern", r.cfg.FilenamePattern))
+				skippedFilename++
 				continue
 			}
 		}
@@ -416,16 +517,21 @@ blobLoop:
 		if shouldProcess && blobTime != nil {
 			r.wg.Add(1)
 			go r.processBlobGoRoutine(ctx, blob, blobTime, &processedBlobCount)
+		} else {
+			skippedOther++
 		}
 	}
 
 	r.wg.Wait()
 
-	if err := r.makeCheckpoint(ctx); err != nil {
-		r.logger.Error("Error while saving checkpoint", zap.Error(err))
-	}
+	processed := int(processedBlobCount.Load())
+	r.logger.Info("Batch processing summary",
+		zap.Int("num_in_batch", len(blobs)),
+		zap.Int("processed", processed),
+		zap.Int("skipped_filename", skippedFilename),
+		zap.Int("skipped_other", skippedOther))
 
-	return int(processedBlobCount.Load())
+	return processed
 }
 
 func (r *pollingReceiver) shouldProcessBlob(blob *azureblob.BlobInfo, startingTime, endingTime time.Time) (*time.Time, bool) {
@@ -435,8 +541,20 @@ func (r *pollingReceiver) shouldProcessBlob(blob *azureblob.BlobInfo, startingTi
 			r.logger.Debug("Skipping blob with zero LastModified", zap.String("blob", blob.Name))
 			return nil, false
 		}
-		return &blob.LastModified, r.checkpoint.ShouldParse(blob.LastModified, blob.Name) &&
-			blobconsume.IsInTimeRange(blob.LastModified, startingTime, endingTime)
+		shouldParse := r.checkpoint.ShouldParse(blob.LastModified, blob.Name)
+		inRange := blobconsume.IsInTimeRange(blob.LastModified, startingTime, endingTime)
+		if !shouldParse {
+			r.logger.Debug("Skipping blob, already processed (checkpoint)",
+				zap.String("blob", blob.Name),
+				zap.Time("last_ts", r.checkpoint.LastTs))
+		} else if !inRange {
+			r.logger.Debug("Skipping blob, outside time range",
+				zap.String("blob", blob.Name),
+				zap.Time("blob_time", blob.LastModified),
+				zap.Time("start", startingTime),
+				zap.Time("end", endingTime))
+		}
+		return &blob.LastModified, shouldParse && inRange
 	}
 
 	if r.cfg.TimePattern != "" {
@@ -449,8 +567,20 @@ func (r *pollingReceiver) shouldProcessBlob(blob *azureblob.BlobInfo, startingTi
 				zap.Error(err))
 			return nil, false
 		}
-		return parsedTime, r.checkpoint.ShouldParse(*parsedTime, blob.Name) &&
-			blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime)
+		shouldParse := r.checkpoint.ShouldParse(*parsedTime, blob.Name)
+		inRange := blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime)
+		if !shouldParse {
+			r.logger.Debug("Skipping blob, already processed (checkpoint)",
+				zap.String("blob", blob.Name),
+				zap.Time("last_ts", r.checkpoint.LastTs))
+		} else if !inRange {
+			r.logger.Debug("Skipping blob, outside time range",
+				zap.String("blob", blob.Name),
+				zap.Time("blob_time", *parsedTime),
+				zap.Time("start", startingTime),
+				zap.Time("end", endingTime))
+		}
+		return parsedTime, shouldParse && inRange
 	}
 
 	// Use default structured path parsing mode (year=YYYY/month=MM/...)
@@ -463,8 +593,20 @@ func (r *pollingReceiver) shouldProcessBlob(blob *azureblob.BlobInfo, startingTi
 		r.logger.Error("Error processing blob path", zap.String("blob", blob.Name), zap.Error(err))
 		return nil, false
 	}
-	return parsedTime, r.checkpoint.ShouldParse(*parsedTime, blob.Name) &&
-		blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime) &&
+	shouldParse := r.checkpoint.ShouldParse(*parsedTime, blob.Name)
+	inRange := blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime)
+	if !shouldParse {
+		r.logger.Debug("Skipping blob, already processed (checkpoint)",
+			zap.String("blob", blob.Name),
+			zap.Time("last_ts", r.checkpoint.LastTs))
+	} else if !inRange {
+		r.logger.Debug("Skipping blob, outside time range",
+			zap.String("blob", blob.Name),
+			zap.Time("blob_time", *parsedTime),
+			zap.Time("start", startingTime),
+			zap.Time("end", endingTime))
+	}
+	return parsedTime, shouldParse && inRange &&
 		parsedType == r.supportedTelemetry
 }
 
@@ -543,10 +685,13 @@ func (r *pollingReceiver) makeCheckpoint(ctx context.Context) error {
 	if r.lastBlob == nil || r.lastBlobTime == nil {
 		return nil
 	}
-	r.logger.Debug("Making checkpoint", zap.String("blob", r.lastBlob.Name), zap.Time("time", *r.lastBlobTime))
 	r.mut.Lock()
 	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
+	r.logger.Info("Checkpoint saved",
+		zap.Time("last_ts", r.checkpoint.LastTs),
+		zap.Int("parsed_entities_count", len(r.checkpoint.ParsedEntities)),
+		zap.Time("last_poll_time", r.checkpoint.LastPollTime))
 	return r.checkpointStore.SaveStorageData(ctx, r.checkpointKey(), r.checkpoint)
 }
 

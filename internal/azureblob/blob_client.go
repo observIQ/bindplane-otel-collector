@@ -18,10 +18,13 @@ package azureblob //import "github.com/observiq/bindplane-otel-collector/interna
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"go.uber.org/zap"
 )
 
 // BlobInfo contains the necessary info to process a blob
@@ -45,6 +48,10 @@ type BlobClient interface {
 	// StreamBlobs will stream BlobInfo to the blobChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
 	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{})
+
+	// ListPrefixes lists virtual directory prefixes under the given prefix in a container.
+	// It uses Azure's hierarchy listing API with "/" as delimiter to discover immediate subdirectories.
+	ListPrefixes(ctx context.Context, containerName string, prefix string) ([]string, error)
 }
 
 type blobClient interface {
@@ -55,23 +62,37 @@ type blobClient interface {
 
 var _ blobClient = &azblob.Client{}
 
+// containerLister abstracts the hierarchy listing capability of a container client for testability.
+type containerLister interface {
+	NewListBlobsHierarchyPager(delimiter string, o *container.ListBlobsHierarchyOptions) *runtime.Pager[container.ListBlobsHierarchyResponse]
+}
+
+// containerListerFactory creates a containerLister for the given container name.
+type containerListerFactory func(containerName string) containerLister
+
 // AzureClient is an implementation of the BlobClient for Azure
 type AzureClient struct {
-	azClient  blobClient
-	batchSize int
-	pageSize  int32
+	azClient          blobClient
+	containerListerFn containerListerFactory
+	logger            *zap.Logger
+	batchSize         int
+	pageSize          int32
 }
 
 // NewAzureBlobClient creates a new azureBlobClient with the given connection string
-func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobClient, error) {
+func NewAzureBlobClient(connectionString string, batchSize, pageSize int, logger *zap.Logger) (BlobClient, error) {
 	azClient, err := azblob.NewClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &AzureClient{
 		azClient:  azClient,
+		logger:    logger,
 		batchSize: batchSize,
 		pageSize:  int32(pageSize),
+		containerListerFn: func(containerName string) containerLister {
+			return azClient.ServiceClient().NewContainerClient(containerName)
+		},
 	}, nil
 }
 
@@ -86,6 +107,8 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 		MaxResults: &a.pageSize,
 	})
 
+	pageNumber := 0
+	totalStreamed := 0
 	for pager.More() {
 		select {
 		case <-ctx.Done():
@@ -98,6 +121,14 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 			errChan <- fmt.Errorf("error streaming blobs: %w", err)
 			return
 		}
+
+		pageNumber++
+		blobsInPage := len(resp.Segment.BlobItems)
+		totalStreamed += blobsInPage
+		a.logger.Info("Azure API page received",
+			zap.Int("page_number", pageNumber),
+			zap.Int("blobs_in_page", blobsInPage),
+			zap.Int("total_streamed", totalStreamed))
 
 		batch := []*BlobInfo{}
 		for _, blob := range resp.Segment.BlobItems {
@@ -146,4 +177,31 @@ func (a *AzureClient) DownloadBlob(ctx context.Context, container, blobPath stri
 func (a *AzureClient) DeleteBlob(ctx context.Context, container, blobPath string) error {
 	_, err := a.azClient.DeleteBlob(ctx, container, blobPath, nil)
 	return err
+}
+
+// ListPrefixes lists virtual directory prefixes under the given prefix in a container.
+func (a *AzureClient) ListPrefixes(ctx context.Context, containerName string, prefix string) ([]string, error) {
+	lister := a.containerListerFn(containerName)
+
+	pager := lister.NewListBlobsHierarchyPager("/", &container.ListBlobsHierarchyOptions{
+		Prefix: &prefix,
+	})
+
+	var prefixes []string
+	for pager.More() {
+		resp, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list prefixes: %w", err)
+		}
+
+		if resp.Segment != nil {
+			for _, bp := range resp.Segment.BlobPrefixes {
+				if bp.Name != nil {
+					prefixes = append(prefixes, strings.TrimSuffix(*bp.Name, "/"))
+				}
+			}
+		}
+	}
+
+	return prefixes, nil
 }

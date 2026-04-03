@@ -21,8 +21,10 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestNewAzureBlobClient(t *testing.T) {
@@ -51,7 +53,7 @@ func TestNewAzureBlobClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewAzureBlobClient(tt.connectionStr, tt.batchSize, tt.pageSize)
+			client, err := NewAzureBlobClient(tt.connectionStr, tt.batchSize, tt.pageSize, zap.NewNop())
 			if tt.expectedError {
 				require.Error(t, err)
 				require.Nil(t, client)
@@ -69,6 +71,7 @@ func TestDownloadBlob(t *testing.T) {
 
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}
@@ -97,6 +100,7 @@ func TestDeleteBlobSuccess(t *testing.T) {
 	mockClient := &mockAzureClient{}
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}
@@ -116,6 +120,7 @@ func TestDeleteBlobFailure(t *testing.T) {
 	mockClient := &mockAzureClient{}
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}
@@ -128,6 +133,96 @@ func TestDeleteBlobFailure(t *testing.T) {
 	err := client.DeleteBlob(ctx, container, blobPath)
 	require.Error(t, err)
 	require.Equal(t, "failed to delete", err.Error())
+}
+
+func TestListPrefixes(t *testing.T) {
+	t.Run("returns prefixes from hierarchy listing", func(t *testing.T) {
+		mockLister := &mockContainerLister{}
+		client := &AzureClient{
+			containerListerFn: func(_ string) containerLister {
+				return mockLister
+			},
+		}
+
+		prefix1 := "linux/auditd/"
+		prefix2 := "linux/logb/"
+		prefix3 := "linux/logc/"
+
+		pager := runtime.NewPager(runtime.PagingHandler[container.ListBlobsHierarchyResponse]{
+			More: func(_ container.ListBlobsHierarchyResponse) bool { return false },
+			Fetcher: func(_ context.Context, _ *container.ListBlobsHierarchyResponse) (container.ListBlobsHierarchyResponse, error) {
+				return container.ListBlobsHierarchyResponse{
+					ListBlobsHierarchySegmentResponse: container.ListBlobsHierarchySegmentResponse{
+						Segment: &container.BlobHierarchyListSegment{
+							BlobPrefixes: []*container.BlobPrefix{
+								{Name: &prefix1},
+								{Name: &prefix2},
+								{Name: &prefix3},
+							},
+						},
+					},
+				}, nil
+			},
+		})
+
+		mockLister.On("NewListBlobsHierarchyPager", "/", mock.Anything).Return(pager)
+
+		ctx := context.Background()
+		prefixes, err := client.ListPrefixes(ctx, "test-container", "linux/")
+		require.NoError(t, err)
+		require.Equal(t, []string{"linux/auditd", "linux/logb", "linux/logc"}, prefixes)
+	})
+
+	t.Run("returns empty on no prefixes", func(t *testing.T) {
+		mockLister := &mockContainerLister{}
+		client := &AzureClient{
+			containerListerFn: func(_ string) containerLister {
+				return mockLister
+			},
+		}
+
+		pager := runtime.NewPager(runtime.PagingHandler[container.ListBlobsHierarchyResponse]{
+			More: func(_ container.ListBlobsHierarchyResponse) bool { return false },
+			Fetcher: func(_ context.Context, _ *container.ListBlobsHierarchyResponse) (container.ListBlobsHierarchyResponse, error) {
+				return container.ListBlobsHierarchyResponse{
+					ListBlobsHierarchySegmentResponse: container.ListBlobsHierarchySegmentResponse{
+						Segment: &container.BlobHierarchyListSegment{},
+					},
+				}, nil
+			},
+		})
+
+		mockLister.On("NewListBlobsHierarchyPager", "/", mock.Anything).Return(pager)
+
+		ctx := context.Background()
+		prefixes, err := client.ListPrefixes(ctx, "test-container", "linux/")
+		require.NoError(t, err)
+		require.Empty(t, prefixes)
+	})
+
+	t.Run("returns error on API failure", func(t *testing.T) {
+		mockLister := &mockContainerLister{}
+		client := &AzureClient{
+			containerListerFn: func(_ string) containerLister {
+				return mockLister
+			},
+		}
+
+		pager := runtime.NewPager(runtime.PagingHandler[container.ListBlobsHierarchyResponse]{
+			More: func(_ container.ListBlobsHierarchyResponse) bool { return false },
+			Fetcher: func(_ context.Context, _ *container.ListBlobsHierarchyResponse) (container.ListBlobsHierarchyResponse, error) {
+				return container.ListBlobsHierarchyResponse{}, errors.New("network error")
+			},
+		})
+
+		mockLister.On("NewListBlobsHierarchyPager", "/", mock.Anything).Return(pager)
+
+		ctx := context.Background()
+		prefixes, err := client.ListPrefixes(ctx, "test-container", "linux/")
+		require.Error(t, err)
+		require.Nil(t, prefixes)
+		require.Contains(t, err.Error(), "network error")
+	})
 }
 
 // mockAzureClient is a mock implementation of the Azure blob client
@@ -148,4 +243,14 @@ func (m *mockAzureClient) DownloadBuffer(ctx context.Context, containerName stri
 func (m *mockAzureClient) DeleteBlob(ctx context.Context, containerName string, blobPath string, options *azblob.DeleteBlobOptions) (azblob.DeleteBlobResponse, error) {
 	args := m.Called(ctx, containerName, blobPath, options)
 	return args.Get(0).(azblob.DeleteBlobResponse), args.Error(1)
+}
+
+// mockContainerLister mocks the containerLister interface
+type mockContainerLister struct {
+	mock.Mock
+}
+
+func (m *mockContainerLister) NewListBlobsHierarchyPager(delimiter string, o *container.ListBlobsHierarchyOptions) *runtime.Pager[container.ListBlobsHierarchyResponse] {
+	args := m.Called(delimiter, o)
+	return args.Get(0).(*runtime.Pager[container.ListBlobsHierarchyResponse])
 }
