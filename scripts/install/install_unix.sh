@@ -1306,11 +1306,45 @@ verify_package_aix() {
   return 0
 }
 
+# Install on AIX manually from tar.gz file
+install_aix()
+{
+  # Create the user and group if they don't already exist. Group must be first.
+  if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
+    mkgroup "$COLLECTOR_GROUP" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
+  fi
+  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
+    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_GROUP" -s /usr/bin/false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+  fi
+
+  # Create the install & storage directories
+  mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
+
+  # Fresh install — no running binaries to worry about, extract directly
+  gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector
+  if [ $? -ne 0 ]; then
+    error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
+  fi
+
+  # Move files to appropriate locations
+  mv /opt/bindplane-otel-collector/install/bdot.env /etc/
+  if [ $? -ne 0 ]; then
+    warn "Failed to move AIX env file to /etc/"
+  fi
+
+  # Set ownership
+  chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" /opt/bindplane-otel-collector > /dev/null 2>&1
+  chown "$COLLECTOR_USER":"$COLLECTOR_GROUP" /etc/bdot.env > /dev/null 2>&1
+}
+
 unpack_package()
 {
   case "$package_type" in
     deb)
       dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      ;;
+    mkssys)
+      install_aix
       ;;
     rpm)
       rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
