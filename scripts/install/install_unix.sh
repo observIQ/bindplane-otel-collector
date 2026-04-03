@@ -653,6 +653,7 @@ check_prereqs() {
   os_arch_check
   package_type_check
   dependencies_check
+  aix_iostat_check
   user_check
   success "Prerequisite check complete!"
   decrease_indent
@@ -880,6 +881,22 @@ package_type_check()
     failed
     error_exit "$LINENO" "Could not find dpkg or rpm on the system"
   fi
+}
+
+# AIX requires the sys0 iostat kernel attribute to be enabled for per-process
+# I/O accounting. Without it, process disk I/O metrics will not be available.
+aix_iostat_check() {
+  if [ "$OS_TYPE" != "AIX" ]; then
+    return
+  fi
+
+  info "Checking AIX iostat kernel attribute..."
+  _iostat_val=$(lsattr -El sys0 -a iostat 2>/dev/null | awk '{print $2}')
+  if [ "$_iostat_val" != "true" ]; then
+    failed
+    error_exit "$LINENO" "AIX kernel attribute 'iostat' is not enabled. Per-process I/O metrics require this. Enable with: chdev -l sys0 -a iostat=true (reboot required)"
+  fi
+  succeeded
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
