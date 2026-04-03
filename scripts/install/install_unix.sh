@@ -51,9 +51,14 @@ non_interactive=false
 error_mode=false
 skip_gpg_check=false
 
-# Set up the supervisor timeout values (AIX needs higher values due to slow I/O)
+# Set up AIX-specific constants and supervisor timeout values (AIX needs higher values due to slow I/O)
 if [ "$OS_TYPE" = "AIX" ]; then
   PREREQS="$PREREQS iostat"
+  # AIX SRC (System Resource Controller) uses two identifiers:
+  #   Group name: used with -g flag for stopsrc, lssrc, startsrc, and inittab entries
+  #   Subsystem name: used with -s flag for mkssys, rmssys, lssrc status checks
+  AIX_SRC_GROUP="bpcollector"
+  AIX_SRC_SUBSYSTEM="bindplane-otel-collector"
   config_apply_timeout="150"
   bootstrap_timeout="120"
 else
@@ -1417,10 +1422,20 @@ display_results() {
   return 0
 }
 
+uninstall_aix()
+{
+  # Remove files
+  rm -rf /opt/bindplane-otel-collector > /dev/null 2>&1
+  rm -f /etc/bdot.env > /dev/null 2>&1
+}
+
 uninstall_package() {
   case "$package_type" in
   deb)
     dpkg -r "bindplane-otel-collector" >/dev/null 2>&1
+    ;;
+  mkssys)
+    uninstall_aix
     ;;
   rpm)
     rpm -e "bindplane-otel-collector" >/dev/null 2>&1
@@ -1449,6 +1464,19 @@ uninstall() {
 
     info "Disabling service..."
     systemctl disable bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
+    succeeded
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    info "Stopping service..."
+    stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1
+    succeeded
+
+    info "Removing service registration..."
+    if lssrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+      rmssys -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1
+    fi
+    if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+      rmitab "$AIX_SRC_GROUP" > /dev/null 2>&1
+    fi
     succeeded
   else
     info "Stopping service..."
