@@ -119,6 +119,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver v0.148.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver v0.148.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver v0.148.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver v0.148.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver v0.148.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver v0.148.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/cloudflarereceiver v0.148.0
@@ -250,6 +251,10 @@ require (
 )
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/monitor/query/azmetrics v1.3.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor v0.11.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources/v3 v3.0.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armsubscriptions v1.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.7 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/basgys/goxml2json v1.1.1-0.20231018121955-e66ee54ceaad // indirect
@@ -259,7 +264,9 @@ require (
 	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/pprof v0.0.0-20260202012954-cb029daf43ef // indirect
+	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/observiq/bindplane-otel-contrib/internal/amqfilter v1.1.1 // indirect
+	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/pb33f/jsonpath v0.7.1 // indirect
 	github.com/pb33f/libopenapi v0.33.4 // indirect
 	github.com/pb33f/libopenapi-validator v0.11.1 // indirect

@@ -45,6 +45,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/cloudflarereceiver"
@@ -129,6 +130,7 @@ var defaultReceivers = []receiver.Factory{
 	azureblobrehydrationreceiver.NewFactory(),
 	azureblobpollingreceiver.NewFactory(),
 	azureeventhubreceiver.NewFactory(),
+	azuremonitorreceiver.NewFactory(),
 	bigipreceiver.NewFactory(),
 	carbonreceiver.NewFactory(),
 	cloudflarereceiver.NewFactory(),
