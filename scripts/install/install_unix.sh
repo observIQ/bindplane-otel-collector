@@ -549,7 +549,8 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
+    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
@@ -1522,13 +1523,17 @@ display_results() {
   info "Agent Config:        $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
   info "Agent Logs Command:  $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   if [ "$SVC_PRE" = "systemctl" ]; then
-    info "Supervisor Start Command:  $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
-    info "Supervisor Stop Command:   $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
-    info "Status Command:            $(fg_cyan "sudo systemctl status bindplane-otel-collector")$(reset)"
-  else
-    info "Supervisor Start Command:  $(fg_cyan "sudo service bindplane-otel-collector start")$(reset)"
-    info "Supervisor Stop Command:   $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
-    info "Status Command:            $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo systemctl status bindplane-otel-collector")$(reset)"
+  elif [ "$SVC_PRE" = "service" ]; then
+    info "Supervisor Start Command:      $(fg_cyan "sudo service bindplane-otel-collector start")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -e \"\$(cat /etc/bdot.env)\"")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
   info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
   decrease_indent
