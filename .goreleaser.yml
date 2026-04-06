@@ -5,7 +5,7 @@ project_name: bindplane-otel-collector
 before:
   hooks:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
-    - make build-all OUTDIR="tmp"
+    - make build-all-non-aix OUTDIR="tmp"
 
 after:
   hooks:

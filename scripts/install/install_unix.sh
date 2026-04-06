@@ -31,6 +31,8 @@ if command -v systemctl >/dev/null 2>&1; then
   SVC_PRE=systemctl
 elif command -v service >/dev/null 2>&1; then
   SVC_PRE=service
+elif command -v mkssys > /dev/null 2>&1; then
+  SVC_PRE=mkssys
 fi
 
 # Script Constants
@@ -40,13 +42,29 @@ COLLECTOR_USER_LEGACY="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut"
+PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo shasum|sha256sum"
+SUGGESTED_TOOLS="jq bash awk"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
 non_interactive=false
 error_mode=false
 skip_gpg_check=false
+
+# Set up AIX-specific constants and supervisor timeout values (AIX needs higher values due to slow I/O)
+if [ "$OS_TYPE" = "AIX" ]; then
+  PREREQS="$PREREQS iostat"
+  # AIX SRC (System Resource Controller) uses two identifiers:
+  #   Group name: used with -g flag for stopsrc, lssrc, startsrc, and inittab entries
+  #   Subsystem name: used with -s flag for mkssys, rmssys, lssrc status checks
+  AIX_SRC_GROUP="bpcollector"
+  AIX_SRC_SUBSYSTEM="bindplane-otel-collector"
+  config_apply_timeout="150"
+  bootstrap_timeout="120"
+else
+  config_apply_timeout="30"
+  bootstrap_timeout="5"
+fi
 
 # Configurable username and group for BDOT
 : "${BDOT_USER:=bdot}"
@@ -72,7 +90,7 @@ offline_installation=false
 RPM_GPG_KEYS_TO_REMOVE=[]
 
 # Colors
-if [ "$non_interactive" = "false" ]; then
+if [ "$non_interactive" = "false" ] && [ "$OS_TYPE" != AIX ]; then
   num_colors=$(tput colors 2>/dev/null)
   if test -n "$num_colors" && test "$num_colors" -ge 8; then
     bold="$(tput bold)"
@@ -108,7 +126,7 @@ fi
 # Helper Functions
 printf() {
   if [ "$non_interactive" = "false" ] || [ "$error_mode" = "true" ]; then
-    if command -v sed >/dev/null; then
+    if [ "$OS_TYPE" != "AIX" ] && command -v sed >/dev/null; then
       command printf -- "$@" | sed -r "$sed_ignore s/^/$indent/g" # Ignore sole reset characters if defined
     else
       # Ignore $* suggestion as this breaks the output
@@ -416,10 +434,11 @@ setup_installation() {
 }
 
 set_file_names() {
+  _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
   if [ -z "$version" ]; then
-    package_file_name="${PACKAGE_NAME}_linux_${arch}.${package_type}"
+    package_file_name="${PACKAGE_NAME}_${_os_lower}_${os_arch}.${package_type}"
   else
-    package_file_name="${PACKAGE_NAME}_v${version}_linux_${arch}.${package_type}"
+    package_file_name="${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
   fi
   package_out_file_path="$TMP_DIR/$package_file_name"
 
@@ -454,7 +473,11 @@ set_proxy() {
 }
 
 set_os_arch() {
-  os_arch=$(uname -m)
+  if [ "$OS_TYPE" = "AIX" ]; then
+    os_arch=$(uname -p)
+  else
+    os_arch=$(uname -m)
+  fi
   case "$os_arch" in
   # arm64 strings. These are from https://stackoverflow.com/questions/45125516/possible-values-for-uname-m
   aarch64 | arm64 | aarch64_be | armv8b | armv8l)
@@ -470,6 +493,13 @@ set_os_arch() {
   ppc64le)
     os_arch="ppc64le"
     ;;
+  powerpc)
+    if [ "$OS_TYPE" = "AIX" ] && command -v bootinfo > /dev/null && [ "$(bootinfo -y)" = "64" ]; then
+      os_arch="ppc64"
+    else
+      error_exit "$LINENO" "uname returned arch of 'powerpc', but OS is either not AIX or not 64 bit. 'uname -s': $OS_TYPE, 'bootinfo -y': $(bootinfo -y)"
+    fi
+    ;;
   # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
   arm | armv6l | armv7l)
     os_arch="arm"
@@ -483,7 +513,7 @@ set_os_arch() {
 # Set the package type before install
 set_package_type() {
   # if package_path is set get the file extension otherwise look at what's available on the system
-  if [ -n "$package_path" ]; then
+  if [ -n "$package_path" ] && [ "$OS_TYPE" != "AIX" ]; then
     case "$package_path" in
     *.deb)
       package_type="deb"
@@ -496,12 +526,14 @@ set_package_type() {
       ;;
     esac
   else
-    if command -v dpkg >/dev/null 2>&1; then
-      package_type="deb"
-    elif command -v rpm >/dev/null 2>&1; then
-      package_type="rpm"
+    if command -v dpkg > /dev/null 2>&1; then
+        package_type="deb"
+    elif command -v mkssys > /dev/null 2>&1; then
+        package_type="mkssys"
+    elif command -v rpm > /dev/null 2>&1; then
+        package_type="rpm"
     else
-      error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+        error_exit "$LINENO" "Could not find mkssys, dpkg or rpm on the system"
     fi
   fi
 
@@ -517,7 +549,8 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
+    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
@@ -574,8 +607,8 @@ ask_clean_install() {
   fi
 
   if [ -f "$SUPERVISOR_YML_PATH" ]; then
-    # Check for default config file hash
-    cfg_file_hash=$(sha256sum "$SUPERVISOR_YML_PATH" | awk '{print $1}')
+    # Check for default config file hash using resolved SHA-256 command
+    cfg_file_hash=$($SHA256CMD "$SUPERVISOR_YML_PATH" | awk '{print $1}')
     if [ "$cfg_file_hash" = "$DEFAULT_SUPERVISOR_CFG_HASH" ]; then
       # config matches default config, mark clean_install as true
       clean_install="true"
@@ -639,6 +672,7 @@ check_prereqs() {
   os_arch_check
   package_type_check
   dependencies_check
+  aix_iostat_check
   user_check
   success "Prerequisite check complete!"
   decrease_indent
@@ -695,7 +729,7 @@ offline_check()
 os_check() {
   info "Checking that the operating system is supported..."
   case "$OS_TYPE" in
-  Linux)
+  Linux | AIX)
     succeeded
     ;;
   *)
@@ -726,15 +760,63 @@ dependencies_check() {
   info "Checking for script dependencies..."
   FAILED_PREREQS=''
   for prerequisite in $PREREQS; do
-    if command -v "$prerequisite" >/dev/null; then
-      continue
-    else
-      if [ -z "$FAILED_PREREQS" ]; then
-        FAILED_PREREQS="${fg_red}$prerequisite${reset}"
-      else
-        FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
-      fi
-    fi
+    # Support alternate tools with pipe syntax (e.g. "shasum|sha256sum").
+    # Checks each alternate in order via command -v. The first one found is
+    # resolved, and a command variable is created with the full invocation
+    # including any required flags (see resolve_alternate_cmd).
+    case "$prerequisite" in
+      *"|"*)
+        _found=false
+        # Temporarily change the field separator to pipe so we can iterate
+        # over each alternate tool in the "tool1|tool2|toolN" entry
+        _save_IFS="$IFS"; IFS="|"
+        for _alt in $prerequisite; do
+          IFS="$_save_IFS"
+          if command -v "$_alt" >/dev/null; then
+            _found=true
+            resolve_alternate_cmd "$prerequisite" "$_alt"
+            break
+          fi
+          IFS="|"
+        done
+        IFS="$_save_IFS"
+        if [ "$_found" = false ]; then
+          # Build a human-readable display string from the pipe-separated
+          # alternatives. "shasum|sha256sum" becomes "shasum or sha256sum".
+          # Uses only shell builtins — no tr/sed — because those tools may
+          # themselves be the missing prereqs we're reporting on.
+          _display=""
+          _tmp_IFS="$IFS"; IFS="|"
+          for _item in $prerequisite; do
+            if [ -z "$_display" ]; then
+              _display="$_item"
+            else
+              _display="$_display or $_item"
+            fi
+          done
+          IFS="$_tmp_IFS"
+          # Each missing prereq group is added to FAILED_PREREQS, separated
+          # by commas. The final error message lists all missing prereqs:
+          # e.g. "curl, shasum or sha256sum, gpg2 or gpg"
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}${_display}${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}${_display}${reset}"
+          fi
+        fi
+        ;;
+      *)
+        if command -v "$prerequisite" >/dev/null; then
+          continue
+        else
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}$prerequisite${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
+          fi
+        fi
+        ;;
+    esac
   done
 
   if [ -n "$FAILED_PREREQS" ]; then
@@ -742,6 +824,38 @@ dependencies_check() {
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+
+  MISSING_SUGGESTED=''
+  for tool in $SUGGESTED_TOOLS; do
+    if ! command -v "$tool" >/dev/null; then
+      if [ -z "$MISSING_SUGGESTED" ]; then
+        MISSING_SUGGESTED="${fg_yellow}$tool${reset}"
+      else
+        MISSING_SUGGESTED="$MISSING_SUGGESTED, ${fg_yellow}$tool${reset}"
+      fi
+    fi
+  done
+
+  if [ -n "$MISSING_SUGGESTED" ]; then
+    warn "The following recommended tools were not found. Installation will continue, but these are useful for troubleshooting: [$MISSING_SUGGESTED]"
+  fi
+}
+
+# Maps a resolved alternate prereq to a command variable with full flags.
+# $1 = the prereq entry (e.g. "shasum|sha256sum")
+# $2 = the resolved binary (e.g. "shasum")
+resolve_alternate_cmd() {
+  case "$1" in
+    "shasum|sha256sum")
+      case "$2" in
+        shasum)    SHA256CMD="shasum -a 256" ;;
+        sha256sum) SHA256CMD="sha256sum" ;;
+      esac
+      ;;
+    "gpg2|gpg")
+      GPG_CMD="$2"
+      ;;
+  esac
 }
 
 # This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
@@ -778,14 +892,45 @@ user_check()
 package_type_check()
 {
   info "Checking for package manager..."
-  if command -v dpkg >/dev/null 2>&1; then
-    succeeded
-  elif command -v rpm >/dev/null 2>&1; then
-    succeeded
+  if command -v dpkg > /dev/null 2>&1; then
+      succeeded
+  # Check ALL of the AIX commands needed
+  elif command -v mkssys > /dev/null 2>&1 \
+    && command -v mkgroup > /dev/null 2>&1 \
+    && command -v useradd > /dev/null 2>&1 \
+    && command -v startsrc > /dev/null 2>&1 \
+    && command -v stopsrc > /dev/null 2>&1 \
+    && command -v lssrc > /dev/null 2>&1 \
+    && command -v mkitab > /dev/null 2>&1 \
+    && command -v rmitab > /dev/null 2>&1 \
+    && command -v lsitab > /dev/null 2>&1; then
+      succeeded
+  elif command -v rpm > /dev/null 2>&1; then
+      succeeded
   else
-    failed
-    error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      failed
+      if [ "$OS_TYPE" = "AIX" ]; then
+        error_exit "$LINENO" "Could not find AIX installation tools on the system"
+      else
+        error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      fi
   fi
+}
+
+# AIX requires the sys0 iostat kernel attribute to be enabled for per-process
+# I/O accounting. Without it, process disk I/O metrics will not be available.
+aix_iostat_check() {
+  if [ "$OS_TYPE" != "AIX" ]; then
+    return
+  fi
+
+  info "Checking AIX iostat kernel attribute..."
+  _iostat_val=$(lsattr -El sys0 -a iostat 2>/dev/null | awk '{print $2}')
+  if [ "$_iostat_val" != "true" ]; then
+    failed
+    error_exit "$LINENO" "AIX kernel attribute 'iostat' is not enabled. Per-process I/O metrics require this. Enable with: chdev -l sys0 -a iostat=true (reboot required)"
+  fi
+  succeeded
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
@@ -909,7 +1054,7 @@ install_package() {
       systemctl enable --now bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
       succeeded
     fi
-  else
+  elif [ "$SVC_PRE" = "service" ]; then
     case "$(service bindplane-otel-collector status)" in
     *running*)
       # The service is running.
@@ -925,6 +1070,47 @@ install_package() {
       succeeded
       ;;
     esac
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    case "$(lssrc -g "$AIX_SRC_GROUP" | grep collector)" in
+      *active*)
+        # Service is already running. install_aix() handles stop/start for
+        # upgrades, so if we reach here active the service was already restarted.
+        info "Service is running."
+        succeeded
+        ;;
+      *inoperative*)
+        info "Starting service..."
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)"
+        succeeded
+        ;;
+      *)
+        info "Creating, enabling and starting service..."
+        # Add the service, removing it if it already exists in order
+        # to make sure we have the most recent version
+        if lssrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+          rmssys -s "$AIX_SRC_SUBSYSTEM"
+        fi
+        mkssys -s "$AIX_SRC_SUBSYSTEM" -G "$AIX_SRC_GROUP" -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u root)" -S -n15 -f9 -a '--config /opt/bindplane-otel-collector/supervisor.yaml'
+
+        # Install the service to start on boot
+        # Removing it if it exists, in order to have the most recent version
+        if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+          rmitab "$AIX_SRC_GROUP"
+        fi
+        # shellcheck disable=SC2016
+        # The inittab entry must use literal values (not variables) because it is
+        # evaluated by init at boot time, outside of this script's environment.
+        mkitab "$AIX_SRC_GROUP"':23456789:once:startsrc -g '"$AIX_SRC_GROUP"' -e "$(cat /etc/bdot.env)"'
+
+        # Start the service with the proper environment variables
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)"
+
+        succeeded
+        ;;
+    esac
+  else
+    # This is an error state that should never be reached
+    error_exit "Found an invalid SVC_PRE value in install_package()"
   fi
 
   success "BDOT installation complete!"
@@ -953,6 +1139,11 @@ verify_package() {
         return 1
       fi
       ;;
+    mkssys)
+      if ! verify_package_aix; then
+        return 1
+      fi
+      ;;
     rpm)
       if ! verify_package_rpm; then
         return 1
@@ -968,8 +1159,8 @@ verify_package() {
 }
 
 verify_package_deb() {
-  if ! command -v gpg > /dev/null 2>&1; then
-    info "gpg is not installed, skipping signature verification"
+  if [ -z "$GPG_CMD" ]; then
+    info "neither gpg nor gpg2 is installed, skipping signature verification"
     return 0
   fi
 
@@ -978,14 +1169,14 @@ verify_package_deb() {
     return 0
   fi
 
-  if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+  if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
     error "Failed to import public key"
     return 1
   fi
   # if there are any revocation keys, import them
   if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
     for key in "$TMP_DIR/gpg/deb-revocations/"*; do
-      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
+      if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$key" > /dev/null 2>&1; then
         error "Failed to import revocation key"
         return 1
       fi
@@ -1005,7 +1196,7 @@ verify_package_deb() {
   set +e
   # Run pipeline, capture both output and exit code
   OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
-          GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
+          GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
   EXIT_CODE=$?
   set -e
 
@@ -1070,7 +1261,7 @@ verify_package_rpm() {
 
   if ! rpm -qa 'gpg-pubkey*' \
   | xargs -n1 rpm -qi \
-  | gpg --quiet --with-colons --show-keys \
+  | $GPG_CMD --quiet --with-colons --show-keys \
   | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
   | grep -qx "$SIGNING_KEYID"; then
       error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
@@ -1106,11 +1297,147 @@ verify_package_rpm() {
   return 0
 }
 
+# Verify AIX tar.gz package using GPG detached signature.
+# The release process produces a .gpg.sig file alongside the tar.gz.
+verify_package_aix() {
+  if [ -z "$GPG_CMD" ]; then
+    info "neither gpg nor gpg2 is installed, skipping signature verification"
+    return 0
+  fi
+
+  # Import the public key
+  if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+    error "Failed to import public key"
+    return 1
+  fi
+
+  # Import any revocation keys
+  if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
+    for key in "$TMP_DIR/gpg/deb-revocations/"*; do
+      if ! GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --import "$key" > /dev/null 2>&1; then
+        error "Failed to import revocation key"
+        return 1
+      fi
+    done
+  fi
+
+  # Look for the detached GPG signature file
+  _sig_file="${package_out_file_path}.gpg.sig"
+  if [ ! -f "$_sig_file" ]; then
+    error "GPG signature file not found: $_sig_file"
+    return 1
+  fi
+
+  # Verify the detached signature
+  set +e
+  VERIFY_OUTPUT=$(GNUPGHOME="$TMP_DIR/gpg" $GPG_CMD --verify "$_sig_file" "$package_out_file_path" 2>&1)
+  VERIFY_EXIT_CODE=$?
+  set -e
+
+  if [ $VERIFY_EXIT_CODE -ne 0 ]; then
+    error "GPG signature verification failed"
+    if [ -n "$VERIFY_OUTPUT" ]; then
+      increase_indent
+      error "$VERIFY_OUTPUT"
+      decrease_indent
+    fi
+    return 1
+  fi
+
+  success "Package GPG signature is valid"
+  return 0
+}
+
+# Install on AIX manually from tar.gz file
+install_aix()
+{
+  # Create the user and group if they don't already exist. Group must be first.
+  if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
+    mkgroup "$COLLECTOR_GROUP" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
+  fi
+  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
+    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_GROUP" -s /usr/bin/false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+  fi
+
+  # Create the install & storage directories
+  mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
+
+  # Check if this is an upgrade (service already exists and is running)
+  _aix_was_running=false
+  if lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q active; then
+    _aix_was_running=true
+
+    # AIX locks running binaries against all modifications (rm, mv, overwrite),
+    # so we extract to a staging dir, stop the service, then copy into place.
+    _aix_stage="/opt/bindplane-otel-collector/.staging"
+    rm -rf "$_aix_stage"
+    mkdir -p "$_aix_stage" || error_exit "$LINENO" "Failed to create staging directory"
+    gunzip -c "$package_out_file_path" | tar -xvf - -C "$_aix_stage"
+    if [ $? -ne 0 ]; then
+      rm -rf "$_aix_stage"
+      error_exit "$LINENO" "Failed to extract package to staging directory"
+    fi
+
+    # AIX does not support service "restart", so stop and start instead
+    info "Stopping service for binary replacement..."
+    stopsrc -g "$AIX_SRC_GROUP" || error_exit "$LINENO" "Failed to request service stop"
+    _stop_wait=0
+    while ! lssrc -s "$AIX_SRC_SUBSYSTEM" | grep -q inoperative; do
+      _stop_wait=$((_stop_wait + 1))
+      if [ "$_stop_wait" -ge 30 ]; then
+        rm -rf "$_aix_stage"
+        error_exit "$LINENO" "Service did not stop within 30 seconds"
+      fi
+      if [ $((_stop_wait % 5)) -eq 0 ]; then
+        info "Still waiting for service to stop... (${_stop_wait}s)"
+      fi
+      sleep 1
+    done
+
+    # Release any cached shared libraries
+    slibclean > /dev/null 2>&1
+
+    # Copy staged files into the install directory
+    cp -Rf "$_aix_stage"/* /opt/bindplane-otel-collector/
+    if [ $? -ne 0 ]; then
+      rm -rf "$_aix_stage"
+      error_exit "$LINENO" "Failed to copy files from staging to /opt/bindplane-otel-collector"
+    fi
+    rm -rf "$_aix_stage"
+  else
+    # Fresh install — no running binaries to worry about, extract directly
+    gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector
+    if [ $? -ne 0 ]; then
+      error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
+    fi
+  fi
+
+  # Move files to appropriate locations
+  mv /opt/bindplane-otel-collector/install/bdot.env /etc/
+  if [ $? -ne 0 ]; then
+    warn "Failed to move AIX env file to /etc/"
+  fi
+
+  # Set ownership
+  chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" /opt/bindplane-otel-collector > /dev/null 2>&1
+  chown "$COLLECTOR_USER":"$COLLECTOR_GROUP" /etc/bdot.env > /dev/null 2>&1
+
+  # If the service was running before, start it back up.
+  # For fresh installs, the service management section later handles the initial start.
+  if [ "$_aix_was_running" = true ]; then
+    info "Restarting service with new binaries..."
+    startsrc -g "$AIX_SRC_GROUP" -e "$(cat /etc/bdot.env)" || error_exit "$LINENO" "Failed to start service"
+  fi
+}
+
 unpack_package()
 {
   case "$package_type" in
     deb)
       dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      ;;
+    mkssys)
+      install_aix
       ;;
     rpm)
       rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
@@ -1166,8 +1493,11 @@ create_supervisor_config() {
   command printf '  reports_available_components: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
-  command printf '  config_apply_timeout: 30s\n' >>"$supervisor_yml_path"
-  command printf '  bootstrap_timeout: 5s\n' >>"$supervisor_yml_path"
+  command printf '  config_apply_timeout: %ss\n' $config_apply_timeout >>"$supervisor_yml_path"
+  command printf '  bootstrap_timeout: %ss\n' $bootstrap_timeout >>"$supervisor_yml_path"
+  if [ "$OS_TYPE" = "AIX" ]; then
+    command printf '  orphan_detection_interval: 120s\n' >>"$supervisor_yml_path"
+  fi
   command printf '  args: ["--feature-gates", "service.AllowNoPipelines"]\n' >>"$supervisor_yml_path"
 
   if [ -n "$OPAMP_LABELS" ]; then
@@ -1193,13 +1523,17 @@ display_results() {
   info "Agent Config:        $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
   info "Agent Logs Command:  $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   if [ "$SVC_PRE" = "systemctl" ]; then
-    info "Supervisor Start Command:  $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
-    info "Supervisor Stop Command:   $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
-    info "Status Command:            $(fg_cyan "sudo systemctl status bindplane-otel-collector")$(reset)"
-  else
-    info "Supervisor Start Command:  $(fg_cyan "sudo service bindplane-otel-collector start")$(reset)"
-    info "Supervisor Stop Command:   $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
-    info "Status Command:            $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo systemctl status bindplane-otel-collector")$(reset)"
+  elif [ "$SVC_PRE" = "service" ]; then
+    info "Supervisor Start Command:      $(fg_cyan "sudo service bindplane-otel-collector start")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -e \"\$(cat /etc/bdot.env)\"")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
+    info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
   info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
   decrease_indent
@@ -1219,10 +1553,20 @@ display_results() {
   return 0
 }
 
+uninstall_aix()
+{
+  # Remove files
+  rm -rf /opt/bindplane-otel-collector > /dev/null 2>&1
+  rm -f /etc/bdot.env > /dev/null 2>&1
+}
+
 uninstall_package() {
   case "$package_type" in
   deb)
     dpkg -r "bindplane-otel-collector" >/dev/null 2>&1
+    ;;
+  mkssys)
+    uninstall_aix
     ;;
   rpm)
     rpm -e "bindplane-otel-collector" >/dev/null 2>&1
@@ -1251,6 +1595,19 @@ uninstall() {
 
     info "Disabling service..."
     systemctl disable bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
+    succeeded
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    info "Stopping service..."
+    stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1
+    succeeded
+
+    info "Removing service registration..."
+    if lssrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+      rmssys -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1
+    fi
+    if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+      rmitab "$AIX_SRC_GROUP" > /dev/null 2>&1
+    fi
     succeeded
   else
     info "Stopping service..."
@@ -1382,6 +1739,11 @@ main() {
     exit 0
   fi
 
+  # GPG is required unless --no-gpg-check was passed
+  if [ "$skip_gpg_check" != "true" ]; then
+    PREREQS="$PREREQS gpg2|gpg"
+  fi
+
   bindplane_banner
   check_prereqs
 
@@ -1395,7 +1757,34 @@ main() {
     version=$COLLECTOR_VERSION
   fi
 
-  if [ -z "$version" ]; then
+  if [ -z "$version" ] && [ -n "$package_path" ]; then
+    # Extract version from package filename. Handles two naming conventions:
+    #   tar.gz (AIX): bindplane-otel-collector-v{VERSION}-{OS}-{ARCH}.tar.gz (dash-separated)
+    #   deb/rpm:      bindplane-otel-collector_v{VERSION}_{OS}_{ARCH}.{ext}  (underscore-separated)
+    _fname=$(basename "$package_path")
+    _fname=${_fname%.tar.gz}; _fname=${_fname%.deb}; _fname=${_fname%.rpm}
+    # Detect separator: underscore for deb/rpm, dash for tar.gz
+    case "$_fname" in
+      *_v*)
+        # Underscore format: strip prefix up to _v, then remove _os_arch suffix
+        _fname=${_fname#*_v}
+        _arch=${_fname##*_}; _fname=${_fname%_"$_arch"}
+        _os=${_fname##*_}; _fname=${_fname%_"$_os"}
+        ;;
+      *)
+        # Dash format: strip prefix up to -v, then remove -os-arch suffix
+        _fname=${_fname#bindplane-otel-collector-v}
+        _arch=${_fname##*-}; _fname=${_fname%-"$_arch"}
+        _os=${_fname##*-}; _fname=${_fname%-"$_os"}
+        ;;
+    esac
+    # Strip SNAPSHOT suffix if present (e.g. -SNAPSHOT-c0098f8b0)
+    _fname=$(echo "$_fname" | sed 's/-SNAPSHOT-[0-9a-f]*$//')
+    version="$_fname"
+    unset _fname _arch _os
+  fi
+
+  if [ -z "$version" ] && [ -z "$package_path" ]; then
     version=$(latest_version)
   fi
 
