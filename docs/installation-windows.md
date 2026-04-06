@@ -4,7 +4,7 @@
 
 To install the agent on Windows, run the PowerShell command below as an administrator. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
 
-> **Note:** The install script is available as of release v2.0.0-beta.13. For earlier versions, see the [manual installation](#manual-installation) instructions below.
+> **Note:** The install script is available as of release v2.0.1-beta.1. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
 ```pwsh
 & ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1")))
