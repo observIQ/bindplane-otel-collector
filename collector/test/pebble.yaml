@@ -1,5 +1,5 @@
 receivers:
-  filelog:
+  file_log:
     include: ["./var/log/syslog.log"]
     storage: pebble
 
@@ -16,5 +16,5 @@ service:
   extensions: [pebble]
   pipelines:
     logs:
-      receivers: [filelog]
+      receivers: [file_log]
       exporters: [nop]

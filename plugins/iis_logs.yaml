@@ -84,7 +84,7 @@ template: |
   receivers:
     # W3C format
     {{if eq .log_format "w3c"}}
-    filelog:
+    file_log:
       storage: file_storage
       include: 
       {{ range $i, $fp := .file_path }}
@@ -198,7 +198,7 @@ template: |
     {{end}}
     # IIS format
     {{if eq .log_format "iis"}}
-    filelog:
+    file_log:
       storage: file_storage
       include: 
       {{ range $i, $fp := .file_path }}
@@ -283,7 +283,7 @@ template: |
 
     # NCSA format
     {{if eq .log_format "ncsa"}}
-    filelog:
+    file_log:
       storage: file_storage
       include:
       {{ range $i, $fp := .file_path }}
@@ -349,4 +349,4 @@ template: |
     pipelines:
       logs:
         receivers:
-          - filelog
+          - file_log

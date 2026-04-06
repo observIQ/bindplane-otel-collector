@@ -52,7 +52,7 @@ parameters:
 template: |
   receivers:
     {{ if .enable_master_log }}
-    filelog/master:
+    file_log/master:
       include:
         {{ range $fp := .master_log_path }}
         - '{{ $fp }}'
@@ -89,7 +89,7 @@ template: |
     {{ end }}
 
     {{ if .enable_region_log }}
-    filelog/region:
+    file_log/region:
       include:
         {{ range $fp := .region_log_path }}
         - '{{ $fp }}'
@@ -126,7 +126,7 @@ template: |
     {{ end }}
 
     {{ if .enable_zookeeper_log }}
-    filelog/zookeeper:
+    file_log/zookeeper:
       include:
         {{ range $fp := .zookeeper_log_path }}
         - '{{ $fp }}'
@@ -167,13 +167,13 @@ template: |
       logs:
         receivers:
           {{ if .enable_master_log }}
-          - filelog/master
+          - file_log/master
           {{ end }}
 
           {{ if .enable_region_log }}
-          - filelog/region
+          - file_log/region
           {{ end }}
 
           {{ if .enable_zookeeper_log }}
-          - filelog/zookeeper
+          - file_log/zookeeper
           {{ end }}

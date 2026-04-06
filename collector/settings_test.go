@@ -43,7 +43,7 @@ func TestNewSettings(t *testing.T) {
 	configs, err := provider.Get(context.Background(), factories)
 	require.NoError(t, err)
 
-	filelogType, err := component.NewType("filelog")
+	filelogType, err := component.NewType("file_log")
 	require.NoError(t, err)
 
 	receivcfg := configs.Receivers[component.NewID(filelogType)]

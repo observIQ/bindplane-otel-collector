@@ -53,7 +53,7 @@ parameters:
 template: |
   receivers:
     {{ if .enable_system_logs }}
-    filelog/system_logs:
+    file_log/system_logs:
       include:
         {{ range $fp := .system_log_path }}
         - '{{ $fp }}'
@@ -83,7 +83,7 @@ template: |
     {{ end }}
 
     {{ if .enable_debug_logs }}
-    filelog/debug_logs:
+    file_log/debug_logs:
       include:
         {{ range $fp := .debug_log_path }}
         - '{{ $fp }}'
@@ -113,7 +113,7 @@ template: |
     {{ end }}
 
     {{ if .enable_gc_logs }}
-    filelog/gc_logs:
+    file_log/gc_logs:
       include:
         {{ range $fp := .gc_log_path }}
         - '{{ $fp }}'
@@ -146,13 +146,13 @@ template: |
       logs:
         receivers:
           {{ if .enable_system_logs }}
-          - filelog/system_logs
+          - file_log/system_logs
           {{ end }}
 
           {{ if .enable_debug_logs }}
-          - filelog/debug_logs
+          - file_log/debug_logs
           {{ end }}
 
           {{ if .enable_gc_logs }}
-          - filelog/gc_logs
+          - file_log/gc_logs
           {{ end }}

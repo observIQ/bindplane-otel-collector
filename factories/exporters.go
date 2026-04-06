@@ -47,7 +47,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sapmexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/signalfxexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/splunkhecexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sumologicexporter"
@@ -95,7 +94,6 @@ var defaultExporters = []exporter.Factory{
 	prometheusexporter.NewFactory(),
 	prometheusremotewriteexporter.NewFactory(),
 	qradar.NewFactory(),
-	sapmexporter.NewFactory(),
 	signalfxexporter.NewFactory(),
 	snowflakeexporter.NewFactory(),
 	splunkhecexporter.NewFactory(),

@@ -1,6 +1,6 @@
-# Filelog receiver with Elasticsearch using JSON
+# file_log receiver with Elasticsearch using JSON
 
-This is example configuration shows the `filelog` receiver parsing JSON logs and sending those to an Elasticsearch cluster.
+This is example configuration shows the `file_log` receiver parsing JSON logs and sending those to an Elasticsearch cluster.
 
 ## Prerequisites
 

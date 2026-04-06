@@ -1,5 +1,5 @@
 receivers:
-  filelog:
+  file_log:
     include: 
       - ${FILE}
 
@@ -9,5 +9,5 @@ exporters:
 service:
   pipelines:
     logs:
-      receivers: [filelog]
+      receivers: [file_log]
       exporters: [nop]

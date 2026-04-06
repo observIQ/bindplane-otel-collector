@@ -1,6 +1,6 @@
-# This example uses Redis to showcase filelog + regex.
+# This example uses Redis to showcase file_log + regex.
 receivers:
-  filelog:
+  file_log:
     include:
     - /var/log/redis/redis.log
     start_at: end
@@ -26,6 +26,6 @@ service:
   pipelines:
     logs:
       receivers:
-      - filelog
+      - file_log
       exporters:
       - googlecloud
