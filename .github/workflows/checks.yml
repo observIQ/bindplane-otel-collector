@@ -75,7 +75,6 @@ jobs:
               - 'counter/**'
               - 'expr/**'
               - 'version/**'
-              - 'plugins/**'
               - 'internal/aws/**'
               - 'internal/azureblob/**'
               - 'internal/blobconsume/**'
@@ -323,7 +322,7 @@ jobs:
           echo "::error::Changes detected in component directories that have been migrated to the bindplane-otel-contrib repository."
           echo "The following directories must not be modified in this repository:"
           echo "  receiver/, processor/, exporter/, extension/,"
-          echo "  counter/, expr/, version/, plugins/,"
+          echo "  counter/, expr/, version/, "
           echo "  internal/aws/, internal/azureblob/, internal/blobconsume/,"
           echo "  internal/exporterutils/, internal/measurements/, internal/osinfo/,"
           echo "  internal/report/snapshot/, internal/storageclient/, internal/testutils/"

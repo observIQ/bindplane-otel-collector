@@ -73,7 +73,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_access_log }}
-    filelog/access_log:
+    file_log/access_log:
       storage: file_storage
       include:
         {{ range $fp := .access_log_paths }}
@@ -144,7 +144,7 @@ template: |
     {{end}} # end access log receiver
 
     {{ if .enable_error_log }}
-    filelog/error_log:
+    file_log/error_log:
       storage: file_storage
       include:
         {{ range $fp := .error_log_paths }}
@@ -181,8 +181,8 @@ template: |
       logs:
         receivers:
           {{ if .enable_access_log }}
-          - filelog/access_log
+          - file_log/access_log
           {{ end }}
           {{ if .enable_error_log }}
-          - filelog/error_log
+          - file_log/error_log
           {{ end }}

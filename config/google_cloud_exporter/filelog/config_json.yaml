@@ -1,6 +1,6 @@
-# This example showcases filelog + json parser's ability to parse abitrary json.
+# This example showcases file_log + json parser's ability to parse abitrary json.
 receivers:
-  filelog:
+  file_log:
     include:
     # app represents a custom application using json logging
     - /var/log/app/log.json
@@ -17,6 +17,6 @@ service:
   pipelines:
     logs:
       receivers:
-      - filelog
+      - file_log
       exporters:
       - googlecloud

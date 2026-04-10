@@ -43,7 +43,7 @@ parameters:
 template: |
   receivers:
     {{if .enable_json_logs}}
-    filelog/json:
+    file_log/json:
       include:
         {{ range $fp := .json_log_paths }}
         - '{{ $fp }}'
@@ -89,7 +89,7 @@ template: |
     {{end}}
 
     {{if .enable_gc_logs}}
-    filelog/gc:
+    file_log/gc:
       include:
         {{ range $fp := .gc_log_paths }}
         - '{{ $fp }}'
@@ -120,8 +120,8 @@ template: |
       logs:
         receivers:
           {{if .enable_json_logs}}
-          - filelog/json
+          - file_log/json
           {{end}}
           {{if .enable_gc_logs}}
-          - filelog/gc
+          - file_log/gc
           {{end}}

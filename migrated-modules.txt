@@ -11,5 +11,6 @@ internal/blobconsume
 internal/exporterutils
 internal/measurements
 internal/osinfo
+internal/report/snapshot
 internal/storageclient
 internal/testutils

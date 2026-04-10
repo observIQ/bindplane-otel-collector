@@ -507,7 +507,7 @@ install_package()
     mkdir -p "$INSTALL_DIR/$d" || error_exit "$LINENO" "Failed to create directory $INSTALL_DIR/$d"
   done
   
-  # Create the storage dir; This dir is necessary for filelog based plugins
+  # Create the storage dir; This dir is necessary for file_log based plugins
   mkdir -p "$INSTALL_DIR/storage" || error_exit "$LINENO" "Failed to create directory $INSTALL_DIR/storage"
 
   decrease_indent

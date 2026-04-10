@@ -46,7 +46,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/bigipreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/cloudflarereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/cloudfoundryreceiver"
@@ -131,7 +130,6 @@ var defaultReceivers = []receiver.Factory{
 	azureblobpollingreceiver.NewFactory(),
 	azureeventhubreceiver.NewFactory(),
 	azuremonitorreceiver.NewFactory(),
-	bigipreceiver.NewFactory(),
 	carbonreceiver.NewFactory(),
 	cloudflarereceiver.NewFactory(),
 	cloudfoundryreceiver.NewFactory(),

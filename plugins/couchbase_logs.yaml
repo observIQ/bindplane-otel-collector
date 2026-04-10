@@ -84,7 +84,7 @@ parameters:
 template: |
   receivers:
     {{ if .enable_error_log}}
-    filelog/error_logs:
+    file_log/error_logs:
       include: 
         {{ range $fp := .error_log_path }}
         - '{{ $fp }}'
@@ -113,7 +113,7 @@ template: |
     {{ end }} ## end error log receiver
 
     {{ if .enable_debug_log}}
-    filelog/debug_logs:
+    file_log/debug_logs:
       include: 
         {{ range $fp := .debug_log_path }}
         - '{{ $fp }}'
@@ -142,7 +142,7 @@ template: |
     {{ end }} ## end debug log receiver
 
     {{ if .enable_info_log}}
-    filelog/info_logs:
+    file_log/info_logs:
       include: 
         {{ range $fp := .info_log_path }}
         - '{{ $fp }}'
@@ -171,7 +171,7 @@ template: |
     {{ end }} ## end info log receiver
 
     {{ if .enable_access_log}}
-    filelog/access_logs:
+    file_log/access_logs:
       include: 
         {{ range $fp := .http_access_log_path }}
         - '{{ $fp }}'
@@ -204,7 +204,7 @@ template: |
     {{ end }} ## end http access log receiver
 
     {{ if .enable_internal_access_log}}
-    filelog/internal_access_logs:
+    file_log/internal_access_logs:
       include: 
         {{ range $fp := .http_internal_access_log_path }}
         - '{{ $fp }}'
@@ -237,7 +237,7 @@ template: |
     {{ end }} ## end internal access log receiver
 
     {{ if .enable_babysitter_log}}
-    filelog/babysitter_logs:
+    file_log/babysitter_logs:
       include: 
         {{ range $fp := .babysitter_log_path }}
         - '{{ $fp }}'
@@ -266,7 +266,7 @@ template: |
     {{ end }} ## end babysitter log receiver
 
     {{ if .enable_xdcr_logs}}
-    filelog/xdcr_logs:
+    file_log/xdcr_logs:
       include: 
         {{ range $fp := .xdcr_log_path }}
         - '{{ $fp }}'
@@ -299,23 +299,23 @@ template: |
       logs:
         receivers:
           {{ if .enable_error_log }}
-          - filelog/error_logs
+          - file_log/error_logs
           {{ end }}
           {{ if .enable_debug_log }}
-          - filelog/debug_logs
+          - file_log/debug_logs
           {{ end }}
           {{ if .enable_info_log }}
-          - filelog/info_logs
+          - file_log/info_logs
           {{ end }}
           {{ if .enable_access_log }}
-          - filelog/access_logs
+          - file_log/access_logs
           {{ end }}
           {{ if .enable_internal_access_log }}
-          - filelog/internal_access_logs
+          - file_log/internal_access_logs
           {{ end }}
           {{ if .enable_babysitter_log }}
-          - filelog/babysitter_logs
+          - file_log/babysitter_logs
           {{ end }}
           {{ if .enable_xdcr_log }}
-          - filelog/enable_xdcr_logs
+          - file_log/enable_xdcr_logs
           {{ end }}

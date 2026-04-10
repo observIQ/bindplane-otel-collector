@@ -54,7 +54,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_audit_log }}
-    filelog/audit:
+    file_log/audit:
       storage: file_storage
       include:
         {{ range $fp := .audit_log_path }}
@@ -109,7 +109,7 @@ template: |
     {{ end }}
 
     {{ if .enable_alert_log }}
-    filelog/alert:
+    file_log/alert:
       storage: file_storage
       include:
         {{ range $fp := .alert_log_path }}
@@ -175,7 +175,7 @@ template: |
     {{ end }}
 
     {{ if .enable_listener_log }}
-    filelog/listener:
+    file_log/listener:
       storage: file_storage
       include:
         {{ range $fp := .listener_log_path }}
@@ -249,11 +249,11 @@ template: |
       logs:
         receivers:
           {{ if .enable_audit_log }}
-          - filelog/audit
+          - file_log/audit
           {{ end }}
           {{ if .enable_alert_log }}
-          - filelog/alert
+          - file_log/alert
           {{ end }}
           {{ if .enable_listener_log }}
-          - filelog/listener
+          - file_log/listener
           {{ end }}

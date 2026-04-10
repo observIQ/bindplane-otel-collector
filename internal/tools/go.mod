@@ -9,7 +9,7 @@ require (
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
-	go.opentelemetry.io/collector/cmd/mdatagen v0.148.0
+	go.opentelemetry.io/collector/cmd/mdatagen v0.149.0
 	golang.org/x/tools v0.43.0
 	gotest.tools/gotestsum v1.12.3
 )
@@ -46,7 +46,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/providers/confmap v1.0.0 // indirect
-	github.com/knadh/koanf/v2 v2.3.3 // indirect
+	github.com/knadh/koanf/v2 v2.3.4 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -77,12 +77,12 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.opentelemetry.io/collector/component v1.54.0 // indirect
-	go.opentelemetry.io/collector/confmap v1.54.0 // indirect
-	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.54.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.54.0 // indirect
-	go.opentelemetry.io/collector/filter v0.148.0 // indirect
-	go.opentelemetry.io/collector/pdata v1.54.0 // indirect
+	go.opentelemetry.io/collector/component v1.55.0 // indirect
+	go.opentelemetry.io/collector/confmap v1.55.0 // indirect
+	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.55.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.55.0 // indirect
+	go.opentelemetry.io/collector/filter v0.149.0 // indirect
+	go.opentelemetry.io/collector/pdata v1.55.0 // indirect
 	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
@@ -95,7 +95,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c // indirect
 	golang.org/x/term v0.36.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

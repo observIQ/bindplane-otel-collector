@@ -56,7 +56,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["mongodbatlas"] = "mongodb_atlas"
     myMap["azureeventhub"] = "azure_event_hub"
     myMap["azuremonitor"] = "azure_monitor"
-    myMap["gcspubsubevent"] = "gcsevent" 
+    myMap["gcspubsubevent"] = "gcsevent"
+    myMap["filelog"] = "file_log"
 } {
   split($NF, parts, " ")
   name=parts[1]

@@ -45,7 +45,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_system_log }}
-    filelog/system_logs:
+    file_log/system_logs:
       storage: file_storage
       include: 
         {{ range $fp := .system_log_path }}
@@ -74,7 +74,7 @@ template: |
     {{ end }} ## .enable_system_log
 
     {{ if .enable_install_log }}
-    filelog/install_logs:
+    file_log/install_logs:
       storage: file_storage
       include: 
         {{ range $fp := .install_log_path }}
@@ -121,8 +121,8 @@ template: |
       logs:
         receivers: 
           {{ if .enable_system_log }}
-          - filelog/system_logs
+          - file_log/system_logs
           {{ end }}
           {{ if .enable_install_log }}
-          - filelog/install_logs
+          - file_log/install_logs
           {{ end }}
