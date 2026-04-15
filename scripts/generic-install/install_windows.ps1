@@ -179,8 +179,12 @@ function Get-LatestVersion {
         $req.AllowAutoRedirect = $false
         $req.Method = "HEAD"
         $resp = $req.GetResponse()
-        $location = $resp.Headers["Location"]
-        $resp.Close()
+        try {
+            $location = $resp.Headers["Location"]
+        }
+        finally {
+            $resp.Close()
+        }
         if (-not $location) {
             Fail "No redirect received from $RepositoryUrl/releases/latest; cannot determine latest version."
         }
@@ -250,14 +254,13 @@ function Build-MsiexecArgs {
 
 function Get-ProductCode {
     param([string]$Name)
-    $product = Get-CimInstance -ClassName Win32_Product `
-        -Filter "Name LIKE '%$Name%'" `
-        -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if ($product) {
-        return $product.IdentifyingNumber
-    }
-    return $null
+    $paths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    return Get-ItemProperty $paths -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -like "*$Name*" } |
+        Select-Object -First 1 -ExpandProperty PSChildName
 }
 
 function Invoke-Uninstall {
@@ -325,7 +328,12 @@ function Main {
             else {
                 $resolvedVersion = $Version.TrimStart('v')
             }
-            $msiFileName = "${Distribution}_v${resolvedVersion}_windows_${arch}.msi"
+            if ($arch -eq "arm64") {
+                $msiFileName = "${Distribution}-arm64.msi"
+            }
+            else {
+                $msiFileName = "${Distribution}.msi"
+            }
             $resolvedUrl = "$($Url.TrimEnd('/'))/releases/download/v${resolvedVersion}/${msiFileName}"
         }
 
