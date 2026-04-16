@@ -55,9 +55,14 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["awss3event"] = "s3event"
     myMap["mongodbatlas"] = "mongodb_atlas"
     myMap["azureeventhub"] = "azure_event_hub"
+    myMap["azureblob"] = "azure_blob"
     myMap["azuremonitor"] = "azure_monitor"
+    myMap["ciscoos"] = "cisco_os"
     myMap["gcspubsubevent"] = "gcsevent"
     myMap["filelog"] = "file_log"
+    myMap["macosunifiedlogging"] = "macos_unified_logging"
+    myMap["prometheusremotewrite"] = "prometheus_remote_write"
+    myMap["yanggrpc"] = "yang_grpc"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -104,6 +109,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
 
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/exporter/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/exporter/exportertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    exporters:\n      sub_component_details:\n"
+  myMap["azureblob"] = "azure_blob"
+  myMap["googlecloudstorage"] = "google_cloud_storage"
   myMap["splunkhec"] = "splunk_hec"
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
   myMap["alibabacloudlogservice"] = "alibabacloud_logservice"
@@ -143,6 +150,9 @@ fi
 
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/extension/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/extension/extensiontest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    extensions:\n      sub_component_details:\n"
+  myMap["awslogsencoding"] = "aws_logs_encoding"
+  myMap["azureauth"] = "azure_auth"
+  myMap["cgroupruntime"] = "cgroup_runtime"
   myMap["filestorage"] = "file_storage"
   myMap["redisstorage"] = "redis_storage"
   myMap["dbstorage"] = "db_storage"
@@ -157,7 +167,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["awss3event"] = "s3event"
   myMap["jsonlogencoding"] = "json_log_encoding"
   myMap["avrologencoding"] = "avro_log_encoding"
-  myMap["googlecloudlogentryencoding"] = "googlecloudlogentry_encoding"
+  myMap["googlecloudlogentryencoding"] = "google_cloud_logentry_encoding"
   myMap["textencoding"] = "text_encoding"
 } {
   split($NF, parts, " ")
@@ -187,6 +197,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["memorylimiter"] = "memory_limiter"
   myMap["logdeduplication"] = "logdedup"
   myMap["k8sattributes"] = "k8s_attributes"
+  myMap["metricstarttime"] = "metric_start_time"
   myMap["ocsfstandardization"] = "ocsf_standardization"
 } {
   split($NF, parts, " ")
