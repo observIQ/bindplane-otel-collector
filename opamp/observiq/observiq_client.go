@@ -299,9 +299,9 @@ func (c *Client) Connect(ctx context.Context) error {
 	// client starts (so the extension can advertise custom capabilities as
 	// soon as components register them).
 	//
-	// The Client itself is passed as the underlying
-	// opampconnectionextension.Client so that SetCustomCapabilities can
-	// intercept and merge in the hardcoded capabilities.
+	// The Client itself is passed as the underlying CustomCapabilityClient
+	// so that SetCustomCapabilities can intercept and merge in the
+	// hardcoded capabilities.
 	if r := opampconnectionextension.GetRegistry(); r != nil {
 		r.SetClient(c)
 	}
