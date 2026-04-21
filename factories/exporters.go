@@ -24,6 +24,7 @@ import (
 	"github.com/observiq/bindplane-otel-contrib/exporter/googlecloudexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter"
+	"github.com/observiq/bindplane-otel-contrib/exporter/opampexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/qradar"
 	"github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter"
 	"github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter"
@@ -88,6 +89,7 @@ var defaultExporters = []exporter.Factory{
 	logzioexporter.NewFactory(),
 	azureloganalyticsexporter.NewFactory(),
 	nopexporter.NewFactory(),
+	opampexporter.NewFactory(),
 	otelarrowexporter.NewFactory(),
 	otlpexporter.NewFactory(),
 	otlphttpexporter.NewFactory(),
