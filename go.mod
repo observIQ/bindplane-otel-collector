@@ -211,6 +211,7 @@ require (
 	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.15
 	github.com/observiq/bindplane-otel-contrib/exporter/awssecuritylakeexporter v1.3.0
 	github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.3.0
+	github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727
 	github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension v1.3.0
 	github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.3.0
 	github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.3.0
@@ -219,6 +220,7 @@ require (
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/version v1.3.0
+	github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.3.0
@@ -653,7 +655,7 @@ require (
 	go.opentelemetry.io/collector v0.150.0 // indirect
 	go.opentelemetry.io/collector/client v1.56.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.150.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.150.0 // indirect
+	go.opentelemetry.io/collector/component/componenttest v0.150.0
 	go.opentelemetry.io/collector/config/configauth v1.56.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.56.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.150.0 // indirect
@@ -670,7 +672,7 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.150.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.150.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumertest v0.150.0
 	go.opentelemetry.io/collector/consumer/xconsumer v0.150.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.150.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.150.0 // indirect
