@@ -15,6 +15,7 @@
 package factories
 
 import (
+	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension"
 	"github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension"
 	"github.com/observiq/bindplane-otel-contrib/extension/badgerextension"
 	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway"
@@ -58,6 +59,7 @@ var defaultExtensions = []extension.Factory{
 	pebbleextension.NewFactory(),
 	oauth2clientauthextension.NewFactory(),
 	oidcauthextension.NewFactory(),
+	opampconnectionextension.NewFactory(),
 	opampgateway.NewFactory(),
 	pprofextension.NewFactory(),
 	redisstorageextension.NewFactory(),
