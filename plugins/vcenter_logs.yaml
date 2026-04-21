@@ -48,7 +48,7 @@ parameters:
     default: true
 template: |
   receivers:
-    tcplog:
+    tcp_log:
       listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
       max_log_size: {{ .max_buffer_size }}
       attributes:
@@ -161,4 +161,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [tcplog]
+        receivers: [tcp_log]

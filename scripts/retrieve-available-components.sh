@@ -63,6 +63,10 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["macosunifiedlogging"] = "macos_unified_logging"
     myMap["prometheusremotewrite"] = "prometheus_remote_write"
     myMap["yanggrpc"] = "yang_grpc"
+    myMap["httpcheck"] = "http_check"
+    myMap["tcplog"] = "tcp_log"
+    myMap["udplog"] = "udp_log"
+    myMap["windowseventlog"] = "windows_event_log"
 } {
   split($NF, parts, " ")
   name=parts[1]
