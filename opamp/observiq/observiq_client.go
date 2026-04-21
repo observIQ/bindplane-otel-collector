@@ -293,18 +293,18 @@ func (c *Client) Connect(ctx context.Context) error {
 	// Now that collector has successfully started kick off monitoring
 	c.startCollectorMonitoring(ctx)
 
-	// Wire the OpAMP client into any opamp_connection extensions that were
+	// Wire the OpAMP client into the opamp_connection extension if one was
 	// started by the collector. This must happen after the collector has
-	// started (so the extensions have registered themselves) and before the
-	// OpAMP client starts (so the extensions can advertise custom
-	// capabilities as soon as components register them).
+	// started (so the extension has registered itself) and before the OpAMP
+	// client starts (so the extension can advertise custom capabilities as
+	// soon as components register them).
 	//
 	// The Client itself is passed as the underlying CustomCapabilityClient
 	// so that SetCustomCapabilities can intercept and merge in the
 	// hardcoded capabilities.
-	opampconnectionextension.ForEachInstance(func(r opampconnectionextension.Registry) {
+	if r := opampconnectionextension.GetRegistry(); r != nil {
 		r.SetClient(c)
-	})
+	}
 
 	err = c.opampClient.Start(ctx, settings)
 	if err != nil {
@@ -450,9 +450,9 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 		}
 	}
 	if msg.CustomMessage != nil {
-		opampconnectionextension.ForEachInstance(func(r opampconnectionextension.Registry) {
+		if r := opampconnectionextension.GetRegistry(); r != nil {
 			r.ProcessMessage(msg.CustomMessage)
-		})
+		}
 	}
 	if msg.CustomCapabilities != nil {
 		if slices.Contains(msg.CustomCapabilities.Capabilities, measurements.ReportMeasurementsV1Capability) {
