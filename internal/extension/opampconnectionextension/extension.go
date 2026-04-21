@@ -34,57 +34,116 @@ import (
 // set are advertised automatically once SetClient is called.
 var ErrClientNotSet = errors.New("opamp client has not been set on opamp connection extension")
 
-// Registry is the public interface that processors and other collector
-// components may retrieve from the host in order to register custom
-// capabilities and send/receive custom messages over the shared OpAMP
-// connection.
+// Registry is the bridge that the owner of the OpAMP connection (the opamp
+// package) uses to wire its client into the opamp_connection extension and
+// to forward incoming custom messages.
 //
-// It is a superset of opampcustommessages.CustomCapabilityRegistry.
+// Registry is a package-level singleton and outlives individual extension
+// instances. The OpAMP client supplied via SetClient is cached and
+// forwarded to whichever opamp_connection extension instance is currently
+// attached, including instances that attach later (e.g. across a
+// collector restart). Per-extension state — registered capabilities and
+// message channels — lives with the extension instance and is abandoned
+// when that instance shuts down.
 //
-// The owner of the OpAMP connection (the opamp package) is expected to
-// supply the underlying client by calling SetClient and to forward incoming
-// custom messages by calling ProcessMessage.
+// The Register half of the upstream
+// opampcustommessages.CustomCapabilityRegistry interface is intentionally
+// not exposed here; components retrieve the extension itself via the
+// collector host and call Register on it directly.
 type Registry interface {
-	opampcustommessages.CustomCapabilityRegistry
-
-	// SetClient supplies the underlying OpAMP client that the registry will
-	// use to advertise custom capabilities and send custom messages. Any
-	// capabilities that were Registered before SetClient is called are
-	// advertised to the server at this point.
+	// SetClient supplies the underlying OpAMP client. The client is
+	// cached and forwarded to the currently-attached extension instance
+	// (if any) as well as to any instance that attaches in the future.
 	SetClient(c CustomCapabilityClient)
 
 	// ProcessMessage dispatches a custom message received from the OpAMP
-	// server to all handlers registered for its capability. Messages for
-	// capabilities with no registered handler are silently dropped.
+	// server to all handlers registered with the currently-attached
+	// extension instance. Messages received while no extension is
+	// attached are silently dropped.
 	ProcessMessage(cm *protobufs.CustomMessage)
 }
 
-// GetRegistry returns the Registry for the currently-started
-// opamp_connection extension, or nil if no extension is started. Only one
-// opamp_connection extension may be configured per collector, so this is
-// effectively a singleton lookup.
-//
-// It is intended to be called by the owner of the OpAMP connection (the
-// opamp package) so that it can wire its client into the extension once
-// both have been created.
+// GetRegistry returns the package-level Registry. It is always non-nil,
+// including when no opamp_connection extension is currently started:
+// SetClient calls are cached and ProcessMessage calls are dropped in that
+// case.
 func GetRegistry() Registry {
-	instanceMux.Lock()
-	defer instanceMux.Unlock()
-	if instance == nil {
-		return nil
-	}
-	return instance
+	return &manager
 }
 
-var (
-	instanceMux sync.Mutex
-	instance    *opampConnectionExtension
-)
+// manager is the package-level bridge between the opamp package and
+// whichever opamp_connection extension instance is currently started.
+// Because the collector rebuilds every component from its factory on each
+// restart, the extension instance itself is short-lived; the manager
+// remembers the client across those restarts so capabilities registered
+// by the next instance can be advertised immediately.
+var manager instanceManager
 
-// opampConnectionExtension is the concrete extension implementation. It is a
-// thin wrapper around customCapabilityRegistry that adds the extension
-// lifecycle and a package-level singleton so the OpAMP connection owner can
-// supply the underlying client.
+type instanceManager struct {
+	mux      sync.Mutex
+	instance *opampConnectionExtension
+	client   CustomCapabilityClient
+}
+
+// attach records e as the currently-started extension instance. If a
+// client has already been supplied via SetClient, it is forwarded to e's
+// registry so that capabilities registered against e are advertised
+// immediately.
+func (m *instanceManager) attach(e *opampConnectionExtension) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	if m.instance != nil {
+		return fmt.Errorf(
+			"only one opamp_connection extension may be configured per collector; %q is already configured",
+			m.instance.id,
+		)
+	}
+	m.instance = e
+	if m.client != nil {
+		e.registry.setClient(m.client)
+	}
+	return nil
+}
+
+// detach clears the currently-started instance if it is e. The cached
+// client is intentionally not cleared: it belongs to the opamp package,
+// not to any one extension instance, and must be forwarded to the next
+// instance that attaches.
+func (m *instanceManager) detach(e *opampConnectionExtension) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	if m.instance == e {
+		m.instance = nil
+	}
+}
+
+// SetClient implements Registry.
+func (m *instanceManager) SetClient(c CustomCapabilityClient) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	m.client = c
+	if m.instance != nil {
+		m.instance.registry.setClient(c)
+	}
+}
+
+// ProcessMessage implements Registry.
+func (m *instanceManager) ProcessMessage(cm *protobufs.CustomMessage) {
+	m.mux.Lock()
+	inst := m.instance
+	m.mux.Unlock()
+	if inst == nil {
+		return
+	}
+	inst.registry.ProcessMessage(cm)
+}
+
+// opampConnectionExtension is the concrete extension implementation. It
+// owns a per-instance customCapabilityRegistry whose lifetime matches the
+// extension's: on Shutdown the registry — and every capability and
+// message channel it holds — is abandoned. The package-level manager
+// bridges whichever instance is currently attached to the long-lived
+// OpAMP client.
 type opampConnectionExtension struct {
 	id       component.ID
 	logger   *zap.Logger
@@ -92,8 +151,8 @@ type opampConnectionExtension struct {
 }
 
 var (
-	_ extension.Extension = (*opampConnectionExtension)(nil)
-	_ Registry            = (*opampConnectionExtension)(nil)
+	_ extension.Extension                          = (*opampConnectionExtension)(nil)
+	_ opampcustommessages.CustomCapabilityRegistry = (*opampConnectionExtension)(nil)
 )
 
 func newExtension(id component.ID, logger *zap.Logger) *opampConnectionExtension {
@@ -104,46 +163,23 @@ func newExtension(id component.ID, logger *zap.Logger) *opampConnectionExtension
 	}
 }
 
-// Start records the extension as the package-level singleton so that the
-// opamp package can look it up and supply the OpAMP client.
-//
-// Only a single opamp_connection extension may be configured per collector,
-// since they would otherwise overwrite each other's advertised custom
-// capabilities whenever a component registers or unregisters one.
+// Start attaches this extension instance to the package-level manager.
+// Only a single opamp_connection extension may be configured per
+// collector, since they would otherwise overwrite each other's advertised
+// custom capabilities whenever a component registers or unregisters one.
 func (e *opampConnectionExtension) Start(_ context.Context, _ component.Host) error {
-	instanceMux.Lock()
-	defer instanceMux.Unlock()
-	if instance != nil {
-		return fmt.Errorf(
-			"only one opamp_connection extension may be configured per collector; %q is already configured",
-			instance.id,
-		)
-	}
-	instance = e
-	return nil
+	return manager.attach(e)
 }
 
-// Shutdown clears the package-level singleton.
+// Shutdown detaches this extension instance from the package-level
+// manager. The per-instance registry is abandoned along with any
+// capabilities registered against it.
 func (e *opampConnectionExtension) Shutdown(_ context.Context) error {
-	instanceMux.Lock()
-	defer instanceMux.Unlock()
-	if instance == e {
-		instance = nil
-	}
+	manager.detach(e)
 	return nil
-}
-
-// SetClient implements Registry.
-func (e *opampConnectionExtension) SetClient(c CustomCapabilityClient) {
-	e.registry.setClient(c)
 }
 
 // Register implements opampcustommessages.CustomCapabilityRegistry.
 func (e *opampConnectionExtension) Register(capability string, opts ...opampcustommessages.CustomCapabilityRegisterOption) (opampcustommessages.CustomCapabilityHandler, error) {
 	return e.registry.Register(capability, opts...)
-}
-
-// ProcessMessage implements Registry.
-func (e *opampConnectionExtension) ProcessMessage(cm *protobufs.CustomMessage) {
-	e.registry.ProcessMessage(cm)
 }
