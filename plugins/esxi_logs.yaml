@@ -33,7 +33,7 @@ parameters:
 
 template: |
   receivers: 
-    tcplog:
+    tcp_log:
       listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
       attributes:
         log_type: vmware_esxi
@@ -122,4 +122,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [tcplog]
+        receivers: [tcp_log]

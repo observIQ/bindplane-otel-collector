@@ -40,7 +40,7 @@ parameters:
 
 template: |
   receivers:
-    windowseventlog/general:
+    windows_event_log/general:
       channel: "Directory Service"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -60,7 +60,7 @@ template: |
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
         {{ end }}
-    windowseventlog/web_services:
+    windows_event_log/web_services:
       channel: "Active Directory Web Services"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -81,7 +81,7 @@ template: |
           parse_from: body
         {{ end }}
     {{ if .enable_dns_server }}
-    windowseventlog/dns:
+    windows_event_log/dns:
       channel: "DNS Server"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -103,7 +103,7 @@ template: |
         {{ end }}
     {{ end }}
     {{ if .enable_dfs_replication }}
-    windowseventlog/dfs:
+    windows_event_log/dfs:
       channel: "DFS Replication"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -125,7 +125,7 @@ template: |
         {{ end }}
     {{ end }}
     {{ if .enable_file_replication }}
-    windowseventlog/frs:
+    windows_event_log/frs:
       channel: "File Replication Service"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -151,14 +151,14 @@ template: |
     pipelines:
       logs:
         receivers:
-          - windowseventlog/general
-          - windowseventlog/web_services
+          - windows_event_log/general
+          - windows_event_log/web_services
           {{ if .enable_dns_server }}
-          - windowseventlog/dns
+          - windows_event_log/dns
           {{ end }}
           {{ if .enable_dfs_replication }}
-          - windowseventlog/dfs
+          - windows_event_log/dfs
           {{ end }}
           {{ if .enable_file_replication }}
-          - windowseventlog/frs
+          - windows_event_log/frs
           {{ end }}

@@ -21,7 +21,7 @@ parameters:
 
 template: |
   receivers:
-    udplog:
+    udp_log:
       listen_address: "{{ .listen_ip }}:{{ .listen_port }}"
       add_attributes: true
       operators:
@@ -131,4 +131,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [udplog]
+        receivers: [udp_log]
