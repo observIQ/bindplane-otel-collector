@@ -61,3 +61,6 @@ perf-test/
 
 # OCSF Schema files
 ocsf_schema.json
+
+# Claude Code per-user local settings
+.claude/settings.local.json
