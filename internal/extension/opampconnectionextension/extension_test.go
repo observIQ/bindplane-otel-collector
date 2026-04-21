@@ -49,33 +49,11 @@ func TestExtension_Shutdown_AllowsSubsequentStart(t *testing.T) {
 }
 
 func TestGetRegistry(t *testing.T) {
-	id := component.MustNewIDWithName("opamp_connection", "lookup")
-	ext := newExtension(id, zap.NewNop())
+	require.Nil(t, GetRegistry(), "should return nil before Start")
 
-	require.Nil(t, GetRegistry(id), "should return nil before Start")
-
+	ext := newExtension(component.MustNewIDWithName("opamp_connection", "lookup"), zap.NewNop())
 	require.NoError(t, ext.Start(context.Background(), nil))
 	t.Cleanup(func() { _ = ext.Shutdown(context.Background()) })
 
-	got := GetRegistry(id)
-	require.NotNil(t, got)
-	require.Equal(t, Registry(ext), got)
-
-	require.Nil(t, GetRegistry(component.MustNewIDWithName("opamp_connection", "other")))
-}
-
-func TestForEachInstance(t *testing.T) {
-	id := component.MustNewIDWithName("opamp_connection", "foreach")
-	ext := newExtension(id, zap.NewNop())
-
-	require.NoError(t, ext.Start(context.Background(), nil))
-	t.Cleanup(func() { _ = ext.Shutdown(context.Background()) })
-
-	var seen []Registry
-	ForEachInstance(func(r Registry) {
-		seen = append(seen, r)
-	})
-
-	require.Len(t, seen, 1)
-	require.Equal(t, Registry(ext), seen[0])
+	require.Equal(t, Registry(ext), GetRegistry())
 }

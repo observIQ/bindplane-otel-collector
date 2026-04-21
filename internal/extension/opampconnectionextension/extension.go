@@ -59,46 +59,31 @@ type Registry interface {
 	ProcessMessage(cm *protobufs.CustomMessage)
 }
 
-// GetRegistry returns the Registry for the extension registered under the
-// given component ID, or nil if no such extension exists. It is intended to
-// be called by the owner of the OpAMP connection (the opamp package) so
-// that it can wire its client into the extension once both have been
-// created.
-func GetRegistry(id component.ID) Registry {
-	instancesMux.Lock()
-	defer instancesMux.Unlock()
-	if inst, ok := instances[id]; ok {
-		return inst
+// GetRegistry returns the Registry for the currently-started
+// opamp_connection extension, or nil if no extension is started. Only one
+// opamp_connection extension may be configured per collector, so this is
+// effectively a singleton lookup.
+//
+// It is intended to be called by the owner of the OpAMP connection (the
+// opamp package) so that it can wire its client into the extension once
+// both have been created.
+func GetRegistry() Registry {
+	instanceMux.Lock()
+	defer instanceMux.Unlock()
+	if instance == nil {
+		return nil
 	}
-	return nil
-}
-
-// ForEachInstance invokes f for every opamp_connection extension instance
-// that is currently started. It is intended for use by the owner of the
-// OpAMP connection (the opamp package) to propagate the underlying client
-// and forward incoming custom messages to every registered extension
-// without needing to know their component IDs ahead of time.
-func ForEachInstance(f func(Registry)) {
-	instancesMux.Lock()
-	snapshot := make([]*opampConnectionExtension, 0, len(instances))
-	for _, inst := range instances {
-		snapshot = append(snapshot, inst)
-	}
-	instancesMux.Unlock()
-
-	for _, inst := range snapshot {
-		f(inst)
-	}
+	return instance
 }
 
 var (
-	instancesMux sync.Mutex
-	instances    = map[component.ID]*opampConnectionExtension{}
+	instanceMux sync.Mutex
+	instance    *opampConnectionExtension
 )
 
 // opampConnectionExtension is the concrete extension implementation. It is a
 // thin wrapper around customCapabilityRegistry that adds the extension
-// lifecycle and a package-level lookup so the OpAMP connection owner can
+// lifecycle and a package-level singleton so the OpAMP connection owner can
 // supply the underlying client.
 type opampConnectionExtension struct {
 	id       component.ID
@@ -119,30 +104,32 @@ func newExtension(id component.ID, logger *zap.Logger) *opampConnectionExtension
 	}
 }
 
-// Start registers the extension in the package-level instance map so that
-// the opamp package can look it up and supply the OpAMP client.
+// Start records the extension as the package-level singleton so that the
+// opamp package can look it up and supply the OpAMP client.
 //
 // Only a single opamp_connection extension may be configured per collector,
 // since they would otherwise overwrite each other's advertised custom
 // capabilities whenever a component registers or unregisters one.
 func (e *opampConnectionExtension) Start(_ context.Context, _ component.Host) error {
-	instancesMux.Lock()
-	defer instancesMux.Unlock()
-	for id := range instances {
+	instanceMux.Lock()
+	defer instanceMux.Unlock()
+	if instance != nil {
 		return fmt.Errorf(
 			"only one opamp_connection extension may be configured per collector; %q is already configured",
-			id,
+			instance.id,
 		)
 	}
-	instances[e.id] = e
+	instance = e
 	return nil
 }
 
-// Shutdown removes the extension from the package-level instance map.
+// Shutdown clears the package-level singleton.
 func (e *opampConnectionExtension) Shutdown(_ context.Context) error {
-	instancesMux.Lock()
-	defer instancesMux.Unlock()
-	delete(instances, e.id)
+	instanceMux.Lock()
+	defer instanceMux.Unlock()
+	if instance == e {
+		instance = nil
+	}
 	return nil
 }
 
