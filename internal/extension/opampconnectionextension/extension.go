@@ -27,9 +27,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// ErrClientNotSet is returned when an operation that requires the underlying
-// OpAMP client is attempted before the owner of the connection has called
-// SetClient.
+// ErrClientNotSet is returned by operations that require the underlying
+// OpAMP client (currently only sending messages) when they are attempted
+// before the owner of the connection has called SetClient. Register itself
+// does not return this error — capabilities Registered before the client is
+// set are advertised automatically once SetClient is called.
 var ErrClientNotSet = errors.New("opamp client has not been set on opamp connection extension")
 
 // Registry is the public interface that processors and other collector
@@ -46,8 +48,9 @@ type Registry interface {
 	opampcustommessages.CustomCapabilityRegistry
 
 	// SetClient supplies the underlying OpAMP client that the registry will
-	// use to advertise custom capabilities and send custom messages. It must
-	// be called before any component attempts to Register a capability.
+	// use to advertise custom capabilities and send custom messages. Any
+	// capabilities that were Registered before SetClient is called are
+	// advertised to the server at this point.
 	SetClient(c CustomCapabilityClient)
 
 	// ProcessMessage dispatches a custom message received from the OpAMP

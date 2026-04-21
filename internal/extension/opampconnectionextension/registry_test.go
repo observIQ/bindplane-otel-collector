@@ -16,9 +16,9 @@
 // package of opentelemetry-collector-contrib. It is kept deliberately close
 // to that file so the two implementations can be compared and kept in sync.
 // The main deltas are: the registry is constructed without a client and the
-// client is supplied later via setClient, and there is an additional test
-// verifying that Register returns ErrClientNotSet before setClient is
-// called.
+// client is supplied later via setClient; there are additional tests
+// covering the deferred-advertise behavior when Register is called before
+// setClient, and that SendMessage returns ErrClientNotSet in that window.
 
 package opampconnectionextension
 
@@ -74,13 +74,43 @@ func TestRegistry_Register(t *testing.T) {
 		require.Empty(t, registry.capabilityToMsgChannels, "Setting capability failed, but callback ended up in the map anyways")
 	})
 
-	t.Run("Register before client is set returns ErrClientNotSet", func(t *testing.T) {
+	t.Run("Register before client is set defers advertisement", func(t *testing.T) {
+		capabilityString := "io.opentelemetry.teapot"
+
+		var advertised []*protobufs.CustomCapabilities
+		client := mockCustomCapabilityClient{
+			setCustomCapabilities: func(customCapabilities *protobufs.CustomCapabilities) error {
+				advertised = append(advertised, customCapabilities)
+				return nil
+			},
+		}
+
+		registry := newCustomCapabilityRegistry(zap.NewNop())
+
+		// Register before the client is supplied — Register should succeed
+		// and the capability should NOT be advertised yet.
+		sender, err := registry.Register(capabilityString)
+		require.NoError(t, err)
+		require.NotNil(t, sender)
+		require.Empty(t, advertised, "no advertisement should happen before setClient")
+
+		// Supplying the client flushes the accumulated capabilities.
+		registry.setClient(client)
+		require.Equal(t,
+			[]*protobufs.CustomCapabilities{{Capabilities: []string{capabilityString}}},
+			advertised,
+		)
+	})
+
+	t.Run("SendMessage before client is set returns ErrClientNotSet", func(t *testing.T) {
 		registry := newCustomCapabilityRegistry(zap.NewNop())
 
 		sender, err := registry.Register("io.opentelemetry.teapot")
-		require.Nil(t, sender)
+		require.NoError(t, err)
+		require.NotNil(t, sender)
+
+		_, err = sender.SendMessage("brew", []byte("black"))
 		require.ErrorIs(t, err, ErrClientNotSet)
-		require.Empty(t, registry.capabilityToMsgChannels)
 	})
 }
 
