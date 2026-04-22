@@ -1421,6 +1421,10 @@ github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v
 github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.3.0/go.mod h1:vmnO/gnhgdtz+Cw3av+K9SGXKSfDPLpJpZM+/wPfMFI=
 github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.3.0 h1:Dd8iY/HoF4ZVLjyJmglZar+AfvFt0sIlok4vjlNfYRY=
 github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.3.0/go.mod h1:xPcUaps/naXEy517RlXxAuZ3k9mS4riAKPGDrVjqwP0=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e h1:dLJ1ED6FH9jnCDDaVxTQuSX9gu3cz1HVjNHbTXZtghE=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e/go.mod h1:UnhYNTPJgpwIb+iOmcrExD2j4nj1EMaF6rmGf/mu+QI=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e h1:nMxG7DdELqcTzJBWJOL75OrtMtn2eUobT6Nw8NyOnuU=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e/go.mod h1:ZWrqXQPd7NEu47TCATJWvZvwi4d2S54QCP1rqf7CEvg=
 github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/okta/okta-sdk-golang/v6 v6.1.6 h1:bObKXhkFh1c1tCfjcYoRoTjDJeIPMsEZHrjLasawEpk=
@@ -1638,8 +1642,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetr
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.150.0/go.mod h1:9tXsrbOJEKQ/eR2DqJTgsgIjeM0fmVgTf1+Dwk7j6Ns=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.150.0 h1:j5iy9zW2retw7zReQaePhamvO1GirZyG6EeUNcrKs6o=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.150.0/go.mod h1:QJBpqumy1Wlr0pCJDbWkCzN76/W1JTUfSyE9EwAbqic=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.150.0 h1:/B1TGAXOJm6HCL+9BwyR6L/CoIa9kW1D2UHAl247yww=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.150.0/go.mod h1:UnhYNTPJgpwIb+iOmcrExD2j4nj1EMaF6rmGf/mu+QI=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.150.0 h1:tTsLH1CNY3gtQAig1cpUwhTalszdJynitkID/KHQO38=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.150.0/go.mod h1:LekRbCvy+oEIdEl+KxUO7NABHCGjAHVvB2+r/cK3T+8=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.150.0 h1:lz0XapQI68IXDBOQxwDBOSdZwuGgkyNLkg5SxW/GWUc=
@@ -1846,8 +1848,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/vcenterreceiv
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/vcenterreceiver v0.150.0/go.mod h1:6l/+Y/YK9Hk2YRp3cKny+Tjg2JYj4T13o60cwCdGrxg=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/webhookeventreceiver v0.150.0 h1:JC8LUiloxO3ImcwBtTTcAVUY/bDTbBaWEmoQiMuBjek=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/webhookeventreceiver v0.150.0/go.mod h1:M3onDYjw/55DLjlMIHq+ryFGMCDkhIhiegSJ8VFbYgw=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.150.0 h1:feQhX8mXlEl22Ar8YMBOMjwm8sBI/1tWA3G3OxGfOQk=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.150.0/go.mod h1:Axs/9ztuAu+ntKBrLNWlvZTwGyVf+IzBkhGwXUop4k8=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsperfcountersreceiver v0.150.0 h1:9FcRfxAt6RpP/ihOSkeJQgazycHEUBwoIFkWDT/5eWs=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsperfcountersreceiver v0.150.0/go.mod h1:JdRBovb/6YLWUPAhrXX9UiZEY3F4zT21DOkb6V1W/ag=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.150.0 h1:ubF2YOhn+rj73MsbV/xXwuVEPTKpGCsEvR1ZO2auNqY=
