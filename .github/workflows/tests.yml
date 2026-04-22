@@ -149,6 +149,11 @@ jobs:
 
       - name: Run All Tests
         run: make test
+        env:
+          TMPDIR: D:\Temp
+          TMP: D:\Temp  
+          TEMP: D:\Temp
+          GOTMPDIR: D:\Temp
 
       # Run updater integration tests for Ubuntu and macOS (always)
       # For Windows, only run when updater code changed
