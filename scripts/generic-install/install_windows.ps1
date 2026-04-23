@@ -17,13 +17,15 @@
     Installs or uninstalls an OTel Distro Builder distribution on Windows.
 
 .DESCRIPTION
-    Downloads and installs the appropriate MSI (amd64 or arm64) for the current
-    machine architecture. The MSI is resolved from a GitHub releases page unless
-    overridden. Pass -Uninstall to remove an existing installation.
+    Downloads the appropriate MSI (amd64 or arm64) for the current machine
+    architecture and hands it to msiexec. The MSI is resolved from a GitHub
+    releases page unless overridden. Pass -Uninstall to run msiexec /x against
+    the same MSI; the MSI must still be resolvable via -Url/-Version, -MsiUrl,
+    or -MsiFile, and must match the installed version.
 
 .PARAMETER Distribution
-    Name of the distribution to install (e.g. "mydistribution"). This value is
-    used to construct the MSI filename and to locate the product during uninstall.
+    Name of the distribution (e.g. "mydistribution"). Used to construct the MSI
+    filename and the install/uninstall log filename.
 
 .PARAMETER Url
     GitHub repository URL (e.g. "https://github.com/org/repo"). Required unless
@@ -51,18 +53,15 @@
     ignored.
 
 .PARAMETER MsiFile
-    Path to a local MSI file to install. Skips all download and version
-    resolution steps.
-
-.PARAMETER ProductName
-    Display name used to locate the installed product during uninstall. Defaults
-    to the value of -Distribution.
+    Path to a local MSI file. Skips all download and version resolution steps.
 
 .PARAMETER Interactive
     Show the installer UI instead of running silently.
 
 .PARAMETER Uninstall
-    Uninstall the distribution instead of installing it.
+    Uninstall the distribution instead of installing it. Resolves the MSI the
+    same way as install (-Url/-Version, -MsiUrl, or -MsiFile) and runs
+    msiexec /x against it.
 
 .PARAMETER SkipSignatureCheck
     Skip MSI Authenticode signature verification.
@@ -79,7 +78,9 @@
         -Version "1.2.3"
 
 .EXAMPLE
-    .\install_windows.ps1 -Distribution "mydistribution" -Uninstall
+    .\install_windows.ps1 -Distribution "mydistribution" `
+        -Url "https://github.com/org/repo" `
+        -Version "1.2.3" -Uninstall
 #>
 
 [CmdletBinding()]
@@ -110,9 +111,6 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$MsiFile,
-
-    [Parameter(Mandatory = $false)]
-    [string]$ProductName,
 
     [Parameter(Mandatory = $false)]
     [switch]$Interactive,
@@ -250,61 +248,18 @@ function Build-MsiexecArgs {
     return $msiArgs
 }
 
-# ---- Uninstall ---------------------------------------------------------------
-
-function Get-ProductCode {
-    param([string]$Name)
-    $paths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
-        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
-    )
-    return Get-ItemProperty $paths -ErrorAction SilentlyContinue |
-        Where-Object { $_.DisplayName -like "*$Name*" } |
-        Select-Object -First 1 -ExpandProperty PSChildName
-}
-
-function Invoke-Uninstall {
-    $searchName = if ($ProductName) { $ProductName } else { $Distribution }
-    Write-Info "Searching for installed product matching '$searchName'..."
-
-    $productCode = Get-ProductCode -Name $searchName
-    if (-not $productCode) {
-        Fail "No installed product found matching '$searchName'."
-    }
-
-    Write-Info "Found product code: $productCode"
-
-    $msiArgs = @("/x", $productCode)
-    if (-not $Interactive) {
-        $msiArgs += "/quiet"
-    }
-
-    Write-Info "Running: msiexec $($msiArgs -join ' ')"
-
-    $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
-    switch ($proc.ExitCode) {
-        0    { Write-Info "Uninstallation completed successfully." }
-        3010 { Write-Warn "Uninstallation succeeded. A reboot is required to complete removal." }
-        default { Fail "msiexec exited with code $($proc.ExitCode). See Windows Event Log for details." }
-    }
-}
-
 # ---- Main --------------------------------------------------------------------
 
 function Main {
     Assert-Administrator
-
-    if ($Uninstall) {
-        Invoke-Uninstall
-        return
-    }
 
     if (-not $MsiFile -and -not $MsiUrl -and -not $Url) {
         Fail "Either -Url, -MsiUrl, or -MsiFile must be provided."
     }
 
     $tmpDir = [System.IO.Path]::GetTempPath()
-    $logPath = Join-Path $tmpDir "$Distribution-install.log"
+    $action = if ($Uninstall) { "uninstall" } else { "install" }
+    $logPath = Join-Path $tmpDir "$Distribution-$action.log"
     $cleanupMsi = $false
 
     if ($MsiFile) {
@@ -350,7 +305,16 @@ function Main {
         Write-Info "MSI signature verification successful."
     }
 
-    $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
+    if ($Uninstall) {
+        $msiArgs = @("/x", "`"$msiPath`"", "/l*v", "`"$logPath`"")
+        if (-not $Interactive) {
+            $msiArgs += "/quiet"
+        }
+    }
+    else {
+        $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
+    }
+
     Write-Info "Running: msiexec $($msiArgs -join ' ')"
 
     $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
@@ -365,12 +329,22 @@ function Main {
         }
     }
 
-    switch ($exitCode) {
-        0    { Write-Info "Installation completed successfully." }
-        1603 { Fail "Installation failed. See the install log for details: $logPath" }
-        1638 { Write-Info "$Distribution is already installed at this version. No changes made." }
-        3010 { Write-Warn "Installation succeeded. A reboot is required to complete setup." }
-        default { Fail "msiexec exited with code $exitCode. See the install log for details: $logPath" }
+    if ($Uninstall) {
+        switch ($exitCode) {
+            0    { Write-Info "Uninstallation completed successfully." }
+            1605 { Fail "Product is not installed (msiexec 1605). See the log for details: $logPath" }
+            3010 { Write-Warn "Uninstallation succeeded. A reboot is required to complete removal." }
+            default { Fail "msiexec exited with code $exitCode. See the log for details: $logPath" }
+        }
+    }
+    else {
+        switch ($exitCode) {
+            0    { Write-Info "Installation completed successfully." }
+            1603 { Fail "Installation failed. See the install log for details: $logPath" }
+            1638 { Write-Info "$Distribution is already installed at this version. No changes made." }
+            3010 { Write-Warn "Installation succeeded. A reboot is required to complete setup." }
+            default { Fail "msiexec exited with code $exitCode. See the install log for details: $logPath" }
+        }
     }
 }
 
