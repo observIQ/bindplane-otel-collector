@@ -332,8 +332,9 @@ func TestCustomCapability_Unregister(t *testing.T) {
 }
 
 type mockCustomCapabilityClient struct {
-	sendCustomMessage     func(message *protobufs.CustomMessage) (chan struct{}, error)
-	setCustomCapabilities func(customCapabilities *protobufs.CustomCapabilities) error
+	sendCustomMessage      func(message *protobufs.CustomMessage) (chan struct{}, error)
+	setCustomCapabilities  func(customCapabilities *protobufs.CustomCapabilities) error
+	setAvailableComponents func(components *protobufs.AvailableComponents) error
 }
 
 func (m mockCustomCapabilityClient) SetCustomCapabilities(customCapabilities *protobufs.CustomCapabilities) error {
@@ -349,4 +350,11 @@ func (m mockCustomCapabilityClient) SendCustomMessage(message *protobufs.CustomM
 	}
 
 	return make(chan struct{}), nil
+}
+
+func (m mockCustomCapabilityClient) SetAvailableComponents(components *protobufs.AvailableComponents) error {
+	if m.setAvailableComponents != nil {
+		return m.setAvailableComponents(components)
+	}
+	return nil
 }

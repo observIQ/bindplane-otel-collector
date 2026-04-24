@@ -21,8 +21,18 @@ import (
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/service"
 	"go.uber.org/zap"
 )
+
+// moduleInfoHost is a component.Host that exposes GetModuleInfos, which is
+// what the collector's real host does for extensions.
+type moduleInfoHost struct {
+	component.Host
+	moduleInfos service.ModuleInfos
+}
+
+func (m moduleInfoHost) GetModuleInfos() service.ModuleInfos { return m.moduleInfos }
 
 // resetManager clears the package-level manager state between tests so a
 // leaked instance or client reference from one test does not affect
@@ -151,6 +161,87 @@ func TestRegistry_CachesClientAcrossInstances(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, advertised, 1, "capability registered after restart should be advertised")
 	require.Equal(t, []string{"io.opentelemetry.teapot"}, advertised[0].Capabilities)
+}
+
+func TestExtension_Start_AdvertisesAvailableComponents(t *testing.T) {
+	resetManager(t)
+
+	var got []*protobufs.AvailableComponents
+	client := mockCustomCapabilityClient{
+		setAvailableComponents: func(components *protobufs.AvailableComponents) error {
+			got = append(got, components)
+			return nil
+		},
+	}
+	GetRegistry().SetClient(client)
+
+	host := moduleInfoHost{
+		moduleInfos: service.ModuleInfos{
+			Receiver: map[component.Type]service.ModuleInfo{
+				component.MustNewType("nop"): {BuilderRef: "go.opentelemetry.io/collector/receiver/nopreceiver v0.0.0"},
+			},
+		},
+	}
+
+	ext := newExtension(component.MustNewIDWithName("opamp_connection", "x"), zap.NewNop())
+	require.NoError(t, ext.Start(context.Background(), host))
+	t.Cleanup(func() { _ = ext.Shutdown(context.Background()) })
+
+	require.Len(t, got, 1)
+	require.NotEmpty(t, got[0].Hash)
+	require.Contains(t, got[0].Components, "receivers")
+	require.Contains(t, got[0].Components["receivers"].SubComponentMap, "nop")
+}
+
+func TestExtension_Start_HostWithoutModuleInfoAdvertisesEmpty(t *testing.T) {
+	resetManager(t)
+
+	var got []*protobufs.AvailableComponents
+	client := mockCustomCapabilityClient{
+		setAvailableComponents: func(components *protobufs.AvailableComponents) error {
+			got = append(got, components)
+			return nil
+		},
+	}
+	GetRegistry().SetClient(client)
+
+	ext := newExtension(component.MustNewIDWithName("opamp_connection", "x"), zap.NewNop())
+	require.NoError(t, ext.Start(context.Background(), nil))
+	t.Cleanup(func() { _ = ext.Shutdown(context.Background()) })
+
+	require.Len(t, got, 1)
+	require.NotNil(t, got[0])
+}
+
+func TestExtension_SetClientAfterStart_AdvertisesAvailableComponents(t *testing.T) {
+	resetManager(t)
+
+	var got []*protobufs.AvailableComponents
+	client := mockCustomCapabilityClient{
+		setAvailableComponents: func(components *protobufs.AvailableComponents) error {
+			got = append(got, components)
+			return nil
+		},
+	}
+
+	host := moduleInfoHost{
+		moduleInfos: service.ModuleInfos{
+			Receiver: map[component.Type]service.ModuleInfo{
+				component.MustNewType("nop"): {BuilderRef: "go.opentelemetry.io/collector/receiver/nopreceiver v0.0.0"},
+			},
+		},
+	}
+
+	// Start before the client is supplied — no advertisement yet.
+	ext := newExtension(component.MustNewIDWithName("opamp_connection", "x"), zap.NewNop())
+	require.NoError(t, ext.Start(context.Background(), host))
+	t.Cleanup(func() { _ = ext.Shutdown(context.Background()) })
+	require.Empty(t, got)
+
+	// Supplying the client should now flush the recorded components.
+	GetRegistry().SetClient(client)
+	require.Len(t, got, 1)
+	require.Contains(t, got[0].Components["receivers"].SubComponentMap, "nop")
 }
 
 func TestRegistry_ProcessMessageRoutesToCurrentInstance(t *testing.T) {
