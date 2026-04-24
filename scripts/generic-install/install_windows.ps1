@@ -55,8 +55,8 @@
 .PARAMETER MsiFile
     Path to a local MSI file. Skips all download and version resolution steps.
 
-.PARAMETER Interactive
-    Show the installer UI instead of running silently.
+.PARAMETER Quiet
+    Run the installer silently instead of showing the installer UI.
 
 .PARAMETER Uninstall
     Uninstall the distribution instead of installing it. Resolves the MSI the
@@ -113,7 +113,7 @@ param(
     [string]$MsiFile,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Interactive,
+    [switch]$Quiet,
 
     [Parameter(Mandatory = $false)]
     [switch]$Uninstall,
@@ -223,7 +223,7 @@ function Build-MsiexecArgs {
 
     $msiArgs = @("/i", "`"$MsiPath`"", "/l*v", "`"$LogPath`"")
 
-    if (-not $Interactive) {
+    if ($Quiet) {
         $msiArgs += "/quiet"
     }
 
@@ -297,17 +297,34 @@ function Main {
         Get-Msi -Url $resolvedUrl -Destination $msiPath
     }
 
-    if (-not $SkipSignatureCheck) {
+    if ($SkipSignatureCheck) {
+        Write-Warn "Authenticode signature verification is being bypassed with the '-SkipSignatureCheck' flag."
+        Write-Warn "This disables a critical security check and should only be used if your organization policies permit it."
+    }
+    else {
         $sig = Get-AuthenticodeSignature -FilePath $msiPath
         if ($sig.Status -ne 'Valid') {
-            Fail "MSI signature verification failed: $($sig.StatusMessage)"
+            $sigMessage = "MSI signature verification failed: $($sig.StatusMessage)"
+            if ($Quiet) {
+                Fail "Failed to verify MSI signature: $($sig.StatusMessage). Use '-SkipSignatureCheck' to skip verification."
+            }
+            Write-Warn $sigMessage
+            Write-Warn "This may indicate: the signing certificate is not trusted on this machine, the MSI has been tampered with, the signature or certificate has expired or been revoked, or the certificate chain could not be verified (e.g., network issues reaching CRL/OCSP)."
+            Write-Warn "Continuing is NOT RECOMMENDED."
+            $response = Read-Host "Continue with unverified MSI anyway? [y/N]"
+            if ($response -notmatch '^[yY]') {
+                Fail "Aborted by user."
+            }
+            Write-Warn "Continuing with unverified MSI at user's request."
         }
-        Write-Info "MSI signature verification successful."
+        else {
+            Write-Info "MSI signature verification successful."
+        }
     }
 
     if ($Uninstall) {
         $msiArgs = @("/x", "`"$msiPath`"", "/l*v", "`"$logPath`"")
-        if (-not $Interactive) {
+        if ($Quiet) {
             $msiArgs += "/quiet"
         }
     }
