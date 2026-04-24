@@ -42,8 +42,8 @@
 .PARAMETER Clean
     Set to "1" to remove existing configuration on install. Default is "0".
 
-.PARAMETER Interactive
-    Show the installer UI instead of running silently.
+.PARAMETER Quiet
+    Run the installer silently instead of showing the installer UI.
 
 .PARAMETER Uninstall
     Uninstall the agent instead of installing it.
@@ -54,13 +54,16 @@
 .PARAMETER MsiFile
     Path to a local MSI file to install. Skips all download and version resolution steps.
 
+.PARAMETER SkipSignatureCheck
+    Skip MSI Authenticode signature verification.
+
 .EXAMPLE
     .\install_windows.ps1 -Version "1.94.0" -EnableManagement "1" `
         -OpAMPEndpoint "<your_endpoint>" `
         -OpAMPSecretKey "<secret-key>"
 
 .EXAMPLE
-    .\install_windows.ps1 -Version "1.94.0" -Interactive
+    .\install_windows.ps1 -Version "1.94.0" -Quiet
 
 .EXAMPLE
     .\install_windows.ps1 -Uninstall
@@ -98,10 +101,13 @@ param(
     [string]$MsiFile,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Interactive,
+    [switch]$Quiet,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Uninstall
+    [switch]$Uninstall,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipSignatureCheck
 )
 
 Set-StrictMode -Version Latest
@@ -201,7 +207,7 @@ function Build-MsiexecArgs {
 
     $msiArgs += "/l*v", "`"$LogPath`""
 
-    if (-not $Interactive) {
+    if ($Quiet) {
         $msiArgs += "/quiet"
     }
 
@@ -256,7 +262,7 @@ function Invoke-Uninstall {
     Write-Info "Found product code: $productCode"
 
     $msiArgs = @("/x", $productCode)
-    if (-not $Interactive) {
+    if ($Quiet) {
         $msiArgs += "/quiet"
     }
 
@@ -321,12 +327,30 @@ function Main {
         Get-Msi -Url $resolvedUrl -Destination $msiPath
     }
 
-    $sig = Get-AuthenticodeSignature -FilePath $msiPath
-    if ($sig.Status -ne 'Valid') {
-        Fail "MSI signature verification failed: $($sig.StatusMessage)"
+    if ($SkipSignatureCheck) {
+        Write-Warn "Authenticode signature verification is being bypassed with the '-SkipSignatureCheck' flag."
+        Write-Warn "This disables a critical security check and should only be used if your organization policies permit it."
     }
-
-    Write-Info "MSI signature verification successful"
+    else {
+        $sig = Get-AuthenticodeSignature -FilePath $msiPath
+        if ($sig.Status -ne 'Valid') {
+            $sigMessage = "MSI signature verification failed: $($sig.StatusMessage)"
+            if ($Quiet) {
+                Fail "Failed to verify MSI signature: $($sig.StatusMessage). Use '-SkipSignatureCheck' to skip verification."
+            }
+            Write-Warn $sigMessage
+            Write-Warn "This may indicate: the signing certificate is not trusted on this machine, the MSI has been tampered with, the signature or certificate has expired or been revoked, or the certificate chain could not be verified (e.g., network issues reaching CRL/OCSP)."
+            Write-Warn "Continuing is NOT RECOMMENDED."
+            $response = Read-Host "Continue with unverified MSI anyway? [y/N]"
+            if ($response -notmatch '^[yY]') {
+                Fail "Aborted by user."
+            }
+            Write-Warn "Continuing with unverified MSI at user's request."
+        }
+        else {
+            Write-Info "MSI signature verification successful"
+        }
+    }
 
     $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
 
