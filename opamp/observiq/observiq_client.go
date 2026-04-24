@@ -57,8 +57,8 @@ const capabilities = protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus
 
 // Ensure interface is satisfied
 var (
-	_ opamp.Client                                    = (*Client)(nil)
-	_ opampconnectionextension.CustomCapabilityClient = (*Client)(nil)
+	_ opamp.Client                    = (*Client)(nil)
+	_ opampconnectionextension.Client = (*Client)(nil)
 )
 
 // hardcodedCustomCapabilities are the custom capabilities that this client
@@ -300,9 +300,9 @@ func (c *Client) Connect(ctx context.Context) error {
 	// client starts (so the extension can advertise custom capabilities as
 	// soon as components register them).
 	//
-	// The Client itself is passed as the underlying CustomCapabilityClient
-	// so that SetCustomCapabilities can intercept and merge in the
-	// hardcoded capabilities.
+	// The Client itself is passed as the underlying
+	// opampconnectionextension.Client so that SetCustomCapabilities can
+	// intercept and merge in the hardcoded capabilities.
 	if r := opampconnectionextension.GetRegistry(); r != nil {
 		r.SetClient(c)
 	}
@@ -344,7 +344,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return c.opampClient.Stop(ctx)
 }
 
-// SetCustomCapabilities implements opampconnectionextension.CustomCapabilityClient.
+// SetCustomCapabilities implements opampconnectionextension.Client.
 //
 // It merges the supplied capabilities with the set that this client always
 // advertises (see hardcodedCustomCapabilities) and forwards the merged list
@@ -363,7 +363,7 @@ func (c *Client) SetCustomCapabilities(customCapabilities *protobufs.CustomCapab
 	})
 }
 
-// SendCustomMessage implements opampconnectionextension.CustomCapabilityClient.
+// SendCustomMessage implements opampconnectionextension.Client.
 func (c *Client) SendCustomMessage(message *protobufs.CustomMessage) (chan struct{}, error) {
 	return c.opampClient.SendCustomMessage(message)
 }
