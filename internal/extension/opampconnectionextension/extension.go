@@ -24,6 +24,8 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/service"
+	"go.opentelemetry.io/collector/service/hostcapabilities"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +56,7 @@ type Registry interface {
 	// SetClient supplies the underlying OpAMP client. The client is
 	// cached and forwarded to the currently-attached extension instance
 	// (if any) as well as to any instance that attaches in the future.
-	SetClient(c CustomCapabilityClient)
+	SetClient(c Client)
 
 	// ProcessMessage dispatches a custom message received from the OpAMP
 	// server to all handlers registered with the currently-attached
@@ -82,12 +84,12 @@ var manager instanceManager
 type instanceManager struct {
 	mux      sync.Mutex
 	instance *opampConnectionExtension
-	client   CustomCapabilityClient
+	client   Client
 }
 
 // attach records e as the currently-started extension instance. If a
-// client has already been supplied via SetClient, it is forwarded to e's
-// registry so that capabilities registered against e are advertised
+// client has already been supplied via SetClient, it is wired to e so
+// that e's capabilities and available components are advertised
 // immediately.
 func (m *instanceManager) attach(e *opampConnectionExtension) error {
 	m.mux.Lock()
@@ -100,7 +102,7 @@ func (m *instanceManager) attach(e *opampConnectionExtension) error {
 	}
 	m.instance = e
 	if m.client != nil {
-		e.registry.setClient(m.client)
+		m.setClientLocked(m.client, e)
 	}
 	return nil
 }
@@ -118,12 +120,24 @@ func (m *instanceManager) detach(e *opampConnectionExtension) {
 }
 
 // SetClient implements Registry.
-func (m *instanceManager) SetClient(c CustomCapabilityClient) {
+func (m *instanceManager) SetClient(c Client) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	m.client = c
 	if m.instance != nil {
-		m.instance.registry.setClient(c)
+		m.setClientLocked(c, m.instance)
+	}
+}
+
+// setClientLocked forwards the client to e's registry (so accumulated custom
+// capabilities are advertised) and advertises e's available components.
+// The caller must hold m.mux.
+func (m *instanceManager) setClientLocked(c Client, e *opampConnectionExtension) {
+	e.registry.setClient(c)
+	if e.availableComponents != nil {
+		if err := c.SetAvailableComponents(e.availableComponents); err != nil {
+			e.logger.Error("Failed to set available components", zap.Error(err))
+		}
 	}
 }
 
@@ -148,6 +162,14 @@ type opampConnectionExtension struct {
 	id       component.ID
 	logger   *zap.Logger
 	registry *customCapabilityRegistry
+
+	// availableComponents is the set of components configured in this
+	// collector instance. It is computed once from the host in Start and
+	// forwarded to the OpAMP client when the client is wired in. Reads
+	// and writes are synchronized through the instanceManager's mutex:
+	// Start sets it before calling manager.attach, and all reads happen
+	// while holding manager.mux.
+	availableComponents *protobufs.AvailableComponents
 }
 
 var (
@@ -167,7 +189,18 @@ func newExtension(id component.ID, logger *zap.Logger) *opampConnectionExtension
 // Only a single opamp_connection extension may be configured per
 // collector, since they would otherwise overwrite each other's advertised
 // custom capabilities whenever a component registers or unregisters one.
-func (e *opampConnectionExtension) Start(_ context.Context, _ component.Host) error {
+func (e *opampConnectionExtension) Start(_ context.Context, host component.Host) error {
+	// Compute the set of components configured in this collector so they
+	// can be advertised to the server. If the host does not expose module
+	// information we still record an empty AvailableComponents so the
+	// client has something to send when the ReportsAvailableComponents
+	// capability is set.
+	var moduleInfos service.ModuleInfos
+	if mi, ok := host.(hostcapabilities.ModuleInfo); ok {
+		moduleInfos = mi.GetModuleInfos()
+	}
+	e.availableComponents = buildAvailableComponents(host, moduleInfos)
+
 	return manager.attach(e)
 }
 

@@ -51,7 +51,8 @@ const capabilities = protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsEffectiveConfig |
 	protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig |
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig |
-	protobufs.AgentCapabilities_AgentCapabilities_ReportsHeartbeat
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsHeartbeat |
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsAvailableComponents
 
 // Ensure interface is satisfied
 var _ opamp.Client = (*Client)(nil)
@@ -287,6 +288,15 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	return err
+}
+
+// SetAvailableComponents forwards the set of components configured in the
+// embedded collector to the OpAMP client so it can be advertised to the
+// server. This matches the signature expected by the opamp_connection
+// extension's Client interface; the extension calls it once the extension
+// has started and the collector host has exposed its module information.
+func (c *Client) SetAvailableComponents(components *protobufs.AvailableComponents) error {
+	return c.opampClient.SetAvailableComponents(components)
 }
 
 // Disconnect disconnects from the server
