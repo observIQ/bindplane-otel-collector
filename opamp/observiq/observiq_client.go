@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
+	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
@@ -55,7 +56,20 @@ const capabilities = protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsAvailableComponents
 
 // Ensure interface is satisfied
-var _ opamp.Client = (*Client)(nil)
+var (
+	_ opamp.Client                    = (*Client)(nil)
+	_ opampconnectionextension.Client = (*Client)(nil)
+)
+
+// hardcodedCustomCapabilities are the custom capabilities that this client
+// always advertises to the OpAMP server regardless of what components have
+// registered via an opamp_connection extension. The observiq client's
+// measurements and topology senders rely on the server knowing about these
+// capabilities even when no component has explicitly registered them.
+var hardcodedCustomCapabilities = []string{
+	measurements.ReportMeasurementsV1Capability,
+	topologyprocessor.ReportTopologyCapability,
+}
 
 // Client represents a client that is connected to Iris via OpAmp
 type Client struct {
@@ -155,12 +169,11 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		return nil, ErrUnsupportedURL
 	}
 
-	err = observiqClient.opampClient.SetCustomCapabilities(&protobufs.CustomCapabilities{
-		Capabilities: []string{
-			measurements.ReportMeasurementsV1Capability,
-			topologyprocessor.ReportTopologyCapability,
-		},
-	})
+	// Advertise the hardcoded custom capabilities. Any additional
+	// capabilities that components register via an opamp_connection
+	// extension will be merged on top of these by the Client's own
+	// SetCustomCapabilities method.
+	err = observiqClient.SetCustomCapabilities(&protobufs.CustomCapabilities{})
 	if err != nil {
 		return nil, fmt.Errorf("error setting custom capabilities: %w", err)
 	}
@@ -281,6 +294,19 @@ func (c *Client) Connect(ctx context.Context) error {
 	// Now that collector has successfully started kick off monitoring
 	c.startCollectorMonitoring(ctx)
 
+	// Wire the OpAMP client into the opamp_connection extension if one was
+	// started by the collector. This must happen after the collector has
+	// started (so the extension has registered itself) and before the OpAMP
+	// client starts (so the extension can advertise custom capabilities as
+	// soon as components register them).
+	//
+	// The Client itself is passed as the underlying
+	// opampconnectionextension.Client so that SetCustomCapabilities can
+	// intercept and merge in the hardcoded capabilities.
+	if r := opampconnectionextension.GetRegistry(); r != nil {
+		r.SetClient(c)
+	}
+
 	err = c.opampClient.Start(ctx, settings)
 	if err != nil {
 		// Set package status file for error (for Updater to pick up), but do not force send to Server
@@ -316,6 +342,30 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	return c.opampClient.Stop(ctx)
+}
+
+// SetCustomCapabilities implements opampconnectionextension.Client.
+//
+// It merges the supplied capabilities with the set that this client always
+// advertises (see hardcodedCustomCapabilities) and forwards the merged list
+// to the underlying OpAMP client. This lets the opamp_connection
+// extension's registry request its own capability set without clobbering
+// the measurements and topology capabilities the observiq client requires.
+func (c *Client) SetCustomCapabilities(customCapabilities *protobufs.CustomCapabilities) error {
+	merged := append([]string(nil), customCapabilities.GetCapabilities()...)
+	for _, capability := range hardcodedCustomCapabilities {
+		if !slices.Contains(merged, capability) {
+			merged = append(merged, capability)
+		}
+	}
+	return c.opampClient.SetCustomCapabilities(&protobufs.CustomCapabilities{
+		Capabilities: merged,
+	})
+}
+
+// SendCustomMessage implements opampconnectionextension.Client.
+func (c *Client) SendCustomMessage(message *protobufs.CustomMessage) (chan struct{}, error) {
+	return c.opampClient.SendCustomMessage(message)
 }
 
 // client callbacks
@@ -407,6 +457,11 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 	if msg.AgentIdentification != nil {
 		if err := c.onAgentIdentificationHandler(ctx, msg.AgentIdentification); err != nil {
 			c.logger.Error("Error while processing Agent Identification Change", zap.Error(err))
+		}
+	}
+	if msg.CustomMessage != nil {
+		if r := opampconnectionextension.GetRegistry(); r != nil {
+			r.ProcessMessage(msg.CustomMessage)
 		}
 	}
 	if msg.CustomCapabilities != nil {
