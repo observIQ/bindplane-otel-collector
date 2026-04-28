@@ -54,7 +54,7 @@ type Registry interface {
 	// SetClient supplies the underlying OpAMP client. The client is
 	// cached and forwarded to the currently-attached extension instance
 	// (if any) as well as to any instance that attaches in the future.
-	SetClient(c CustomCapabilityClient)
+	SetClient(c Client)
 
 	// ProcessMessage dispatches a custom message received from the OpAMP
 	// server to all handlers registered with the currently-attached
@@ -82,7 +82,7 @@ var manager instanceManager
 type instanceManager struct {
 	mux      sync.Mutex
 	instance *opampConnectionExtension
-	client   CustomCapabilityClient
+	client   Client
 }
 
 // attach records e as the currently-started extension instance. If a
@@ -118,7 +118,7 @@ func (m *instanceManager) detach(e *opampConnectionExtension) {
 }
 
 // SetClient implements Registry.
-func (m *instanceManager) SetClient(c CustomCapabilityClient) {
+func (m *instanceManager) SetClient(c Client) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	m.client = c

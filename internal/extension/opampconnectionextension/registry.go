@@ -37,11 +37,11 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 )
 
-// CustomCapabilityClient is the subset of the OpAMP client used by
-// customCapabilityRegistry. It is exported so that the owner of the OpAMP
-// connection can implement it to intercept calls (for example to merge in
-// additional capabilities) before delegating to the real client.
-type CustomCapabilityClient interface {
+// Client is the subset of the OpAMP client used by customCapabilityRegistry.
+// It is exported so that the owner of the OpAMP connection can implement it
+// to intercept calls (for example to merge in additional capabilities)
+// before delegating to the real client.
+type Client interface {
 	SetCustomCapabilities(customCapabilities *protobufs.CustomCapabilities) error
 	SendCustomMessage(message *protobufs.CustomMessage) (messageSendingChannel chan struct{}, err error)
 }
@@ -49,7 +49,7 @@ type CustomCapabilityClient interface {
 type customCapabilityRegistry struct {
 	mux                     *sync.Mutex
 	capabilityToMsgChannels map[string]*list.List
-	client                  CustomCapabilityClient
+	client                  Client
 	logger                  *zap.Logger
 }
 
@@ -66,7 +66,7 @@ func newCustomCapabilityRegistry(logger *zap.Logger) *customCapabilityRegistry {
 // setClient supplies the underlying OpAMP client to the registry. Any
 // capabilities that were Registered before the client was supplied are
 // advertised to the server now.
-func (cr *customCapabilityRegistry) setClient(c CustomCapabilityClient) {
+func (cr *customCapabilityRegistry) setClient(c Client) {
 	cr.mux.Lock()
 	defer cr.mux.Unlock()
 	cr.client = c
