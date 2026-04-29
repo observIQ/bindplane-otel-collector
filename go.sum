@@ -1062,6 +1062,8 @@ github.com/itchyny/timefmt-go v0.1.8 h1:1YEo1JvfXeAHKdjelbYr/uCuhkybaHCeTkH8Bo79
 github.com/itchyny/timefmt-go v0.1.8/go.mod h1:5E46Q+zj7vbTgWY8o5YkMeYb4I6GeWLFnetPy5oBrAI=
 github.com/jaegertracing/jaeger-idl v0.6.0 h1:LOVQfVby9ywdMPI9n3hMwKbyLVV3BL1XH2QqsP5KTMk=
 github.com/jaegertracing/jaeger-idl v0.6.0/go.mod h1:mpW0lZfG907/+o5w5OlnNnig7nHJGT3SfKmRqC42HGQ=
+github.com/jaeyo/go-drain3 v0.1.2 h1:fY21wgbwhzzaoRNSQ+6HVbpYw4KkAYjCFCoERYozIJ8=
+github.com/jaeyo/go-drain3 v0.1.2/go.mod h1:6xr/0Dmq3BglAIZ5tDKiQiZvXevU1rE+qpfYZic9h9Y=
 github.com/jarcoal/httpmock v1.4.1 h1:0Ju+VCFuARfFlhVXFc2HxlcQkfB+Xq12/EotHko+x2A=
 github.com/jarcoal/httpmock v1.4.1/go.mod h1:ftW1xULwo+j0R0JJkJIIi7UKigZUXCLLanykgjwBXL0=
 github.com/jcmturner/aescts/v2 v2.0.0 h1:9YKLH6ey7H4eDBXW8khjYslgyqG2xZikXP0EQFKrle8=
@@ -1665,6 +1667,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumul
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.151.0/go.mod h1:oUwKfAyARk9N1m+ZndqDepHIGyFBTubitsnVqWKcLNs=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.151.0 h1:ul5CHo2afH6Ww+wdOuYKcZIT2uQHFENhjKdJduDRDzM=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.151.0/go.mod h1:DVvI9wF3bvFKfAqEehyCvXQMLJnHX99aIjxNiAHfwGk=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/drainprocessor v0.151.0 h1:nsG9cjv0I9ogsGTo48IM0GMVhTZChRrBxPgNoYR71x0=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/drainprocessor v0.151.0/go.mod h1:pJ5Dp9H8E/z4/w3qdq3S66SxGu08KcfhCxAA4sArp0g=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.151.0 h1:K9brpjSqrYomTWiPfnjZu+IPFpvqIarUUvwWRxrrfqk=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.151.0/go.mod h1:IdIFlrBhWaVcNaXdJV4eAV4fgXKUfs/DPo8QShdq/ZA=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor v0.151.0 h1:gh8vTcxWW5iI6dhiAuOD4Rn1yVwxph2ufkda8E0v9/U=

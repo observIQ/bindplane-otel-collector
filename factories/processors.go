@@ -35,6 +35,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/drainprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor"
@@ -67,6 +68,7 @@ var defaultProcessors = []processor.Factory{
 	deltatocumulativeprocessor.NewFactory(),
 	datapointcountprocessor.NewFactory(),
 	deltatorateprocessor.NewFactory(),
+	drainprocessor.NewFactory(),
 	filterprocessor.NewFactory(),
 	geoipprocessor.NewFactory(),
 	groupbyattrsprocessor.NewFactory(),
