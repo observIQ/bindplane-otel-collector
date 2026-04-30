@@ -21,7 +21,6 @@ jobs:
     with:
       comment_body: ${{ github.event.comment.body }}
       pr_api_url: ${{ github.event.issue.pull_request.url }}
-      pr_labels: ${{ toJSON(github.event.issue.labels) }}
       comment_id: ${{ github.event.comment.id }}
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}

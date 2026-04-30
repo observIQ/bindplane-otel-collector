@@ -1,15 +1,15 @@
 module github.com/observiq/bindplane-otel-collector/updater
 
-go 1.25.7
+go 1.25.9
 
 require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/observiq/bindplane-otel-collector/packagestate v1.97.0
+	github.com/observiq/bindplane-otel-collector/packagestate v1.98.0
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
-	golang.org/x/sys v0.42.0
+	golang.org/x/sys v0.43.0
 )
 
 require (
