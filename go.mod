@@ -27,7 +27,6 @@ require (
 	github.com/observiq/bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.2.0
 	github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.2.0
 	github.com/observiq/bindplane-otel-contrib/processor/samplingprocessor v1.2.0
-	github.com/observiq/bindplane-otel-contrib/processor/sentinelstandardizationprocessor v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-contrib/processor/spancountprocessor v1.2.0
 	github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.2.0
 	github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.2.0
@@ -1025,10 +1024,6 @@ require (
 replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagestate
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
-
-replace github.com/observiq/bindplane-otel-contrib/processor/sentinelstandardizationprocessor => /Users/ekansh/Documents/bindplane-otel-contrib/processor/sentinelstandardizationprocessor
-
-replace github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor => /Users/ekansh/Documents/bindplane-otel-contrib/processor/asimstandardizationprocessor
 
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45

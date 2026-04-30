@@ -28,7 +28,6 @@ import (
 	"github.com/observiq/bindplane-otel-contrib/processor/removeemptyvaluesprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/samplingprocessor"
-	"github.com/observiq/bindplane-otel-contrib/processor/sentinelstandardizationprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/spancountprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor"
@@ -95,7 +94,6 @@ var defaultProcessors = []processor.Factory{
 	resourcedetectionprocessor.NewFactory(),
 	resourceprocessor.NewFactory(),
 	samplingprocessor.NewFactory(),
-	sentinelstandardizationprocessor.NewFactory(),
 	snapshotprocessor.NewFactory(),
 	spancountprocessor.NewFactory(),
 	spanprocessor.NewFactory(),
