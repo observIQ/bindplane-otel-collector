@@ -220,7 +220,6 @@ require (
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/version v1.3.0
-	github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.3.0
@@ -655,7 +654,7 @@ require (
 	go.opentelemetry.io/collector v0.150.0 // indirect
 	go.opentelemetry.io/collector/client v1.56.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.150.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.150.0
+	go.opentelemetry.io/collector/component/componenttest v0.150.0 // indirect
 	go.opentelemetry.io/collector/config/configauth v1.56.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.56.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.150.0 // indirect
@@ -672,7 +671,7 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.150.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.150.0
+	go.opentelemetry.io/collector/consumer/consumertest v0.150.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.150.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.150.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.150.0 // indirect

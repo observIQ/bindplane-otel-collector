@@ -16,7 +16,6 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor"
-	"github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor_v2"
 	"github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor"
@@ -94,7 +93,6 @@ var defaultProcessors = []processor.Factory{
 	resourceprocessor.NewFactory(),
 	samplingprocessor.NewFactory(),
 	snapshotprocessor.NewFactory(),
-	snapshotprocessor_v2.NewFactory(),
 	spancountprocessor.NewFactory(),
 	spanprocessor.NewFactory(),
 	threatenrichmentprocessor.NewFactory(),

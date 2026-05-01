@@ -1379,8 +1379,6 @@ github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposer
 github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.3.0/go.mod h1:spHbq5HZrTwrHnhWcmrryp03WKVcYrZPJwJIJsu0Nls=
 github.com/observiq/bindplane-otel-contrib/processor/samplingprocessor v1.3.0 h1:MlWgf51PBL+vAhEpQ5HVsiyw/HNoA03WhCH8xWJ0Fns=
 github.com/observiq/bindplane-otel-contrib/processor/samplingprocessor v1.3.0/go.mod h1:iPFCXAWcb7rV95uknsVO8g1P74Fxw1G1sGbx3LMyY2Q=
-github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.3.0 h1:gZ7S5Cz9Qr2L5zmr8SeeGm5GRp96w8DbvFIGhE5oq4U=
-github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.3.0/go.mod h1:+9rDq1TLw0CzZff7ub2J4HqGLfCZHvp01ikkI4XSQ5o=
 github.com/observiq/bindplane-otel-contrib/processor/spancountprocessor v1.3.0 h1:dosX7RLxK0Vkm/u7wA3NAjbtte/z2IQlCtcybGZYO0Q=
 github.com/observiq/bindplane-otel-contrib/processor/spancountprocessor v1.3.0/go.mod h1:lzkPtXYL0DWFJOQkx4S8ltaIrQ/lTgkt86wYbu1cUD4=
 github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.3.0 h1:W8ZEEufAFHe8SlCu0p9sA/BL/YBcIGLP2sM6kTTdu1Y=
