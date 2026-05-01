@@ -245,4 +245,3 @@ func TestHandleSnapshotRequest_WrongProcessorIDIsIgnored(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	assert.Empty(t, handler.sentMessages(), "request for a different processor must not be answered")
 }
-
