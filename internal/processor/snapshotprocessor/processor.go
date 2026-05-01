@@ -50,6 +50,12 @@ const (
 // Meant to be overridden for tests.
 var getSnapshotReporter func() *report.SnapshotReporter = report.GetSnapshotReporter
 
+var _ snapshot.Snapshotter = (*report.SnapshotReporter)(nil)
+
+// errShuttingDown is logged by handleSnapshotMessage when shutdown is observed
+// while the send was waiting for a pending-send slot.
+var errShuttingDown = errors.New("snapshot processor is shutting down")
+
 type snapshotProcessor struct {
 	logger      *zap.Logger
 	enabled     bool
@@ -214,7 +220,11 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		case err == nil:
 			return
 		case errors.Is(err, types.ErrCustomMessagePending):
-			<-ch
+			select {
+			case <-ch:
+			case <-sp.doneChan:
+				sp.logger.Error("send snapshot report", zap.Error(errShuttingDown))
+			}
 		default:
 			sp.logger.Error("send snapshot report", zap.Error(err))
 			return
@@ -255,9 +265,6 @@ func (sp *snapshotProcessor) stop(ctx context.Context) error {
 	}
 	unregisterProcessor(sp.processorID)
 
-	if sp.handler != nil {
-		sp.handler.Unregister()
-	}
 	close(sp.doneChan)
 
 	done := make(chan struct{})
@@ -270,6 +277,12 @@ func (sp *snapshotProcessor) stop(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+
+	// Unregister from handler after goroutines have returned
+	if sp.handler != nil {
+		sp.handler.Unregister()
+	}
+
 	return nil
 }
 
@@ -285,7 +298,3 @@ func compress(data []byte) ([]byte, error) {
 	}
 	return b.Bytes(), nil
 }
-
-// snapShotter is unused now but kept as the contract reference for
-// what the processor needs from the report manager.
-var _ snapshot.Snapshotter = (*report.SnapshotReporter)(nil)
