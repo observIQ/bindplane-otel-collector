@@ -1030,8 +1030,8 @@ github.com/hetznercloud/hcloud-go/v2 v2.37.0 h1:PMnuOA8pL8aHLLPp6nnnCTo2Xk2tqu4d
 github.com/hetznercloud/hcloud-go/v2 v2.37.0/go.mod h1:zaDOCKmpnI86ftoCpUpaiYaw9Wew1ib1AcXTh96deYI=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
-github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.15 h1:qwzoa2LrlO2U3nrqLo17h2MpcwfU3qIZwKLhKf5MAZU=
-github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.15/go.mod h1:KuRkBi4n+3E3WOyzbEBVnfe5WOL3wy0WvL/8h02gjbY=
+github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.16 h1:hz/wqRxyHf+zvii5gTlP5nlonlm885HCH+Glgm6ZeNQ=
+github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.16/go.mod h1:KuRkBi4n+3E3WOyzbEBVnfe5WOL3wy0WvL/8h02gjbY=
 github.com/honeycombio/enhance-indexing-s3-exporter/index v0.0.15 h1:eDjXpx63/WyFsLh79JGkJYrg9tlH+DvqEKOZ/N07Vus=
 github.com/honeycombio/enhance-indexing-s3-exporter/index v0.0.15/go.mod h1:bIoIWBMNa/LlD4Snftng5dHUM/pYCxPvukHogXE5un4=
 github.com/hooklift/gowsdl v0.5.0 h1:DE8RevqhGPLchumV/V7OwbCzfJ8lcozFg1uWC/ESCBQ=
