@@ -1315,6 +1315,8 @@ github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter v
 github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.3.0/go.mod h1:5WOg0lVyz6ef2n+lkBPN7Yk806KQCrMDjsRy/3tu94Y=
 github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.3.0 h1:TQfeRBxKvkls8KGF+BM5MNycsvf+N19u+OcgihK/4SY=
 github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.3.0/go.mod h1:aQxU2fS6TuqRWfFegRI4rd6c+v50+sgOZKjtoZE0kpg=
+github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727 h1:SS2HmhlTfyCOOMsqFG0ZoZojB7fQ2tVuW0y8/1pRxaU=
+github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727/go.mod h1:UJjWgF8IrPhSXMnjexPYSXxozDzg+fT9+51cNLd2bI0=
 github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.3.0 h1:I5fc+0Yg4f2bsUQc55HQy2L3hwrC5DAs2dhmgFa5DCM=
 github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.3.0/go.mod h1:WNi7VB5b4t9FnBQ0WY31rvHgU4Gh7aCsk06edwxrO9E=
 github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter v1.3.0 h1:6BP7U930PgfF24GDTo3dgOjcqEfvqFyRJjhtMMcwQhc=
