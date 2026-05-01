@@ -207,6 +207,34 @@ func (s *SnapshotReporter) SaveMetrics(componentID string, md pmetric.Metrics) {
 	buffer.Add(md)
 }
 
+// LogBufferFor returns the LogBuffer for componentID, or nil if no logs
+// have been saved yet for that component. The returned buffer is safe
+// for concurrent access; callers can invoke ConstructPayload with their
+// own choice of marshaler. Exposed for the snapshotprocessor's OpAMP
+// custom-message responder, which needs JSONMarshaler output rather
+// than the ProtoMarshaler output prepRequestPayload uses.
+func (s *SnapshotReporter) LogBufferFor(componentID string) *snapshot.LogBuffer {
+	s.logLock.Lock()
+	defer s.logLock.Unlock()
+	return s.logBuffers[componentID]
+}
+
+// MetricBufferFor returns the MetricBuffer for componentID, or nil. See
+// LogBufferFor for usage notes.
+func (s *SnapshotReporter) MetricBufferFor(componentID string) *snapshot.MetricBuffer {
+	s.metricLock.Lock()
+	defer s.metricLock.Unlock()
+	return s.metricBuffers[componentID]
+}
+
+// TraceBufferFor returns the TraceBuffer for componentID, or nil. See
+// LogBufferFor for usage notes.
+func (s *SnapshotReporter) TraceBufferFor(componentID string) *snapshot.TraceBuffer {
+	s.traceLock.Lock()
+	defer s.traceLock.Unlock()
+	return s.traceBuffers[componentID]
+}
+
 // prepRequestPayload based on the pipelineType will return a marshaled proto of the OTLP data types for the componentID
 func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, searchQuery *string, minimumTimestamp *time.Time, maximumPayloadSize int) (payload []byte, err error) {
 	switch pipelineType {
