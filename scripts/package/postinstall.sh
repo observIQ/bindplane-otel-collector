@@ -494,7 +494,20 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+validate_sudoers() {
+  sudoers_file="/etc/sudoers.d/observiq-otel-collector"
+  if [ -f "$sudoers_file" ]; then
+    if command -v visudo > /dev/null 2>&1; then
+      if ! visudo -cf "$sudoers_file" > /dev/null 2>&1; then
+        echo "WARNING: sudoers file $sudoers_file failed validation, removing"
+        rm -f "$sudoers_file"
+      fi
+    fi
+  fi
+}
+
 install
 install_service
 finish_permissions
+validate_sudoers
 manage_service
