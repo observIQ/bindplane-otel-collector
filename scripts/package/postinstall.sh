@@ -25,8 +25,23 @@ set -e
 # The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
 
-# Whether or not to run the collector as an unprivileged user.
-: "${BDOT_UNPRIVILEGED:=false}"
+# Whether to run the collector as a non-root hardened service.
+# New installs default to hardened. Upgrades preserve existing behavior.
+# Can be overridden in /etc/default/observiq-otel-collector or
+# /etc/sysconfig/observiq-otel-collector.
+# Replaces the legacy BDOT_UNPRIVILEGED variable.
+if [ -z "${BDOT_HARDENED+x}" ]; then
+  if [ -n "${BDOT_UNPRIVILEGED+x}" ]; then
+    # Legacy variable set explicitly — honor it
+    BDOT_HARDENED="${BDOT_UNPRIVILEGED}"
+  elif [ -f "/usr/lib/systemd/system/observiq-otel-collector.service" ] || [ -f "/etc/init.d/observiq-otel-collector" ]; then
+    # Existing service file means upgrade — default to unhardened
+    BDOT_HARDENED="false"
+  else
+    # New install — default to hardened
+    BDOT_HARDENED="true"
+  fi
+fi
 
 # Configurable runtime user/group
 : "${BDOT_USER:=bdot}"
@@ -82,6 +97,14 @@ install_systemd_service() {
 
   mkdir -p "$(dirname "$config_file")"
 
+  # Determine runtime user based on hardening opt-in
+  if [ "${BDOT_HARDENED}" = "true" ]; then
+    BDOT_RUNTIME_USER="${BDOT_USER}"
+  else
+    BDOT_RUNTIME_USER="root"
+  fi
+
+  # Build the service file, conditionally including hardening directives
   cat << EOF > "$config_file"
 [Unit]
 Description=observIQ's distribution of the OpenTelemetry collector
@@ -90,7 +113,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=5
 [Service]
 Type=simple
-User=root
+User=${BDOT_RUNTIME_USER}
 Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
@@ -104,6 +127,13 @@ StandardOutput=journal
 Restart=on-failure
 RestartSec=5s
 KillMode=process
+EOF
+
+  # Hardening directives are only applied when running as non-root.
+  # Applying them to root breaks normal root behavior (e.g. CAP_DAC_OVERRIDE
+  # is stripped, preventing writes to non-root-owned directories).
+  if [ "${BDOT_HARDENED}" = "true" ]; then
+    cat << EOF >> "$config_file"
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH
 ProtectSystem=strict
@@ -125,6 +155,10 @@ LockPersonality=yes
 SystemCallArchitectures=native
 KeyringMode=private
 SystemCallFilter=@system-service @network-io
+EOF
+  fi
+
+  cat << EOF >> "$config_file"
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -139,15 +173,11 @@ EOF
     echo "Created systemd override directory at $override_dir"
   fi
 
-  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
-  # unprivileged user.
-  override_user_path="${override_dir}/10-package-customizations-username.conf"
-  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
-    cat << EOF > "${override_user_path}"
-[Service]
-User=${BDOT_USER}
-EOF
-    echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
+  # Clean up legacy BDOT_UNPRIVILEGED drop-in if it exists
+  legacy_override="${override_dir}/10-package-customizations-username.conf"
+  if [ -f "${legacy_override}" ]; then
+    rm -f "${legacy_override}"
+    echo "Removed legacy unprivileged user override at ${legacy_override}"
   fi
 }
 
