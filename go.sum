@@ -1304,8 +1304,8 @@ github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter v
 github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.3.0/go.mod h1:5WOg0lVyz6ef2n+lkBPN7Yk806KQCrMDjsRy/3tu94Y=
 github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.3.0 h1:TQfeRBxKvkls8KGF+BM5MNycsvf+N19u+OcgihK/4SY=
 github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.3.0/go.mod h1:aQxU2fS6TuqRWfFegRI4rd6c+v50+sgOZKjtoZE0kpg=
-github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727 h1:SS2HmhlTfyCOOMsqFG0ZoZojB7fQ2tVuW0y8/1pRxaU=
-github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727/go.mod h1:UJjWgF8IrPhSXMnjexPYSXxozDzg+fT9+51cNLd2bI0=
+github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v1.5.0 h1:VDA2J7keqRg1x5JdeH1JegYGFlcz/1IMY5BZXcDtizg=
+github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v1.5.0/go.mod h1:EsEY0lif3gBdsez9IwArpDNjr3bkClE3im8qF0MlnWE=
 github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.3.0 h1:I5fc+0Yg4f2bsUQc55HQy2L3hwrC5DAs2dhmgFa5DCM=
 github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.3.0/go.mod h1:WNi7VB5b4t9FnBQ0WY31rvHgU4Gh7aCsk06edwxrO9E=
 github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter v1.3.0 h1:6BP7U930PgfF24GDTo3dgOjcqEfvqFyRJjhtMMcwQhc=
@@ -1342,8 +1342,8 @@ github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.3.0 h1:0ifnvuwUP6
 github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.3.0/go.mod h1:o1cniJP9x1F/m1EMBAKlQ/4QSuc8c+D+Gv4c7UZVYYg=
 github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.3.0 h1:x+6FnrIg1QJr4oBpC0saH5n6GLpk3k0cRW0eDpT1z+U=
 github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.3.0/go.mod h1:3dl2O5aBQpP+m/qH0PrPGIzeay2QUSAg6xVFykYgPqU=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0 h1:yNzh3QNr7lnMtROsPy5P+BY7xGgtzPpwSkCRZlJY6WU=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0/go.mod h1:P3wbNuj/Rn5W1wp0bOjHaXJZ+O0IcG3yFkQK5VhyI18=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.5.0 h1:MX59KjPIRFkXFK9a48Li2sPSLsF0ZYwc2wgnUkCBVUs=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.5.0/go.mod h1:DQNy7BPQrGWMmuA+k2J964beMazYMZSnnOGCtvoh8D4=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.3.0 h1:usNKtHw5Dmo7K9viEx3dF2dZOG/qsh+zxdAgUGW3Hfw=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.3.0/go.mod h1:HvSROtSVst1vtON6kl91ZU+rCP2AfeW0Dfhx+atR5H8=
 github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.3.0 h1:+5R6e4dhk5vRlPiCJeb6lQagt55Gg7qoB0kkivrX8N4=

@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/internal/report
 go 1.25.9
 
 require (
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0
+	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.5.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.151.0
 	github.com/stretchr/testify v1.11.1

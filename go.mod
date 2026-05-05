@@ -211,14 +211,14 @@ require (
 	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.15
 	github.com/observiq/bindplane-otel-contrib/exporter/awssecuritylakeexporter v1.3.0
 	github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.3.0
-	github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v0.0.0-20260428155538-983281311727
+	github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v1.5.0
 	github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension v1.3.0
 	github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.3.0
 	github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.3.0
 	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.3.0
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.3.0
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.3.0
+	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.5.0
 	github.com/observiq/bindplane-otel-contrib/pkg/version v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.3.0
