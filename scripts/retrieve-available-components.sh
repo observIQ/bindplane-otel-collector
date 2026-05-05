@@ -67,6 +67,11 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["tcplog"] = "tcp_log"
     myMap["udplog"] = "udp_log"
     myMap["windowseventlog"] = "windows_event_log"
+    myMap["filestats"] = "file_stats"
+    myMap["fluentforward"] = "fluent_forward"
+    myMap["hostmetrics"] = "host_metrics"
+    myMap["k8sobjects"] = "k8s_objects"
+    myMap["sshcheck"] = "ssh_check"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -91,6 +96,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/connector/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/connector/connectortest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    connectors:\n      sub_component_details:\n"
   myMap["signaltometrics"] = "signal_to_metrics"
+  myMap["servicegraph"] = "service_graph"
+  myMap["spanmetrics"] = "span_metrics"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -120,6 +127,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["jaegerthrifthttp"] = "jaeger_thrift"
   myMap["otlp"] = "otlp_grpc"
   myMap["otlphttp"] = "otlp_http"
+  myMap["honeycombmarker"] = "honeycomb_marker"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -202,6 +210,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["k8sattributes"] = "k8s_attributes"
   myMap["metricstarttime"] = "metric_start_time"
   myMap["ocsfstandardization"] = "ocsf_standardization"
+  myMap["logdedup"] = "log_dedup"
 } {
   split($NF, parts, " ")
   name=parts[1]
