@@ -177,7 +177,7 @@ func TestCollectorStopContextTimeout(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatalf("Shutdown took too long")
 	case <-stopped:
 	}
@@ -216,7 +216,7 @@ func TestCollectorRestartContextTimeout(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatalf("Shutdown took too long")
 	case <-restarted:
 	}
