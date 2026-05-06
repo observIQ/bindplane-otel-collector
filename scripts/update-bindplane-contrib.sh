@@ -60,12 +60,13 @@ for local_mod in $LOCAL_MODULES; do
 
         echo "  Tidied $local_mod"
 
+        GO_LIST_OUT=$(go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all) || {
+            echo "Error: go list failed in $local_mod" >&2
+            exit 1
+        }
         # Temporarily disable 'set -e' in case there are no bindplane-otel-contrib modules
         set +e
-        CONTRIB_MODULES=$(
-            go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
-            grep -E -e '^github.com/observiq/bindplane-otel-contrib'
-        )
+        CONTRIB_MODULES=$(printf '%s\n' "$GO_LIST_OUT" | grep -E -e '^github.com/observiq/bindplane-otel-contrib')
         set -e
 
         for mod in $CONTRIB_MODULES; do
