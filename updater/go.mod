@@ -8,7 +8,7 @@ require (
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/sys v0.43.0
 )
 
