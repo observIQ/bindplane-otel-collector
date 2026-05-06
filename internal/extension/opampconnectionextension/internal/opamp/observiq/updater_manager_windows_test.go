@@ -18,6 +18,7 @@ package observiq
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -36,14 +37,15 @@ func TestNewWindowsUpdaterManager(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				tmpPath := "\\tmp"
 				logger := zap.NewNop()
-				cwd, err := os.Getwd()
+				ex, err := os.Executable()
 				require.NoError(t, err)
+				installDir := filepath.Dir(ex)
 
 				expected := &windowsUpdaterManager{
 					tmpPath:             tmpPath,
 					logger:              logger.Named("updater manager"),
 					updaterName:         "updater.exe",
-					cwd:                 cwd,
+					cwd:                 installDir,
 					shutdownWaitTimeout: 30 * time.Second,
 				}
 

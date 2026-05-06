@@ -18,6 +18,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
 	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
@@ -47,13 +49,19 @@ func NewManagedCollectorService(col collector.Collector, logger *zap.Logger, man
 		return nil, fmt.Errorf("failed to parse manager config: %w", err)
 	}
 
+	ex, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get executable path: %w", err)
+	}
+	installDir := filepath.Dir(ex)
+
 	// Create client Args
 	clientArgs := &observiq.NewClientArgs{
 		DefaultLogger:        logger,
 		Config:               *opampConfig,
 		Collector:            col,
 		Version:              version.Version(),
-		TmpPath:              "./tmp",
+		TmpPath:              filepath.Join(installDir, "tmp"),
 		ManagerConfigPath:    managerConfigPath,
 		CollectorConfigPath:  collectorConfigPath,
 		LoggerConfigPath:     loggerConfigPath,
