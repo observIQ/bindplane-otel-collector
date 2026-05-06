@@ -234,6 +234,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.151.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/drainprocessor v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.151.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.151.0
@@ -272,6 +273,7 @@ require (
 	github.com/google/go-github/v85 v85.0.0 // indirect
 	github.com/google/pprof v0.0.0-20260302011040-a15ffb7f9dcc // indirect
 	github.com/huandu/go-clone v1.7.3 // indirect
+	github.com/jaeyo/go-drain3 v0.1.2 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc/v3 v3.0.1 // indirect
