@@ -1045,3 +1045,5 @@ replace github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/D
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/azureblobreceiver v0.0.0-20260507185839-98c20ac26318
