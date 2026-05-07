@@ -50,6 +50,9 @@ builds:
     env:
       - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
+    hooks:
+      post:
+        - ./scripts/hash-updater.sh
     goos:
       - linux
       - darwin
