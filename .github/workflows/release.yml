@@ -307,8 +307,7 @@ jobs:
             --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
 
   # AIX release job — runs in parallel with the main release job.
-  # AIX is currently in alpha; artifacts are uploaded to GCS only.
-  # GitHub release upload is commented out until AIX exits alpha.
+  # Artifacts are uploaded to GCS and appended to the main GitHub release.
   release-aix:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
@@ -357,8 +356,7 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
-      # TODO(AIX alpha): Uncomment when AIX exits alpha to upload artifacts to the GitHub release.
-      # - name: Upload AIX artifacts to GitHub release
-      #   run: gh release upload ${{ github.ref_name }} ./dist/*tar.gz ./dist/*SHA256SUMS --clobber
-      #   env:
-      #     GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+      - name: Upload AIX artifacts to GitHub release
+        run: gh release upload ${{ github.ref_name }} ./dist/*tar.gz ./dist/*SHA256SUMS --clobber
+        env:
+          GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
