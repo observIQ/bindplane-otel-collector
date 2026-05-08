@@ -435,10 +435,16 @@ setup_installation() {
 
 set_file_names() {
   _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
-  if [ -z "$version" ]; then
-    package_file_name="${PACKAGE_NAME}_${_os_lower}_${os_arch}.${package_type}"
+  # AIX is distributed as a tar.gz; for deb/rpm the package_type doubles as the file extension.
+  if [ "$OS_TYPE" = "AIX" ]; then
+    _package_extension="tar.gz"
   else
-    package_file_name="${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
+    _package_extension="$package_type"
+  fi
+  if [ -z "$version" ]; then
+    package_file_name="${PACKAGE_NAME}_${_os_lower}_${os_arch}.${_package_extension}"
+  else
+    package_file_name="${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${_package_extension}"
   fi
   package_out_file_path="$TMP_DIR/$package_file_name"
 
@@ -550,7 +556,13 @@ set_download_urls()
     fi
 
     _os_lower=$(echo "$OS_TYPE" | tr '[:upper:]' '[:lower:]')
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${package_type}"
+    # AIX is distributed as a tar.gz; for deb/rpm the package_type doubles as the file extension.
+    if [ "$OS_TYPE" = "AIX" ]; then
+      _package_extension="tar.gz"
+    else
+      _package_extension="$package_type"
+    fi
+    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${_os_lower}_${os_arch}.${_package_extension}"
   else
     collector_download_url="$url"
   fi
