@@ -565,23 +565,6 @@ signs:
       ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
     artifacts: all
 
-# TODO(dakota): commented out because it is causing release to fail with goreleaser v2... not sure why though
-# https://goreleaser.com/customization/docker_sign/
-# Uses Cosign by default, signs images and manifests.
-# docker_signs:
-#   - artifacts: all
-#     stdin: "{{ .Env.COSIGN_PWD }}"
-#     args: [
-#       # Default options
-#       "sign",
-#       "--key=cosign.key",
-#       "${artifact}",
-#       "--yes",
-#       # Additional options
-#       "--recursive"
-#     ]
-#     output: true
-
 # https://goreleaser.com/customization/release/
 release:
   draft: false

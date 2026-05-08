@@ -25,7 +25,7 @@ parameters:
 
 template: |
   receivers:
-    filelog:
+    file_log:
       include:
         {{ range $fp := .log_paths }}
         - '{{ $fp }}'
@@ -89,4 +89,4 @@ template: |
     pipelines:
       logs:
         receivers:
-          - filelog
+          - file_log

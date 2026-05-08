@@ -101,7 +101,7 @@ To install directly with the appropriate package manager, and how to configure O
 
 Install the BDOT Collector using the PowerShell command below. The script automatically selects the correct MSI for the system architecture (amd64 or arm64).
 
-To install the BDOT on Windows, run the Powershell command below to install the MSI with no UI.
+To install the BDOT collector on Windows, run the Powershell command below to install the MSI with no UI.
 
 ```pwsh
 & ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1")))

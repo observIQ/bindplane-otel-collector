@@ -64,7 +64,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_access_log }}
-    filelog/access:
+    file_log/access:
       storage: file_storage
       include:
         {{ range $fp := .access_log_path }}
@@ -111,7 +111,7 @@ template: |
     {{ end }}
 
     {{ if .enable_catalina_log }}
-    filelog/catalina:
+    file_log/catalina:
       storage: file_storage
       include:
         {{ range $fp := .catalina_log_path }}
@@ -167,9 +167,9 @@ template: |
       logs:
         receivers:
           {{ if .enable_access_log }}
-          - filelog/access
+          - file_log/access
           {{ end }}
 
           {{ if .enable_catalina_log }}
-          - filelog/catalina
+          - file_log/catalina
           {{ end }}

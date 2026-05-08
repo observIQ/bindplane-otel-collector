@@ -108,7 +108,7 @@ template: |
     file_storage:
       directory: {{ .offset_storage_dir }}
   receivers:
-    filelog:
+    file_log:
       storage: file_storage
       start_at: '{{ .start_at }}'
       max_concurrent_files: {{ .max_concurrent_files }}
@@ -209,4 +209,4 @@ template: |
     extensions: [file_storage]
     pipelines:
       logs:
-        receivers: [filelog]
+        receivers: [file_log]

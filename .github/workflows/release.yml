@@ -22,7 +22,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
       - name: Install Tools
         run: make install-tools
       # Needed until supervisor binary is released

@@ -42,7 +42,7 @@ parameters:
       Valid options include `auto`, `docker-json-file` and `containerd-cri`.
       When set to `auto`, the format will be detected using regex. Format detection
       is convenient but comes with the cost of performing a regex match against every
-      log entry read by the filelog receiver.
+      log entry read by the file_log receiver.
     type: "string"
     supported:
       - auto
@@ -67,7 +67,7 @@ template: |
 
   receivers:
     {{ if eq .log_source "file" }}
-    filelog:
+    file_log:
         storage: file_storage
         include:
           {{ range $fp := .log_paths }}
@@ -260,7 +260,7 @@ template: |
       logs:
         receivers:
           {{ if eq .log_source "file" }}
-          - filelog
+          - file_log
           {{ else if eq .log_source "journald" }}
           - journald
           {{ end }}

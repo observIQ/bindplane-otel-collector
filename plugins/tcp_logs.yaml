@@ -43,7 +43,7 @@ parameters:
     default: true
 template: |
   receivers:
-    tcplog:
+    tcp_log:
       listen_address: '{{ .listen_ip }}:{{ .listen_port }}'
       {{ if .parse }}
       add_attributes: {{ .add_attributes }}
@@ -60,4 +60,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [tcplog]
+        receivers: [tcp_log]

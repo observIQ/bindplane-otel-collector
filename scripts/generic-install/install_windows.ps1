@@ -1,10 +1,10 @@
-# Copyright  observIQ, Inc.
+# Copyright observIQ, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,85 +14,97 @@
 
 <#
 .SYNOPSIS
-    Installs or uninstalls the observIQ Distro for OpenTelemetry Collector on Windows.
+    Installs or uninstalls an OTel Distro Builder distribution on Windows.
 
 .DESCRIPTION
-    Downloads and installs the appropriate MSI (amd64 or arm64) for the current
-    machine architecture. Accepts all standard MSI installer properties.
-    Pass -Uninstall to remove an existing installation.
+    Downloads the appropriate MSI (amd64 or arm64) for the current machine
+    architecture and hands it to msiexec. The MSI is resolved from a GitHub
+    releases page unless overridden. Pass -Uninstall to run msiexec /x against
+    the same MSI; the MSI must still be resolvable via -Url/-Version, -MsiUrl,
+    or -MsiFile, and must match the installed version.
+
+.PARAMETER Distribution
+    Name of the distribution (e.g. "mydistribution"). Used to construct the MSI
+    filename and the install/uninstall log filename.
+
+.PARAMETER Url
+    GitHub repository URL (e.g. "https://github.com/org/repo"). Required unless
+    -MsiUrl or -MsiFile is provided.
 
 .PARAMETER Version
-    The version to install (e.g. "1.94.0"). Omit or pass "latest" to install the latest release.
+    The version to install (e.g. "1.2.3"). Omit or pass "latest" to install the
+    latest release.
 
-.PARAMETER OpAMPEndpoint
+.PARAMETER Endpoint
     OpAMP server endpoint URL (e.g. "wss://app.bindplane.com/v1/opamp").
+    When provided, managed mode is enabled automatically.
 
-.PARAMETER OpAMPSecretKey
+.PARAMETER SecretKey
     Secret key for OpAMP authentication.
 
-.PARAMETER OpAMPLabels
-    Comma-separated key=value labels for OpAMP (e.g. "configuration=windows,env=prod").
-
-.PARAMETER EnableManagement
-    Set to "1" to enable managed mode via OpAMP. Default is "0".
+.PARAMETER Labels
+    Comma-separated key=value labels for OpAMP (e.g. "env=prod,region=us-west").
 
 .PARAMETER InstallDir
     Custom installation directory. Defaults to the MSI default.
 
-.PARAMETER Clean
-    Set to "1" to remove existing configuration on install. Default is "0".
+.PARAMETER MsiUrl
+    Override the full MSI download URL. If set, -Version and arch detection are
+    ignored.
+
+.PARAMETER MsiFile
+    Path to a local MSI file. Skips all download and version resolution steps.
 
 .PARAMETER Quiet
     Run the installer silently instead of showing the installer UI.
 
 .PARAMETER Uninstall
-    Uninstall the agent instead of installing it.
-
-.PARAMETER MsiUrl
-    Override the full MSI download URL. If set, Version and arch detection are ignored.
-
-.PARAMETER MsiFile
-    Path to a local MSI file to install. Skips all download and version resolution steps.
+    Uninstall the distribution instead of installing it. Resolves the MSI the
+    same way as install (-Url/-Version, -MsiUrl, or -MsiFile) and runs
+    msiexec /x against it.
 
 .PARAMETER SkipSignatureCheck
     Skip MSI Authenticode signature verification.
 
 .EXAMPLE
-    .\install_windows.ps1 -Version "1.94.0" -EnableManagement "1" `
-        -OpAMPEndpoint "<your_endpoint>" `
-        -OpAMPSecretKey "<secret-key>"
+    .\install_windows.ps1 -Distribution "mydistribution" `
+        -Url "https://github.com/org/repo" `
+        -Endpoint "wss://app.bindplane.com/v1/opamp" `
+        -SecretKey "my-secret"
 
 .EXAMPLE
-    .\install_windows.ps1 -Version "1.94.0" -Quiet
+    .\install_windows.ps1 -Distribution "mydistribution" `
+        -Url "https://github.com/org/repo" `
+        -Version "1.2.3"
 
 .EXAMPLE
-    .\install_windows.ps1 -Uninstall
+    .\install_windows.ps1 -Distribution "mydistribution" `
+        -Url "https://github.com/org/repo" `
+        -Version "1.2.3" -Uninstall
 #>
 
 [CmdletBinding()]
 param(
+    [Parameter(Mandatory = $true)]
+    [string]$Distribution,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Url,
+
     [Parameter(Mandatory = $false)]
     [string]$Version,
 
     [Parameter(Mandatory = $false)]
-    [string]$OpAMPEndpoint,
+    [string]$Endpoint,
 
     [Parameter(Mandatory = $false)]
-    [string]$OpAMPSecretKey,
+    [string]$SecretKey,
 
     [Parameter(Mandatory = $false)]
-    [string]$OpAMPLabels,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateSet("0", "1")]
-    [string]$EnableManagement = "0",
+    [string]$Labels,
 
     [Parameter(Mandatory = $false)]
     [string]$InstallDir,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateSet("0", "1")]
-    [string]$Clean = "0",
 
     [Parameter(Mandatory = $false)]
     [string]$MsiUrl,
@@ -112,13 +124,6 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-
-# ---- Constants ---------------------------------------------------------------
-
-$DOWNLOAD_BASE = "https://bdot.bindplane.com"
-$MSI_NAME_AMD64 = "bindplane-otel-collector.msi"
-$MSI_NAME_ARM64 = "bindplane-otel-collector-arm64.msi"
-$PRODUCT_DISPLAY_NAME = "observIQ Distro for OpenTelemetry Collector"
 
 # ---- Helpers -----------------------------------------------------------------
 
@@ -149,13 +154,13 @@ function Assert-Administrator {
 
 # ---- Architecture detection --------------------------------------------------
 
-function Get-MsiName {
+function Get-Arch {
     # PROCESSOR_ARCHITEW6432 is set when running a 32-bit process on a 64-bit OS (WOW64).
     # Fall back to PROCESSOR_ARCHITECTURE when not in WOW64.
     $arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
     switch ($arch) {
-        "AMD64" { return $MSI_NAME_AMD64 }
-        "ARM64" { return $MSI_NAME_ARM64 }
+        "AMD64" { return "amd64" }
+        "ARM64" { return "arm64" }
         default { Fail "Unsupported architecture: $arch. Only x64 (amd64) and ARM64 are supported." }
     }
 }
@@ -163,14 +168,28 @@ function Get-MsiName {
 # ---- Version resolution ------------------------------------------------------
 
 function Get-LatestVersion {
+    param([string]$RepositoryUrl)
+    # GitHub redirects /releases/latest to /releases/tag/v{version}.
+    # We follow the redirect with AllowAutoRedirect = $false to extract the version.
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $wc = New-Object System.Net.WebClient
-        $version = $wc.DownloadString("https://bdot.bindplane.com/latest")
-        return $version.Trim()
+        $req = [System.Net.HttpWebRequest]::Create("$RepositoryUrl/releases/latest")
+        $req.AllowAutoRedirect = $false
+        $req.Method = "HEAD"
+        $resp = $req.GetResponse()
+        try {
+            $location = $resp.Headers["Location"]
+        }
+        finally {
+            $resp.Close()
+        }
+        if (-not $location) {
+            Fail "No redirect received from $RepositoryUrl/releases/latest; cannot determine latest version."
+        }
+        return ($location -split '/')[-1].TrimStart('v')
     }
     catch {
-        Fail "Failed to retrieve latest version from https://bdot.bindplane.com/latest: $_"
+        Fail "Failed to retrieve latest version from ${RepositoryUrl}/releases/latest: $_"
     }
 }
 
@@ -202,80 +221,31 @@ function Build-MsiexecArgs {
         [string]$LogPath
     )
 
-    # /i  = install
-    $msiArgs = @("/i", "`"$MsiPath`"")
-
-    $msiArgs += "/l*v", "`"$LogPath`""
+    $msiArgs = @("/i", "`"$MsiPath`"", "/l*v", "`"$LogPath`"")
 
     if ($Quiet) {
         $msiArgs += "/quiet"
     }
 
-    if ($EnableManagement -eq "1") {
+    # When an endpoint is provided, enable managed mode automatically.
+    if ($Endpoint) {
         $msiArgs += "ENABLEMANAGEMENT=`"1`""
+        $msiArgs += "OPAMPENDPOINT=`"$Endpoint`""
     }
 
-    if ($OpAMPEndpoint) {
-        $msiArgs += "OPAMPENDPOINT=`"$OpAMPEndpoint`""
+    if ($SecretKey) {
+        $msiArgs += "OPAMPSECRETKEY=`"$SecretKey`""
     }
 
-    if ($OpAMPSecretKey) {
-        $msiArgs += "OPAMPSECRETKEY=`"$OpAMPSecretKey`""
-    }
-
-    if ($OpAMPLabels) {
-        $msiArgs += "OPAMPLABELS=`"$OpAMPLabels`""
+    if ($Labels) {
+        $msiArgs += "OPAMPLABELS=`"$Labels`""
     }
 
     if ($InstallDir) {
         $msiArgs += "INSTALLDIR=`"$InstallDir`""
     }
 
-    if ($Clean -eq "1") {
-        $msiArgs += "CLEAN=`"1`""
-    }
-
     return $msiArgs
-}
-
-# ---- Uninstall ---------------------------------------------------------------
-
-function Get-ProductCode {
-    $product = Get-CimInstance -ClassName Win32_Product `
-        -Filter "Name = '$PRODUCT_DISPLAY_NAME'" `
-        -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if ($product) {
-        return $product.IdentifyingNumber
-    }
-    return $null
-}
-
-function Invoke-Uninstall {
-    Write-Info "Searching for installed '$PRODUCT_DISPLAY_NAME'..."
-
-    $productCode = Get-ProductCode
-    if (-not $productCode) {
-        Fail "'$PRODUCT_DISPLAY_NAME' is not installed."
-    }
-
-    Write-Info "Found product code: $productCode"
-
-    $msiArgs = @("/x", $productCode)
-    if ($Quiet) {
-        $msiArgs += "/quiet"
-    }
-
-    Write-Info "Running: msiexec $($msiArgs -join ' ')"
-
-    $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
-    $exitCode = $proc.ExitCode
-
-    switch ($exitCode) {
-        0    { Write-Info "Uninstallation completed successfully." }
-        3010 { Write-Warn "Uninstallation succeeded. A reboot is required to complete removal." }
-        default { Fail "msiexec exited with code $exitCode. See Windows Event Log for details." }
-    }
 }
 
 # ---- Main --------------------------------------------------------------------
@@ -283,47 +253,47 @@ function Invoke-Uninstall {
 function Main {
     Assert-Administrator
 
-    if ($Uninstall) {
-        Invoke-Uninstall
-        return
+    if (-not $MsiFile -and -not $MsiUrl -and -not $Url) {
+        Fail "Either -Url, -MsiUrl, or -MsiFile must be provided."
     }
 
     $tmpDir = [System.IO.Path]::GetTempPath()
-    $logPath = Join-Path $tmpDir "bindplane-otel-collector-install.log"
+    $action = if ($Uninstall) { "uninstall" } else { "install" }
+    $logPath = Join-Path $tmpDir "$Distribution-$action.log"
     $cleanupMsi = $false
 
     if ($MsiFile) {
-        # Use the locally provided MSI file directly
-        $msiPath = $MsiFile
-        if (-not (Test-Path -Path $msiPath -PathType Leaf)) {
-            Fail "MSI file not found: $msiPath"
+        if (-not (Test-Path -Path $MsiFile -PathType Leaf)) {
+            Fail "MSI file not found: $MsiFile"
         }
+        $msiPath = $MsiFile
         Write-Info "Using local MSI: $msiPath"
     }
     else {
-        # Resolve the MSI URL
         if ($MsiUrl) {
             $resolvedUrl = $MsiUrl
             $msiFileName = Split-Path $MsiUrl -Leaf
         }
         else {
-            $msiFileName = Get-MsiName
+            $arch = Get-Arch
             if (-not $Version -or $Version -eq "latest") {
-                $resolvedVersion = Get-LatestVersion
-                if (-not $resolvedVersion) {
-                    Fail "Could not determine latest version to install."
-                }
+                $resolvedVersion = Get-LatestVersion -RepositoryUrl $Url
                 Write-Info "Latest version: $resolvedVersion"
-                $resolvedUrl = "$DOWNLOAD_BASE/v$($resolvedVersion.TrimStart('v'))/$msiFileName"
             }
             else {
-                $resolvedUrl = "$DOWNLOAD_BASE/v$($Version.TrimStart('v'))/$msiFileName"
+                $resolvedVersion = $Version.TrimStart('v')
             }
+            if ($arch -eq "arm64") {
+                $msiFileName = "${Distribution}-arm64.msi"
+            }
+            else {
+                $msiFileName = "${Distribution}.msi"
+            }
+            $resolvedUrl = "$($Url.TrimEnd('/'))/releases/download/v${resolvedVersion}/${msiFileName}"
         }
 
         $msiPath = Join-Path $tmpDir $msiFileName
         $cleanupMsi = $true
-
         Get-Msi -Url $resolvedUrl -Destination $msiPath
     }
 
@@ -348,32 +318,50 @@ function Main {
             Write-Warn "Continuing with unverified MSI at user's request."
         }
         else {
-            Write-Info "MSI signature verification successful"
+            Write-Info "MSI signature verification successful."
         }
     }
 
-    $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
+    if ($Uninstall) {
+        $msiArgs = @("/x", "`"$msiPath`"", "/l*v", "`"$logPath`"")
+        if ($Quiet) {
+            $msiArgs += "/quiet"
+        }
+    }
+    else {
+        $msiArgs = Build-MsiexecArgs -MsiPath $msiPath -LogPath $logPath
+    }
 
     Write-Info "Running: msiexec $($msiArgs -join ' ')"
 
     $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
     $exitCode = $proc.ExitCode
 
-    # Clean up downloaded MSI (not user-provided files)
     if ($cleanupMsi) {
         try {
             Remove-Item -Path $msiPath -Force
-        } catch {
-            Write-Warn "Failed to remove MSI: $_"
+        }
+        catch {
+            Write-Warn "Failed to remove temporary MSI: $_"
         }
     }
 
-    switch ($exitCode) {
-        0    { Write-Info "Installation completed successfully." }
-        1603 { Fail "Installation failed. If a newer version is already installed, use -Uninstall first. See the install log for details: $logPath" }
-        1638 { Write-Info "Another version of $PRODUCT_DISPLAY_NAME is already installed. No changes made." }
-        3010 { Write-Warn "Installation succeeded. A reboot is required to complete the setup." }
-        default { Fail "msiexec exited with code $exitCode. See the install log for details: $logPath" }
+    if ($Uninstall) {
+        switch ($exitCode) {
+            0    { Write-Info "Uninstallation completed successfully." }
+            1605 { Fail "Product is not installed (msiexec 1605). See the log for details: $logPath" }
+            3010 { Write-Warn "Uninstallation succeeded. A reboot is required to complete removal." }
+            default { Fail "msiexec exited with code $exitCode. See the log for details: $logPath" }
+        }
+    }
+    else {
+        switch ($exitCode) {
+            0    { Write-Info "Installation completed successfully." }
+            1603 { Fail "Installation failed. See the install log for details: $logPath" }
+            1638 { Write-Info "$Distribution is already installed at this version. No changes made." }
+            3010 { Write-Warn "Installation succeeded. A reboot is required to complete setup." }
+            default { Fail "msiexec exited with code $exitCode. See the install log for details: $logPath" }
+        }
     }
 }
 

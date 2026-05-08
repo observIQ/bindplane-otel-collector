@@ -516,6 +516,89 @@ set_os_arch() {
   esac
 }
 
+# detect_distro_package_type prints the native package type ("deb" or "rpm") for
+# this system. It uses a multi-layer fallback chain so that the presence of a
+# cross-packaging tool (e.g. dpkg installed on Fedora) does not cause a wrong result.
+#
+# Fallback order:
+#   1. For AIX specifically            (uname -s == "AIX")
+#   2. /etc/os-release ID and ID_LIKE  (RHEL 7+, SLES 12+, all modern distros)
+#   3. Distro-specific files           (RHEL 5, SLES 11, older CentOS/Fedora)
+#   4. High-level package managers     (apt-get, dnf, yum, zypper)
+#   5. Low-level packaging tools       (dpkg, rpm — least reliable)
+#
+# Prints nothing and returns 1 if detection fails.
+detect_distro_package_type()
+{
+  # 1. AIX
+  if [ "$OS_TYPE" = "AIX" ]; then
+    echo "mkssys"
+    return 0
+  fi
+
+  # 2. /etc/os-release — most reliable on modern systems
+  if [ -f /etc/os-release ]; then
+    # Source in a subshell to avoid polluting the current environment
+    _os_id=$(. /etc/os-release && echo "$ID")
+    _os_id_like=$(. /etc/os-release && echo "${ID_LIKE:-}")
+
+    # Combine ID and ID_LIKE for matching (ID_LIKE can contain multiple values)
+    _os_ids="$_os_id $_os_id_like"
+    case "$_os_ids" in
+      *debian*|*ubuntu*|*raspbian*|*linuxmint*)
+        echo "deb"
+        return 0
+        ;;
+      *rhel*|*centos*|*fedora*|*rocky*|*almalinux*|*amzn*|*sles*|*suse*|*opensuse*)
+        echo "rpm"
+        return 0
+        ;;
+    esac
+  fi
+
+  # 3. Distro-specific files (covers RHEL 5, SLES 11 SP4, and similar legacy systems)
+  if [ -f /etc/debian_version ]; then
+    echo "deb"
+    return 0
+  fi
+
+  if [ -f /etc/redhat-release ] || [ -f /etc/centos-release ] || [ -f /etc/fedora-release ]; then
+    echo "rpm"
+    return 0
+  fi
+
+  # SuSE-release was used through SLES 11; removed in SLES 12+
+  if [ -f /etc/SuSE-release ]; then
+    echo "rpm"
+    return 0
+  fi
+
+  # 4. High-level package managers (stronger signal than the low-level tools)
+  if command -v apt-get > /dev/null 2>&1; then
+    echo "deb"
+    return 0
+  fi
+
+  if command -v dnf > /dev/null 2>&1 || command -v yum > /dev/null 2>&1 || command -v zypper > /dev/null 2>&1; then
+    echo "rpm"
+    return 0
+  fi
+
+  # 5. Last resort: low-level tools. These are the least reliable because
+  # cross-packaging tools (e.g. dpkg on an RPM system) can cause false positives.
+  if command -v dpkg > /dev/null 2>&1; then
+    echo "deb"
+    return 0
+  fi
+
+  if command -v rpm > /dev/null 2>&1; then
+    echo "rpm"
+    return 0
+  fi
+
+  return 1
+}
+
 # Set the package type before install
 set_package_type() {
   # if package_path is set get the file extension otherwise look at what's available on the system
@@ -532,15 +615,7 @@ set_package_type() {
       ;;
     esac
   else
-    if command -v dpkg > /dev/null 2>&1; then
-        package_type="deb"
-    elif command -v mkssys > /dev/null 2>&1; then
-        package_type="mkssys"
-    elif command -v rpm > /dev/null 2>&1; then
-        package_type="rpm"
-    else
-        error_exit "$LINENO" "Could not find mkssys, dpkg or rpm on the system"
-    fi
+    package_type=$(detect_distro_package_type) || error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
   fi
 
 }
@@ -904,28 +979,26 @@ user_check()
 package_type_check()
 {
   info "Checking for package manager..."
-  if command -v dpkg > /dev/null 2>&1; then
-      succeeded
-  # Check ALL of the AIX commands needed
-  elif command -v mkssys > /dev/null 2>&1 \
-    && command -v mkgroup > /dev/null 2>&1 \
-    && command -v useradd > /dev/null 2>&1 \
-    && command -v startsrc > /dev/null 2>&1 \
-    && command -v stopsrc > /dev/null 2>&1 \
-    && command -v lssrc > /dev/null 2>&1 \
-    && command -v mkitab > /dev/null 2>&1 \
-    && command -v rmitab > /dev/null 2>&1 \
-    && command -v lsitab > /dev/null 2>&1; then
-      succeeded
-  elif command -v rpm > /dev/null 2>&1; then
+  if detect_distro_package_type > /dev/null; then
       succeeded
   else
       failed
-      if [ "$OS_TYPE" = "AIX" ]; then
-        error_exit "$LINENO" "Could not find AIX installation tools on the system"
-      else
-        error_exit "$LINENO" "Could not find dpkg or rpm on the system"
-      fi
+      error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
+  fi
+
+  if [ "$OS_TYPE" = "AIX" ]; then
+    info "Checking for required AIX commands..."
+    if command -v mkssys > /dev/null 2>&1 \
+      && command -v mkgroup > /dev/null 2>&1 \
+      && command -v useradd > /dev/null 2>&1 \
+      && command -v startsrc > /dev/null 2>&1 \
+      && command -v stopsrc > /dev/null 2>&1 \
+      && command -v lssrc > /dev/null 2>&1 \
+      && command -v mkitab > /dev/null 2>&1 \
+      && command -v rmitab > /dev/null 2>&1 \
+      && command -v lsitab > /dev/null 2>&1; then
+      succeeded
+    fi
   fi
 }
 

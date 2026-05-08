@@ -40,7 +40,7 @@ template: |
     file_storage:
       directory: {{ .offset_storage_dir }}
   receivers:
-    filelog:
+    file_log:
       storage: file_storage
       include:
         {{ range $fp := .file_path }}
@@ -136,4 +136,4 @@ template: |
     extensions: [file_storage]
     pipelines:
       logs:
-        receivers: [filelog]
+        receivers: [file_log]

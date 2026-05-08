@@ -15,6 +15,13 @@ INTEGRATION_TEST_ARGS?=-tags integration
 
 TOOLS_MOD_DIR := ./internal/tools
 
+# Directories migrated to the contrib repo, excluded from testing.
+# Keep in sync with the components filter in .github/workflows/checks.yml.
+MIGRATED_MODULE_PATTERNS := $(shell cat migrated-modules.txt)
+
+# Generate gosec -exclude-dir flags from migrated module patterns
+GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
+
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -217,7 +224,7 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.25.7"
+	$(MAKE) for-all CMD="go mod tidy -compat=1.25.9"
 
 .PHONY: gosec
 gosec:
@@ -243,6 +250,11 @@ MOD_PATH_EXCLUDES := ./cmd/plugindocgen
 check-mod-paths:
 	@FAILED=0; \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
 		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
 		if [ "$${dir}" = "." ]; then \
@@ -272,6 +284,11 @@ check-dependabot:
 	@FAILED=0; \
 	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
 	for dir in $(ALL_MODULES); do \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		if [ "$${dir}" = "." ]; then \
 			EXPECTED="/"; \
 		else \
@@ -388,6 +405,23 @@ release-test:
 .PHONY: release-test-aix
 release-test-aix:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+
+.PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+agent-linux-amd64:
+	GOARCH=amd64 GOOS=linux $(MAKE) agent
+agent-linux-arm64:
+	GOARCH=arm64 GOOS=linux $(MAKE) agent
+agent-linux-ppc64le:
+	GOARCH=ppc64le GOOS=linux $(MAKE) agent
+
+.PHONY: release-containers-test
+release-containers-test:
+	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+	mkdir -p tmp
+	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
+	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
+	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
 agent-linux-amd64:

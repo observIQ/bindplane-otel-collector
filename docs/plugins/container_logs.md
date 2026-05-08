@@ -12,7 +12,7 @@ Log parser for Kubernetes Container logs. This plugin is meant to be used with t
 | exclude_file_log_path | A list of file glob patterns to exclude from reading | []string | `[/var/log/containers/observiq-*-collector-* /var/log/containers/bindplane-*-agent-*]` | false |  |
 | body_json_parsing | If the application log is detected as json, parse the values into the log entry's body. | bool | `true` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
-| log_driver | The container runtime's log driver used to write container logs to disk. Valid options include `auto`, `docker-json-file` and `containerd-cri`. When set to `auto`, the format will be detected using regex. Format detection is convenient but comes with the cost of performing a regex match against every log entry read by the filelog receiver. | string | `auto` | false | `auto`, `docker-json-file`, `containerd-cri` |
+| log_driver | The container runtime's log driver used to write container logs to disk. Valid options include `auto`, `docker-json-file` and `containerd-cri`. When set to `auto`, the format will be detected using regex. Format detection is convenient but comes with the cost of performing a regex match against every log entry read by the file_log receiver. | string | `auto` | false | `auto`, `docker-json-file`, `containerd-cri` |
 | offset_storage_dir | The directory that the offset storage file will be created | string | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false |  |
 | parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 

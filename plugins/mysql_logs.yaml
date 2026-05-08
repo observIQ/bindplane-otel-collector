@@ -78,7 +78,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_slow_log }}
-    filelog/slow_log:
+    file_log/slow_log:
       storage: file_storage
       include:
         {{ range $fp := .slow_query_log_paths }}
@@ -337,7 +337,7 @@ template: |
     {{ end }}
 
     {{ if .enable_error_log }}
-    filelog/error_log:
+    file_log/error_log:
       storage: file_storage
       include:
         {{ range $fp := .error_log_paths }}
@@ -378,7 +378,7 @@ template: |
     {{ end }}
 
     {{ if .enable_general_log }}
-    filelog/general_log:
+    file_log/general_log:
       storage: file_storage
       include:
         {{ range $fp := .general_log_paths }}
@@ -628,7 +628,7 @@ template: |
     {{ end }}
 
     {{ if .enable_mariadb_audit_log }}
-    filelog/mariadb_audit_log:
+    file_log/mariadb_audit_log:
       storage: file_storage
       include:
         {{ range $fp := .mariadb_audit_log_paths }}
@@ -703,14 +703,14 @@ template: |
       logs:
         receivers:
           {{ if .enable_slow_log }}
-          - filelog/slow_log
+          - file_log/slow_log
           {{ end }}
           {{ if .enable_error_log }}
-          - filelog/error_log
+          - file_log/error_log
           {{ end }}
           {{ if .enable_general_log }}
-          - filelog/general_log
+          - file_log/general_log
           {{ end }}
           {{ if .enable_mariadb_audit_log }}
-          - filelog/mariadb_audit_log
+          - file_log/mariadb_audit_log
           {{ end }}

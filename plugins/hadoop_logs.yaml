@@ -47,7 +47,7 @@ parameters:
 
 template: |
   receivers:
-    filelog:
+    file_log:
       include:
         {{ if .enable_datanode_logs }}
         {{ range $fp := .datanode_log_path }}
@@ -114,4 +114,4 @@ template: |
     pipelines:
       logs:
         receivers:
-          - filelog
+          - file_log
