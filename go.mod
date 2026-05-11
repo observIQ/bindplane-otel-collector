@@ -15,7 +15,7 @@ require (
 	github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.3.0
 	github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter v1.3.0
 	github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter v1.3.0
-	github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor v0.0.0-00010101000000-000000000000
+	github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor v1.5.0
 	github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor v1.3.0
 	github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor v1.3.0
@@ -1034,11 +1034,6 @@ require (
 replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagestate
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
-
-// TEMP: until contrib publishes the asimstandardizationprocessor module under
-// a real version. Drop this replace once contrib tags v1.X.0 with the new
-// processor included.
-replace github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor => ../bindplane-otel-contrib/processor/asimstandardizationprocessor
 
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
