@@ -182,9 +182,14 @@ func (c *collector) Stop(ctx context.Context) {
 		return
 	}
 
-	c.svc.Shutdown()
-
+	// As of otel-collector PR #14989, Shutdown blocks until Run returns. We call it in a
+	// goroutine so the ctx watcher below can still cancel collectorCtx to unblock a stalled
+	// shutdown when the caller's ctx is cancelled (e.g. the Restart timeout).
 	shutdownCompleteChan := make(chan struct{})
+	go func() {
+		c.svc.Shutdown()
+		close(shutdownCompleteChan)
+	}()
 
 	go func() {
 		select {
@@ -198,7 +203,7 @@ func (c *collector) Stop(ctx context.Context) {
 	}()
 
 	c.wg.Wait()
-	close(shutdownCompleteChan)
+	<-shutdownCompleteChan
 
 	c.svc = nil
 

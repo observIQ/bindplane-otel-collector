@@ -15,13 +15,29 @@
 // Package snapshotprocessor collects metrics, traces, and logs for
 package snapshotprocessor
 
-// Config is the configuration for the processor
+import "go.opentelemetry.io/collector/component"
+
+// Config is the configuration for the processor.
+//
+// The processor always serves snapshots over the legacy report-manager
+// path (Bindplane sends a snapshotConfig and the report manager POSTs
+// the payload). If OpAMP is set, it additionally registers a custom
+// capability on the named extension and serves snapshots in response
+// to OpAMP custom messages over the same connection.
 type Config struct {
-	// Enable controls whether snapshots are collected
+	// Enabled controls whether snapshots are collected.
 	Enabled bool `mapstructure:"enabled"`
+
+	// OpAMP, if set, is the component ID of the opamp_connection
+	// extension whose CustomCapabilityRegistry the processor will
+	// register the snapshot capability with. Leave unset to run in
+	// report-manager-only mode.
+	OpAMP component.ID `mapstructure:"opamp"`
 }
 
-// Validate validates the processor configuration
+// Validate validates the processor configuration. Both an unset OpAMP
+// (legacy mode) and a set OpAMP (legacy + custom-message mode) are
+// valid; nothing else is checked.
 func (cfg Config) Validate() error {
 	return nil
 }

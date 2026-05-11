@@ -16,6 +16,7 @@ package snapshotprocessor
 
 import (
 	"context"
+	"sync"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -25,13 +26,11 @@ import (
 
 var componentType = component.MustNewType("snapshotprocessor")
 
-const (
-	stability = component.StabilityLevelAlpha
-)
+const stability = component.StabilityLevelAlpha
 
 var consumerCapabilities = consumer.Capabilities{MutatesData: false}
 
-// NewFactory creates a new ProcessorFactory with default configuration
+// NewFactory creates a new ProcessorFactory with default configuration.
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
 		componentType,
@@ -43,10 +42,42 @@ func NewFactory() processor.Factory {
 }
 
 func createDefaultConfig() component.Config {
-	return &Config{
-		Enabled: true,
-	}
+	return &Config{Enabled: true}
 }
+
+// createOrGetProcessor returns the snapshotProcessor instance for the
+// given Settings.ID, creating one if it does not yet exist. Sharing a
+// single instance across the traces/logs/metrics signals (and across
+// multiple pipelines wiring the same processor) ensures Start runs
+// once and the OpAMP custom capability is registered exactly once per
+// processor ID.
+func createOrGetProcessor(set processor.Settings, cfg *Config) *snapshotProcessor {
+	processorsMux.Lock()
+	defer processorsMux.Unlock()
+
+	if p, ok := processors[set.ID]; ok {
+		return p
+	}
+	p := newSnapshotProcessor(set.Logger, cfg, set.ID)
+	processors[set.ID] = p
+	return p
+}
+
+// unregisterProcessor removes the snapshotProcessor for id from the
+// shared map. Called by stop().
+func unregisterProcessor(id component.ID) {
+	processorsMux.Lock()
+	defer processorsMux.Unlock()
+	delete(processors, id)
+}
+
+// processors holds the live snapshotProcessor instances keyed by
+// component ID. Mirrors the contrib v2 pattern so a single instance
+// services traces, logs, and metrics for the same processor ID.
+var (
+	processors    = map[component.ID]*snapshotProcessor{}
+	processorsMux = sync.Mutex{}
+)
 
 func createTracesProcessor(
 	ctx context.Context,
@@ -54,9 +85,14 @@ func createTracesProcessor(
 	cfg component.Config,
 	nextConsumer consumer.Traces,
 ) (processor.Traces, error) {
-	oCfg := cfg.(*Config)
-	sp := newSnapshotProcessor(set.Logger, oCfg, set.ID.String())
-	return processorhelper.NewTraces(ctx, set, cfg, nextConsumer, sp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
+	sp := createOrGetProcessor(set, cfg.(*Config))
+	return processorhelper.NewTraces(
+		ctx, set, cfg, nextConsumer,
+		sp.processTraces,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
+	)
 }
 
 func createLogsProcessor(
@@ -65,9 +101,14 @@ func createLogsProcessor(
 	cfg component.Config,
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
-	oCfg := cfg.(*Config)
-	sp := newSnapshotProcessor(set.Logger, oCfg, set.ID.String())
-	return processorhelper.NewLogs(ctx, set, cfg, nextConsumer, sp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	sp := createOrGetProcessor(set, cfg.(*Config))
+	return processorhelper.NewLogs(
+		ctx, set, cfg, nextConsumer,
+		sp.processLogs,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
+	)
 }
 
 func createMetricsProcessor(
@@ -76,7 +117,12 @@ func createMetricsProcessor(
 	cfg component.Config,
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
-	oCfg := cfg.(*Config)
-	sp := newSnapshotProcessor(set.Logger, oCfg, set.ID.String())
-	return processorhelper.NewMetrics(ctx, set, cfg, nextConsumer, sp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
+	sp := createOrGetProcessor(set, cfg.(*Config))
+	return processorhelper.NewMetrics(
+		ctx, set, cfg, nextConsumer,
+		sp.processMetrics,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
+	)
 }
