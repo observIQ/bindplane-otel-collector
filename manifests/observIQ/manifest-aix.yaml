@@ -126,6 +126,6 @@ providers:
 replaces:
   # AIX patches for hostmetricsreceiver - dynamic OS check + nil guards for process scraper
   # Can be removed when upstream adds AIX support
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver => github.com/Dylan-M/opentelemetry-collector-contrib/receiver/hostmetricsreceiver 3610f19ad33cf4f53dd3577bad12bf0116be8c63
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.0.0-20260330173229-3610f19ad33c
   # AIX patches for gopsutil - can be removed when upstream merges AIX support
   - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 6764b38853b5406034f0badcaeee9d0e6b5c118f
