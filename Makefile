@@ -389,6 +389,17 @@ release-test:
 release-test-aix:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
+# Local dry-run of the container release. Builds linux binaries, stages them at
+# the paths .goreleaser-docker.yml expects, then runs goreleaser in snapshot mode.
+# release-prep is required locally to build the supervisor binary from source —
+# in CI the supervisor binary is extracted from the GCS tarball instead.
+.PHONY: release-containers-test
+release-containers-test:
+	$(MAKE) release-prep CURR_VERSION=$(VERSION)
+	$(MAKE) build-linux-amd64 OUTDIR=tmp
+	$(MAKE) build-linux-arm64 OUTDIR=tmp
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
+
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
 agent-linux-amd64:
 	GOARCH=amd64 GOOS=linux $(MAKE) agent

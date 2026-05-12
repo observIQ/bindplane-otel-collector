@@ -1,0 +1,74 @@
+version: 2
+
+project_name: bindplane-otel-collector
+
+# Container-only release. The main release (.goreleaser.yml) already publishes
+# the GitHub release and uploads linux tarballs to gs://bdot-release/v{version}/.
+# This config consumes those tarballs to build and push container images.
+
+changelog:
+  disable: true
+
+release:
+  disable: true
+
+# https://goreleaser.com/customization/builds/#import-pre-built-binaries
+# Binaries are extracted from the main release's linux tarballs by the
+# release-containers.yml workflow before goreleaser runs.
+builds:
+  - id: collector
+    builder: prebuilt
+    binary: bindplane-otel-collector
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}
+  - id: supervisor
+    builder: prebuilt
+    binary: opampsupervisor
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    prebuilt:
+      path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}
+
+# Skip over building default archives
+archives:
+  - format: binary
+
+# https://goreleaser.com/customization/dockers_v2/
+# dockers_v2 produces a multi-arch manifest natively, so no separate
+# docker_manifests block is required. The Dockerfile references
+# $TARGETPLATFORM to pick up the right per-arch binaries from the
+# platform-organized build context.
+dockers_v2:
+  - id: ubuntu
+    ids:
+      - collector
+      - supervisor
+    dockerfile: ./docker/Dockerfile.ubuntu
+    images:
+      - "ghcr.io/observiq/bindplane-otel-collector"
+    tags:
+      - "{{ .RawVersion }}-{{ .Prerelease }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      created: "{{ .Date }}"
+      title: "{{ .ProjectName }}"
+      revision: "{{ .FullCommit }}"
+      version: "{{ .Version }}"
+    extra_files:
+      - release_deps/VERSION.txt
+      - release_deps/plugins
+      - LICENSE
+    retry:
+      attempts: 10
+      delay: 30s
+      max_delay: 1m
