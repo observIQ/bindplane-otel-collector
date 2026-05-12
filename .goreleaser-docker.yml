@@ -72,3 +72,27 @@ dockers_v2:
       attempts: 10
       delay: 30s
       max_delay: 1m
+  - id: ubuntu-collector
+    ids:
+      - collector
+    dockerfile: ./docker/Dockerfile.ubuntu-collector
+    images:
+      - "ghcr.io/observiq/bindplane-otel-collector"
+    tags:
+      - "{{ .RawVersion }}-{{ .Prerelease }}-collector"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      created: "{{ .Date }}"
+      title: "{{ .ProjectName }}"
+      revision: "{{ .FullCommit }}"
+      version: "{{ .Version }}"
+    extra_files:
+      - release_deps/VERSION.txt
+      - release_deps/plugins
+      - LICENSE
+    retry:
+      attempts: 10
+      delay: 30s
+      max_delay: 1m
