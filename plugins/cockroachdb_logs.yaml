@@ -105,7 +105,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_health_log }}
-    filelog/cockroachdb_health_logs:
+    file_log/cockroachdb_health_logs:
       storage: file_storage
       include:
         {{ range $fp := .health_log_path }}
@@ -155,7 +155,7 @@ template: |
     {{ end }}
 
     {{ if .enable_dev_log }}
-    filelog/cockroachdb_dev_logs:
+    file_log/cockroachdb_dev_logs:
       storage: file_storage
       include:
         {{ range $fp := .dev_log_path}}
@@ -206,7 +206,7 @@ template: |
 
     
     {{ if .enable_error_log }}
-    filelog/cockroachdb_error_logs:
+    file_log/cockroachdb_error_logs:
       storage: file_storage
       include:
         {{ range $fp := .error_log_path }}
@@ -256,7 +256,7 @@ template: |
     {{ end }}
 
     {{ if .enable_sql_schema_log }}
-    filelog/cockroachdb_sql_schema_logs:
+    file_log/cockroachdb_sql_schema_logs:
       storage: file_storage
       include:
         {{ range $fp := .sql_schema_log_path }}
@@ -306,7 +306,7 @@ template: |
     {{ end }}
     
     {{ if .enable_telemetry_log }}
-    filelog/cockroachdb_telemetry_logs:
+    file_log/cockroachdb_telemetry_logs:
       storage: file_storage
       include:
         {{ range $fp := .telemetry_log_path }}
@@ -356,7 +356,7 @@ template: |
     {{ end }}
 
     {{ if .enable_kv_distribution_log }}
-    filelog/cockroachdb_kv_distribution_logs:
+    file_log/cockroachdb_kv_distribution_logs:
       storage: file_storage
       include:
         {{ range $fp := .kv_distribution_log_path }}
@@ -406,7 +406,7 @@ template: |
     {{ end }}
     
     {{ if .enable_pebble_log }}
-    filelog/cockroachdb_pebble_logs:
+    file_log/cockroachdb_pebble_logs:
       storage: file_storage
       include:
         {{ range $fp := .pebble_log_path }}
@@ -461,23 +461,23 @@ template: |
       logs:
         receivers:
           {{ if .enable_health_log }}
-          - filelog/cockroachdb_health_logs
+          - file_log/cockroachdb_health_logs
           {{ end }}
           {{ if .enable_dev_log }}
-          - filelog/cockroachdb_dev_logs
+          - file_log/cockroachdb_dev_logs
           {{ end }}
           {{ if .enable_error_log }}
-          - filelog/cockroachdb_error_logs
+          - file_log/cockroachdb_error_logs
           {{ end }}
           {{ if .enable_sql_schema_log }}
-          - filelog/cockroachdb_sql_schema_logs
+          - file_log/cockroachdb_sql_schema_logs
           {{ end }}
           {{ if .enable_telemetry_log }}
-          - filelog/cockroachdb_telemetry_logs
+          - file_log/cockroachdb_telemetry_logs
           {{ end }}
           {{ if .enable_kv_distribution_log }}
-          - filelog/cockroachdb_kv_distribution_logs
+          - file_log/cockroachdb_kv_distribution_logs
           {{ end }}
           {{ if .enable_pebble_log }}
-          - filelog/cockroachdb_pebble_logs
+          - file_log/cockroachdb_pebble_logs
           {{ end }}

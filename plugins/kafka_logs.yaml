@@ -67,7 +67,7 @@ template: |
       directory: {{ .offset_storage_dir }}
   receivers:
     {{ if .enable_server_log }}
-    filelog/server:
+    file_log/server:
       storage: file_storage
       include:
         {{ range $fp := .server_log_path }}
@@ -107,7 +107,7 @@ template: |
     {{ end }}
 
     {{ if .enable_controller_log }}
-    filelog/controller:
+    file_log/controller:
       storage: file_storage
       include:
         {{ range $fp := .controller_log_path }}
@@ -147,7 +147,7 @@ template: |
     {{ end }}
 
     {{ if .enable_state_change_log }}
-    filelog/state:
+    file_log/state:
       storage: file_storage
       include:
         {{ range $fp := .state_change_log_path }}
@@ -187,7 +187,7 @@ template: |
     {{ end }}
 
     {{ if .enable_log_cleaner_log }}
-    filelog/cleaner:
+    file_log/cleaner:
       storage: file_storage
       include:
         {{ range $fp := .log_cleaner_log_path }}
@@ -232,17 +232,17 @@ template: |
       logs:
         receivers:
           {{ if .enable_server_log }}
-          - filelog/server
+          - file_log/server
           {{ end }}
 
           {{ if .enable_controller_log }}
-          - filelog/controller
+          - file_log/controller
           {{ end }}
 
           {{ if .enable_state_change_log }}
-          - filelog/state
+          - file_log/state
           {{ end }}
 
           {{ if .enable_log_cleaner_log }}
-          - filelog/cleaner
+          - file_log/cleaner
           {{ end }}

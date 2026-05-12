@@ -76,7 +76,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -103,7 +103,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -132,7 +132,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -161,7 +161,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -190,7 +190,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -219,7 +219,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -248,7 +248,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1

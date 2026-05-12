@@ -53,7 +53,7 @@ template: |
     file_storage:
       directory:  {{ .offset_storage_dir }}
   receivers:
-    filelog/standalone:
+    file_log/standalone:
       storage: file_storage
       include:
         {{ range $i, $fp := .standalone_file_path  }}
@@ -83,7 +83,7 @@ template: |
             parse_from: attributes.level
         {{ end }}
     
-    filelog/domain_server:
+    file_log/domain_server:
       storage: file_storage
       include:
         {{ range $i, $fp := .domain_server_path  }}
@@ -113,7 +113,7 @@ template: |
             parse_from: attributes.level
         {{ end }}
 
-    filelog/domain_controller:
+    file_log/domain_controller:
       storage: file_storage
       include:
       {{ range $i, $fp := .domain_controller_path  }}
@@ -148,10 +148,10 @@ template: |
     pipelines:
       logs:
         receivers:  
-          - filelog/standalone
+          - file_log/standalone
         {{ if .enable_domain_server }}
-          - filelog/domain_server
+          - file_log/domain_server
         {{ end }}
         {{ if .enable_domain_controller }}
-          - filelog/domain_controller
+          - file_log/domain_controller
         {{ end }}

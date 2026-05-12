@@ -24,7 +24,7 @@ parameters:
     default: true
 template: |
   receivers:
-    udplog:
+    udp_log:
       listen_address: '{{ .listen_ip }}:{{ .listen_port}}'
       attributes:
         log_type: {{.log_type}}
@@ -35,4 +35,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [udplog]
+        receivers: [udp_log]

@@ -44,7 +44,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
       - name: Install tools
         run: make install-tools
       - name: Release Prep

@@ -24,7 +24,7 @@ For an interactive installation with the installer UI, add `-Interactive`:
 
 ### Manual Installation
 
-For versions prior to v1.96.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/bindplane-otel-collector.msi` (or `bindplane-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
+For versions prior to v2.0.1-beta.2, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/bindplane-otel-collector.msi` (or `bindplane-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
 
 Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
 

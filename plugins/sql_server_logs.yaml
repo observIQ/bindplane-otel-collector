@@ -28,7 +28,7 @@ parameters:
 
 template: |
   receivers:
-    windowseventlog:
+    windows_event_log:
       channel: "Application"
       max_reads: {{ .max_reads }}
       poll_interval: '{{ .poll_interval }}'
@@ -53,4 +53,4 @@ template: |
   service:
     pipelines:
       logs:
-        receivers: [windowseventlog]
+        receivers: [windows_event_log]
