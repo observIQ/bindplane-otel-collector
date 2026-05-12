@@ -618,7 +618,6 @@ set_package_type() {
     if package_type=$(detect_distro_package_type); then
         succeeded
     else
-        failed
         if [ "$OS_TYPE" = "AIX" ]; then
           error_exit "$LINENO" "Could not find mkssys on the system"
         else
@@ -1012,7 +1011,7 @@ package_type_check()
       && command -v lsitab > /dev/null 2>&1; then
       succeeded
     else
-      error_exit "$LINENO" "Could not find AIX installation tools on the system"
+      error_exit "$LINENO" "Could not find required AIX commands on the system"
     fi
   fi
 }
