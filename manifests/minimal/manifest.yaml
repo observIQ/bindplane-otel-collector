@@ -6,34 +6,34 @@ dist:
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.148.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/bindplaneextension v1.1.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.151.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/extension/bindplaneextension v1.5.0
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.148.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.148.0
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.148.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.151.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.151.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.151.0
 processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.148.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.1.1
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.1.1
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.1.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.151.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/processor/snapshotprocessor v1.5.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.5.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.5.0
 receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.148.0
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.148.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.151.0
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.151.0
 connectors:
-  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.148.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.148.0
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.151.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.151.0
 providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.54.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.54.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.54.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.54.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.54.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.57.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.57.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.57.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.57.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.57.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:

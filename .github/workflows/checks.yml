@@ -76,7 +76,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -103,7 +103,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -132,7 +132,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -161,7 +161,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -190,7 +190,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -219,7 +219,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -248,7 +248,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25.7
+          go-version: 1.25.9
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -290,23 +290,3 @@ jobs:
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Check Dependabot
         run: make check-dependabot
-
-  check-component-changes:
-    if: ${{ needs.optimize_ci.outputs.skip != 'true' && needs.detect-changes.outputs.components == 'true' }}
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
-    needs:
-      - optimize_ci
-      - detect-changes
-    steps:
-      - name: Fail on component changes
-        run: |
-          echo "::error::Changes detected in component directories that have been migrated to the bindplane-otel-contrib repository."
-          echo "The following directories must not be modified in this repository:"
-          echo "  receiver/, processor/, exporter/, extension/,"
-          echo "  counter/, expr/, version/, "
-          echo "  internal/aws/, internal/azureblob/, internal/blobconsume/,"
-          echo "  internal/exporterutils/, internal/measurements/, internal/osinfo/,"
-          echo "  internal/report/snapshot/, internal/storageclient/, internal/testutils/"
-          echo ""
-          echo "Please make these changes in https://github.com/observIQ/bindplane-otel-contrib instead."
-          exit 1

@@ -615,7 +615,16 @@ set_package_type() {
       ;;
     esac
   else
-    package_type=$(detect_distro_package_type) || error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
+    if package_type=$(detect_distro_package_type); then
+        succeeded
+    else
+        failed
+        if [ "$OS_TYPE" = "AIX" ]; then
+          error_exit "$LINENO" "Could not find mkssys on the system"
+        else
+          error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
+        fi
+    fi
   fi
 
 }
@@ -983,7 +992,11 @@ package_type_check()
       succeeded
   else
       failed
-      error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
+      if [ "$OS_TYPE" = "AIX" ]; then
+        error_exit "$LINENO" "Could not find mkssys on the system"
+      else
+        error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm or mkssys) on this system"
+      fi
   fi
 
   if [ "$OS_TYPE" = "AIX" ]; then
@@ -998,6 +1011,8 @@ package_type_check()
       && command -v rmitab > /dev/null 2>&1 \
       && command -v lsitab > /dev/null 2>&1; then
       succeeded
+    else
+      error_exit "$LINENO" "Could not find AIX installation tools on the system"
     fi
   fi
 }
