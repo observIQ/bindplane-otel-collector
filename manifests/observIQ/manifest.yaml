@@ -319,3 +319,8 @@ providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.57.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
+  # cockroachdb/errors v1.11.3 (pulled in transitively by pebbleextension) references the
+  # `event.Extra` field removed in getsentry/sentry-go v0.31.0+. sentryexporter pulls in
+  # sentry-go v0.46.x, breaking the build. v1.13.0 of cockroachdb/errors uses the new API.
+  # Remove once a transitive dep upgrades cockroachdb/errors past v1.11.3.
+  - github.com/cockroachdb/errors => github.com/cockroachdb/errors v1.13.0

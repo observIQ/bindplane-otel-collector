@@ -38,13 +38,13 @@ version:
 .PHONY: collector
 collector:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
-	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds the agent for current GOOS/GOARCH pair (aix)
 .PHONY: collector-aix
 collector-aix:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest-aix.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)"
-	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
 # MANIFEST = path to the manifest file for the distro to be built
