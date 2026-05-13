@@ -44,16 +44,17 @@ type othersUpdaterManager struct {
 
 // newUpdaterManager creates a new UpdaterManager
 func newUpdaterManager(defaultLogger *zap.Logger, tmpPath string) (updaterManager, error) {
-	cwd, err := os.Getwd()
+	ex, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cwd: %w", err)
+		return nil, fmt.Errorf("failed to get executable path: %w", err)
 	}
+	installDir := filepath.Dir(ex)
 
 	return &othersUpdaterManager{
 		tmpPath:             filepath.Clean(tmpPath),
 		logger:              defaultLogger.Named("updater manager"),
 		updaterName:         defaultOthersUpdaterName,
-		cwd:                 cwd,
+		cwd:                 installDir,
 		shutdownWaitTimeout: defaultShutdownWaitTimeout,
 	}, nil
 }
@@ -69,6 +70,7 @@ func (m othersUpdaterManager) StartAndMonitorUpdater() error {
 
 	//#nosec G204 -- paths are not determined via user input
 	cmd := exec.Command(updaterPath)
+	cmd.Dir = m.cwd
 
 	// We need to set the processor group id to something different so that at least on mac, when the
 	// collector dies the updater won't die as well
