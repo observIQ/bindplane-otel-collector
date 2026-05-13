@@ -1,0 +1,86 @@
+name: release-containers-test
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version (vX.Y.Z or vX.Y.Z-prerelease.N)"
+        required: true
+        default: "v0.0.1"
+
+jobs:
+  release-containers-test:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    steps:
+      - name: Redirect temp directories
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+      - name: Normalize and validate version input
+        run: |
+          set -euo pipefail
+          INPUT="${{ github.event.inputs.version }}"
+          VERSION_NO_V="${INPUT#v}"
+          if [[ ! "$VERSION_NO_V" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid version '$INPUT'. Expected vX.Y.Z or vX.Y.Z-prerelease.N"
+            exit 1
+          fi
+          echo "VERSION_NO_V=${VERSION_NO_V}" >> "$GITHUB_ENV"
+          echo "VERSION=v${VERSION_NO_V}" >> "$GITHUB_ENV"
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_PROJECT_ID }}
+          credentials_json: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_CREDENTIALS }}
+      - name: Install Gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.9
+          cache: false
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+      - name: Download Linux Binaries from GCS
+        run: |
+          set -euo pipefail
+          mkdir -p tmp release_deps/supervisor_bin
+          for ARCH in amd64 arm64; do
+            ARCHIVE="bindplane-otel-collector-v${VERSION_NO_V}-linux-${ARCH}.tar.gz"
+            gsutil cp "gs://bdot-release/v${VERSION_NO_V}/${ARCHIVE}" "tmp/${ARCHIVE}"
+            mkdir -p "tmp/extracted_${ARCH}"
+            tar -xzf "tmp/${ARCHIVE}" -C "tmp/extracted_${ARCH}"
+            mv "tmp/extracted_${ARCH}/bindplane-otel-collector" "tmp/collector_linux_${ARCH}"
+            mv "tmp/extracted_${ARCH}/opampsupervisor" "release_deps/supervisor_bin/opampsupervisor_linux_${ARCH}"
+          done
+      - name: Prepare release_deps
+        run: |
+          set -euo pipefail
+          echo "v${VERSION_NO_V}" > release_deps/VERSION.txt
+          cp -r plugins release_deps/
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --snapshot --clean --timeout 60m --config .goreleaser-docker.yml
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}

@@ -16,6 +16,7 @@
 # Final Stage
 #
 FROM ubuntu:24.04
+ARG TARGETPLATFORM
 WORKDIR /
 
 RUN apt-get update && \
@@ -46,8 +47,8 @@ COPY LICENSE /licenses/bindplane-otel-collector.license
 
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
-COPY bindplane-otel-collector /collector/bindplane-otel-collector
-COPY opampsupervisor /collector/opampsupervisor
+COPY $TARGETPLATFORM/bindplane-otel-collector /collector/bindplane-otel-collector
+COPY $TARGETPLATFORM/opampsupervisor /collector/opampsupervisor
 
 USER otel
 WORKDIR /etc/otel
