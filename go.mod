@@ -17,7 +17,7 @@ require (
 	github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter v1.5.0
 	github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.5.0
 	github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor v1.5.0
-	github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor v1.5.0
+	github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor v1.6.0
 	github.com/observiq/bindplane-otel-contrib/processor/maskprocessor v1.5.0
 	github.com/observiq/bindplane-otel-contrib/processor/metricextractprocessor v1.5.0
 	github.com/observiq/bindplane-otel-contrib/processor/metricstatsprocessor v1.5.0
