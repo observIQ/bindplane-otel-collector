@@ -1,15 +1,8 @@
 name: release
 on:
-  # Opting for manual releases temporarily, potentially switch long term as well.
-  # push:
-  #   tags:
-  #     - "v[0-9]*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Collector Version (vX.Y.Z or vX.Y.Z-prerelease.N). Should match the tag this action is ran on."
-        required: true
-        default: "v0.0.1"
+  push:
+    tags:
+      - "v[0-9]*"
 
 jobs:
   build-msi:
