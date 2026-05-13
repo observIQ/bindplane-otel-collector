@@ -79,7 +79,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "v2.15.4"
-          args: release --skip=validate --debug --clean --timeout 60m --config .goreleaser-docker.yml
+          args: release --skip=validate --verbose --clean --timeout 60m --config .goreleaser-docker.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
