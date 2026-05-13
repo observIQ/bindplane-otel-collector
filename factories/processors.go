@@ -16,6 +16,7 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor"
+	"github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor"
 	"github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor"
@@ -61,6 +62,7 @@ import (
 )
 
 var defaultProcessors = []processor.Factory{
+	asimstandardizationprocessor.NewFactory(),
 	attributesprocessor.NewFactory(),
 	batchprocessor.NewFactory(),
 	processortest.NewNopFactory(),
