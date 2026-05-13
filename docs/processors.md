@@ -19,7 +19,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Log Count Processor                     | [logcountprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.5.0/processor/logcountprocessor/README.md)                                          |
 | Log DeDuplication Processor             | [logdedupprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.151.0/processor/logdedupprocessor/README.md)                         |
 | Logs Transform Processor                | [logstransform](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.151.0/processor/logstransformprocessor/README.md)                        |
-| Lookup Processor                        | [lookupprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.5.0/processor/lookupprocessor/README.md)                                              |
+| Lookup Processor                        | [lookupprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.6.0/processor/lookupprocessor/README.md)                                              |
 | Mask Processor                          | [maskprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.5.0/processor/maskprocessor/README.md)                                                  |
 | Memory Limiter Processor                | [memorylimiterprocessor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.151.0/processor/memorylimiterprocessor/README.md)                       |
 | Metric Extract Processor                | [metricextract](https://github.com/observiq/bindplane-otel-contrib/blob/v1.5.0/processor/metricextractprocessor/README.md)                                         |
