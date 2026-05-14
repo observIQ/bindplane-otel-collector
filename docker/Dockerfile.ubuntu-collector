@@ -52,4 +52,5 @@ COPY $TARGETPLATFORM/bindplane-otel-collector /collector/bindplane-otel-collecto
 USER otel
 WORKDIR /etc/otel
 
-ENTRYPOINT [ "/collector/bindplane-otel-collector", "--config", "/etc/otel/config.yaml" ]
+ENTRYPOINT [ "/collector/bindplane-otel-collector" ]
+CMD [ "--config", "/etc/otel/config.yaml" ]
