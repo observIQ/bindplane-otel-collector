@@ -12,81 +12,64 @@ Before installing the Bindplane Distro for OpenTelemetry Collector using Docker 
 
 ## Installation Steps
 
-1. Create directories and files to store both Docker Compose and BDOT Collector configuration files:
+1. Create a directory containing a `supervisor.yaml` and a `docker-compose.yaml`:
 
 ```
-> config
-    manager.yaml
-> storage
-    config.yaml
-    logging.yaml
-  docker-compose.yaml
+> supervisor.yaml
+> docker-compose.yaml
 ```
 
-Proceed to add content into all files except the `manager.yaml` that will be auto-updated when creating rolling out a config from Bindplane.
+The supervisor's storage is persisted in a named Docker volume declared in the compose file below, so no host-side storage directory is required. This persists the supervisor's instance UID and the effective collector config received from Bindplane across container restarts.
 
 2. Paste the following content into your `docker-compose.yaml`:
 
 ```yaml
-version: '3.8'
-
 services:
   bdot-collector:
-    image: ghcr.io/observiq/bindplane-agent:latest
-    command: ["--config=/etc/otel/storage/config.yaml"]
+    image: ghcr.io/observiq/bindplane-otel-collector:<version>
     volumes:
-      - ./config:/etc/otel/config
-      - ./storage:/etc/otel/storage
+      - ./supervisor.yaml:/etc/otel/supervisor.yaml
+      - bdot-storage:/etc/otel/storage
     ports:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
       - "13133:13133" # Health check extension
       - "55679:55679" # ZPages debugging
-    environment:
-      OPAMP_ENDPOINT: <your-endpoint> # use "wss://app.bindplane.com/v1/opamp" for Bindplane Cloud
-      OPAMP_SECRET_KEY: <your-secret-key>
-      OPAMP_LABELS: install_id=<your-install-id>
-      OPAMP_AGENT_NAME: bdot-collector
-      CONFIG_YAML_PATH: /etc/otel/storage/config.yaml
-      MANAGER_YAML_PATH: /etc/otel/config/manager.yaml
-      LOGGING_YAML_PATH: /etc/otel/storage/logging.yaml
 
+volumes:
+  bdot-storage:
 ```
 
-Get your keys from the **Agents > Install Agents** page in Bindplane.
+You'll need to replace the `<version>` in the image with your desired version.
+
+3. Paste the following content into your `supervisor.yaml`:
+
+```yaml
+server:
+  endpoint: <your-endpoint> # use "wss://app.bindplane.com/v1/opamp" for Bindplane Cloud
+  headers:
+    Authorization: "Secret-Key <your-secret-key>"
+
+capabilities:
+  accepts_remote_config: true
+  reports_remote_config: true
+  reports_available_components: true
+
+agent:
+  executable: /collector/bindplane-otel-collector
+  passthrough_logs: true
+
+storage:
+  directory: /etc/otel/storage
+```
+
+Get your secret key from the **Agents > Install Agents** page in Bindplane.
 
 ![Sample Config](assets/install-keys.png)
 
-3. Paste this into your `config.yaml` file in the `storage` directory:
+The collector's configuration is delivered by Bindplane via OpAMP after the supervisor connects — there is no separate `config.yaml` to author on the host. See the [supervisor docs](./supervisor.md) for more detail.
 
-```yaml
-receivers:
-  nop:
-processors:
-  batch:
-exporters:
-  nop:
-service:
-  pipelines:
-    metrics:
-      receivers: [nop]
-      processors: [batch]
-      exporters: [nop]
-  telemetry:
-    metrics:
-      level: none
-```
-
-> This configuration will be modified by Bindplane and should not be edited after the initial deployment.
-
-4. Paste this into your `logging.yaml` file in the storage directory:
-
-```yaml
-output: stdout
-level: info
-```
-
-5. Start the BDOT Collector using Docker Compose:
+4. Start the BDOT Collector using Docker Compose:
 
 ```bash
 docker compose up -d
@@ -118,3 +101,30 @@ Stop Docker Compose and remove the BDOT Collector container.
 docker compose down -v
 docker compose rm -f bdot-collector
 ```
+
+## Collector-Only Image
+
+A second image variant is published that contains just the collector binary — no OpAMP supervisor. Use this if you want to manage the collector's configuration yourself (via a local `config.yaml`) rather than receiving it from Bindplane over OpAMP. See the [supervisor docs](./supervisor.md#alternatives) for context on when to choose this mode.
+
+The image is published to the same repository with a `-collector` tag suffix:
+
+```
+ghcr.io/observiq/bindplane-otel-collector:<version>-collector
+```
+
+The entrypoint runs the collector directly and expects a config file at `/etc/otel/config.yaml`. A minimal compose file:
+
+```yaml
+services:
+  bdot-collector:
+    image: ghcr.io/observiq/bindplane-otel-collector:<version>-collector
+    volumes:
+      - ./config.yaml:/etc/otel/config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "13133:13133" # Health check extension
+      - "55679:55679" # ZPages debugging
+```
+
+Author your `config.yaml` as a standard [OpenTelemetry Collector configuration](https://opentelemetry.io/docs/collector/configuration/) — it is not modified by anything outside the container.
