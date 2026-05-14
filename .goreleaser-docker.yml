@@ -56,6 +56,7 @@ dockers_v2:
       - "ghcr.io/observiq/bindplane-otel-collector"
     tags:
       - "{{ .RawVersion }}-{{ .Prerelease }}"
+      - "latest"
     platforms:
       - linux/amd64
       - linux/arm64
@@ -80,6 +81,7 @@ dockers_v2:
       - "ghcr.io/observiq/bindplane-otel-collector"
     tags:
       - "{{ .RawVersion }}-{{ .Prerelease }}-collector"
+      - "latest-collector"
     platforms:
       - linux/amd64
       - linux/arm64
