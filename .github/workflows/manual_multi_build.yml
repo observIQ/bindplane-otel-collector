@@ -15,7 +15,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
@@ -34,7 +34,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
@@ -53,7 +53,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
