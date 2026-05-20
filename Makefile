@@ -427,6 +427,49 @@ agent-linux-arm64:
 agent-linux-ppc64le:
 	GOARCH=ppc64le GOOS=linux $(MAKE) agent
 
+# agent-clean wipes the ocb-generated output trees. The ocb step is
+# platform-agnostic Go-source generation, so subsequent platform builds
+# reuse the generated tree until you clean it.
+.PHONY: agent-clean
+agent-clean:
+	rm -rf $(BUILD_DIR) ./builder
+
+# agent-v2 builds a v2-shape agent (vanilla collector + opampsupervisor pattern).
+# Uses manifest-v2.yaml and ocb's default main.go — no overlay from the
+# opampconnectionextension — and outputs to ./builder/ (matching v2.0.1-beta.3's
+# convention).
+V2_MANIFEST ?= manifests/observIQ/manifest-v2.yaml
+.PHONY: agent-v2
+agent-v2:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		exit 1; \
+	fi
+	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR)
+	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
+
+# agent-v2-aix builds the v2-shape agent from the AIX-trimmed manifest
+# (excludes pebble, badger, cgroup, etc. components that won't build on AIX
+# / linux ppc64). Usually invoked as `GOOS=aix GOARCH=ppc64 make agent-v2-aix`.
+V2_AIX_MANIFEST ?= manifests/observIQ/manifest-v2-aix.yaml
+.PHONY: agent-v2-aix
+agent-v2-aix:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		exit 1; \
+	fi
+	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR)
+	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
+
+.PHONY: agent-windows-amd64 agent-windows-arm64
+agent-windows-amd64:
+	GOARCH=amd64 GOOS=windows $(MAKE) agent
+agent-windows-arm64:
+	GOARCH=arm64 GOOS=windows $(MAKE) agent
+
+
 build-single:
 	$(MAKE)
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
