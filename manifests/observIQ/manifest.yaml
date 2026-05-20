@@ -5,6 +5,9 @@ dist:
   version: 0.0.0
   output_path: ./build
 
+conf_resolver:
+  default_uri_scheme: "env"
+
 extensions:
   - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.151.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.151.0
@@ -27,9 +30,9 @@ extensions:
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.5.0
-  # Bindplane OPaMP connection extension. Internal module under
+  # Bindplane OpAMP connection extension. Internal module under
   # internal/extension/opampconnectionextension/, kept internal because the
-  # whole runtime cluster (collector lifecycle, OPaMP client, packagestate,
+  # whole runtime cluster (collector lifecycle, OpAMP client, packagestate,
   # report manager, etc.) ships in the same module. Local replace below.
   - gomod: github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v0.0.0
 
@@ -118,9 +121,8 @@ processors:
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.5.0
-  # Internal processor consumed via the top-level module + replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector v0.0.0
-    import: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor
+  # Bindplane snapshot processor — its own internal go.mod, local replace below.
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v0.0.0
 
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.151.0
@@ -238,14 +240,9 @@ providers:
 # These are not local-dev replaces — they're version pins / fork redirects
 # that must persist in release builds too.
 replaces:
-  # opampconnectionextension is its own internal Go module — point ocb at the
-  # local checkout.
+  # Internal Go modules — point ocb at the local checkouts.
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
-  # snapshotprocessor still lives inside the top-level module under
-  # internal/processor/snapshotprocessor. Picked up via the top-level module
-  # path (see its gomod entry above). Stripped/replaced once it gets its
-  # own go.mod.
-  - github.com/observiq/bindplane-otel-collector => ../
+  - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
   - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
   - github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/DataDog/datadog-agent/comp/core/delegatedauth v0.78.2

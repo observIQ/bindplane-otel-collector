@@ -40,7 +40,7 @@ type Options struct {
 	Factories otelcol.Factories
 
 	// Version is the agent version string passed through to the collector's
-	// BuildInfo and reported via OPaMP.
+	// BuildInfo and reported via OpAMP.
 	Version string
 
 	// CollectorConfigPaths is the list of yaml paths the otelcol Resolver reads.

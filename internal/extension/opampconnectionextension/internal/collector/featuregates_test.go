@@ -17,6 +17,13 @@ package collector
 import (
 	"testing"
 
+	// Blank-imported so their init() functions register the hardcoded
+	// feature gates that SetFeatureFlags toggles. In a production build the
+	// factories pull these in transitively; in this isolated unit test we
+	// have to be explicit.
+	_ "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector"
+	_ "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter"
+
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/featuregate"
 	"go.uber.org/zap"

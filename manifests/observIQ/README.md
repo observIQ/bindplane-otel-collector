@@ -24,7 +24,7 @@ To run ocb directly without the make target:
 builder --config manifests/observIQ/manifest.yaml
 ```
 
-That produces a standalone-mode-only binary (ocb's default `main.go`, no OPaMP wiring). Useful for verifying the manifest itself; not the shipping flow.
+That produces a standalone-mode-only binary (ocb's default `main.go`, no OpAMP wiring). Useful for verifying the manifest itself; not the shipping flow.
 
 ## Editing the manifest
 
