@@ -1,28 +1,6 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    ignore:
-      # Opentelemetry updates will be done manually
-      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
-      - dependency-name: "go.opentelemetry.io/*"
-      - dependency-name: "github.com/open-telemetry/opamp-go"
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-  - package-ecosystem: "gomod"
-    directory: "/packagestate"
-    schedule:
-      interval: "weekly"
-    ignore:
-      # Opentelemetry updates will be done manually
-      - dependency-name: "github.com/open-telemetry/opamp-go"
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-  - package-ecosystem: "gomod"
     directory: "/cmd/plugindocgen"
     schedule:
       interval: "weekly"
@@ -51,6 +29,30 @@ updates:
       # Opentelemetry updates will be done manually
       - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
       - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/extension/opampconnectionextension"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opamp-go"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/processor/snapshotprocessor"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opamp-go"
     commit-message:
       prefix: "deps"
       include: "scope"

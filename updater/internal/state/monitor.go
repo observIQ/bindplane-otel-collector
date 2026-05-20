@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/packagestate"
+	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )

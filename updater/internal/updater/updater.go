@@ -27,7 +27,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/observiq/bindplane-otel-collector/packagestate"
+	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/action"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/install"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"

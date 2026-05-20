@@ -37,6 +37,24 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHO
 # template appends its own -SNAPSHOT-<sha> suffix, so passing VERSION here would double it.
 SNAPSHOT_TAG := $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
+# Build-info stamps. These get linked into the binary via -ldflags so
+# `collector --version` shows real values instead of "unknown".
+GIT_HASH ?= $(shell git rev-parse HEAD)
+BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# AGENT_LDFLAGS stamps version + git hash + build date into the v1/v2 collector
+# binaries (both consume github.com/observiq/bindplane-otel-contrib/pkg/version).
+AGENT_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+
+# UPDATER_LDFLAGS stamps the same values into the updater binary.
+UPDATER_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.date=$(BUILD_DATE)
+
 .PHONY: version
 version:
 	@printf $(VERSION)
@@ -44,15 +62,61 @@ version:
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
 
-# Builds just the agent for current GOOS/GOARCH pair
+# ocb-driven build:
+#   1. Run the OTel collector builder against manifests/observIQ/manifest.yaml
+#      to generate ./build/ (components.go, go.mod, etc).
+#   2. Overwrite the generated main.go with the v1 entry point shipped by
+#      the opampconnectionextension at cmd/main/main.go. That entry point
+#      wires ocb's factories into the managed/standalone runtime via
+#      runtime.Run.
+#   3. go mod tidy + go build inside ./build/.
+#
+# Resolve ocb to the first of:
+#   - the OCB env var
+#   - `builder` on PATH
+#   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
+#
+# Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
+OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
+MANIFEST ?= manifests/observIQ/manifest.yaml
+BUILD_DIR ?= ./build
+AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
+
+# verify-manifest is the CI gate: regenerate sources from the manifest and
+# compile them. Fails on any unresolvable component, missing replace, or
+# version drift between sibling deps. Runs against every PR that touches
+# the manifest or any sub-module.
+.PHONY: verify-manifest
+verify-manifest:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		exit 1; \
+	fi
+	rm -rf $(BUILD_DIR)
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -o /dev/null .
+
+# Builds the collector for the current GOOS/GOARCH pair using ocb.
 .PHONY: agent
 agent:
-	CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		exit 1; \
+	fi
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	# Drop ocb's run/runInteractive helpers — our main.go owns startup.
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -ldflags "$(AGENT_LDFLAGS)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; CGO_ENABLED=0 go build -ldflags "$(UPDATER_LDFLAGS)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -150,8 +214,10 @@ misspell-fix:
 
 .PHONY: test
 test:
-	@echo "running tests in root"
-	@gotestsum --rerun-fails --packages="./..." -- -race
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running tests in root"; \
+		gotestsum --rerun-fails --packages="./..." -- -race; \
+	fi
 	@set -e; for dir in $(ALL_MODULES); do \
 		if [ "$${dir}" = "." ]; then continue; fi; \
 		SKIP=false; \
@@ -195,16 +261,20 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.26.4"
+	$(MAKE) for-all-modules CMD="go mod tidy -compat=1.26.4"
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=updater \
-	  -exclude-dir=internal/tools \
-	  -exclude-dir=cmd/plugindocgen \
-	  $(GOSEC_MIGRATED_EXCLUDES) \
-	  ./...
+	@if [ -z "$$(go list ./... 2>/dev/null | grep -v 'internal/tools' | grep -v 'cmd/plugindocgen')" ]; then \
+		echo "gosec: no root packages to scan, skipping root"; \
+	else \
+		gosec \
+		  -exclude-dir=updater \
+		  -exclude-dir=internal/tools \
+		  -exclude-dir=cmd/plugindocgen \
+		  $(GOSEC_MIGRATED_EXCLUDES) \
+		  ./...; \
+	fi
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 
@@ -375,6 +445,49 @@ agent-linux-arm64:
 agent-linux-ppc64le:
 	GOARCH=ppc64le GOOS=linux $(MAKE) agent
 
+# agent-clean wipes the ocb-generated output trees. The ocb step is
+# platform-agnostic Go-source generation, so subsequent platform builds
+# reuse the generated tree until you clean it.
+.PHONY: agent-clean
+agent-clean:
+	rm -rf $(BUILD_DIR) ./builder
+
+# agent-v2 builds a v2-shape agent (vanilla collector + opampsupervisor pattern).
+# Uses manifest-v2.yaml and ocb's default main.go — no overlay from the
+# opampconnectionextension — and outputs to ./builder/ (matching v2.0.1-beta.3's
+# convention).
+V2_MANIFEST ?= manifests/observIQ/manifest-v2.yaml
+.PHONY: agent-v2
+agent-v2:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		exit 1; \
+	fi
+	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"
+	mkdir -p $(OUTDIR)
+	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
+
+# agent-v2-aix builds the v2-shape agent from the AIX-trimmed manifest
+# (excludes pebble, badger, cgroup, etc. components that won't build on AIX
+# / linux ppc64). Usually invoked as `GOOS=aix GOARCH=ppc64 make agent-v2-aix`.
+V2_AIX_MANIFEST ?= manifests/observIQ/manifest-v2-aix.yaml
+.PHONY: agent-v2-aix
+agent-v2-aix:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		exit 1; \
+	fi
+	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"
+	mkdir -p $(OUTDIR)
+	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
+
+.PHONY: agent-windows-amd64 agent-windows-arm64
+agent-windows-amd64:
+	GOARCH=amd64 GOOS=windows $(MAKE) agent
+agent-windows-arm64:
+	GOARCH=arm64 GOOS=windows $(MAKE) agent
+
+
 build-single:
 	$(MAKE)
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
@@ -385,8 +498,27 @@ release-test-single:
 
 .PHONY: for-all
 for-all:
-	@echo "running $${CMD} in root"
-	@$${CMD}
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running $${CMD} in root"; \
+		$${CMD}; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+	  if [ "$${dir}" = "." ]; then continue; fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
+	  (cd "$${dir}" && \
+	    echo "running $${CMD} in $${dir}" && \
+	    $${CMD} ); \
+	done
+
+.PHONY: for-all-modules
+for-all-modules:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ "$${dir}" = "." ]; then continue; fi; \
 	  SKIP=false; \
