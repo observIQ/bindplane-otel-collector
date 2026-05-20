@@ -41,11 +41,6 @@ version:
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
 
-# Builds just the agent for current GOOS/GOARCH pair
-.PHONY: agent
-agent:
-	CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
-
 # ocb-driven build:
 #   1. Run the OTel collector builder against manifests/observIQ/manifest.yaml
 #      to generate ./build/ (components.go, go.mod, etc).
@@ -83,8 +78,9 @@ verify-manifest:
 	cd $(BUILD_DIR) && go mod tidy
 	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -o /dev/null .
 
-.PHONY: agent-ocb
-agent-ocb:
+# Builds the collector for the current GOOS/GOARCH pair using ocb.
+.PHONY: agent
+agent:
 	@if [ ! -x "$(OCB)" ]; then \
 		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
 		exit 1; \
@@ -421,35 +417,6 @@ agent-linux-arm64:
 	GOARCH=arm64 GOOS=linux $(MAKE) agent
 agent-linux-ppc64le:
 	GOARCH=ppc64le GOOS=linux $(MAKE) agent
-
-# Cross-platform agent-ocb. The ocb step is platform-agnostic (Go source
-# generation), so we only pay it once; subsequent platform builds reuse the
-# generated ./build/ tree. Run agent-ocb-clean first for a fresh start.
-.PHONY: agent-ocb-clean
-agent-ocb-clean:
-	rm -rf $(BUILD_DIR)
-
-.PHONY: agent-ocb-linux-amd64 agent-ocb-linux-arm64 agent-ocb-linux-ppc64le agent-ocb-linux-arm
-agent-ocb-linux-amd64:
-	GOARCH=amd64 GOOS=linux $(MAKE) agent-ocb
-agent-ocb-linux-arm64:
-	GOARCH=arm64 GOOS=linux $(MAKE) agent-ocb
-agent-ocb-linux-ppc64le:
-	GOARCH=ppc64le GOOS=linux $(MAKE) agent-ocb
-agent-ocb-linux-arm:
-	GOARCH=arm GOOS=linux $(MAKE) agent-ocb
-
-.PHONY: agent-ocb-darwin-amd64 agent-ocb-darwin-arm64
-agent-ocb-darwin-amd64:
-	GOARCH=amd64 GOOS=darwin $(MAKE) agent-ocb
-agent-ocb-darwin-arm64:
-	GOARCH=arm64 GOOS=darwin $(MAKE) agent-ocb
-
-.PHONY: agent-ocb-windows-amd64 agent-ocb-windows-arm64
-agent-ocb-windows-amd64:
-	GOARCH=amd64 GOOS=windows $(MAKE) agent-ocb
-agent-ocb-windows-arm64:
-	GOARCH=arm64 GOOS=windows $(MAKE) agent-ocb
 
 build-single:
 	$(MAKE)

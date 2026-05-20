@@ -84,7 +84,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache: false
 
       - name: Cache Go (Namespace)

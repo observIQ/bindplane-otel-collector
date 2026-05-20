@@ -9,9 +9,9 @@ The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane's
 ## Development Commands
 
 ### Build Commands
-- `make agent-ocb` - **Preferred.** Build the collector via the OTel Collector Builder, using `manifests/observIQ/manifest.yaml` as the source of truth for components. Overwrites the generated `main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` so the managed/standalone runtime is wired in. Requires `builder` (`go install go.opentelemetry.io/collector/cmd/builder@v0.151.0`).
+- `make agent` - Build the collector via the OTel Collector Builder, using `manifests/observIQ/manifest.yaml` as the source of truth for components. Overwrites the ocb-generated `main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` so the managed/standalone runtime is wired in. Requires `builder` (`go install go.opentelemetry.io/collector/cmd/builder@v0.151.0`).
 - `make verify-manifest` - CI gate: regenerates sources from the manifest and compiles them. Fails if the manifest references unresolvable modules or has version drift. Cheap to run on every PR.
-- `make agent` - Legacy build via `cmd/collector` and the top-level `go.mod`. Coexists with `agent-ocb` during migration.
+- `make agent-clean` - Wipe the ocb-generated `./build/` tree.
 - `make updater` - Build just the updater binary for current OS/architecture
 - `make build-binaries` - Build both collector and updater for current OS/architecture (default target)
 - `make build-all` - Build for all supported platforms (Linux, Darwin, Windows)
@@ -51,12 +51,10 @@ The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane's
 
 The project is structured as an OpenTelemetry Collector distribution with custom components:
 
-- **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make agent-ocb` build.
-- **internal/extension/opampconnectionextension/cmd/main/main.go** - Template `main.go` copied over ocb's generated `main.go` so the built binary uses the managed/standalone runtime from `collector/` and `opamp/`.
-- **cmd/collector** - Legacy main.go for the `make agent` build. Same dispatch logic as `internal/extension/opampconnectionextension/cmd/main/main.go` but uses `factories.DefaultFactories()` instead of ocb-generated factories.
-- **collector/** - Core collector wrapper that manages OTel collector lifecycle. `NewWithFactories` is the constructor used by the ocb-built `main.go`.
-- **factories/** - Hand-maintained component factory list used by the legacy build. Mirrors the manifest; gone once `cmd/collector/` is retired.
-- **opamp/** - OpAMP client implementation for remote management
+- **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make agent` build.
+- **internal/extension/opampconnectionextension/cmd/main/main.go** - Template `main.go` copied over ocb's generated `main.go`; calls into `internal/extension/opampconnectionextension/runtime` for managed/standalone dispatch.
+- **internal/extension/opampconnectionextension/** - The OPaMP connection extension and its full managed-mode runtime cluster (collector lifecycle, OPaMP client, package state, report manager, measurements). Its own Go module; entry point `runtime.Run(Options)`.
+- **internal/processor/snapshotprocessor/** - Bindplane snapshot processor. Its own internal Go module.
 
 ### Component Organization
 
@@ -83,9 +81,9 @@ Custom components are organized by type:
 ### Build System
 
 The project uses a Makefile-based build system with:
-- **`make agent-ocb` is the canonical build.** Runs OTel Collector Builder against `manifests/observIQ/manifest.yaml`, overlays `internal/extension/opampconnectionextension/cmd/main/main.go`, and compiles. Build flag: `-tags bindplane` (enables Bindplane registry wiring in `topologyprocessor` and `throughputmeasurementprocessor`).
+- **`make agent` runs ocb** against `manifests/observIQ/manifest.yaml`, overlays `internal/extension/opampconnectionextension/cmd/main/main.go`, and compiles. Build flag: `-tags bindplane` (enables Bindplane registry wiring in `topologyprocessor` and `throughputmeasurementprocessor`).
 - `make verify-manifest` is the CI gate for manifest correctness — regenerate sources + compile to `/dev/null`.
-- Legacy `make agent` (via `cmd/collector` and the top-level `go.mod`) still works and produces a byte-equivalent binary. The two paths coexist during migration; legacy path goes away with spec Phase 3.
+- There's no top-level `go.mod`. ocb generates a per-build `go.mod` inside `./build/`.
 - Multi-platform cross-compilation support
 - Separate binaries for collector and updater
 - Goreleaser for automated releases
