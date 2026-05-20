@@ -64,3 +64,7 @@ ocsf_schema.json
 
 # Claude Code per-user local settings
 .claude/settings.local.json
+
+# Local build output from `make agent-ocb` produced into repo root
+/collector
+/collector_*

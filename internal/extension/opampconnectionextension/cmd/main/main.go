@@ -12,11 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the entry point for the legacy (go build ./cmd/collector)
-// BDOT Collector. The ocb-driven build at ./internal/extension/opampconnectionextension/cmd/main/main.go has the
-// same shape; the only difference is the factory set — here we use the
-// hand-maintained factories.DefaultFactories(); there ocb's generated
-// components() supplies them.
+// Package main is the entry point for the ocb-built BDOT Collector. The
+// `agent` Make target copies this file over ocb's generated main.go after
+// `builder --skip-compilation` runs; `go build` then compiles it together
+// with ocb's components.go inside ./build/.
+//
+// In its source location this file compiles against the stub `components()`
+// in components_stub.go (`go test ./...` inside the extension module is
+// fine). When it lands in ./build/, the stub is not copied — ocb's
+// generated components.go is the only definition of `components()` and
+// returns the manifest's full factory set.
+//
+// Everything else — flag parsing, managed/standalone dispatch, OpAMP
+// wiring, collector lifecycle — lives behind
+// opampconnectionextension/runtime.Run.
 package main
 
 import (
@@ -26,12 +35,12 @@ import (
 	"strings"
 	_ "time/tzdata"
 
-	"github.com/observiq/bindplane-otel-collector/factories"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/runtime"
 	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/spf13/pflag"
 )
 
+// Env-var fallbacks for paths (matches legacy cmd/collector behavior).
 const (
 	configPathENV   = "CONFIG_YAML_PATH"
 	managerPathENV  = "MANAGER_YAML_PATH"
@@ -56,13 +65,13 @@ func main() {
 		return
 	}
 
-	facts, err := factories.DefaultFactories()
+	factories, err := components()
 	if err != nil {
-		log.Fatalf("Failed to build default factories: %v", err)
+		log.Fatalf("Failed to build factories from manifest: %v", err)
 	}
 
 	runtime.Run(runtime.Options{
-		Factories:            facts,
+		Factories:            factories,
 		Version:              version.Version(),
 		CollectorConfigPaths: *collectorConfigPaths,
 		ManagerConfigPath:    *managerConfigPath,

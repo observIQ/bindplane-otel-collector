@@ -49,6 +49,56 @@ version:
 agent:
 	CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
 
+# ocb-driven build:
+#   1. Run the OTel collector builder against manifests/observIQ/manifest.yaml
+#      to generate ./build/ (components.go, go.mod, etc).
+#   2. Overwrite the generated main.go with the v1 entry point shipped by
+#      the opampconnectionextension at cmd/main/main.go. That entry point
+#      wires ocb's factories into the managed/standalone runtime via
+#      runtime.Run.
+#   3. go mod tidy + go build inside ./build/.
+#
+# Resolve ocb to the first of:
+#   - the OCB env var
+#   - `builder` on PATH
+#   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
+#
+# Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0
+OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
+MANIFEST ?= manifests/observIQ/manifest.yaml
+BUILD_DIR ?= ./build
+AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
+
+# verify-manifest is the CI gate: regenerate sources from the manifest and
+# compile them. Fails on any unresolvable component, missing replace, or
+# version drift between sibling deps. Runs against every PR that touches
+# the manifest or any sub-module.
+.PHONY: verify-manifest
+verify-manifest:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		exit 1; \
+	fi
+	rm -rf $(BUILD_DIR)
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -o /dev/null .
+
+.PHONY: agent-ocb
+agent-ocb:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		exit 1; \
+	fi
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	# Drop ocb's run/runInteractive helpers — our main.go owns startup.
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
+
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
@@ -374,6 +424,35 @@ agent-linux-arm64:
 	GOARCH=arm64 GOOS=linux $(MAKE) agent
 agent-linux-ppc64le:
 	GOARCH=ppc64le GOOS=linux $(MAKE) agent
+
+# Cross-platform agent-ocb. The ocb step is platform-agnostic (Go source
+# generation), so we only pay it once; subsequent platform builds reuse the
+# generated ./build/ tree. Run agent-ocb-clean first for a fresh start.
+.PHONY: agent-ocb-clean
+agent-ocb-clean:
+	rm -rf $(BUILD_DIR)
+
+.PHONY: agent-ocb-linux-amd64 agent-ocb-linux-arm64 agent-ocb-linux-ppc64le agent-ocb-linux-arm
+agent-ocb-linux-amd64:
+	GOARCH=amd64 GOOS=linux $(MAKE) agent-ocb
+agent-ocb-linux-arm64:
+	GOARCH=arm64 GOOS=linux $(MAKE) agent-ocb
+agent-ocb-linux-ppc64le:
+	GOARCH=ppc64le GOOS=linux $(MAKE) agent-ocb
+agent-ocb-linux-arm:
+	GOARCH=arm GOOS=linux $(MAKE) agent-ocb
+
+.PHONY: agent-ocb-darwin-amd64 agent-ocb-darwin-arm64
+agent-ocb-darwin-amd64:
+	GOARCH=amd64 GOOS=darwin $(MAKE) agent-ocb
+agent-ocb-darwin-arm64:
+	GOARCH=arm64 GOOS=darwin $(MAKE) agent-ocb
+
+.PHONY: agent-ocb-windows-amd64 agent-ocb-windows-arm64
+agent-ocb-windows-amd64:
+	GOARCH=amd64 GOOS=windows $(MAKE) agent-ocb
+agent-ocb-windows-arm64:
+	GOARCH=arm64 GOOS=windows $(MAKE) agent-ocb
 
 build-single:
 	$(MAKE)

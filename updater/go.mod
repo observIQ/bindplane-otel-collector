@@ -1,10 +1,9 @@
 module github.com/observiq/bindplane-otel-collector/updater
 
-go 1.25.9
+go 1.26.2
 
 require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/observiq/bindplane-otel-collector/packagestate v1.101.0
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
@@ -12,14 +11,16 @@ require (
 	golang.org/x/sys v0.45.0
 )
 
+require gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v0.0.0
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/packagestate => ../packagestate
+replace github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
