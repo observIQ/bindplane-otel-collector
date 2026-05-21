@@ -37,6 +37,24 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHO
 # template appends its own -SNAPSHOT-<sha> suffix, so passing VERSION here would double it.
 SNAPSHOT_TAG := $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
+# Build-info stamps. These get linked into the binary via -ldflags so
+# `collector --version` shows real values instead of "unknown".
+GIT_HASH ?= $(shell git rev-parse HEAD)
+BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# AGENT_LDFLAGS stamps version + git hash + build date into the v1/v2 collector
+# binaries (both consume github.com/observiq/bindplane-otel-contrib/pkg/version).
+AGENT_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+
+# UPDATER_LDFLAGS stamps the same values into the updater binary.
+UPDATER_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.date=$(BUILD_DATE)
+
 .PHONY: version
 version:
 	@printf $(VERSION)
@@ -93,12 +111,12 @@ agent:
 	# Drop ocb's run/runInteractive helpers — our main.go owns startup.
 	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
 	cd $(BUILD_DIR) && go mod tidy
-	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -ldflags "$(AGENT_LDFLAGS)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; CGO_ENABLED=0 go build -ldflags "$(UPDATER_LDFLAGS)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -445,7 +463,7 @@ agent-v2:
 		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
-	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
+	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"
 	mkdir -p $(OUTDIR)
 	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
 
@@ -459,7 +477,7 @@ agent-v2-aix:
 		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
-	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
+	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"
 	mkdir -p $(OUTDIR)
 	cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_v2_$(GOOS)_$(GOARCH)$(EXT)
 
