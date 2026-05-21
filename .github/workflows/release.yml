@@ -24,6 +24,9 @@ jobs:
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: "**/go.sum"
+      - name: Install ocb
+        run: make install-ocb
+        shell: bash
       - name: Prepare Release Dependencies
         run: make release-prep CURR_VERSION=${VERSION#v}
         shell: bash
@@ -116,6 +119,8 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
+      - name: Install ocb
+        run: make install-ocb
       - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
