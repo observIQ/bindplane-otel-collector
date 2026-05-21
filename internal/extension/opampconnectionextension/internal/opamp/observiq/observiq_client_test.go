@@ -331,6 +331,7 @@ func TestClientConnect(t *testing.T) {
 
 				mockOpAmpClient := mocks.NewMockOpAMPClient(t)
 				mockOpAmpClient.On("SetAgentDescription", mock.Anything).Return(nil)
+				mockOpAmpClient.On("SetAvailableComponents", mock.Anything).Return(nil)
 				mockOpAmpClient.On("Start", mock.Anything, mock.Anything).Return(expectedErr)
 				mockStateProvider := new(mocks.MockPackagesStateProvider)
 				mockStateProvider.On("LastReportedStatuses").Return(packageStatuses, nil)
@@ -408,6 +409,7 @@ func TestClientConnect(t *testing.T) {
 					"X-Bindplane-Agent-Id-Format": []string{"ULID"},
 				}
 
+				mockOpAmpClient.On("SetAvailableComponents", mock.Anything).Return(nil)
 				mockOpAmpClient.On("Start", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 					settings := args.Get(1).(types.StartSettings)
 					assert.Equal(t, c.currentConfig.Endpoint, settings.OpAMPServerURL)
