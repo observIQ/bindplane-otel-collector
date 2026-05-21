@@ -5,25 +5,25 @@ project_name: observiq-otel-collector
 before:
   hooks:
     - make release-prep CURR_VERSION={{ .Version }}
+    # Pre-build the linux/arm64 binary via ocb-driven `make`.
+    - GOOS=linux GOARCH=arm64 make build-binaries OUTDIR="tmp"
 
+after:
+  hooks:
+    - cmd: rm -rf tmp
+
+# `builder: prebuilt` — Make owns the build (`AGENT_LDFLAGS`, `-tags bindplane,ocb`).
 builds:
   - id: collector
+    builder: prebuilt
     binary: observiq-otel-collector
-    main: ./cmd/collector
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
-    tags:
-      - bindplane
     goos:
       - linux
     goarch:
       - arm64
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.date={{ .Date }}
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 dockers:
   - id: ubuntu-arm64

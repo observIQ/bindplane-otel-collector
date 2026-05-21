@@ -125,6 +125,12 @@ build-binaries: agent updater
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
 
+# Alias matching v2.0.1-beta.3's naming. v1 doesn't ship AIX binaries today,
+# so build-all and build-all-non-aix are equivalent. Goreleaser's before-hook
+# uses this target name to mirror the v2 release flow.
+.PHONY: build-all-non-aix
+build-all-non-aix: build-all
+
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
 
