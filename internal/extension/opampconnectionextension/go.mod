@@ -37,6 +37,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.58.0
 	go.opentelemetry.io/collector/receiver v1.58.0
 	go.opentelemetry.io/collector/service v0.151.0
+	go.opentelemetry.io/collector/service/hostcapabilities v0.151.0
 	go.opentelemetry.io/otel/sdk/metric v1.43.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
@@ -212,7 +213,6 @@ require (
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.152.0 // indirect
 	go.opentelemetry.io/collector/receiver/receivertest v0.152.1 // indirect
 	go.opentelemetry.io/collector/receiver/xreceiver v0.152.1 // indirect
-	go.opentelemetry.io/collector/service/hostcapabilities v0.151.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzap v0.18.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/contrib/otelconf v0.23.0 // indirect
