@@ -52,7 +52,8 @@ const capabilities = protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsEffectiveConfig |
 	protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig |
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig |
-	protobufs.AgentCapabilities_AgentCapabilities_ReportsHeartbeat
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsHeartbeat |
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsAvailableComponents
 
 // Ensure interface is satisfied
 var (
@@ -304,6 +305,18 @@ func (c *Client) Connect(ctx context.Context) error {
 	// intercept and merge in the hardcoded capabilities.
 	if r := opampconnectionextension.GetRegistry(); r != nil {
 		r.SetClient(c)
+
+		// Report the manifest's component set via OpAMP. ModuleInfos
+		// were captured by the opamp_connection extension's Start when
+		// the collector built it, so they are available now that the
+		// collector has finished starting. Matches the upstream
+		// opampextension behavior — see
+		// internal/opamp/observiq/available_components.go for the
+		// helper functions ported from upstream.
+		available := initAvailableComponents(r.ModuleInfos())
+		if err := c.opampClient.SetAvailableComponents(available); err != nil {
+			c.logger.Error("Failed to set available components", zap.Error(err))
+		}
 	}
 
 	err = c.opampClient.Start(ctx, settings)
