@@ -305,18 +305,18 @@ func (c *Client) Connect(ctx context.Context) error {
 	// intercept and merge in the hardcoded capabilities.
 	if r := opampconnectionextension.GetRegistry(); r != nil {
 		r.SetClient(c)
+	}
 
-		// Report the manifest's component set via OpAMP. ModuleInfos
-		// were captured by the opamp_connection extension's Start when
-		// the collector built it, so they are available now that the
-		// collector has finished starting. Matches the upstream
-		// opampextension behavior — see
-		// internal/opamp/observiq/available_components.go for the
-		// helper functions ported from upstream.
-		available := initAvailableComponents(r.ModuleInfos())
-		if err := c.opampClient.SetAvailableComponents(available); err != nil {
-			c.logger.Error("Failed to set available components", zap.Error(err))
-		}
+	// Report the manifest's component set via OpAMP. ModuleInfos come
+	// directly from the factory set the collector was built with, so the
+	// report is independent of whether the running collector config
+	// includes the opamp_connection extension. Matches the upstream
+	// opampextension behavior — see
+	// internal/opamp/observiq/available_components.go for the helper
+	// functions ported from upstream.
+	available := initAvailableComponents(c.collector.ModuleInfos())
+	if err := c.opampClient.SetAvailableComponents(available); err != nil {
+		c.logger.Error("Failed to set available components", zap.Error(err))
 	}
 
 	err = c.opampClient.Start(ctx, settings)

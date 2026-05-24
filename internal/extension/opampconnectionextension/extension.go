@@ -24,8 +24,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
-	"go.opentelemetry.io/collector/service"
-	"go.opentelemetry.io/collector/service/hostcapabilities"
 	"go.uber.org/zap"
 )
 
@@ -63,14 +61,6 @@ type Registry interface {
 	// extension instance. Messages received while no extension is
 	// attached are silently dropped.
 	ProcessMessage(cm *protobufs.CustomMessage)
-
-	// ModuleInfos returns the collector module information captured from
-	// the host that started the currently-attached extension instance
-	// (via the hostcapabilities.ModuleInfo interface). Returns a zero
-	// value if no extension is attached, the host did not implement the
-	// interface, or no module info was provided. Used by the OpAMP
-	// client owner to build an AvailableComponents report.
-	ModuleInfos() service.ModuleInfos
 }
 
 // GetRegistry returns the package-level Registry. It is always non-nil,
@@ -90,17 +80,15 @@ func GetRegistry() Registry {
 var manager instanceManager
 
 type instanceManager struct {
-	mux         sync.Mutex
-	instance    *opampConnectionExtension
-	client      Client
-	moduleInfos service.ModuleInfos
+	mux      sync.Mutex
+	instance *opampConnectionExtension
+	client   Client
 }
 
 // attach records e as the currently-started extension instance. If a
 // client has already been supplied via SetClient, it is forwarded to e's
 // registry so that capabilities registered against e are advertised
-// immediately. Any ModuleInfos captured by e from its host are cached so
-// the OpAMP client owner can retrieve them via Registry.ModuleInfos.
+// immediately.
 func (m *instanceManager) attach(e *opampConnectionExtension) error {
 	m.mux.Lock()
 	defer m.mux.Unlock()
@@ -111,7 +99,6 @@ func (m *instanceManager) attach(e *opampConnectionExtension) error {
 		)
 	}
 	m.instance = e
-	m.moduleInfos = e.moduleInfos
 	if m.client != nil {
 		e.registry.setClient(m.client)
 	}
@@ -151,13 +138,6 @@ func (m *instanceManager) ProcessMessage(cm *protobufs.CustomMessage) {
 	inst.registry.ProcessMessage(cm)
 }
 
-// ModuleInfos implements Registry.
-func (m *instanceManager) ModuleInfos() service.ModuleInfos {
-	m.mux.Lock()
-	defer m.mux.Unlock()
-	return m.moduleInfos
-}
-
 // opampConnectionExtension is the concrete extension implementation. It
 // owns a per-instance customCapabilityRegistry whose lifetime matches the
 // extension's: on Shutdown the registry — and every capability and
@@ -165,10 +145,9 @@ func (m *instanceManager) ModuleInfos() service.ModuleInfos {
 // bridges whichever instance is currently attached to the long-lived
 // OpAMP client.
 type opampConnectionExtension struct {
-	id          component.ID
-	logger      *zap.Logger
-	registry    *customCapabilityRegistry
-	moduleInfos service.ModuleInfos
+	id       component.ID
+	logger   *zap.Logger
+	registry *customCapabilityRegistry
 }
 
 var (
@@ -188,13 +167,7 @@ func newExtension(id component.ID, logger *zap.Logger) *opampConnectionExtension
 // Only a single opamp_connection extension may be configured per
 // collector, since they would otherwise overwrite each other's advertised
 // custom capabilities whenever a component registers or unregisters one.
-// If host implements the hostcapabilities.ModuleInfo interface, the module
-// info is captured here and cached on the manager so the OpAMP client
-// owner can use it to build an AvailableComponents report.
-func (e *opampConnectionExtension) Start(_ context.Context, host component.Host) error {
-	if mi, ok := host.(hostcapabilities.ModuleInfo); ok {
-		e.moduleInfos = mi.GetModuleInfos()
-	}
+func (e *opampConnectionExtension) Start(_ context.Context, _ component.Host) error {
 	return manager.attach(e)
 }
 
