@@ -196,8 +196,10 @@ misspell-fix:
 
 .PHONY: test
 test:
-	@echo "running tests in root"
-	@gotestsum --rerun-fails --packages="./..." -- -race
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running tests in root"; \
+		gotestsum --rerun-fails --packages="./..." -- -race; \
+	fi
 	@set -e; for dir in $(ALL_MODULES); do \
 		if [ "$${dir}" = "." ]; then continue; fi; \
 		SKIP=false; \
@@ -245,12 +247,16 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=updater \
-	  -exclude-dir=internal/tools \
-	  -exclude-dir=cmd/plugindocgen \
-	  $(GOSEC_MIGRATED_EXCLUDES) \
-	  ./...
+	@if [ -z "$$(go list ./... 2>/dev/null | grep -v 'internal/tools' | grep -v 'cmd/plugindocgen')" ]; then \
+		echo "gosec: no root packages to scan, skipping root"; \
+	else \
+		gosec \
+		  -exclude-dir=updater \
+		  -exclude-dir=internal/tools \
+		  -exclude-dir=cmd/plugindocgen \
+		  $(GOSEC_MIGRATED_EXCLUDES) \
+		  ./...; \
+	fi
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 
@@ -431,8 +437,10 @@ release-test-single:
 
 .PHONY: for-all
 for-all:
-	@echo "running $${CMD} in root"
-	@$${CMD}
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running $${CMD} in root"; \
+		$${CMD}; \
+	fi
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ "$${dir}" = "." ]; then continue; fi; \
 	  SKIP=false; \
