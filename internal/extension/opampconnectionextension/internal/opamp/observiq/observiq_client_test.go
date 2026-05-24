@@ -38,6 +38,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/service"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -344,6 +345,7 @@ func TestClientConnect(t *testing.T) {
 				statusChannel := make(chan *collector.Status)
 				mockCollector := colmocks.NewMockCollector(t)
 				mockCollector.On("Run", mock.Anything).Return(nil)
+				mockCollector.On("ModuleInfos").Return(service.ModuleInfos{})
 				mockCollector.On("Status").Return((<-chan *collector.Status)(statusChannel))
 
 				c := &Client{
@@ -379,6 +381,7 @@ func TestClientConnect(t *testing.T) {
 				statusChannel := make(chan *collector.Status)
 				mockCollector := colmocks.NewMockCollector(t)
 				mockCollector.On("Run", mock.Anything).Return(nil)
+				mockCollector.On("ModuleInfos").Return(service.ModuleInfos{})
 				mockCollector.On("Status").Return((<-chan *collector.Status)(statusChannel))
 
 				mockPackagesStateProvider := mocks.NewMockPackagesStateProvider(t)

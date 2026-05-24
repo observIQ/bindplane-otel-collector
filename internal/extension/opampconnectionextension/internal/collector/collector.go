@@ -25,7 +25,9 @@ import (
 
 	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
 	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
+	"go.opentelemetry.io/collector/service"
 	"go.uber.org/zap"
 )
 
@@ -42,6 +44,11 @@ type Collector interface {
 	SetLoggingOpts([]zap.Option)
 	GetLoggingOpts() []zap.Option
 	Status() <-chan *Status
+	// ModuleInfos returns the per-component go module info derived from
+	// the factory set the collector was built with. Independent of
+	// whatever configuration the collector is currently running — the
+	// reported set is the full ocb-built component catalog.
+	ModuleInfos() service.ModuleInfos
 }
 
 // collector is the standard implementation of the Collector interface.
@@ -80,6 +87,31 @@ func New(configPaths []string, version string, loggingOpts []zap.Option, factori
 // GetLoggingOpts returns the current logging options
 func (c *collector) GetLoggingOpts() []zap.Option {
 	return c.loggingOpts
+}
+
+// ModuleInfos builds module info from the collector's factory set.
+// Mirrors the otelcol.Collector ModuleInfos construction, so the value
+// returned here is what the running collector's host would expose via
+// hostcapabilities.ModuleInfo.GetModuleInfos.
+func (c *collector) ModuleInfos() service.ModuleInfos {
+	return service.ModuleInfos{
+		Receiver:  toModuleInfoMap(c.factories.ReceiverModules),
+		Processor: toModuleInfoMap(c.factories.ProcessorModules),
+		Exporter:  toModuleInfoMap(c.factories.ExporterModules),
+		Extension: toModuleInfoMap(c.factories.ExtensionModules),
+		Connector: toModuleInfoMap(c.factories.ConnectorModules),
+	}
+}
+
+func toModuleInfoMap(src map[component.Type]string) map[component.Type]service.ModuleInfo {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(map[component.Type]service.ModuleInfo, len(src))
+	for typ, ref := range src {
+		dst[typ] = service.ModuleInfo{BuilderRef: ref}
+	}
+	return dst
 }
 
 // SetLoggingOpts sets the loggings options. These will take effect on next restart
