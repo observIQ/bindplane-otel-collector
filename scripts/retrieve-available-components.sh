@@ -72,6 +72,10 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["hostmetrics"] = "host_metrics"
     myMap["k8sobjects"] = "k8s_objects"
     myMap["sshcheck"] = "ssh_check"
+    myMap["cloudfoundry"] = "cloud_foundry"
+    myMap["googlecloudspanner"] = "google_cloud_spanner"
+    myMap["kafkametrics"] = "kafka_metrics"
+    myMap["kubeletstats"] = "kubelet_stats"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -98,6 +102,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["signaltometrics"] = "signal_to_metrics"
   myMap["servicegraph"] = "service_graph"
   myMap["spanmetrics"] = "span_metrics"
+  myMap["roundrobin"] = "round_robin"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -210,6 +215,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["metricstarttime"] = "metric_start_time"
   myMap["ocsfstandardization"] = "ocsf_standardization"
   myMap["logdedup"] = "log_dedup"
+  myMap["metricstransform"] = "metricstransform"
 } {
   split($NF, parts, " ")
   name=parts[1]

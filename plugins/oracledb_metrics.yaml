@@ -644,7 +644,7 @@ template: |
                   )
                   GROUP BY DATABASE_ID, GLOBAL_NAME, INST_ID
   processors:
-    metricstransform:
+    metrics_transform:
       transforms:
         - include: .*
           match_type: regexp
@@ -678,4 +678,4 @@ template: |
     pipelines:
       metrics/oracledb:
         receivers: [sqlquery/oracledb]
-        processors: [metricstransform]
+        processors: [metrics_transform]
