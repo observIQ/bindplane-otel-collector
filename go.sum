@@ -1353,6 +1353,8 @@ github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.6.0 h1:VzbQhbOA1WH/DG
 github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.6.0/go.mod h1:tMKVZy4z0M6/7I+5fr/meShmxIF4No5uM9+k/tehSJc=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.6.0 h1:spiimdnMbxnFIpBLGiPABT5ZWH9OPAVwTHBCzWafVV0=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.6.0/go.mod h1:ng3QLWDG2kaA9kQLzo/U/7RnJwpWTIxVZox3mn3l/q8=
+github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor v1.6.0 h1:2qafgLvC1xhvJWjxjYVmUxgz5+VkQXaH/uaDoY4Psjs=
+github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor v1.6.0/go.mod h1:OPm1Zslf7fV0/+OmKZ4VvrHcEpMQlx1DBdlUDMc7Qak=
 github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.6.0 h1:RL+9udwdXHVj9Xyvn80xZZX5cURvGt1htFoM+uaVt1M=
 github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.6.0/go.mod h1:itHpfLKFVdkmk3a1feQ/U7lv3+gRUnY+ozA7bhU2ZO8=
 github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor v1.6.0 h1:/qhj+SofkgXPjmKNf9/3w/uiuEFat/u2DPi/0H3K4UA=
