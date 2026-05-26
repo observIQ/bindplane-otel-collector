@@ -9,7 +9,7 @@ require (
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
-	go.opentelemetry.io/collector/cmd/mdatagen v0.151.0
+	go.opentelemetry.io/collector/cmd/mdatagen v0.152.0
 	golang.org/x/tools v0.44.0
 	gotest.tools/gotestsum v1.12.3
 )
@@ -27,7 +27,7 @@ require (
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/google/licenseclassifier v0.0.0-20201113175434-78a70215ca36 // indirect
@@ -77,12 +77,13 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.opentelemetry.io/collector/component v1.57.0 // indirect
-	go.opentelemetry.io/collector/confmap v1.57.0 // indirect
-	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.57.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.57.0 // indirect
-	go.opentelemetry.io/collector/filter v0.151.0 // indirect
-	go.opentelemetry.io/collector/pdata v1.57.0 // indirect
+	go.opentelemetry.io/collector/component v1.58.0 // indirect
+	go.opentelemetry.io/collector/confmap v1.58.0 // indirect
+	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.58.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.58.0 // indirect
+	go.opentelemetry.io/collector/filter v0.152.0 // indirect
+	go.opentelemetry.io/collector/internal/schemagen v0.152.0 // indirect
+	go.opentelemetry.io/collector/pdata v1.58.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect

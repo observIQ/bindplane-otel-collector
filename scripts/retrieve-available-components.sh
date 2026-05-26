@@ -120,7 +120,6 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
 
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/bindplane-otel-contrib|observiq/observiq-otel-collector|observiq/bindplane-agent)))/exporter/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/exporter/exportertest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    exporters:\n      sub_component_details:\n"
-  myMap["azureblob"] = "azure_blob"
   myMap["splunkhec"] = "splunk_hec"
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
   myMap["alibabacloudlogservice"] = "alibabacloud_logservice"
