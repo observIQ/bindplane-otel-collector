@@ -215,7 +215,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["metricstarttime"] = "metric_start_time"
   myMap["ocsfstandardization"] = "ocsf_standardization"
   myMap["logdedup"] = "log_dedup"
-  myMap["metricstransform"] = "metricstransform"
+  myMap["metricstransform"] = "metrics_transform"
 } {
   split($NF, parts, " ")
   name=parts[1]
