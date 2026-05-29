@@ -442,7 +442,7 @@ V2_MANIFEST ?= manifests/observIQ/manifest-v2.yaml
 .PHONY: agent-v2
 agent-v2:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
 	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
@@ -456,7 +456,7 @@ V2_AIX_MANIFEST ?= manifests/observIQ/manifest-v2-aix.yaml
 .PHONY: agent-v2-aix
 agent-v2-aix:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
 	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"

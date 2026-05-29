@@ -14,7 +14,7 @@ Three manifests live here, all driving ocb builds:
 go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
 ```
 
-ocb v0.151.0 matches the OTel core version pinned in all three manifests.
+ocb v0.153.0 matches the OTel core version pinned in all three manifests.
 
 ## Building
 
