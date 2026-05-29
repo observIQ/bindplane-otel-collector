@@ -58,7 +58,7 @@ version:
 #   - `builder` on PATH
 #   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
 #
-# Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0
+# Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
 OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
 MANIFEST ?= manifests/observIQ/manifest.yaml
 BUILD_DIR ?= ./build
@@ -71,7 +71,7 @@ AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
 .PHONY: verify-manifest
 verify-manifest:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
 	rm -rf $(BUILD_DIR)
@@ -85,7 +85,7 @@ verify-manifest:
 .PHONY: agent
 agent:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.151.0"; \
+		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
 		exit 1; \
 	fi
 	$(OCB) --config $(MANIFEST) --skip-compilation

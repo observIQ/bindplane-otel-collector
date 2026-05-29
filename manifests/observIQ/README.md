@@ -7,7 +7,7 @@
 Install ocb (matching the OTel core version pinned in this manifest):
 
 ```
-go install go.opentelemetry.io/collector/cmd/builder@v0.151.0
+go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
 ```
 
 Then from the repo root:
