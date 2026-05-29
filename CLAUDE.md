@@ -9,7 +9,7 @@ The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane's
 ## Development Commands
 
 ### Build Commands
-- `make agent` - Build the collector via the OTel Collector Builder, using `manifests/observIQ/manifest.yaml` as the source of truth for components. Overwrites the ocb-generated `main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` so the managed/standalone runtime is wired in. Requires `builder` (`go install go.opentelemetry.io/collector/cmd/builder@v0.151.0`).
+- `make agent` - Build the collector via the OTel Collector Builder, using `manifests/observIQ/manifest.yaml` as the source of truth for components. Overwrites the ocb-generated `main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` so the managed/standalone runtime is wired in. Requires `builder` (`go install go.opentelemetry.io/collector/cmd/builder@v0.153.0`).
 - `make verify-manifest` - CI gate: regenerates sources from the manifest and compiles them. Fails if the manifest references unresolvable modules or has version drift. Cheap to run on every PR.
 - `make agent-clean` - Wipe the ocb-generated `./build/` tree.
 - `make updater` - Build just the updater binary for current OS/architecture
