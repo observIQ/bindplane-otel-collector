@@ -54,7 +54,6 @@ The project is structured as an OpenTelemetry Collector distribution with custom
 - **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make agent-ocb` build.
 - **internal/extension/opampconnectionextension/cmd/main/main.go** - Template `main.go` copied over ocb's generated `main.go` so the built binary uses the managed/standalone runtime from `collector/` and `opamp/`.
 - **cmd/collector** - Legacy main.go for the `make agent` build. Same dispatch logic as `internal/extension/opampconnectionextension/cmd/main/main.go` but uses `factories.DefaultFactories()` instead of ocb-generated factories.
-- **collector/** - Core collector wrapper that manages OTel collector lifecycle. `NewWithFactories` is the constructor used by the ocb-built `main.go`.
 - **factories/** - Hand-maintained component factory list used by the legacy build. Mirrors the manifest; gone once `cmd/collector/` is retired.
 - **opamp/** - OpAMP client implementation for remote management
 

@@ -30,7 +30,9 @@ import (
 // SetFeatureFlags, so the runtime survives OTel version churn.
 var hardcodedFeatureGates = []string{
 	"filelog.allowFileDeletion",
+	"filelog.allowHeaderMetadataParsing",
 	"filelog.mtimeSortType",
+	"exporter.prometheusremotewritexporter.enableSendingRW2",
 	"connector.spanmetrics.includeCollectorInstanceID",
 }
 
