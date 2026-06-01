@@ -53,6 +53,14 @@ install() {
     # Ensure updater is owned by root.
     chown root:root "$stage_dir/updater"
 
+    # Seed default configs only when absent so upgrades/reinstalls preserve
+    # user edits. The stage dir is ephemeral, so pruning it here is safe.
+    for cfg in config.yaml logging.yaml; do
+        if [ -f "${BDOT_CONFIG_HOME}/${cfg}" ]; then
+            rm -f "${stage_dir}/${cfg}"
+        fi
+    done
+
     cp -r --preserve \
       "$stage_dir"/* \
       "${BDOT_CONFIG_HOME}"
