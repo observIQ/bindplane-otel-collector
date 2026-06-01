@@ -1,6 +1,6 @@
-# ocb-Canonical Build — as built
+d# ocb-Canonical Build — as built
 
-This describes the BDOT Collector build as it stands today. The OTel Collector Builder (ocb) compiles every binary from a manifest. The v1 runtime cluster (OPaMP client, collector lifecycle, package state, report manager, measurements) lives in a single internal Go module.
+This describes the BDOT Collector build as it stands today. The OTel Collector Builder (ocb) compiles every binary from a manifest. The v1 runtime cluster (OpAMP client, collector lifecycle, package state, report manager, measurements) lives in a single internal Go module.
 
 ## What ocb owns
 
@@ -53,7 +53,7 @@ bindplane-otel-collector/
 │   │       │   └── bootstrap.go         # TLS env, manager.yaml init, rollback
 │   │       │
 │   │       ├── collector/               # otelcol lifecycle wrapper
-│   │       ├── opamp/                   # OPaMP types + client interface
+│   │       ├── opamp/                   # OpAMP types + client interface
 │   │       │   └── observiq/            # default Bindplane client implementation
 │   │       ├── packagestate/            # package-install state machine
 │   │       ├── report/                  # snapshot/measurements/topology senders
@@ -94,7 +94,7 @@ type Options struct {
 func Run(opts Options)
 ```
 
-`Run` configures logging from `LoggingConfigPath`, sets feature gates, builds a collector, checks `ManagerConfigPath` (creates one from `OPAMP_*` env vars if absent), then launches either the managed (OPaMP) or standalone runnable service. Terminal errors go through `log.Fatal` / `logger.Fatal`.
+`Run` configures logging from `LoggingConfigPath`, sets feature gates, builds a collector, checks `ManagerConfigPath` (creates one from `OPAMP_*` env vars if absent), then launches either the managed (OpAMP) or standalone runnable service. Terminal errors go through `log.Fatal` / `logger.Fatal`.
 
 The v1 binary dispatches managed vs standalone at runtime: `manager.yaml` exists → managed; absent and no `OPAMP_*` env vars → standalone.
 
@@ -115,24 +115,12 @@ ocb's default `main.go`, no overlay. The binary is a vanilla otel-collector with
 
 `manifest-v2.yaml` and `manifest-v2-aix.yaml` are unmodified copies of v2.0.1-beta.3 and use a different replace set (notably `cockroachdb/errors v1.13.0` to fix a sentry-go API break).
 
-## Deviations from the original plan
-
-A few decisions diverge from the originally-drafted spec; recorded here so they're not surprising.
-
-- The extension lives under `internal/extension/...` rather than `extension/...`. Internal until ready to publish.
-- The runtime entry point (`Run`, `Options`) sits in a `runtime/` subpackage of the extension rather than the extension's own package — avoids an import cycle with `opamp/observiq` reaching back for the registry.
-- Single-binary dual-mode dispatch was preserved. The v1 binary still chooses managed vs standalone at runtime based on `manager.yaml` presence. A separate build-time-only "managed = which manifest you chose" model wasn't required since v2 now serves the no-in-process-OPaMP use case.
-- No pluggable hooks for identity / auth / senders. If an external consumer needs to override default Bindplane behavior, hooks can be added then.
-- No `go.work`.
-- v1 manifest was hand-written from the existing `factories/` package; no `manifestgen` tool was built.
-
 ## Open items
 
-These are still on the list:
+Future work:
 
 - **Goreleaser config.** Still references `cmd/collector` and the legacy go-build flow. Needs to invoke `make agent` (or run ocb directly with the same recipe) per platform, and to do `make agent-v2` / `agent-v2-aix` for the v2 builds.
 - **CI workflows in `.github/workflows/`.** Build jobs that compiled from the top-level `go.mod` need to compile via the manifest. `verify-manifest` should run on every PR that touches a manifest or any sub-module.
 - **Dependabot.** Currently bumps `go.mod` files; needs to also bump versions inside `manifest.yaml` and the v2 variants.
 - **Docker image.** `docker/` references the compiled binary path; the `dist/collector_*` naming hasn't changed, but the end-to-end image build hasn't been re-verified.
-- **Per-module CI checks.** `make ci-checks` / `lint` / `tidy` walk `ALL_MODULES` via the `for-all` target. The walk is still correct but assumes no top-level module — confirm.
 - **Build-info ldflags parity.** Today the build only stamps `version`. Legacy/v2 release flows likely also wanted git hash and build date.
