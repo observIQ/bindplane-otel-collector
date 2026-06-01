@@ -47,7 +47,7 @@ archives:
 # $TARGETPLATFORM to pick up the right per-arch binaries from the
 # platform-organized build context.
 dockers_v2:
-  - id: ubuntu
+  - id: ubuntu-supervised
     ids:
       - collector
       - supervisor
@@ -55,8 +55,8 @@ dockers_v2:
     images:
       - "ghcr.io/observiq/bindplane-otel-collector"
     tags:
-      - "{{ .RawVersion }}-{{ .Prerelease }}"
-      - "latest"
+      - "{{ .RawVersion }}-{{ .Prerelease }}-supervised"
+      - "latest-supervised"
     platforms:
       - linux/amd64
       - linux/arm64
@@ -73,15 +73,15 @@ dockers_v2:
       attempts: 10
       delay: 30s
       max_delay: 1m
-  - id: ubuntu-collector
+  - id: ubuntu
     ids:
       - collector
     dockerfile: ./docker/Dockerfile.ubuntu-collector
     images:
       - "ghcr.io/observiq/bindplane-otel-collector"
     tags:
-      - "{{ .RawVersion }}-{{ .Prerelease }}-collector"
-      - "latest-collector"
+      - "{{ .RawVersion }}-{{ .Prerelease }}"
+      - "latest"
     platforms:
       - linux/amd64
       - linux/arm64
