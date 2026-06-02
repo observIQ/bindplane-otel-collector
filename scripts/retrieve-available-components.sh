@@ -132,6 +132,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["otlp"] = "otlp_grpc"
   myMap["otlphttp"] = "otlp_http"
   myMap["honeycombmarker"] = "honeycomb_marker"
+  myMap["loadbalancing"] = "load_balancing"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -216,6 +217,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["ocsfstandardization"] = "ocsf_standardization"
   myMap["logdedup"] = "log_dedup"
   myMap["metricstransform"] = "metrics_transform"
+  myMap["resourcedetection"] = "resource_detection"
 } {
   split($NF, parts, " ")
   name=parts[1]
