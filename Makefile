@@ -76,8 +76,15 @@ version:
 #   - `builder` on PATH
 #   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
 #
-# Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
+# Install with: make install-ocb
+OCB_VERSION ?= v0.153.0
 OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
+
+# Installs the ocb builder at the pinned version. The single source of truth
+# for the ocb version — CI workflows call this instead of pinning their own.
+.PHONY: install-ocb
+install-ocb:
+	go install go.opentelemetry.io/collector/cmd/builder@$(OCB_VERSION)
 MANIFEST ?= manifests/observIQ/manifest.yaml
 BUILD_DIR ?= ./build
 AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
@@ -89,7 +96,7 @@ AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
 .PHONY: verify-manifest
 verify-manifest:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
 		exit 1; \
 	fi
 	rm -rf $(BUILD_DIR)
@@ -103,7 +110,7 @@ verify-manifest:
 .PHONY: agent
 agent:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
 		exit 1; \
 	fi
 	$(OCB) --config $(MANIFEST) --skip-compilation
@@ -466,7 +473,7 @@ V2_MANIFEST ?= manifests/observIQ/manifest-v2.yaml
 .PHONY: agent-v2
 agent-v2:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
 		exit 1; \
 	fi
 	CGO_ENABLED=0 $(OCB) --config="$(V2_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"
@@ -480,7 +487,7 @@ V2_AIX_MANIFEST ?= manifests/observIQ/manifest-v2-aix.yaml
 .PHONY: agent-v2-aix
 agent-v2-aix:
 	@if [ ! -x "$(OCB)" ]; then \
-		echo "ocb not found at $(OCB). Install with: go install go.opentelemetry.io/collector/cmd/builder@v0.153.0"; \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
 		exit 1; \
 	fi
 	CGO_ENABLED=0 $(OCB) --config="$(V2_AIX_MANIFEST)" --ldflags "$(AGENT_LDFLAGS)"

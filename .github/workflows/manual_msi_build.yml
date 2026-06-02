@@ -45,6 +45,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
+      - name: Install ocb
+        run: make install-ocb
+        shell: bash
       - name: Prepare Release Dependencies
         run: make release-prep CURR_VERSION=${VERSION#v}
         shell: bash
