@@ -11,10 +11,10 @@ Three manifests live here, all driving ocb builds:
 ## Installing ocb
 
 ```
-go install go.opentelemetry.io/collector/cmd/builder@v0.153.0
+make install-ocb
 ```
 
-ocb v0.153.0 matches the OTel core version pinned in all three manifests.
+The ocb version is pinned via `OCB_VERSION` in the root Makefile and matches the OTel core version pinned in all three manifests.
 
 ## Building
 
