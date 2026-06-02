@@ -1052,3 +1052,6 @@ replace github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/D
 replace github.com/DataDog/datadog-agent/comp/core/delegatedauth/api/cloudauth/aws => github.com/DataDog/datadog-agent/comp/core/delegatedauth/api/cloudauth/aws v0.79.0-devel.0.20260402163801-bfa4eff6c991
 
 replace github.com/DataDog/datadog-agent/pkg/util/aws/creds => github.com/DataDog/datadog-agent/pkg/util/aws/creds v0.79.0-devel.0.20260402163801-bfa4eff6c991
+
+// The http_check receiver changes the units of many of its metrics in v0.153.0, so we are pinning it to v0.152.0 for a release. Remove during BDOT v1.102.0 release.
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.152.0
