@@ -284,6 +284,7 @@ require (
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/observiq/bindplane-otel-contrib/internal/amqfilter v1.7.0 // indirect
 	github.com/okta/okta-sdk-golang/v6 v6.1.6 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/internal/basicauth v0.153.0 // indirect
 	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/outscale/osc-sdk-go/v2 v2.32.0 // indirect
