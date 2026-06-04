@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-otel-contrib/extension/opampgateway"
 	"github.com/observiq/bindplane-otel-contrib/extension/pebbleextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
@@ -47,6 +48,7 @@ var defaultExtensions = []extension.Factory{
 	awss3eventextension.NewFactory(),
 	badgerextension.NewFactory(),
 	basicauthextension.NewFactory(),
+	azureauthextension.NewFactory(),
 	bearertokenauthextension.NewFactory(),
 	cgroupruntimeextension.NewFactory(),
 	extensiontest.NewNopFactory(),

@@ -4,6 +4,7 @@ Below is a list of supported extensions with links to their documentation pages.
 
 | Name                                        | GitHub README                                                                                                                                                                             |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authenticator - Azure Authenticator Extension | [azureauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.153.0/extension/azureauthextension/README.md)
 | Authenticator - Basic Extension             | [basicauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.153.0/extension/basicauthextension/README.md)                                              |
 | Authenticator - Bearer Extension            | [bearertokenauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.153.0/extension/bearertokenauthextension/README.md)                                  |
 | Authenticator - OAuth2 Client Credentials   | [oauth2clientauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.153.0/extension/oauth2clientauthextension/README.md)                                |
