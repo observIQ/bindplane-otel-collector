@@ -34,6 +34,8 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -215,6 +217,110 @@ func TestHandleSnapshotRequest_LogsRoundTrip(t *testing.T) {
 	assert.Equal(t, "s1", got.SessionID)
 	assert.Equal(t, "logs", got.TelemetryType)
 	require.NotEmpty(t, got.TelemetryPayload, "expected non-empty telemetry payload")
+}
+
+func TestHandleSnapshotRequest_PayloadIsValidJSON(t *testing.T) {
+	cases := []struct {
+		pipelineType string
+		save         func(t *testing.T, sp *snapshotProcessor)
+		unmarshal    func(payload []byte) error
+	}{
+		{
+			pipelineType: "logs",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				logs := plog.NewLogs()
+				logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr("hello")
+				_, err := sp.processLogs(context.Background(), logs)
+				require.NoError(t, err)
+			},
+			unmarshal: func(payload []byte) error {
+				_, err := (&plog.JSONUnmarshaler{}).UnmarshalLogs(payload)
+				return err
+			},
+		},
+		{
+			pipelineType: "metrics",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				metrics := pmetric.NewMetrics()
+				m := metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+				m.SetName("m")
+				m.SetEmptyGauge().DataPoints().AppendEmpty().SetIntValue(1)
+				_, err := sp.processMetrics(context.Background(), metrics)
+				require.NoError(t, err)
+			},
+			unmarshal: func(payload []byte) error {
+				_, err := (&pmetric.JSONUnmarshaler{}).UnmarshalMetrics(payload)
+				return err
+			},
+		},
+		{
+			pipelineType: "traces",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				traces := ptrace.NewTraces()
+				traces.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty().SetName("s")
+				_, err := sp.processTraces(context.Background(), traces)
+				require.NoError(t, err)
+			},
+			unmarshal: func(payload []byte) error {
+				_, err := (&ptrace.JSONUnmarshaler{}).UnmarshalTraces(payload)
+				return err
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.pipelineType, func(t *testing.T) {
+			reporter := report.NewSnapshotReporter(nil)
+			defer overwriteSnapshotSet(t, reporter)()
+
+			handler := newFakeHandler()
+			registry := &fakeRegistry{handler: handler}
+			extID := component.MustNewID("opamp_connection")
+			host := newHost(registry, extID)
+
+			processorID := component.MustNewIDWithName("snapshotprocessor", "x")
+			cfg := &Config{Enabled: true, OpAMP: extID}
+			sp := newSnapshotProcessor(zap.NewNop(), cfg, processorID)
+			require.NoError(t, sp.start(context.Background(), host))
+			defer func() { require.NoError(t, sp.stop(context.Background())) }()
+
+			request := func(sessionID string, wantCount int) snapshotReport {
+				req := snapshotRequest{
+					Processor:    processorID,
+					PipelineType: tc.pipelineType,
+					SessionID:    sessionID,
+				}
+				body, err := yaml.Marshal(req)
+				require.NoError(t, err)
+				handler.inbound <- &protobufs.CustomMessage{Type: snapshotRequestType, Data: body}
+
+				require.Eventually(t, func() bool {
+					return len(handler.sentMessages()) >= wantCount
+				}, time.Second, 10*time.Millisecond)
+
+				gz, err := gzip.NewReader(bytes.NewReader(handler.sentMessages()[wantCount-1].data))
+				require.NoError(t, err)
+				rawJSON, err := io.ReadAll(gz)
+				require.NoError(t, err)
+
+				var got snapshotReport
+				require.NoError(t, json.Unmarshal(rawJSON, &got))
+				return got
+			}
+
+			// Empty state: no buffer exists for this processor yet.
+			empty := request("empty", 1)
+			require.True(t, json.Valid(empty.TelemetryPayload))
+			require.NoError(t, tc.unmarshal(empty.TelemetryPayload))
+
+			tc.save(t, sp)
+
+			full := request("full", 2)
+			require.True(t, json.Valid(full.TelemetryPayload))
+			require.NoError(t, tc.unmarshal(full.TelemetryPayload))
+			require.NotEqual(t, "{}", string(full.TelemetryPayload))
+		})
+	}
 }
 
 func TestHandleSnapshotRequest_WrongProcessorIDIsIgnored(t *testing.T) {
