@@ -162,7 +162,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 	case "logs":
 		buf := sp.snapShotter.LogBufferFor(componentID)
 		if buf == nil {
-			report = logsReport(req.SessionID, []byte("[]"))
+			report = logsReport(req.SessionID, []byte("{}"))
 			break
 		}
 		payload, err := buf.ConstructPayload(&plog.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
@@ -175,7 +175,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 	case "metrics":
 		buf := sp.snapShotter.MetricBufferFor(componentID)
 		if buf == nil {
-			report = metricsReport(req.SessionID, []byte("[]"))
+			report = metricsReport(req.SessionID, []byte("{}"))
 			break
 		}
 		payload, err := buf.ConstructPayload(&pmetric.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
@@ -188,7 +188,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 	case "traces":
 		buf := sp.snapShotter.TraceBufferFor(componentID)
 		if buf == nil {
-			report = tracesReport(req.SessionID, []byte("[]"))
+			report = tracesReport(req.SessionID, []byte("{}"))
 			break
 		}
 		payload, err := buf.ConstructPayload(&ptrace.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
