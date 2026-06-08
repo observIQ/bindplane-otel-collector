@@ -118,7 +118,9 @@ $ErrorActionPreference = "Stop"
 $DOWNLOAD_BASE = "https://bdot.bindplane.com"
 $MSI_NAME_AMD64 = "bindplane-otel-collector.msi"
 $MSI_NAME_ARM64 = "bindplane-otel-collector-arm64.msi"
-$PRODUCT_DISPLAY_NAME = "observIQ Distro for OpenTelemetry Collector"
+$PRODUCT_DISPLAY_NAME = "BindPlane Distro for OpenTelemetry Collector (BDOT)"
+# Stable across releases/renames; defined in windows/wix.json ("upgrade-code").
+$UPGRADE_CODE = "{D67CCA1A-6708-4096-8BDE-5069739FB861}"
 
 # ---- Helpers -----------------------------------------------------------------
 
@@ -133,9 +135,12 @@ function Write-Warn {
 }
 
 function Fail {
+    # Throw rather than `exit`. A bare `exit` from inside a function terminates the
+    # whole PowerShell host, which closes the user's window before they can read the
+    # error. The throw is caught at the script's entry point, which prints the error
+    # and sets a non-zero exit code without killing the session.
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-    exit 1
+    throw $Message
 }
 
 # ---- Privilege check ---------------------------------------------------------
@@ -241,12 +246,22 @@ function Build-MsiexecArgs {
 # ---- Uninstall ---------------------------------------------------------------
 
 function Get-ProductCode {
-    $product = Get-CimInstance -ClassName Win32_Product `
-        -Filter "Name = '$PRODUCT_DISPLAY_NAME'" `
-        -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if ($product) {
-        return $product.IdentifyingNumber
+    # Resolve the installed ProductCode via the stable UpgradeCode rather than an
+    # exact display-name match. The display name has changed across releases (e.g.
+    # "observIQ Distro..." -> "BindPlane Distro... (BDOT)"), but the UpgradeCode is
+    # fixed, so this keeps working across renames. The Windows Installer COM API
+    # also avoids the slow, side-effecting Win32_Product WMI class.
+    try {
+        $installer = New-Object -ComObject WindowsInstaller.Installer
+        $related = $installer.RelatedProducts($UPGRADE_CODE)
+    }
+    catch {
+        # RelatedProducts throws when no products match the upgrade code.
+        return $null
+    }
+
+    foreach ($code in $related) {
+        if ($code) { return $code }
     }
     return $null
 }
@@ -377,4 +392,19 @@ function Main {
     }
 }
 
-Main
+# ---- Entry point -------------------------------------------------------------
+
+# Run Main inside a try/catch and avoid calling `exit` from script scope. A bare
+# `exit` terminates the host process, closing the user's PowerShell window before
+# they can read the error — especially on the uninstall path, which fails fast
+# when the product can't be found. Setting $LASTEXITCODE instead leaves the window
+# intact while still surfacing a non-zero code to non-interactive callers
+# (e.g. powershell.exe -File install_windows.ps1 -Uninstall).
+try {
+    Main
+    $global:LASTEXITCODE = 0
+}
+catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    $global:LASTEXITCODE = 1
+}
