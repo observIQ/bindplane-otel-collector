@@ -138,9 +138,12 @@ function Write-Warn {
 }
 
 function Fail {
+    # Throw rather than `exit`. A bare `exit` from inside a function terminates the
+    # whole PowerShell host, which closes the user's window before they can read the
+    # error. The throw is caught at the script's entry point, which prints the error
+    # and sets a non-zero exit code without killing the session.
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-    exit 1
+    throw $Message
 }
 
 # ---- Privilege check ---------------------------------------------------------
@@ -365,4 +368,19 @@ function Main {
     }
 }
 
-Main
+# ---- Entry point -------------------------------------------------------------
+
+# Run Main inside a try/catch and avoid calling `exit` from script scope. A bare
+# `exit` terminates the host process, closing the user's PowerShell window before
+# they can read the error — especially on the uninstall path, which fails fast
+# when the MSI can't be resolved. Setting $LASTEXITCODE instead leaves the window
+# intact while still surfacing a non-zero code to non-interactive callers
+# (e.g. powershell.exe -File install_windows.ps1 -Uninstall).
+try {
+    Main
+    $global:LASTEXITCODE = 0
+}
+catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    $global:LASTEXITCODE = 1
+}
