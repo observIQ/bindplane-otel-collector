@@ -15,6 +15,7 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     tags:
       - bindplane
+      - embed_library
     goos:
       - linux
     goarch:
