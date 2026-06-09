@@ -119,6 +119,8 @@ $DOWNLOAD_BASE = "https://bdot.bindplane.com"
 $MSI_NAME_AMD64 = "observiq-otel-collector.msi"
 $MSI_NAME_ARM64 = "observiq-otel-collector-arm64.msi"
 $PRODUCT_DISPLAY_NAME = "observIQ Distro for OpenTelemetry Collector"
+# Stable across releases/renames; defined in windows/wix.json ("upgrade-code").
+$UPGRADE_CODE = "{D67CCA1A-6708-4096-8BDE-5069739FB861}"
 
 # ---- Helpers -----------------------------------------------------------------
 
@@ -133,9 +135,12 @@ function Write-Warn {
 }
 
 function Fail {
+    # Throw rather than `exit`. A bare `exit` from inside a function terminates the
+    # whole PowerShell host, which closes the user's window before they can read the
+    # error. The throw is caught at the script's entry point, which prints the error
+    # and sets a non-zero exit code without killing the session.
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-    exit 1
+    throw $Message
 }
 
 # ---- Privilege check ---------------------------------------------------------
@@ -241,25 +246,58 @@ function Build-MsiexecArgs {
 # ---- Uninstall ---------------------------------------------------------------
 
 function Get-ProductCode {
-    $product = Get-CimInstance -ClassName Win32_Product `
-        -Filter "Name = '$PRODUCT_DISPLAY_NAME'" `
-        -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if ($product) {
-        return $product.IdentifyingNumber
+    # Resolve the installed ProductCode via the stable UpgradeCode rather than an
+    # exact display-name match. The display name has changed across releases (e.g.
+    # "observIQ Distro..." -> "BindPlane Distro... (BDOT)"), but the UpgradeCode is
+    # fixed, so this keeps working across renames. The Windows Installer COM API
+    # also avoids the slow, side-effecting Win32_Product WMI class.
+    try {
+        $installer = New-Object -ComObject WindowsInstaller.Installer
+        $related = $installer.RelatedProducts($UPGRADE_CODE)
+    }
+    catch {
+        # RelatedProducts throws when no products match the upgrade code.
+        return $null
+    }
+
+    foreach ($code in $related) {
+        if ($code) { return $code }
     }
     return $null
 }
 
+function Get-InstalledProductName {
+    param([string]$ProductCode)
+    # Look up the name actually registered for an installed product code. Returns
+    # $null if it can't be resolved, so callers can fall back to the product code.
+    try {
+        $installer = New-Object -ComObject WindowsInstaller.Installer
+        return $installer.ProductInfo($ProductCode, "InstalledProductName")
+    }
+    catch {
+        return $null
+    }
+}
+
 function Invoke-Uninstall {
-    Write-Info "Searching for installed '$PRODUCT_DISPLAY_NAME'..."
+    Write-Info "Searching for an installed $PRODUCT_DISPLAY_NAME..."
 
     $productCode = Get-ProductCode
     if (-not $productCode) {
-        Fail "'$PRODUCT_DISPLAY_NAME' is not installed."
+        Fail "$PRODUCT_DISPLAY_NAME is not installed."
     }
 
-    Write-Info "Found product code: $productCode"
+    # Report the name actually registered for the resolved product. The UpgradeCode
+    # also matches rebranded installs (e.g. the BDOT rename), so the installed name
+    # may differ from $PRODUCT_DISPLAY_NAME; show what is really there rather than
+    # claiming to act on a name the user may not have installed.
+    $installedName = Get-InstalledProductName -ProductCode $productCode
+    if ($installedName) {
+        Write-Info "Found '$installedName' ($productCode)"
+    }
+    else {
+        Write-Info "Found product code: $productCode"
+    }
 
     $msiArgs = @("/x", $productCode)
     if ($Quiet) {
@@ -377,4 +415,26 @@ function Main {
     }
 }
 
-Main
+# ---- Entry point -------------------------------------------------------------
+
+# Run Main inside a try/catch, then exit based on how the script was invoked. A
+# bare `exit` terminates the host process, which closes the user's window when the
+# script is run inline via `& ([scriptblock]::Create(...))` (the form the install
+# one-liner uses). But under `powershell.exe -File ...`, setting $LASTEXITCODE
+# without calling `exit` leaves the process exit code at 0, so a scripted caller
+# (e.g. -File ... -Uninstall) would miss a failure. $PSCommandPath is populated
+# when the script is invoked as a file (-File or .\install_windows.ps1) and empty
+# for the inline scriptblock form, so we only `exit` in the former case: file
+# callers get a real exit code, inline callers keep their session.
+try {
+    Main
+    $exitCode = 0
+}
+catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    $exitCode = 1
+}
+
+if ($PSCommandPath) {
+    exit $exitCode
+}
