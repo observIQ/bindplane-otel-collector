@@ -138,9 +138,12 @@ function Write-Warn {
 }
 
 function Fail {
+    # Throw rather than `exit`. A bare `exit` from inside a function terminates the
+    # whole PowerShell host, which closes the user's window before they can read the
+    # error. The throw is caught at the script's entry point, which prints the error
+    # and sets a non-zero exit code without killing the session.
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-    exit 1
+    throw $Message
 }
 
 # ---- Privilege check ---------------------------------------------------------
@@ -365,4 +368,26 @@ function Main {
     }
 }
 
-Main
+# ---- Entry point -------------------------------------------------------------
+
+# Run Main inside a try/catch, then exit based on how the script was invoked. A
+# bare `exit` terminates the host process, which closes the user's window when the
+# script is run inline via `& ([scriptblock]::Create(...))` (the form the install
+# one-liner uses). But under `powershell.exe -File ...`, setting $LASTEXITCODE
+# without calling `exit` leaves the process exit code at 0, so a scripted caller
+# (e.g. -File ... -Uninstall) would miss a failure. $PSCommandPath is populated
+# when the script is invoked as a file (-File or .\install_windows.ps1) and empty
+# for the inline scriptblock form, so we only `exit` in the former case: file
+# callers get a real exit code, inline callers keep their session.
+try {
+    Main
+    $exitCode = 0
+}
+catch {
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+    $exitCode = 1
+}
+
+if ($PSCommandPath) {
+    exit $exitCode
+}
