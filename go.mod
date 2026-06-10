@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector
 
-go 1.25.9
+go 1.26.4
 
 require (
 	github.com/google/uuid v1.6.0
@@ -229,6 +229,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.153.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.153.0
@@ -284,7 +285,6 @@ require (
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/observiq/bindplane-otel-contrib/internal/amqfilter v1.7.0 // indirect
 	github.com/okta/okta-sdk-golang/v6 v6.1.6 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/internal/basicauth v0.153.0 // indirect
 	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/outscale/osc-sdk-go/v2 v2.32.0 // indirect
