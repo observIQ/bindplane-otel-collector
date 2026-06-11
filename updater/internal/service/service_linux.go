@@ -124,32 +124,49 @@ func (l linuxSystemdService) Stop() error {
 	return nil
 }
 
-// installs the service
-func (l linuxSystemdService) install() error {
-	inFile, err := os.Open(l.newServiceFilePath)
+// installServiceFile copies the service file to its installed location.
+// When running as non-root, it uses "sudo install" to place the file
+// with root ownership. Otherwise, it copies the file directly.
+func installServiceFile(src, dst, mode string) error {
+	if needsSudo() {
+		cmd := sudoCommand("install", "-m", mode, "-o", "root", "-g", "root", src, dst)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("sudo install failed: %w", err)
+		}
+		return nil
+	}
+
+	inFile, err := os.Open(src) // #nosec G304 -- src is an internal service file path, not user input
 	if err != nil {
 		return fmt.Errorf("failed to open input file: %w", err)
 	}
 	defer func() {
-		err := inFile.Close()
-		if err != nil {
+		if err := inFile.Close(); err != nil {
 			log.Default().Printf("Service Install: Failed to close input file: %s", err)
 		}
 	}()
 
-	outFile, err := os.OpenFile(l.installedServiceFilePath, os.O_CREATE|os.O_WRONLY, 0600)
+	outFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600) // #nosec G304 -- dst is an internal service file path, not user input
 	if err != nil {
 		return fmt.Errorf("failed to open output file: %w", err)
 	}
 	defer func() {
-		err := outFile.Close()
-		if err != nil {
+		if err := outFile.Close(); err != nil {
 			log.Default().Printf("Service Install: Failed to close output file: %s", err)
 		}
 	}()
 
 	if _, err := io.Copy(outFile, inFile); err != nil {
 		return fmt.Errorf("failed to copy service file: %w", err)
+	}
+
+	return nil
+}
+
+// installs the service
+func (l linuxSystemdService) install() error {
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0644"); err != nil {
+		return fmt.Errorf("failed to install service file: %w", err)
 	}
 
 	cmd := sudoCommand("systemctl", "daemon-reload")
@@ -172,8 +189,15 @@ func (l linuxSystemdService) uninstall() error {
 		return fmt.Errorf("failed to disable unit: %w", err)
 	}
 
-	if err := os.Remove(l.installedServiceFilePath); err != nil {
-		return fmt.Errorf("failed to remove service file: %w", err)
+	if needsSudo() {
+		rmCmd := sudoCommand("rm", "-f", l.installedServiceFilePath)
+		if err := rmCmd.Run(); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
+	} else {
+		if err := os.Remove(l.installedServiceFilePath); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
 	}
 
 	cmd = sudoCommand("systemctl", "daemon-reload")
@@ -239,31 +263,8 @@ func (l linuxSysVService) Stop() error {
 
 // installs the service
 func (l linuxSysVService) install() error {
-	inFile, err := os.Open(l.newServiceFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer func() {
-		err := inFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close input file: %s", err)
-		}
-	}()
-
-	//#nosec G302 -- File permissions for the service file match install script and other installed services
-	outFile, err := os.OpenFile(l.installedServiceFilePath, os.O_CREATE|os.O_WRONLY, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to open output file: %w", err)
-	}
-	defer func() {
-		err := outFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close output file: %s", err)
-		}
-	}()
-
-	if _, err := io.Copy(outFile, inFile); err != nil {
-		return fmt.Errorf("failed to copy service file: %w", err)
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0755"); err != nil {
+		return fmt.Errorf("failed to install service file: %w", err)
 	}
 
 	cmd := sudoCommand("chkconfig", l.serviceName, "on")
@@ -281,8 +282,15 @@ func (l linuxSysVService) uninstall() error {
 		return fmt.Errorf("chkconfig off failed: %w", err)
 	}
 
-	if err := os.Remove(l.installedServiceFilePath); err != nil {
-		return fmt.Errorf("failed to remove service file: %w", err)
+	if needsSudo() {
+		rmCmd := sudoCommand("rm", "-f", l.installedServiceFilePath)
+		if err := rmCmd.Run(); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
+	} else {
+		if err := os.Remove(l.installedServiceFilePath); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
 	}
 
 	return nil
