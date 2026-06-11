@@ -127,14 +127,18 @@ fi
 
 BINARY=observiq-otel-collector
 PROGRAM=/opt/observiq-otel-collector/"$BINARY"
-START_CMD="nohup /opt/observiq-otel-collector/$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"$BINARY"
 PIDFILE=/var/run/"$BINARY".pid
+RUNAS_USER=bdot
 
 # Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 export OIQ_OTEL_COLLECTOR_LOGS=/opt/observiq-otel-collector/log
+
+# Restrict file creation permissions and raise file descriptor limit
+umask 027
+ulimit -n 65000
 
 RETVAL=0
 start() {
@@ -145,9 +149,7 @@ start() {
 
   # RHEL
   if [ "$STATUS" ]; then
-    umask 077
-
-    daemon --pidfile="$PIDFILE" "$START_CMD"
+    su -s /bin/sh "$RUNAS_USER" -c "nohup $PROGRAM --config config.yaml > /dev/null 2>&1 &"
     RETVAL=$?
     # truncate the pid file, just in case
     : > "$PIDFILE"
@@ -161,7 +163,7 @@ start() {
 
     # NOTE: startproc return 0, even if service is
     # already running to match LSB spec.
-    nohup "$PROGRAM" --config config.yaml > /dev/null 2>&1 &
+    su -s /bin/sh "$RUNAS_USER" -c "nohup $PROGRAM --config config.yaml > /dev/null 2>&1 &"
 
     # Remember status and be verbose
     rc_status -v
