@@ -15,12 +15,12 @@ after:
   hooks:
     - cmd: rm -rf tmp
 
-# `builder: prebuilt` — Make owns the build (`AGENT_LDFLAGS`, `-tags bindplane,ocb`).
+# `builder: prebuilt` — Make owns the build (`AGENT_LDFLAGS`,
+# `-tags $(AGENT_BUILD_TAGS)`, i.e. `bindplane embed_library`).
 builds:
   - id: collector
     builder: prebuilt
     binary: observiq-otel-collector
-    mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - linux
     goarch:
