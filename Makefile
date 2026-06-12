@@ -1,7 +1,9 @@
 # All source code and documents, used when checking for misspellings
 ALLDOC := $(shell find . \( -name "*.md" -o -name "*.yaml" \) \
                                 -type f | sort)
-ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
+# Exclude the ocb-generated ./build/ tree — it's a throwaway module, not
+# part of the repo.
+ALL_MODULES := $(shell find . -type f -name "go.mod" -not -path "./build/*" -exec dirname {} \; | sort )
 ALL_MDATAGEN_MODULES := $(shell find . -type f -name "metadata.yaml" -exec dirname {} \; | sort )
 
 # All source code files
