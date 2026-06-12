@@ -49,6 +49,11 @@ AGENT_LDFLAGS = -s -w \
 	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
 	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
 
+# AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
+# 'bindplane' builds with logic used by the v1 OpAMP implementation
+# 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)
+AGENT_BUILD_TAGS = bindplane embed_library
+
 # UPDATER_LDFLAGS stamps the same values into the updater binary.
 UPDATER_LDFLAGS = -s -w \
 	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION) \
@@ -118,7 +123,7 @@ agent:
 	# Drop ocb's run/runInteractive helpers — our main.go owns startup.
 	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
 	cd $(BUILD_DIR) && go mod tidy
-	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -ldflags "$(AGENT_LDFLAGS)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -ldflags "$(AGENT_LDFLAGS)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
