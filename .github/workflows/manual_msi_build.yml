@@ -53,11 +53,8 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ github.event.inputs.version }}
-      # VERSION must be passed explicitly: the Makefile's tag detection only
-      # matches stable tags (vX.Y.Z), so prerelease tags would otherwise be
-      # stamped as <previous-tag>-SNAPSHOT-<sha>.
       - name: Build Windows Binaries
-        run: make build-windows-${{ matrix.arch }} VERSION=${{ github.event.inputs.version }}
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Shared Files to MSI Build Directory
         run: |
           cp -r release_deps/plugins windows/

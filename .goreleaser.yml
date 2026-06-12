@@ -7,10 +7,7 @@ before:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
     # Build collector + updater binaries via ocb-driven `make`. Goreleaser
     # picks them up below via `builder: prebuilt`. Mirrors v2.0.1-beta.3.
-    # VERSION must be passed explicitly: the Makefile's tag detection only
-    # matches stable tags (vX.Y.Z), so prerelease tags like vX.Y.Z-alpha.1
-    # would otherwise be stamped as <previous-tag>-SNAPSHOT-<sha>.
-    - make build-all-non-aix OUTDIR="tmp" VERSION=v{{ .Version }}
+    - make build-all-non-aix OUTDIR="tmp"
 
 after:
   hooks:
