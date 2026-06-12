@@ -5,18 +5,24 @@ project_name: observiq-otel-collector
 before:
   hooks:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
+    # Build collector + updater binaries via ocb-driven `make`. Goreleaser
+    # picks them up below via `builder: prebuilt`. Mirrors v2.0.1-beta.3.
+    - make build-all-non-aix OUTDIR="tmp"
+
+after:
+  hooks:
+    - cmd: rm -rf tmp
 
 # https://goreleaser.com/customization/build/
+#
+# `ldflags`, `tags`, and `main` are no longer set here — the Make targets own
+# them (`AGENT_LDFLAGS` / `UPDATER_LDFLAGS` + `-tags bindplane,ocb`). Goreleaser
+# only packages the pre-built binaries.
 builds:
   - id: collector
+    builder: prebuilt
     binary: observiq-otel-collector
-    main: ./cmd/collector
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
-    tags:
-      - bindplane
-      - embed_library
     goos:
       - linux
       - darwin
@@ -38,18 +44,11 @@ builds:
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-contrib/pkg/version.date={{ .Date }}
-    no_unique_dist_dir: false
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
   - id: updater
+    builder: prebuilt
     binary: updater
-    dir: ./updater/
-    main: ./cmd/updater
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - linux
@@ -72,12 +71,8 @@ builds:
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.date={{ .Date }}
-    no_unique_dist_dir: false
+    prebuilt:
+      path: tmp/updater_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 # https://goreleaser.com/customization/archive/
 archives:

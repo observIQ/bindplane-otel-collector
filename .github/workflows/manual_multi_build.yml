@@ -15,10 +15,12 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
+      - name: Install ocb
+        run: make install-ocb
       - name: Build
         run: make build-linux
       - name: Scan Third Party Dependency Licenses
@@ -34,10 +36,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
+      - name: Install ocb
+        run: make install-ocb
       - name: Build
         run: make build-darwin
       - name: Scan Third Party Dependency Licenses
@@ -53,10 +57,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
+      - name: Install ocb
+        run: make install-ocb
       - name: Build
         run: make build-windows
       - name: Scan Third Party Dependency Licenses
