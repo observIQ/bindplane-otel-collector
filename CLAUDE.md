@@ -67,7 +67,7 @@ Custom components are organized by type:
 ### Key Architectural Patterns
 
 1. **Dual Mode Operation**: The collector can run in standalone mode (using local config) or managed mode (via OpAMP)
-2. **Factory Pattern**: All components are registered through factory functions in the factories package
+2. **Manifest-Driven Assembly**: Components are assembled by ocb from `manifests/observIQ/manifest.yaml`, which generates the factory wiring (`components.go`) in `./build/`; there is no hand-maintained factories package
 3. **Module Structure**: Each component is a separate Go module with its own go.mod
 4. **Interface Abstraction**: Core collector functionality is abstracted behind interfaces for testability
 
