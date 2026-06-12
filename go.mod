@@ -1050,9 +1050,10 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e
+// https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.102.0 - based off the OTel v0.154.0 tag
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260612191330-06d19ea17bdb
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260612191330-06d19ea17bdb
 
 // The DataDog datadog-agent monorepo resolves these modules via intra-repo relative-path
 // replaces (e.g. logsagentexporter and delegatedauth reference delegatedauth, its cloudauth/aws
