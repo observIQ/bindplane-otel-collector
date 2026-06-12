@@ -117,10 +117,14 @@ ocb's default `main.go`, no overlay. The binary is a vanilla otel-collector with
 
 ## Open items
 
+Done since this spec was written:
+
+- **Goreleaser config.** Both `.goreleaser.yml` and `.goreleaser.arm64.yml` now use `builder: prebuilt` over binaries produced by the ocb-driven `make` targets in a before hook.
+- **CI workflows in `.github/workflows/`.** Build jobs compile via the manifest (`make install-ocb` + the ocb-driven targets), and `verify-manifest` runs on every PR that touches a manifest, a `go.mod`/`go.sum`, the Makefile, or the v1 entry point.
+- **Build-info ldflags parity.** `AGENT_LDFLAGS` / `UPDATER_LDFLAGS` stamp version, git hash, and build date.
+
 Future work:
 
-- **Goreleaser config.** Still references `cmd/collector` and the legacy go-build flow. Needs to invoke `make agent` (or run ocb directly with the same recipe) per platform, and to do `make agent-v2` / `agent-v2-aix` for the v2 builds.
-- **CI workflows in `.github/workflows/`.** Build jobs that compiled from the top-level `go.mod` need to compile via the manifest. `verify-manifest` should run on every PR that touches a manifest or any sub-module.
-- **Dependabot.** Currently bumps `go.mod` files; needs to also bump versions inside `manifest.yaml` and the v2 variants.
+- **v2 release wiring.** `make agent-v2` / `agent-v2-aix` exist but nothing in CI or goreleaser invokes them; v2 artifacts are not produced by the release flow.
+- **Dependabot.** Currently bumps `go.mod` files; needs to also bump versions inside `manifest.yaml` and the v2 variants, which are now the source of truth for component versions.
 - **Docker image.** `docker/` references the compiled binary path; the `dist/collector_*` naming hasn't changed, but the end-to-end image build hasn't been re-verified.
-- **Build-info ldflags parity.** Today the build only stamps `version`. Legacy/v2 release flows likely also wanted git hash and build date.

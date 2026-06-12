@@ -16,13 +16,13 @@ after:
 # https://goreleaser.com/customization/build/
 #
 # `ldflags`, `tags`, and `main` are no longer set here — the Make targets own
-# them (`AGENT_LDFLAGS` / `UPDATER_LDFLAGS` + `-tags bindplane,ocb`). Goreleaser
-# only packages the pre-built binaries.
+# them (`AGENT_LDFLAGS` / `UPDATER_LDFLAGS` + `-tags $(AGENT_BUILD_TAGS)`,
+# i.e. `bindplane embed_library`). Goreleaser only packages the pre-built
+# binaries.
 builds:
   - id: collector
     builder: prebuilt
     binary: observiq-otel-collector
-    mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - linux
       - darwin
@@ -49,7 +49,6 @@ builds:
   - id: updater
     builder: prebuilt
     binary: updater
-    mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - linux
       - darwin

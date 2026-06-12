@@ -11,6 +11,7 @@ conf_resolver:
 extensions:
   - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.153.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.153.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.153.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.153.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension v0.153.0
@@ -34,7 +35,7 @@ extensions:
   # internal/extension/opampconnectionextension/, kept internal because the
   # whole runtime cluster (collector lifecycle, OpAMP client, packagestate,
   # report manager, etc.) ships in the same module. Local replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v0.0.0
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.101.1
 
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.153.0
@@ -123,7 +124,7 @@ processors:
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.7.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.7.0
   # Bindplane snapshot processor — its own internal go.mod, local replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v0.0.0
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.101.1
 
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.153.0
@@ -247,6 +248,4 @@ replaces:
   - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
   - github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/DataDog/datadog-agent/comp/core/delegatedauth v0.78.2
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e
-  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/azureblobreceiver v0.0.0-20260507185839-98c20ac26318
