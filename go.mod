@@ -4,8 +4,8 @@ go 1.25.9
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.101.1
-	github.com/observiq/bindplane-otel-collector/packagestate v1.101.1
+	github.com/observiq/bindplane-otel-collector/internal/report v1.101.2
+	github.com/observiq/bindplane-otel-collector/packagestate v1.101.2
 	github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter v1.7.0
 	github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter v1.7.0
 	github.com/observiq/bindplane-otel-contrib/exporter/chronicleforwarderexporter v1.7.0
@@ -229,6 +229,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.153.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.153.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.153.0
@@ -284,7 +285,6 @@ require (
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/observiq/bindplane-otel-contrib/internal/amqfilter v1.7.0 // indirect
 	github.com/okta/okta-sdk-golang/v6 v6.1.6 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.153.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/internal/basicauth v0.153.0 // indirect
 	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/outscale/osc-sdk-go/v2 v2.32.0 // indirect
@@ -1039,9 +1039,9 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260612155207-80547fbe912d
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260612155207-80547fbe912d
 
 // The DataDog datadog-agent monorepo resolves these modules via intra-repo relative-path
 // replaces (e.g. logsagentexporter and delegatedauth reference delegatedauth, its cloudauth/aws
