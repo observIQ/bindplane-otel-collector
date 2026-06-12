@@ -149,3 +149,48 @@ for local_mod in $LOCAL_MODULES; do
         exit 1
     fi
 done
+
+# Update the OTel module versions pinned in the ocb manifest. This is the
+# source of truth for `make agent`, so it must track the same versions as the
+# local go.mods updated above. Versions are mapped exactly as in the go.mod
+# loop: stable (v1.x) core modules -> PDATA_TARGET_VERSION, contrib modules ->
+# CONTRIB_TARGET_VERSION, all other core modules -> TARGET_VERSION. Non-OTel
+# modules (e.g. bindplane-otel-contrib, internal modules) are left untouched.
+MANIFEST="$REPO_ROOT/manifests/observIQ/manifest.yaml"
+echo "Updating manifest $MANIFEST"
+
+MANIFEST_TMP="$(mktemp)"
+while IFS= read -r line; do
+    case "$line" in
+    *"gomod:"*)
+        # Split "  - gomod: <module-path> <version>" into its parts.
+        prefix="${line%%gomod:*}gomod: "
+        rest="${line#*gomod: }"
+        mod="${rest%% *}"
+        ver="${rest#"$mod" }"
+
+        case "$mod" in
+        go.opentelemetry.io/collector|go.opentelemetry.io/collector/*)
+            if is_stable_module "$mod"; then
+                newver="$PDATA_TARGET_VERSION"
+            else
+                newver="$TARGET_VERSION"
+            fi
+            ;;
+        github.com/open-telemetry/opentelemetry-collector-contrib/*)
+            newver="$CONTRIB_TARGET_VERSION"
+            ;;
+        *)
+            # Not an OTel module managed by this script; leave as-is.
+            newver="$ver"
+            ;;
+        esac
+
+        printf '%s%s %s\n' "$prefix" "$mod" "$newver"
+        ;;
+    *)
+        printf '%s\n' "$line"
+        ;;
+    esac
+done < "$MANIFEST" > "$MANIFEST_TMP"
+mv "$MANIFEST_TMP" "$MANIFEST"

@@ -83,3 +83,40 @@ for local_mod in $LOCAL_MODULES; do
         exit 1
     fi
 done
+
+# Update the bindplane-otel-contrib module versions pinned in the ocb manifest.
+# This is the source of truth for `make agent`, so it must track the same
+# versions as the local go.mods updated above. Only bindplane-otel-contrib
+# modules are touched; internal bindplane-otel-collector modules (v0.0.0) and
+# all other modules are left untouched.
+MANIFEST="$REPO_ROOT/manifests/observIQ/manifest.yaml"
+echo "Updating manifest $MANIFEST"
+
+MANIFEST_TMP="$(mktemp)"
+while IFS= read -r line; do
+    case "$line" in
+    *"gomod:"*)
+        # Split "  - gomod: <module-path> <version>" into its parts.
+        prefix="${line%%gomod:*}gomod: "
+        rest="${line#*gomod: }"
+        mod="${rest%% *}"
+        ver="${rest#"$mod" }"
+
+        case "$mod" in
+        github.com/observiq/bindplane-otel-contrib/*)
+            newver="$TARGET_VERSION"
+            ;;
+        *)
+            # Not a bindplane-otel-contrib module; leave as-is.
+            newver="$ver"
+            ;;
+        esac
+
+        printf '%s%s %s\n' "$prefix" "$mod" "$newver"
+        ;;
+    *)
+        printf '%s\n' "$line"
+        ;;
+    esac
+done < "$MANIFEST" > "$MANIFEST_TMP"
+mv "$MANIFEST_TMP" "$MANIFEST"
