@@ -1415,10 +1415,10 @@ github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v
 github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.7.0/go.mod h1:f2HTgVpPR8vwmPNiE58gWzrHANlScLH+h3tcQcnYOdg=
 github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.7.0 h1:wXL5LNs7Zx9XyPDhy9hTg/t9gb6oa/6zCZqAdHbqlbw=
 github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.7.0/go.mod h1:sSD72jjQCzHxuCKIixEpweVmNPKuLW7yjSTtYRnXY8w=
-github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e h1:dLJ1ED6FH9jnCDDaVxTQuSX9gu3cz1HVjNHbTXZtghE=
-github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e/go.mod h1:UnhYNTPJgpwIb+iOmcrExD2j4nj1EMaF6rmGf/mu+QI=
-github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e h1:nMxG7DdELqcTzJBWJOL75OrtMtn2eUobT6Nw8NyOnuU=
-github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e/go.mod h1:ZWrqXQPd7NEu47TCATJWvZvwi4d2S54QCP1rqf7CEvg=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260612155207-80547fbe912d h1:y7MZQqE/fzKJmz5ABYQ3UTG2+GVVx39757B46Wg9EOI=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260612155207-80547fbe912d/go.mod h1:siSHcXU/H/Ekk8Q7U52ehoWOtn02bFUZru3piYnFEVc=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260612155207-80547fbe912d h1:/lMVKrXUaq4oSZspNKzPmlo9JLDy71Xqz5+HUzVmbvc=
+github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260612155207-80547fbe912d/go.mod h1:J2llkzEHXPRygkUYXlqR63b1Dv4pECYTZKEoJqNehmA=
 github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/okta/okta-sdk-golang/v6 v6.1.6 h1:bObKXhkFh1c1tCfjcYoRoTjDJeIPMsEZHrjLasawEpk=
