@@ -6,7 +6,10 @@ before:
   hooks:
     - make release-prep CURR_VERSION={{ .Version }}
     # Pre-build the linux/arm64 binary via ocb-driven `make`.
-    - GOOS=linux GOARCH=arm64 make build-binaries OUTDIR="tmp"
+    # VERSION must be passed explicitly: the Makefile's tag detection only
+    # matches stable tags (vX.Y.Z), so prerelease tags like vX.Y.Z-alpha.1
+    # would otherwise be stamped as <previous-tag>-SNAPSHOT-<sha>.
+    - GOOS=linux GOARCH=arm64 make build-binaries OUTDIR="tmp" VERSION=v{{ .Version }}
 
 after:
   hooks:
