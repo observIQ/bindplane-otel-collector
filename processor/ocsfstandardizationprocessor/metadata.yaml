@@ -1,0 +1,7 @@
+type: ocsf_standardization
+
+status:
+  class: processor
+  stability:
+    alpha: [logs]
+  distributions: [observiq]

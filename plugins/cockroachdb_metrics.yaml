@@ -129,7 +129,7 @@ template: |
             - scrape_samples_scraped
             - up
 
-    metricstransform/cockroachdb:
+    metrics_transform/cockroachdb:
       transforms:
         # Rename from prometheus metric name to OTel metric name.
         # We cannot do this with metric_relabel_configs, as the prometheus receiver does not
@@ -348,4 +348,4 @@ template: |
     pipelines:
       metrics/cockroachdb:
         receivers: [prometheus/cockroachdb]
-        processors: [filter/cockroachdb, metricstransform/cockroachdb, transform/cockroachdb]
+        processors: [filter/cockroachdb, metrics_transform/cockroachdb, transform/cockroachdb]

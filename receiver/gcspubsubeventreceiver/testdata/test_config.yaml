@@ -1,0 +1,13 @@
+receivers:
+  gcsevent:
+    # This is intentionally empty to test the default config validation
+
+  gcsevent/custom:
+    project_id: "my-gcp-project"
+    subscription_id: "my-gcs-events-sub"
+    workers: 10
+    max_extension: 2h
+    poll_interval: 500ms
+    dedup_ttl: 10m
+    max_log_size: 4096
+    max_logs_emitted: 500

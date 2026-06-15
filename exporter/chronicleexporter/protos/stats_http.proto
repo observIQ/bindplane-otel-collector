@@ -1,0 +1,43 @@
+// Request message for importing stats events via the REST importStatsEvents API.
+
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "stats.proto";
+import "google/protobuf/timestamp.proto";
+
+message ImportStatsEventsRequest {
+  oneof source {
+    // Stats events to be imported are specified inline.
+    StatsInlineSource inline_source = 1;
+  }
+}
+
+// An inline source containing stats events.
+message StatsInlineSource {
+  // The stats events being imported.
+  repeated IngestionStatsEvent events = 1;
+
+  // Unique batch ID for deduplication.
+  string event_batch_id = 2;
+}
+
+// Wrapper for an individual stats event.
+message IngestionStatsEvent {
+  // The time at which the event occurred.
+  google.protobuf.Timestamp event_time = 1;
+
+  oneof event {
+    // Native forwarder stats event.
+    StatsEvent stats = 2;
+
+    // Collection agent stats event.
+    AgentStatsEvent agent_stats = 3;
+  }
+}
+
+// Native forwarder stats event (not used by this agent).
+message StatsEvent {}
