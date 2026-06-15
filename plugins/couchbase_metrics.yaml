@@ -58,7 +58,7 @@ template: |
             - scrape_samples_scraped
             - up
 
-    metricstransform/couchbase:
+    metrics_transform/couchbase:
       transforms:
         # Rename from prometheus metric name to OTel metric name.
         # We cannot do this with metric_relabel_configs, as the prometheus receiver does not
@@ -160,4 +160,4 @@ template: |
     pipelines:
       metrics/couchbase:
         receivers: [prometheus/couchbase]
-        processors: [filter/couchbase, metricstransform/couchbase, transform/couchbase]
+        processors: [filter/couchbase, metrics_transform/couchbase, transform/couchbase]

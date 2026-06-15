@@ -20,6 +20,7 @@ ARG TARGETPLATFORM
 WORKDIR /
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y \
         systemd tzdata ca-certificates && \
     apt-get clean && \

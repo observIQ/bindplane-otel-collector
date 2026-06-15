@@ -14,7 +14,7 @@ builds:
       - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     tags:
-      - bindplane
+      - embed_library
     goos:
       - linux
     goarch:

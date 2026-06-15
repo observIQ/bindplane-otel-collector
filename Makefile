@@ -26,6 +26,9 @@ PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[
 CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | grep -v 'version' | tail -n1)
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
+# Tag passed to goreleaser in --snapshot mode. Must be the bare tag; goreleaser's snapshot
+# template appends its own -SNAPSHOT-<sha> suffix, so passing VERSION here would double it.
+SNAPSHOT_TAG := $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
 .PHONY: version
 version:
@@ -217,7 +220,7 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.25.9"
+	$(MAKE) for-all CMD="go mod tidy -compat=1.26.4"
 
 .PHONY: gosec
 gosec:
@@ -381,7 +384,7 @@ release-test:
 # If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	if [ ! -e "./bindplane-otel-collector-arm64.msi" ]; then touch ./bindplane-otel-collector-arm64.msi; fi
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 	$(MAKE) release-test-aix
 
 # Build and sign AIX, skip release and ignore dirty git tree
@@ -398,7 +401,7 @@ release-containers-test:
 	$(MAKE) release-prep CURR_VERSION=$(VERSION)
 	$(MAKE) build-linux-amd64 OUTDIR=tmp
 	$(MAKE) build-linux-arm64 OUTDIR=tmp
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
+	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
 agent-linux-amd64:
@@ -410,11 +413,11 @@ agent-linux-ppc64le:
 
 build-single:
 	$(MAKE)
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
 .PHONY: release-test-single
 release-test-single:
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
+	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
 
 .PHONY: for-all
 for-all:
