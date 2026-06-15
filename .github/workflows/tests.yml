@@ -87,6 +87,50 @@ jobs:
           go-version-file: go.mod
           cache: false
 
+      # link.exe (external linking is forced by -race) writes its go-link temp via
+      # Go's os.TempDir(), which on Windows Server 2022 routes through GetTempPath2.
+      # These Namespace runners execute as SYSTEM, and for SYSTEM processes
+      # GetTempPath2 ignores TMP/TEMP and returns C:\Windows\SystemTemp; that volume
+      # is under disk pressure, which is the "not enough space" linker failure.
+      #
+      # Per the GetTempPath2 docs, the one env var a SYSTEM process honors is
+      # SystemTemp, so we set it to redirect the linker's go.o onto the roomy D:
+      # volume (where the workspace already lives). We also relocate the Go build and
+      # module caches to D: as hygiene (GOCACHE/GOMODCACHE are read directly by the go
+      # tool, never via GetTempPath2). GOPATH stays on C: so setup-go's PATH entry for
+      # installed tools (gotestsum, etc.) remains valid.
+      # Ref: https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-gettemppath2w
+      - name: "Configure temp and Go cache dirs on D: (Windows)"
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path D:\Temp, D:\gocache, D:\gomodcache | Out-Null
+          "SystemTemp=D:\Temp"       | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "GOTMPDIR=D:\Temp"         | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "GOCACHE=D:\gocache"       | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "GOMODCACHE=D:\gomodcache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Free disk space and report (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          Write-Host "== Effective temp/cache redirection (confirm SYSTEM honored SystemTemp) =="
+          Write-Host "SystemTemp=$env:SystemTemp"
+          go env GOCACHE GOMODCACHE GOTMPDIR
+          Write-Host "== Disk usage before cleanup =="
+          Get-PSDrive -PSProvider FileSystem | Format-Table -AutoSize
+          Write-Host "== Largest known C: consumers =="
+          foreach ($p in @('C:\hostedtoolcache','C:\Users\runneradmin\AppData\Local\go-build','C:\Users\runneradmin\go','C:\Windows\SystemTemp')) {
+            if (Test-Path $p) {
+              $gb = [math]::Round(((Get-ChildItem $p -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum)/1GB, 2)
+              Write-Host ("{0,8} GB  {1}" -f $gb, $p)
+            }
+          }
+          # Clear stale temp on the C: volume that link.exe is pinned to.
+          Remove-Item -Recurse -Force C:\Windows\SystemTemp\* -ErrorAction SilentlyContinue
+          Write-Host "== Disk usage after cleanup =="
+          Get-PSDrive -PSProvider FileSystem | Format-Table -AutoSize
+
       - name: Cache Go (Namespace)
         if: matrix.os != 'windows'
         uses: namespacelabs/nscloud-cache-action@v1
@@ -109,7 +153,7 @@ jobs:
         if: matrix.os == 'windows'
         uses: actions/cache@v4
         with:
-          path: C:\Users\runneradmin\go\pkg\mod
+          path: D:\gomodcache
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-mod-
@@ -118,7 +162,7 @@ jobs:
         if: matrix.os == 'windows'
         uses: actions/cache@v4
         with:
-          path: C:\Users\runneradmin\AppData\Local\go-build
+          path: D:\gocache
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
@@ -149,11 +193,6 @@ jobs:
 
       - name: Run All Tests
         run: make test
-        env:
-          TMPDIR: D:\Temp
-          TMP: D:\Temp  
-          TEMP: D:\Temp
-          GOTMPDIR: D:\Temp
 
       # Run updater integration tests for Ubuntu and macOS (always)
       # For Windows, only run when updater code changed
