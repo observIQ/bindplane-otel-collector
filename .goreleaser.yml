@@ -18,9 +18,6 @@ builds:
     builder: prebuilt
     binary: bindplane-otel-collector
     mod_timestamp: "{{ .CommitTimestamp }}"
-    tags:
-      - bindplane
-      - embed_library
     goos:
       - darwin
       - linux

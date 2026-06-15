@@ -15,13 +15,6 @@ INTEGRATION_TEST_ARGS?=-tags integration
 
 TOOLS_MOD_DIR := ./internal/tools
 
-# Directories migrated to the contrib repo, excluded from testing.
-# Keep in sync with the components filter in .github/workflows/checks.yml.
-MIGRATED_MODULE_PATTERNS := $(shell cat migrated-modules.txt)
-
-# Generate gosec -exclude-dir flags from migrated module patterns
-GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
-
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -253,11 +246,6 @@ MOD_PATH_EXCLUDES := ./cmd/plugindocgen
 check-mod-paths:
 	@FAILED=0; \
 	for dir in $(ALL_MODULES); do \
-		SKIP=false; \
-		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
-			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
-		done; \
-		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
 		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
 		if [ "$${dir}" = "." ]; then \
@@ -287,11 +275,6 @@ check-dependabot:
 	@FAILED=0; \
 	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
 	for dir in $(ALL_MODULES); do \
-		SKIP=false; \
-		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
-			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
-		done; \
-		if [ "$${SKIP}" = "true" ]; then continue; fi; \
 		if [ "$${dir}" = "." ]; then \
 			EXPECTED="/"; \
 		else \
