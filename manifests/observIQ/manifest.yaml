@@ -238,14 +238,18 @@ providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.59.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.153.0
 
-# Pinning replaces preserved from the legacy top-level go.mod.
-# These are not local-dev replaces — they're version pins / fork redirects
-# that must persist in release builds too.
 replaces:
   # Internal Go modules — point ocb at the local checkouts.
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
   - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
+  # Pinning replaces preserved from the legacy top-level go.mod.
+  # These are not local-dev replaces — they're version pins / fork redirects
+  # that must persist in release builds too.
   - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
   - github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/DataDog/datadog-agent/comp/core/delegatedauth v0.78.2
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/azureblobreceiver v0.0.0-20260507185839-98c20ac26318
+  # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
+  # Remove once the above PR is merged, released, and the relevant components are updated to that version.
+  # The commits being replaced to are built on the OTel v0.154.0 tag. 
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260612191330-06d19ea17bdb
+  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260612191330-06d19ea17bdb
