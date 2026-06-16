@@ -2,7 +2,7 @@
 
 ## Installing
 
-To install the agent on Windows, run the PowerShell command below. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
+To install the agent on Windows, run the PowerShell command below from an **elevated (Administrator)** PowerShell prompt. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI. By default it shows the installer UI.
 
 > **Note:** The install script is available as of release v1.96.0. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
@@ -16,17 +16,38 @@ To install a specific version, pass the `-Version` parameter:
 & ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Version "v1.96.0"
 ```
 
-For an interactive installation with the installer UI, add `-Interactive`:
+For an unattended (silent) installation without the installer UI, add `-Quiet`:
 
 ```pwsh
-& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Interactive
+& ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Quiet
 ```
+
+### Additional Options
+
+The script accepts the following parameters:
+
+| Parameter | Description |
+| --- | --- |
+| `-Version` | The version to install (e.g. `v1.96.0`). Omit or pass `latest` to install the latest release. |
+| `-Quiet` | Run the installer silently instead of showing the installer UI. |
+| `-InstallDir` | Custom installation directory. Defaults to the MSI default. |
+| `-Clean` | Set to `"1"` to remove existing configuration on install. Default is `"0"`. |
+| `-EnableManagement` | Set to `"1"` to enable managed mode via OpAMP. Default is `"0"`. See [Managed Mode](#managed-mode). |
+| `-OpAMPEndpoint` | OpAMP server endpoint URL (e.g. `wss://app.bindplane.com/v1/opamp`). |
+| `-OpAMPSecretKey` | Secret key for OpAMP authentication. |
+| `-OpAMPLabels` | Comma-separated `key=value` labels for OpAMP (e.g. `configuration=windows,env=prod`). |
+| `-MsiUrl` | Override the full MSI download URL. When set, `-Version` and architecture detection are ignored. |
+| `-MsiFile` | Path to a local MSI file to install. Skips all download and version resolution steps. |
+| `-SkipSignatureCheck` | Skip MSI Authenticode signature verification. |
+| `-Uninstall` | Uninstall the agent instead of installing it. See [Uninstalling](#uninstalling). |
 
 ### Manual Installation
 
 For versions prior to v1.96.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/observiq-otel-collector.msi` (or `observiq-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
 
-Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
+### Signature Verification
+
+Installation artifacts are signed, and the script verifies the MSI's Authenticode signature before installing. If verification fails during an interactive install, the script warns and prompts before continuing; during a `-Quiet` install it aborts. To bypass verification entirely, pass `-SkipSignatureCheck` (not recommended). More information on verifying signatures can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
 ### Managed Mode
 
