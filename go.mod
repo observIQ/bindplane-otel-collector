@@ -4,8 +4,8 @@ go 1.26.4
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.101.0
-	github.com/observiq/bindplane-otel-collector/packagestate v1.101.0
+	github.com/observiq/bindplane-otel-collector/internal/report v1.102.0
+	github.com/observiq/bindplane-otel-collector/packagestate v1.102.0
 	github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter v1.8.0
 	github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter v1.8.0
 	github.com/observiq/bindplane-otel-contrib/exporter/chronicleforwarderexporter v1.8.0
