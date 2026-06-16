@@ -66,8 +66,11 @@ if [ "$AIX_MODE" = true ]; then
     done
     $(cd $PROJECT_BASE/$DOWNLOAD_DIR && rm -rf opentelemetry-collector-contrib-aix)
 else
-    # Build supervisor for all non-AIX platforms from upstream
-    echo "Cloning upstream supervisor repo"
+    # Build supervisor for all non-AIX platforms from upstream, pinned to a
+    # release tag so upstream main churn can't break our release prep. Bump this
+    # to match the collector version when updating OTel.
+    SUPERVISOR_VERSION="v0.154.0"
+    echo "Cloning upstream supervisor repo at $SUPERVISOR_VERSION"
     SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contrib.git"
     PLATFORMS=("linux/amd64" "linux/arm64" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64" "windows/arm64")
 
@@ -77,7 +80,17 @@ else
     git remote add origin "$SUPERVISOR_REPO"
     git config core.sparseCheckout true
     echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
-    git pull origin main --depth 1
+    # The supervisor wires in auth extensions whose go.mod uses local replace
+    # directives (../../extension/...), so those sibling modules (and the
+    # internal modules they in turn replace) must be present in the checkout.
+    echo "extension/basicauthextension" >> .git/info/sparse-checkout
+    echo "extension/bearertokenauthextension" >> .git/info/sparse-checkout
+    echo "extension/oauth2clientauthextension" >> .git/info/sparse-checkout
+    echo "extension/internal" >> .git/info/sparse-checkout
+    # v0.154.0 is an annotated tag, so fetch + checkout rather than pull (which
+    # would try to fast-forward a branch ref to the tag object and fail).
+    git fetch origin --depth 1 tag "$SUPERVISOR_VERSION"
+    git checkout "$SUPERVISOR_VERSION"
 
     cd "cmd/opampsupervisor"
     for PLATFORM in "${PLATFORMS[@]}"; do

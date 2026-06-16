@@ -24,8 +24,6 @@ builds:
     builder: prebuilt
     binary: bindplane-otel-collector
     mod_timestamp: "{{ .CommitTimestamp }}"
-    tags:
-      - bindplane
     goos:
       - aix
     goarch:
