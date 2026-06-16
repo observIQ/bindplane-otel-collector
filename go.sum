@@ -1776,8 +1776,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudsp
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudspannerreceiver v0.154.0/go.mod h1:JnNnKqynQmcH/6VEf59kscbWOAYTaFUduL6tlGfsVKw=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0 h1:YXYcZAtV1jrV480LekM2aERbPE80WpePgiCXTNQBjn0=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0/go.mod h1:G951aGJ/kdBCGeMC1xvNABjBB/g3jQaN87oBq6jNh0c=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.152.0 h1:UAzFgngBU3ha+J/kbYDhzoqxyJE8SsR5pC8qk/S0OCs=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.152.0/go.mod h1:Aa3hZUGsRCow9yWQMRXpILctrPYy4jcu6sRK+whaBv4=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.154.0 h1:Ey+rKytAqmlrJ9ogYouhdURzRPA/3ct8eKr1TaBOwDs=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.154.0/go.mod h1:0xZ7lYnmfTAx9RugP2CRVzUxO4DPdbXzAGLcEgrrOIM=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/iisreceiver v0.154.0 h1:Tg2WLOkaulVzA3TtWHasCu/A31CF6ugWTA/48/v0isg=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/iisreceiver v0.154.0/go.mod h1:neDwEhhW3GB8FnOJSRcy3a+5+WE1Vds2+bya+sRsdWw=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/influxdbreceiver v0.154.0 h1:T9RtFwWuyvEFj9HmzayFLjUx1dLdzL3GWgcmj4d/dXc=
