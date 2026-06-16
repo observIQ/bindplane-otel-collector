@@ -12,6 +12,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Delta to Rate Processor                 | [deltatorateprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/deltatorateprocessor/README.md)                   |
 | Drain Processor                         | [drainprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/drainprocessor/README.md)                         |
 | Filter Processor                        | [filterprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/filterprocessor/README.md)                             |
+| Gen AI Normalizer Processor | [genainormalizerprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/genainormalizerprocessor/README.md) |
 | GeoIP Processor                         | [geoipprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/geoipprocessor/README.md)                               |
 | Group by Attributes Processor           | [groupbyattrsprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/groupbyattrsprocessor/README.md)                 |
 | Group by Trace Processor                | [groupbytraceprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.154.0/processor/groupbytraceprocessor/README.md)                 |

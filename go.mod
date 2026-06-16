@@ -237,6 +237,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/drainprocessor v0.154.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/genainormalizerprocessor v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.154.0
@@ -253,6 +254,7 @@ require (
 )
 
 require (
+	github.com/Arize-ai/openinference/go/openinference-semantic-conventions v0.1.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/monitor/query/azmetrics v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor v0.12.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources/v3 v3.0.1 // indirect
@@ -300,6 +302,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/traceloop/go-openllmetry/semconv-ai v0.0.0-20260117121325-ee5a5c89c1f5 // indirect
 	github.com/vultr/govultr/v3 v3.31.2 // indirect
 	go.uber.org/ratelimit v0.3.1 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
