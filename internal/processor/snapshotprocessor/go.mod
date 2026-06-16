@@ -9,7 +9,7 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 replace github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../../extension/opampconnectionextension
 
 require (
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.7.0
+	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.8.0
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.152.0
 	github.com/stretchr/testify v1.11.1
@@ -17,7 +17,7 @@ require (
 	go.opentelemetry.io/collector/component/componenttest v0.152.1
 	go.opentelemetry.io/collector/consumer v1.58.0
 	go.opentelemetry.io/collector/extension v1.58.0
-	go.opentelemetry.io/collector/pdata v1.59.0
+	go.opentelemetry.io/collector/pdata v1.60.0
 	go.opentelemetry.io/collector/processor v1.58.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.152.1
 	go.uber.org/zap v1.28.0
@@ -39,7 +39,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/internal/report v1.99.0
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/collector/featuregate v1.59.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.60.0 // indirect
 	go.opentelemetry.io/collector/internal/componentalias v0.152.1 // indirect
 	go.opentelemetry.io/collector/pipeline v1.58.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
