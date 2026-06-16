@@ -286,6 +286,7 @@ receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/yanggrpcreceiver v0.151.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.151.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver v0.151.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver v1.5.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobrehydrationreceiver v1.5.0
