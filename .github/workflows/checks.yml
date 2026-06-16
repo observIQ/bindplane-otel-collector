@@ -51,8 +51,8 @@ jobs:
               - 'Makefile'
             go:
               - '**/*.go'
-              - 'go.mod'
-              - 'go.sum'
+              - '**/go.mod'
+              - '**/go.sum'
             dockerfile:
               - 'docker/Dockerfile.*'
             scripts:
@@ -65,7 +65,7 @@ jobs:
               - 'docs/plugins/**'
               - 'plugins/**'
             gomod:
-              - 'go.mod'
+              - '**/go.mod'
             dependabot:
               - '.github/dependabot.yml'
             manifest:

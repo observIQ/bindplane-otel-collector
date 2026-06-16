@@ -44,8 +44,8 @@ jobs:
               - 'Makefile'
             go:
               - '**/*.go'
-              - 'go.mod'
-              - 'go.sum'
+              - '**/go.mod'
+              - '**/go.sum'
             updater:
               - 'updater/**'
 
