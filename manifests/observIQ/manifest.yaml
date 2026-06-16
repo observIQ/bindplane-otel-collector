@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: Bindplane's custom distro for the OpenTelemetry Collector
-  version: "v2.0.1-beta.3"
+  version: "v2.0.1-beta.4"
   output_path: ./builder
   # embed_library enables the telemetrygeneratorreceiver blitz embed integration (PIPE-1017)
   build_tags: embed_library
