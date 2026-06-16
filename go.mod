@@ -1039,8 +1039,10 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
+// Last rebased on OTel v0.154.0. Owners @jsirianni @mrsillydog https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.102.0
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260422143330-2a6ebda5c14e
 
+// Last rebased on OTel v0.154.0. Owners @jsirianni @mrsillydog https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.102.0
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e
 
 // The DataDog datadog-agent monorepo resolves these modules via intra-repo relative-path
