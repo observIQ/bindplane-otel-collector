@@ -15,6 +15,7 @@
 package factories
 
 import (
+	"github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver"
 	"github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver"
@@ -112,6 +113,7 @@ import (
 )
 
 var defaultReceivers = []receiver.Factory{
+	awsneuronreceiver.NewFactory(),
 	activedirectorydsreceiver.NewFactory(),
 	bindplaneauditlogs.NewFactory(),
 	aerospikereceiver.NewFactory(),

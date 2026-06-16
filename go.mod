@@ -223,6 +223,7 @@ require (
 	github.com/observiq/bindplane-otel-contrib/pkg/version v1.8.0
 	github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.8.0
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.8.0
+	github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.8.0
 	github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.8.0
 	github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs v1.8.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.154.0

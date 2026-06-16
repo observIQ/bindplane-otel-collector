@@ -1381,6 +1381,8 @@ github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementproces
 github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.8.0/go.mod h1:0PqpZSaUqQbS1rlMnXxP2fipdx05+3WjhPvOdRFRQN0=
 github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.8.0 h1:inylQm8aM4N89ObngCO8CLWYU3tjsNhy3Hho2JAmG8Q=
 github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.8.0/go.mod h1:rVKK/KxMwx9iv/uEPVmzhl2tuO+/K7zQfngIg6eYC00=
+github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.8.0 h1:DMdCROHk8NIVOKMowNrmQC++55iF7MWe3BE3w67Wo98=
+github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.8.0/go.mod h1:5d6gpIYcE1ENy8AHWg3ToE/NLbHuQXE0UIYXaPwdnRc=
 github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.8.0 h1:4LNMEih5wWm9W7jdyGp3H5UKOwbZYdiAUVQ3jLAGkME=
 github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.8.0/go.mod h1:TE9JxgK2YihS6MnFQwssVjoljhG/05B0Meg0WRJ9m64=
 github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver v1.8.0 h1:2wfsIozXwYuk4/Ka+LqPKpATvkzQBXsd/aexRNAgDS4=
