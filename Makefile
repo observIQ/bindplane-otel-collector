@@ -111,7 +111,9 @@ verify-manifest:
 	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
 	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
 	cd $(BUILD_DIR) && go mod tidy
-	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags bindplane -o /dev/null .
+	# Compile with the same build tags as the release build ($(AGENT_BUILD_TAGS))
+	# so the gate exercises exactly what `make agent` ships.
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -o /dev/null .
 
 # Builds the collector for the current GOOS/GOARCH pair using ocb.
 .PHONY: agent

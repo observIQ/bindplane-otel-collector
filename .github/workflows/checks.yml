@@ -34,6 +34,7 @@ jobs:
       plugin-docs: ${{ steps.filter.outputs.plugin-docs == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      manifest: ${{ steps.filter.outputs.manifest == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       components: ${{ steps.filter.outputs.components }}
     steps:
       - name: Checkout Sources

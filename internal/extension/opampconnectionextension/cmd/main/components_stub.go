@@ -15,7 +15,7 @@
 // components() is normally provided by ocb's generated `components.go` in
 // ./build/. This stub lets the file compile in its source location so the
 // extension module's own `go test ./...` / lint walk doesn't break. The
-// Makefile `agent-ocb` target copies main.go (not this file) into the
+// Makefile `agent` target copies main.go (not this file) into the
 // ocb-generated build dir, where the generated definition takes over.
 package main
 
@@ -26,5 +26,5 @@ import (
 )
 
 func components() (otelcol.Factories, error) {
-	return otelcol.Factories{}, errors.New("components(): source-tree stub — build via `make agent-ocb` to get the ocb-generated factory set")
+	return otelcol.Factories{}, errors.New("components(): source-tree stub — build via `make agent` to get the ocb-generated factory set")
 }
