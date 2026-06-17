@@ -5,7 +5,7 @@ ALL_MODULES := $(shell find . -path ./builder -prune -o -type f -name "go.mod" -
 ALL_MDATAGEN_MODULES := $(shell find . -type f -name "metadata.yaml" -exec dirname {} \; | sort )
 
 # All source code files
-ALL_SRC := $(shell find . -path ./builder -prune -o -name '*.go' -o -name '*.sh' -o -name 'Dockerfile*' -type f | sort)
+ALL_SRC := $(shell find . -path ./builder -prune -o -name '*.go' -o -name '*.sh' -o -name '*.ps1' -o -name 'Dockerfile*' -type f | sort)
 
 OUTDIR=./dist
 GOOS ?= $(shell go env GOOS)
