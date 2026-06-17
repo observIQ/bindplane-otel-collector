@@ -232,6 +232,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/azureauthextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.154.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/azureencodingextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.154.0
