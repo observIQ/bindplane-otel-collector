@@ -1526,6 +1526,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avr
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.154.0/go.mod h1:lgYHat3O87xZQiAPk85Gzi36APbIoxTjbHoAPt1LPFo=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/awscloudwatchmetricstreamsencodingextension v0.154.0 h1:ltQXRli3Cb4/3vHyyqF+pwfTgCg1jjqqWfmQX82hO3k=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/awscloudwatchmetricstreamsencodingextension v0.154.0/go.mod h1:T2yLsmCHOlo5DQCRPe7ns/1zNUT2z1rFBnVUhdcyZDM=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/azureencodingextension v0.154.0 h1:AnKalG++35jFmMYwpOXmXivsYyyfXxbl2hBT29QHuVc=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/azureencodingextension v0.154.0/go.mod h1:MA89rWWVhTZlitiQkZxZiiVvNmJ1/eKvP5a7FgD+Vgg=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.154.0 h1:nlQ58DsvtPSPLcWF7s4rSn33UuXtKqIVSylRawoy5UI=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.154.0/go.mod h1:l2CY7VgupEmsTo+l1t4zeFYwo2RUhfJBG3qgym9zQEU=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.154.0 h1:8nvT1ob9i7wd+UxEJVU+AobgXowFaVkGQns6fyU8/Bk=

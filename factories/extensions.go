@@ -26,6 +26,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/azureencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension"
@@ -46,6 +47,7 @@ var defaultExtensions = []extension.Factory{
 	ackextension.NewFactory(),
 	avrologencodingextension.NewFactory(),
 	awss3eventextension.NewFactory(),
+	azureencodingextension.NewFactory(),
 	badgerextension.NewFactory(),
 	basicauthextension.NewFactory(),
 	azureauthextension.NewFactory(),
