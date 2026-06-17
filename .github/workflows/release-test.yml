@@ -170,6 +170,7 @@ jobs:
         run: |
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
+          cp ./scripts/install/*.ps1 ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./observiq-otel-collector.msi ./artifacts
           cp ./observiq-otel-collector-arm64.msi ./artifacts

@@ -57,6 +57,7 @@ jobs:
               - 'docker/Dockerfile.*'
             scripts:
               - '**/*.sh'
+              - '**/*.ps1'
             misspell:
               - '**/*.md'
               - '**/*.yaml'
