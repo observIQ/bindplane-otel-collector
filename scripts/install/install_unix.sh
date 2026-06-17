@@ -410,7 +410,6 @@ setup_installation() {
   increase_indent
 
   # Installation variables
-  set_os_arch
   set_package_type
 
   # if offline_installation is false then download the package
@@ -500,10 +499,10 @@ set_os_arch() {
     os_arch="ppc64le"
     ;;
   powerpc)
+    # Only 64-bit AIX powerpc maps to ppc64; otherwise leave os_arch as
+    # "powerpc" and let os_arch_check reject it.
     if [ "$OS_TYPE" = "AIX" ] && command -v bootinfo > /dev/null && [ "$(bootinfo -y)" = "64" ]; then
       os_arch="ppc64"
-    else
-      error_exit "$LINENO" "uname returned arch of 'powerpc', but OS is either not AIX or not 64 bit. 'uname -s': $OS_TYPE, 'bootinfo -y': $(bootinfo -y)"
     fi
     ;;
   # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
@@ -511,7 +510,9 @@ set_os_arch() {
     os_arch="arm"
     ;;
   *)
-    error_exit "$LINENO" "Unsupported os arch: $os_arch"
+    # set_os_arch only sets; os_arch_check validates. Mark unrecognized
+    # architectures explicitly so the check can report them.
+    os_arch="UNKNOWN"
     ;;
   esac
 }
@@ -764,6 +765,7 @@ check_prereqs() {
   increase_indent
   root_check
   os_check
+  set_os_arch
   os_arch_check
   package_type_check
   dependencies_check
@@ -834,17 +836,27 @@ os_check() {
   esac
 }
 
-# This will check if the system architecture is supported.
+# This will check if the system architecture is supported. set_os_arch must
+# run first (it caches the normalized arch in os_arch); this validates that
+# cached value rather than re-reading uname, which on AIX returns a machine ID
+# rather than an architecture.
 os_arch_check() {
   info "Checking for valid operating system architecture..."
-  arch=$(uname -m)
-  case "$arch" in
-  x86_64 | aarch64 | ppc64 | ppc64le | arm64 | aarch64_be | armv8b | armv8l | arm | armv6l | armv7l)
+  case "$os_arch" in
+  amd64 | arm64 | ppc64 | ppc64le | arm)
     succeeded
+    ;;
+  powerpc)
+    failed
+    error_exit "$LINENO" "uname returned arch of 'powerpc', but OS is either not AIX or not 64 bit. 'uname -s': $OS_TYPE, 'bootinfo -y': $(bootinfo -y)"
+    ;;
+  UNKNOWN)
+    failed
+    error_exit "$LINENO" "Could not determine a supported operating system architecture. 'uname -s': $OS_TYPE, 'uname -m': $(uname -m), 'uname -p': $(uname -p)"
     ;;
   *)
     failed
-    error_exit "$LINENO" "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
+    error_exit "$LINENO" "The operating system architecture $(fg_yellow "$os_arch") is not supported by this script."
     ;;
   esac
 }
