@@ -179,8 +179,6 @@ jobs:
           cp ./observiq-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*.zip ./artifacts
-          cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
           tar -czvf observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
       - name: Sign artifact archive
