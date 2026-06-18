@@ -43,7 +43,7 @@ func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 
 	// set user feature flags
 	if err := setUserFeatureFlags(featureGates); err != nil {
-		return fmt.Errorf("failed to set user feature flags: %w", err)
+		return fmt.Errorf("set user feature flags: %w", err)
 	}
 
 	if len(featureGates) > 0 {
@@ -59,7 +59,7 @@ func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 func setHardcodedFeatureFlags(logger *zap.Logger) {
 	for _, gate := range hardcodedFeatureGates {
 		if err := featuregate.GlobalRegistry().Set(gate, true); err != nil {
-			logger.Debug("skipping unknown hardcoded feature gate", zap.String("gate", gate), zap.Error(err))
+			logger.Error("failed to set hardcoded feature gate", zap.String("gate", gate), zap.Error(err))
 		}
 	}
 }
@@ -78,7 +78,7 @@ func setUserFeatureFlags(featureGates []string) error {
 		}
 
 		if err := featuregate.GlobalRegistry().Set(fg, val); err != nil {
-			return fmt.Errorf("failed to set feature gate %s: %w", fg, err)
+			return fmt.Errorf("set feature gate %s: %w", fg, err)
 		}
 	}
 	return nil

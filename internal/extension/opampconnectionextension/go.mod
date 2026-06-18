@@ -6,11 +6,11 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.99.0
-	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.5.0
-	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.5.0
-	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.5.0
-	github.com/observiq/bindplane-otel-contrib/pkg/version v1.5.0
-	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.5.0
+	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.8.0
+	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.8.0
+	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.8.0
+	github.com/observiq/bindplane-otel-contrib/pkg/version v1.8.0
+	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.8.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.154.0
@@ -206,7 +206,7 @@ require (
 	go.opentelemetry.io/collector/pipeline v1.60.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.154.0 // indirect
 	go.opentelemetry.io/collector/processor v1.60.0 // indirect
-	go.opentelemetry.io/collector/processor/processorhelper v0.151.0 // indirect
+	go.opentelemetry.io/collector/processor/processorhelper v0.154.0 // indirect
 	go.opentelemetry.io/collector/processor/processortest v0.154.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.154.0 // indirect
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.154.0 // indirect

@@ -5,8 +5,6 @@ Three manifests live here, all driving ocb builds:
 | File | Build target | Output binary | Shape |
 |---|---|---|---|
 | `manifest.yaml` | `make agent` | `dist/collector_<os>_<arch>` | v1 — in-process managed runtime. `buildscripts/main.go` is overlaid onto ocb's generated `main.go`; the binary owns the OpAMP client and restarts the collector on remote config push. |
-| `manifest-v2.yaml` | `make agent-v2` | `dist/collector_v2_<os>_<arch>` | v2 — vanilla collector that's externally managed by `opampsupervisor`. ocb's default `main.go`, no overlay. Verbatim copy of the v2.0.1-beta.3 release manifest. |
-| `manifest-v2-aix.yaml` | `GOOS=aix GOARCH=ppc64 make agent-v2-aix` | `dist/collector_v2_aix_ppc64` | v2 trimmed for AIX/ppc64. Excludes components that don't build on big-endian ppc64 (pebble, badger, cgroup, dbstorage, etc.). |
 
 ## Installing ocb
 
