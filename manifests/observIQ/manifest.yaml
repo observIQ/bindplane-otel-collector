@@ -245,6 +245,7 @@ replaces:
   # Internal Go modules — point ocb at the local checkouts.
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
   - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
+  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
   # Pinning replaces preserved from the legacy top-level go.mod.
   # These are not local-dev replaces — they're version pins / fork redirects
   # that must persist in release builds too.
