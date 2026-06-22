@@ -68,7 +68,7 @@ exporters:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sumologicexporter v0.154.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.154.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.154.0
-  - gomod: github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.17
+  - gomod: github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.20
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/awssecuritylakeexporter v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.8.0

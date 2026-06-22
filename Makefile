@@ -21,9 +21,6 @@ TOOLS_MOD_DIR := ./internal/tools
 # Keep in sync with the components filter in .github/workflows/checks.yml.
 MIGRATED_MODULE_PATTERNS := $(shell cat migrated-modules.txt)
 
-# Generate gosec -exclude-dir flags from migrated module patterns
-GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
-
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -286,16 +283,22 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	@if [ -z "$$(go list ./... 2>/dev/null | grep -v 'internal/tools' | grep -v 'cmd/plugindocgen')" ]; then \
-		echo "gosec: no root packages to scan, skipping root"; \
-	else \
-		gosec \
-		  -exclude-dir=updater \
-		  -exclude-dir=internal/tools \
-		  -exclude-dir=cmd/plugindocgen \
-		  $(GOSEC_MIGRATED_EXCLUDES) \
-		  ./...; \
-	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+		case "$${dir}" in \
+			"."|"./updater"|"./internal/tools"|"./cmd/plugindocgen") continue;; \
+		esac; \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then \
+			echo "skipping migrated module $${dir}"; \
+			continue; \
+		fi; \
+		(cd "$${dir}" && \
+			echo "running gosec in $${dir}" && \
+			gosec ./...) || exit 1; \
+	done
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 
