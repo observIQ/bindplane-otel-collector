@@ -16,8 +16,6 @@ This describes the BDOT Collector build as it stands today. The OTel Collector B
 | File | Build target | Output binary | Shape |
 |---|---|---|---|
 | `manifest.yaml` | `make agent` | `dist/collector_<os>_<arch>` | v1 — in-process managed runtime; `internal/extension/opampconnectionextension/cmd/main/main.go` overlay. |
-| `manifest-v2.yaml` | `make agent-v2` | `dist/collector_v2_<os>_<arch>` | v2 — vanilla collector; remote management lives in the external `opampsupervisor`. Verbatim from the v2.0.1-beta.3 release. |
-| `manifest-v2-aix.yaml` | `GOOS=aix GOARCH=ppc64 make agent-v2-aix` | `dist/collector_v2_aix_ppc64` | v2 trimmed for AIX/ppc64. Excludes components that don't build on big-endian ppc64. |
 
 `make verify-manifest` regenerates from `manifest.yaml` and compiles to `/dev/null` — the CI gate against manifest breakage.
 
@@ -125,6 +123,7 @@ Done since this spec was written:
 
 Future work:
 
-- **v2 release wiring.** `make agent-v2` / `agent-v2-aix` exist but nothing in CI or goreleaser invokes them; v2 artifacts are not produced by the release flow.
-- **Dependabot.** Currently bumps `go.mod` files; needs to also bump versions inside `manifest.yaml` and the v2 variants, which are now the source of truth for component versions.
+- **v2 migrated.** BDOT v2 still exists on its own branch. Eventually we'll want to migrate it over to this branch. Will have separate manifests for v2 and v2-aix builds.
+- **v2 release wiring.** `make agent-v2` / `agent-v2-aix` do not exist and v2 is not a part of CI or the release flow; v2 artifacts are not produced by the release flow.
+- **Dependabot.** Currently bumps `go.mod` files; needs to also bump versions inside `manifest.yaml`, which is now the source of truth for component versions.
 - **Docker image.** `docker/` references the compiled binary path; the `dist/collector_*` naming hasn't changed, but the end-to-end image build hasn't been re-verified.
