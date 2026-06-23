@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.102.0
+	github.com/observiq/bindplane-otel-collector/internal/report v1.102.1
 	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.8.0
 	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.8.0
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.8.0
@@ -15,6 +15,7 @@ require (
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.154.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.154.0

@@ -22,6 +22,7 @@ import (
 	// factories pull these in transitively; in this isolated unit test we
 	// have to be explicit.
 	_ "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector"
+	_ "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter"
 	_ "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter"
 
 	"github.com/stretchr/testify/require"
