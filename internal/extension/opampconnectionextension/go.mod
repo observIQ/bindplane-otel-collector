@@ -15,6 +15,7 @@ require (
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.154.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.154.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.154.0
