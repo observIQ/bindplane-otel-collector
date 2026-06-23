@@ -40,10 +40,12 @@ var hardcodedFeatureGates = []string{
 // SetFeatureFlags sets hardcoded collector feature flags
 func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 	// set hardcoded feature flags first to allow for user overrides
-	setHardcodedFeatureFlags(logger)
+	if err := setFeatureFlags(hardcodedFeatureGates); err != nil {
+		return fmt.Errorf("set hardcoded feature flags: %w", err)
+	}
 
 	// set user feature flags
-	if err := setUserFeatureFlags(featureGates); err != nil {
+	if err := setFeatureFlags(featureGates); err != nil {
 		return fmt.Errorf("set user feature flags: %w", err)
 	}
 
@@ -54,29 +56,9 @@ func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 	return nil
 }
 
-// setHardcodedFeatureFlags enables every gate in hardcodedFeatureGates that
-// the current OTel registry knows about. Unknown gates are logged at debug
-// and skipped.
-func setHardcodedFeatureFlags(logger *zap.Logger) {
-	for _, gate := range hardcodedFeatureGates {
-		val := true
-		switch gate[0] {
-		case '-':
-			gate = gate[1:]
-			val = false
-		case '+':
-			gate = gate[1:]
-		}
-
-		if err := featuregate.GlobalRegistry().Set(gate, val); err != nil {
-			logger.Error("failed to set hardcoded feature gate", zap.String("gate", gate), zap.Error(err))
-		}
-	}
-}
-
-// setUserFeatureFlags sets user feature flags
+// setFeatureFlags sets user feature flags
 // checks for - and + prefixes to indicate negation and enablement of the feature gate
-func setUserFeatureFlags(featureGates []string) error {
+func setFeatureFlags(featureGates []string) error {
 	for _, fg := range featureGates {
 		val := true
 		switch fg[0] {
