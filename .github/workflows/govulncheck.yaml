@@ -15,9 +15,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache-dependency-path: |
-            go.sum
             **/go.sum
 
       - name: Get official govulncheck
@@ -33,24 +32,31 @@ jobs:
         shell: bash
 
 
-      - name: Run govulncheck with memory optimization
+      # There is no root Go module (the collector is assembled by ocb from
+      # the manifest), so scan each module in the repo, skipping the ones
+      # migrated to the contrib repo. A scan error fails the job rather
+      # than silently reporting a clean result.
+      - name: Run govulncheck across all modules
         timeout-minutes: 30
         run: |
-          govulncheck -format json ./... | tee govulncheck-results.json || {
-            echo "Full scan failed, trying module-by-module scan..."
-            echo '[]' > govulncheck-results.json
-            temp_file=$(mktemp)
-            for module in $(go list -m all | head -100); do
-              echo "Scanning module: $module"
-              if govulncheck -format json "$module" > "$temp_file" 2>/dev/null; then
-                cat "$temp_file" >> govulncheck-results.json
-                echo "" >> govulncheck-results.json
-              else
-                echo "Module $module scan failed"
-              fi
-            done
-            rm -f "$temp_file"
-          }
+          : > govulncheck-results.json
+          failed=0
+          for dir in $(find . -type f -name go.mod -not -path "./build/*" -exec dirname {} \; | sort); do
+            skip=false
+            while IFS= read -r pattern; do
+              case "${dir}" in "./${pattern}"*) skip=true; break;; esac
+            done < migrated-modules.txt
+            if [ "${skip}" = "true" ]; then
+              echo "Skipping migrated module: ${dir}"
+              continue
+            fi
+            echo "Scanning module: ${dir}"
+            if ! (cd "${dir}" && govulncheck -format json ./...) >> govulncheck-results.json; then
+              echo "::error::govulncheck failed for ${dir}"
+              failed=1
+            fi
+          done
+          exit "${failed}"
         shell: bash
 
       - name: Parse govulncheck results

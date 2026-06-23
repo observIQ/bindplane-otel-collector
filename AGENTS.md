@@ -34,7 +34,9 @@ trailer by default; please disable or strip it before committing.
 ## Development Commands
 
 ### Build Commands
-- `make agent` - Build just the collector binary for current OS/architecture
+- `make agent` - Build the collector via the OTel Collector Builder, using `manifests/observIQ/manifest.yaml` as the source of truth for components. Overwrites the ocb-generated `main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` so the managed/standalone runtime is wired in. Requires `builder` (`make install-ocb`; version pinned via `OCB_VERSION` in the Makefile).
+- `make verify-manifest` - CI gate: regenerates sources from the manifest and compiles them. Fails if the manifest references unresolvable modules or has version drift. Cheap to run on every PR.
+- `make agent-clean` - Wipe the ocb-generated `./build/` tree.
 - `make updater` - Build just the updater binary for current OS/architecture
 - `make build-binaries` - Build both collector and updater for current OS/architecture (default target)
 - `make build-all` - Build for all supported platforms (Linux, Darwin, Windows)
@@ -74,10 +76,10 @@ trailer by default; please disable or strip it before committing.
 
 The project is structured as an OpenTelemetry Collector distribution with custom components:
 
-- **cmd/collector** - Main collector entry point that handles both standalone and managed modes
-- **collector/** - Core collector wrapper that manages OTel collector lifecycle
-- **factories/** - Component factory registration for receivers, processors, exporters, extensions, and connectors
-- **opamp/** - OpAMP client implementation for remote management
+- **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make agent` build.
+- **internal/extension/opampconnectionextension/cmd/main/main.go** - Template `main.go` copied over ocb's generated `main.go`; calls into `internal/extension/opampconnectionextension/runtime` for managed/standalone dispatch.
+- **internal/extension/opampconnectionextension/** - The OpAMP connection extension and its full managed-mode runtime cluster (collector lifecycle, OpAMP client, package state, report manager, measurements). Its own Go module; entry point `runtime.Run(Options)`.
+- **internal/processor/snapshotprocessor/** - Bindplane snapshot processor. Its own internal Go module.
 
 ### Component Organization
 
@@ -90,7 +92,7 @@ Custom components are organized by type:
 ### Key Architectural Patterns
 
 1. **Dual Mode Operation**: The collector can run in standalone mode (using local config) or managed mode (via OpAMP)
-2. **Factory Pattern**: All components are registered through factory functions in the factories package
+2. **Manifest-Driven Assembly**: Components are assembled by ocb from `manifests/observIQ/manifest.yaml`, which generates the factory wiring (`components.go`) in `./build/`; there is no hand-maintained factories package
 3. **Module Structure**: Each component is a separate Go module with its own go.mod
 4. **Interface Abstraction**: Core collector functionality is abstracted behind interfaces for testability
 
@@ -104,6 +106,9 @@ Custom components are organized by type:
 ### Build System
 
 The project uses a Makefile-based build system with:
+- **`make agent` runs ocb** against `manifests/observIQ/manifest.yaml`, overlays `internal/extension/opampconnectionextension/cmd/main/main.go`, and compiles. Build flag: `-tags bindplane` (enables Bindplane registry wiring in `topologyprocessor` and `throughputmeasurementprocessor`).
+- `make verify-manifest` is the CI gate for manifest correctness — regenerate sources + compile to `/dev/null`.
+- There's no top-level `go.mod`. ocb generates a per-build `go.mod` inside `./build/`.
 - Multi-platform cross-compilation support
 - Separate binaries for collector and updater
 - Goreleaser for automated releases

@@ -1,7 +1,9 @@
 # All source code and documents, used when checking for misspellings
 ALLDOC := $(shell find . \( -name "*.md" -o -name "*.yaml" \) \
                                 -type f | sort)
-ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
+# Exclude the ocb-generated ./build/ tree — it's a throwaway module, not
+# part of the repo.
+ALL_MODULES := $(shell find . -type f -name "go.mod" -not -path "./build/*" -exec dirname {} \; | sort )
 ALL_MDATAGEN_MODULES := $(shell find . -type f -name "metadata.yaml" -exec dirname {} \; | sort )
 
 # All source code files
@@ -19,9 +21,6 @@ TOOLS_MOD_DIR := ./internal/tools
 # Keep in sync with the components filter in .github/workflows/checks.yml.
 MIGRATED_MODULE_PATTERNS := $(shell cat migrated-modules.txt)
 
-# Generate gosec -exclude-dir flags from migrated module patterns
-GOSEC_MIGRATED_EXCLUDES := $(foreach pat,$(MIGRATED_MODULE_PATTERNS),-exclude-dir=$(patsubst %/,%,$(pat)))
-
 ifeq ($(GOOS), windows)
 EXT?=.exe
 else
@@ -37,6 +36,29 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHO
 # template appends its own -SNAPSHOT-<sha> suffix, so passing VERSION here would double it.
 SNAPSHOT_TAG := $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
+# Build-info stamps. These get linked into the binary via -ldflags so
+# `collector --version` shows real values instead of "unknown".
+GIT_HASH ?= $(shell git rev-parse HEAD)
+BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# AGENT_LDFLAGS stamps version + git hash + build date into the v1 collector
+# binaries (both consume github.com/observiq/bindplane-otel-contrib/pkg/version).
+AGENT_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+
+# AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
+# 'bindplane' builds with logic used by the v1 OpAMP implementation
+# 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)
+AGENT_BUILD_TAGS = bindplane embed_library
+
+# UPDATER_LDFLAGS stamps the same values into the updater binary.
+UPDATER_LDFLAGS = -s -w \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash=$(GIT_HASH) \
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.date=$(BUILD_DATE)
+
 .PHONY: version
 version:
 	@printf $(VERSION)
@@ -44,15 +66,70 @@ version:
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
 
-# Builds just the agent for current GOOS/GOARCH pair
+# ocb-driven build:
+#   1. Run the OTel collector builder against manifests/observIQ/manifest.yaml
+#      to generate ./build/ (components.go, go.mod, etc).
+#   2. Overwrite the generated main.go with the v1 entry point shipped by
+#      the opampconnectionextension at cmd/main/main.go. That entry point
+#      wires ocb's factories into the managed/standalone runtime via
+#      runtime.Run.
+#   3. go mod tidy + go build inside ./build/.
+#
+# Resolve ocb to the first of:
+#   - the OCB env var
+#   - `builder` on PATH
+#   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
+#
+# Install with: make install-ocb
+OCB_VERSION ?= v0.154.0
+OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
+
+# Installs the ocb builder at the pinned version. The single source of truth
+# for the ocb version — CI workflows call this instead of pinning their own.
+.PHONY: install-ocb
+install-ocb:
+	go install go.opentelemetry.io/collector/cmd/builder@$(OCB_VERSION)
+MANIFEST ?= manifests/observIQ/manifest.yaml
+BUILD_DIR ?= ./build
+AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
+
+# verify-manifest is the CI gate: regenerate sources from the manifest and
+# compile them. Fails on any unresolvable component, missing replace, or
+# version drift between sibling deps. Runs against every PR that touches
+# the manifest or any sub-module.
+.PHONY: verify-manifest
+verify-manifest:
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
+		exit 1; \
+	fi
+	rm -rf $(BUILD_DIR)
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	# Compile with the same build tags as the release build ($(AGENT_BUILD_TAGS))
+	# so the gate exercises exactly what `make agent` ships.
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -o /dev/null .
+
+# Builds the collector for the current GOOS/GOARCH pair using ocb.
 .PHONY: agent
 agent:
-	CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	@if [ ! -x "$(OCB)" ]; then \
+		echo "ocb not found at $(OCB). Install with: make install-ocb"; \
+		exit 1; \
+	fi
+	$(OCB) --config $(MANIFEST) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	# Drop ocb's run/runInteractive helpers — our main.go owns startup.
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -ldflags "$(AGENT_LDFLAGS)" -o ../$(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) .
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; CGO_ENABLED=0 go build -ldflags "$(UPDATER_LDFLAGS)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -60,6 +137,11 @@ build-binaries: agent updater
 
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
+
+# v1 doesn't ship AIX binaries today, so build-all and build-all-non-aix are equivalent.
+# Goreleaser's before-hook uses this target name to handle the release flow.
+.PHONY: build-all-non-aix
+build-all-non-aix: build-all
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
@@ -150,8 +232,10 @@ misspell-fix:
 
 .PHONY: test
 test:
-	@echo "running tests in root"
-	@gotestsum --rerun-fails --packages="./..." -- -race
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running tests in root"; \
+		gotestsum --rerun-fails --packages="./..." -- -race; \
+	fi
 	@set -e; for dir in $(ALL_MODULES); do \
 		if [ "$${dir}" = "." ]; then continue; fi; \
 		SKIP=false; \
@@ -195,16 +279,26 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.26.4"
+	$(MAKE) for-all-modules CMD="go mod tidy -compat=1.26.4"
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=updater \
-	  -exclude-dir=internal/tools \
-	  -exclude-dir=cmd/plugindocgen \
-	  $(GOSEC_MIGRATED_EXCLUDES) \
-	  ./...
+	@set -e; for dir in $(ALL_MODULES); do \
+		case "$${dir}" in \
+			"."|"./updater"|"./internal/tools"|"./cmd/plugindocgen") continue;; \
+		esac; \
+		SKIP=false; \
+		for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+			case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+		done; \
+		if [ "$${SKIP}" = "true" ]; then \
+			echo "skipping migrated module $${dir}"; \
+			continue; \
+		fi; \
+		(cd "$${dir}" && \
+			echo "running gosec in $${dir}" && \
+			gosec ./...) || exit 1; \
+	done
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
 
@@ -375,6 +469,20 @@ agent-linux-arm64:
 agent-linux-ppc64le:
 	GOARCH=ppc64le GOOS=linux $(MAKE) agent
 
+# agent-clean wipes the ocb-generated output trees. The ocb step is
+# platform-agnostic Go-source generation, so subsequent platform builds
+# reuse the generated tree until you clean it.
+.PHONY: agent-clean
+agent-clean:
+	rm -rf $(BUILD_DIR) ./builder
+
+.PHONY: agent-windows-amd64 agent-windows-arm64
+agent-windows-amd64:
+	GOARCH=amd64 GOOS=windows $(MAKE) agent
+agent-windows-arm64:
+	GOARCH=arm64 GOOS=windows $(MAKE) agent
+
+
 build-single:
 	$(MAKE)
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
@@ -385,8 +493,27 @@ release-test-single:
 
 .PHONY: for-all
 for-all:
-	@echo "running $${CMD} in root"
-	@$${CMD}
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running $${CMD} in root"; \
+		$${CMD}; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+	  if [ "$${dir}" = "." ]; then continue; fi; \
+	  SKIP=false; \
+	  for pattern in $(MIGRATED_MODULE_PATTERNS); do \
+	    case "$${dir}" in "./$${pattern}"*) SKIP=true; break;; esac; \
+	  done; \
+	  if [ "$${SKIP}" = "true" ]; then \
+	    echo "skipping migrated module $${dir}"; \
+	    continue; \
+	  fi; \
+	  (cd "$${dir}" && \
+	    echo "running $${CMD} in $${dir}" && \
+	    $${CMD} ); \
+	done
+
+.PHONY: for-all-modules
+for-all-modules:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ "$${dir}" = "." ]; then continue; fi; \
 	  SKIP=false; \

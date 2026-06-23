@@ -44,8 +44,8 @@ jobs:
               - 'Makefile'
             go:
               - '**/*.go'
-              - 'go.mod'
-              - 'go.sum'
+              - '**/go.mod'
+              - '**/go.sum'
             updater:
               - 'updater/**'
 
@@ -84,7 +84,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: internal/extension/opampconnectionextension/go.mod
           cache: false
 
       # link.exe (external linking is forced by -race) writes its go-link temp via
