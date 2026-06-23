@@ -34,6 +34,7 @@ var hardcodedFeatureGates = []string{
 	"filelog.mtimeSortType",
 	"exporter.prometheusremotewritexporter.enableSendingRW2",
 	"connector.spanmetrics.includeCollectorInstanceID",
+	"-exporter.prometheusexporter.DisableAddMetricSuffixes",
 }
 
 // SetFeatureFlags sets hardcoded collector feature flags
@@ -58,7 +59,16 @@ func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 // and skipped.
 func setHardcodedFeatureFlags(logger *zap.Logger) {
 	for _, gate := range hardcodedFeatureGates {
-		if err := featuregate.GlobalRegistry().Set(gate, true); err != nil {
+		val := true
+		switch gate[0] {
+		case '-':
+			gate = gate[1:]
+			val = false
+		case '+':
+			gate = gate[1:]
+		}
+
+		if err := featuregate.GlobalRegistry().Set(gate, val); err != nil {
 			logger.Error("failed to set hardcoded feature gate", zap.String("gate", gate), zap.Error(err))
 		}
 	}
