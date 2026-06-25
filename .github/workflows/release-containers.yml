@@ -18,7 +18,7 @@ on:
 
 jobs:
   release-containers:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     # Uncomment the following when switching to workflow_run trigger,
     # to ensure the job only runs if the release workflow succeeded.
     # if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -30,7 +30,7 @@ jobs:
           echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
@@ -77,9 +77,12 @@ jobs:
       #   env:
       #     COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: ~/.cache/goreleaser
+          key: ${{ runner.os }}-goreleaser-${{ hashFiles('.goreleaser-docker.yml', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-goreleaser-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

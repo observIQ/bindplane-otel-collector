@@ -9,8 +9,8 @@ jobs:
   analyze:
     name: Analyze
     if: github.actor != 'dependabot[bot]'
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
-    timeout-minutes:  360 
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes:  360
     permissions:
       actions: read
       contents: read
@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -31,9 +31,14 @@ jobs:
           go-version-file: internal/extension/opampconnectionextension/go.mod
           cache: false
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
