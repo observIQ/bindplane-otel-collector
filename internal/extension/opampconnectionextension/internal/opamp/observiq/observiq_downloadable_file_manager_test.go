@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/open-telemetry/opamp-go/protobufs"
@@ -318,6 +319,37 @@ func TestDownloadAndVerifyInvalidURL(t *testing.T) {
 	downloadableFileManager := newDownloadableFileManager(zap.NewNop(), tmpDir)
 	err := downloadableFileManager.FetchAndExtractArchive(file)
 	require.ErrorContains(t, err, "failed to determine archive download path:")
+}
+
+func TestSanitizeArchivePath(t *testing.T) {
+	dir := filepath.Join(string(filepath.Separator), "tmp", "dest")
+
+	tests := []struct {
+		name      string
+		file      string
+		wantTaint bool
+	}{
+		// A sibling dir sharing the prefix escapes the
+		// extraction dir but passes the HasPrefix check. "/tmp/dest" + this
+		// resolves to "/tmp/dest-other/payload", which starts with "/tmp/dest".
+		{name: "sibling prefix escape", file: filepath.Join("..", "dest-other", "payload"), wantTaint: true},
+		{name: "parent traversal", file: filepath.Join("..", "..", "etc", "passwd"), wantTaint: true},
+		{name: "normal file", file: filepath.Join("sub", "config.yaml"), wantTaint: false},
+		{name: "root entry", file: ".", wantTaint: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sanitizeArchivePath(dir, tt.file)
+			if tt.wantTaint {
+				require.Error(t, err, "expected %q to be rejected as tainted", tt.file)
+				return
+			}
+			require.NoError(t, err)
+			assert.True(t, got == dir || strings.HasPrefix(got, dir+string(filepath.Separator)),
+				"resolved path %q escaped extraction dir %q", got, dir)
+		})
+	}
 }
 
 func TestCleanupArtifacts(t *testing.T) {
