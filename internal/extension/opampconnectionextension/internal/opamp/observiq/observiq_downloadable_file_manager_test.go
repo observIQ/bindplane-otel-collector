@@ -329,10 +329,10 @@ func TestSanitizeArchivePath(t *testing.T) {
 		file      string
 		wantTaint bool
 	}{
-		// The vulnerability: a sibling dir sharing the prefix escapes the
+		// A sibling dir sharing the prefix escapes the
 		// extraction dir but passes the HasPrefix check. "/tmp/dest" + this
-		// resolves to "/tmp/dest-evil/payload", which starts with "/tmp/dest".
-		{name: "sibling prefix escape", file: filepath.Join("..", "dest-evil", "payload"), wantTaint: true},
+		// resolves to "/tmp/dest-other/payload", which starts with "/tmp/dest".
+		{name: "sibling prefix escape", file: filepath.Join("..", "dest-other", "payload"), wantTaint: true},
 		{name: "parent traversal", file: filepath.Join("..", "..", "etc", "passwd"), wantTaint: true},
 		{name: "normal file", file: filepath.Join("sub", "config.yaml"), wantTaint: false},
 		{name: "root entry", file: ".", wantTaint: false},
