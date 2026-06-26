@@ -312,7 +312,8 @@ func extractZip(archivePath, extractPath string) error {
 
 func sanitizeArchivePath(dir, file string) (string, error) {
 	s := filepath.Join(dir, file)
-	if strings.HasPrefix(s, filepath.Clean(dir)) {
+	cleanDir := filepath.Clean(dir)
+	if s == cleanDir || strings.HasPrefix(s, cleanDir+string(filepath.Separator)) {
 		return s, nil
 	}
 	return "", fmt.Errorf("content filepath is tainted: %q", file)
