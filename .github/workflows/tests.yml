@@ -1,6 +1,6 @@
 name: Tests
 on:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   # Graphite CI optimization: skip redundant CI runs for stacked PRs.

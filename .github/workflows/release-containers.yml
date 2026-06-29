@@ -1,20 +1,6 @@
 name: release-containers
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Collector Version"
-        required: true
-        default: "v0.0.1"
-  # Uncomment the following to automatically trigger this workflow after
-  # the release workflow completes successfully on a version tag push.
-  # When enabled, remove the manual version input above and replace
-  # references to ${{ github.event.inputs.version }} with ${{ github.ref_name }},
-  # since the triggering tag will be available directly on the context.
-  #
-  # workflow_run:
-  #   workflows: ["release"]
-  #   types: [completed]
 
 jobs:
   release-containers:

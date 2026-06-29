@@ -1,19 +1,6 @@
 name: manual_msi_build
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Collector Version"
-        required: true
-        default: "v0.0.1"
-      build_amd64:
-        description: "Build amd64 MSI"
-        type: boolean
-        default: true
-      build_arm64:
-        description: "Build arm64 MSI"
-        type: boolean
-        default: true
 
 jobs:
   setup:

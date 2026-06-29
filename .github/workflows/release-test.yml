@@ -1,11 +1,6 @@
 name: Release Test
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Collector Version"
-        required: true
-        default: "v0.0.1"
 
 jobs:
   build-msi:

@@ -1,11 +1,6 @@
 name: release-containers-test
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Collector Version"
-        required: true
-        default: "v0.0.1"
 
 jobs:
   release-containers-test:

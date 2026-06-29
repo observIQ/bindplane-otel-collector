@@ -1,0 +1,46 @@
+name: dt-build
+
+on:
+  push:
+  pull_request:
+
+env:
+  GOPRIVATE: github.com/Dynatrace/dt-protocols-go,github.com/Dynatrace/dt-otelcol-edge-processing-components
+  GONOSUMCHECK: github.com/Dynatrace/dt-protocols-go,github.com/Dynatrace/dt-otelcol-edge-processing-components
+  OCB_VERSION: v0.154.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: Dynatrace
+          repositories: dt-protocols-go,dt-otelcol-edge-processing-components
+
+      - name: Configure git for private Go modules
+        run: |
+          git config --global \
+            url."https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/Dynatrace/".insteadOf \
+            "https://github.com/Dynatrace/"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: internal/extension/opampconnectionextension/go.mod
+
+      - name: Verify private module access
+        run: |
+          go list -m -json github.com/Dynatrace/dt-protocols-go@latest
+          go list -m -json github.com/Dynatrace/dt-otelcol-edge-processing-components/receiver/dtedgeprocessingreceiver@latest
+
+      - name: Install OCB
+        run: go install go.opentelemetry.io/collector/cmd/builder@${{ env.OCB_VERSION }}
+
+      - name: Build collector
+        run: make agent

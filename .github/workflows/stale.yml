@@ -1,9 +1,6 @@
 name: 'Close stale PRs'
 on:
-  schedule:
-    # Runs at 1:30 AM UTC every day
-    - cron: '30 1 * * *'
-  workflow_dispatch: # For manual testing
+  workflow_dispatch:
 
 permissions:
   actions: write

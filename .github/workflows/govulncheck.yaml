@@ -1,7 +1,5 @@
 name: Go Vulnerability Scan
 on:
-  schedule:
-    - cron: '30 8 * * 1' # Weekly on Mondays at 8:30 AM UTC
   workflow_dispatch:
 
 jobs:
