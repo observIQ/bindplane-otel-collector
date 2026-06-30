@@ -32,6 +32,7 @@ extensions:
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.8.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/extension/postureextension v1.9.0
   # Bindplane OpAMP connection extension. Internal module under
   # internal/extension/opampconnectionextension/, kept internal because the
   # whole runtime cluster (collector lifecycle, OpAMP client, packagestate,
@@ -117,6 +118,7 @@ processors:
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/metricextractprocessor v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/metricstatsprocessor v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor v1.8.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/processor/postureprocessor v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/randomfailureprocessor v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.8.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.8.0
@@ -246,6 +248,13 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
   - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
   - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
+  # Selective persistent queuing (posture) components. Unreleased — not yet in a
+  # tagged bindplane-otel-contrib version, so point ocb at a local contrib checkout
+  # sibling to this repo. Drop these once contrib v1.9.0 is published and bump the
+  # gomod pins above. (Branch: danjordan/selective-queuing in both repos.)
+  - github.com/observiq/bindplane-otel-contrib/extension/postureextension => ../../bindplane-otel-contrib/extension/postureextension
+  - github.com/observiq/bindplane-otel-contrib/processor/postureprocessor => ../../bindplane-otel-contrib/processor/postureprocessor
+  - github.com/observiq/bindplane-otel-contrib/internal/posture => ../../bindplane-otel-contrib/internal/posture
   # Pinning replaces preserved from the legacy top-level go.mod.
   # These are not local-dev replaces — they're version pins / fork redirects
   # that must persist in release builds too.
