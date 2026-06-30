@@ -90,7 +90,7 @@ jobs:
 
   release:
     needs: [build-msi]
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     steps:
       - name: Redirect temp directories
         run: |
@@ -99,7 +99,7 @@ jobs:
           echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
         with:
           # For goreleaser
           fetch-depth: 0
@@ -114,11 +114,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
-          cache: false # Use Namespace caching instead
+          cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Install ocb
         run: make install-ocb
       - name: Retrieve Windows AMD64 MSI Installer
@@ -137,9 +142,12 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: ~/.cache/goreleaser
+          key: ${{ runner.os }}-goreleaser-${{ hashFiles('.goreleaser.yml', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-goreleaser-
       - name: Sign AMD64 MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi.sig ./observiq-otel-collector.msi
         shell: bash

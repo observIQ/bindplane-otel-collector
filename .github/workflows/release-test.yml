@@ -83,18 +83,18 @@ jobs:
           smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
       - name: Upload MSI
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.msi_name }}
           path: C:/build/${{ matrix.msi_name }}
           retention-days: 1
 
   release-test:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     needs: [build-msi]
     steps:
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -102,21 +102,26 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
-          cache: false # Use Namespace caching instead
+          cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Install ocb
         run: make install-ocb
 
       - name: Retrieve Windows AMD64 MSI Installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: observiq-otel-collector.msi
 
       - name: Retrieve Windows ARM64 MSI Installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: observiq-otel-collector-arm64.msi
 
@@ -144,9 +149,12 @@ jobs:
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
       - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: ~/.cache/goreleaser
+          key: ${{ runner.os }}-goreleaser-${{ hashFiles('.goreleaser.yml', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-goreleaser-
 
       - name: Write signing key for nFPM
         shell: bash
@@ -198,7 +206,7 @@ jobs:
           du -sh artifacts
 
       - name: Upload build artifacts
-        uses: namespace-actions/upload-artifact@v1
+        uses: actions/upload-artifact@v7
         with:
           name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
           path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
