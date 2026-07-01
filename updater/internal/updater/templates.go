@@ -23,7 +23,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=5
 [Service]
 Type=simple
-User=root
+User={{.User}}
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
