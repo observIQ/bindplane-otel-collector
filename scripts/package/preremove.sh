@@ -60,6 +60,12 @@ if is_uninstall "$1"; then
         echo "Reloading systemd daemon"
         systemctl daemon-reload || true
     fi
+    # Remove sudoers drop-in on uninstall
+    sudoers_file="/etc/sudoers.d/observiq-otel-collector"
+    if [ -f "$sudoers_file" ]; then
+        echo "Removing sudoers drop-in: $sudoers_file"
+        rm -f "$sudoers_file"
+    fi
 else
     echo "Upgrade detected, skipping service stop and disable"
 fi
