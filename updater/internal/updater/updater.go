@@ -157,14 +157,9 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
-	// Get the install directory from path package. This will default
-	// to /opt/observiq-otel-collector unless BDOT_CONFIG_HOME is set
-	// in a package config file such as /etc/default/observiq-otel-collector
-	// or /etc/sysconfig/observiq-otel-collector.
-	installDir, err := path.InstallDir(u.logger, path.DefaultConfigOverrides)
-	if err != nil {
-		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
-	}
+	// Use the updater's install directory directly. This was already resolved
+	// from the config override files when the updater was created.
+	installDir := u.installDir
 
 	// Read storage and log directories from the existing systemd unit file,
 	// falling back to defaults relative to the install directory.
