@@ -81,7 +81,7 @@ version:
 #   - $(GOBIN)/builder (else $$HOME/go/bin/builder)
 #
 # Install with: make install-ocb
-OCB_VERSION ?= v0.154.0
+OCB_VERSION ?= v0.155.0
 OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/go/bin}/builder)
 
 # Installs the ocb builder at the pinned version. The single source of truth
