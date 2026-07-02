@@ -3,6 +3,9 @@ dist:
   name: bindplane-distro
   description: Bindplane's minimal distro for the OpenTelemetry Collector
   output_path: ./dist
+  # Embed the IANA tz database so time.LoadLocation (OTTL Time(), etc.) resolves
+  # named zones on any platform, incl. scratch/Windows/AIX with no system tzdata.
+  build_tags: timetzdata
 conf_resolver:
   default_uri_scheme: "env"
 extensions:

@@ -7,7 +7,9 @@ dist:
   version: "v2.0.1-beta.5"
   output_path: ./builder
   # embed_library enables the telemetrygeneratorreceiver blitz embed integration (PIPE-1017)
-  build_tags: embed_library
+  # timetzdata embeds the IANA tz database so time.LoadLocation resolves named
+  # zones on any platform, incl. scratch/Windows/AIX with no system tzdata.
+  build_tags: embed_library,timetzdata
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
