@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
-  version: "v2.0.1-beta.5"
+  version: "v2.0.1-beta.6"
   output_path: ./builder
   # embed_library enables the telemetrygeneratorreceiver blitz embed integration (PIPE-1017)
   # timetzdata embeds the IANA tz database so time.LoadLocation resolves named
