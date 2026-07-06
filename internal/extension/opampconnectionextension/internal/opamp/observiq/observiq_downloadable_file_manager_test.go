@@ -334,6 +334,7 @@ func TestSanitizeArchivePath(t *testing.T) {
 		// resolves to "/tmp/dest-other/payload", which starts with "/tmp/dest".
 		{name: "sibling prefix escape", file: filepath.Join("..", "dest-other", "payload"), wantTaint: true},
 		{name: "parent traversal", file: filepath.Join("..", "..", "etc", "passwd"), wantTaint: true},
+		{name: "embedded dotdot element", file: filepath.Join("sub", "..", "..", "escape"), wantTaint: true},
 		{name: "normal file", file: filepath.Join("sub", "config.yaml"), wantTaint: false},
 		{name: "root entry", file: ".", wantTaint: false},
 	}

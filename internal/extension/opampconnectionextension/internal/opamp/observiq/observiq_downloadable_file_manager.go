@@ -311,6 +311,14 @@ func extractZip(archivePath, extractPath string) error {
 }
 
 func sanitizeArchivePath(dir, file string) (string, error) {
+	// Reject any entry containing a ".." traversal element before it is used
+	// to build a filesystem path. The prefix check below is sufficient on its
+	// own, but this explicit check is the Zip Slip barrier that static
+	// analyzers (e.g. CodeQL's go/zipslip) recognize.
+	if strings.Contains(file, "..") {
+		return "", fmt.Errorf("content filepath is tainted: %q", file)
+	}
+
 	s := filepath.Join(dir, file)
 	cleanDir := filepath.Clean(dir)
 	if s == cleanDir || strings.HasPrefix(s, cleanDir+string(filepath.Separator)) {
