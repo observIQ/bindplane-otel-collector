@@ -387,8 +387,8 @@ github.com/observiq/bindplane-otel-contrib/pkg/version v1.9.0 h1:wezRBBuiuPuWlbG
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.9.0/go.mod h1:l5AwNYygRd8OK6LCD6XPA0bjYkDe9zi1oeFtoJ7zMKc=
 github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.9.0 h1:GgqR2F2ANneWEu7rTOeJs/cQEVmnlZF5VxoRDuPGv2g=
 github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.9.0/go.mod h1:CzZjeOe0RF+2W6n8aHf0s6OR8aaOLtQ0lkQOHGy3JRs=
-github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e h1:dLJ1ED6FH9jnCDDaVxTQuSX9gu3cz1HVjNHbTXZtghE=
-github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260422143330-2a6ebda5c14e/go.mod h1:UnhYNTPJgpwIb+iOmcrExD2j4nj1EMaF6rmGf/mu+QI=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260701212116-67bea8600013 h1:ZxE/z770VhLfTErvtZW1sdOM7Uxzy25ZgVyd0AoF8oA=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260701212116-67bea8600013/go.mod h1:1DFUJuGWhWhE4ABx+is/l7ZEzHxTfFhkrV00ZMfxBjI=
 github.com/oklog/ulid/v2 v2.1.1 h1:suPZ4ARWLOJLegGFiZZ1dFAkqzhMjL3J1TzI+5wHz8s=
 github.com/oklog/ulid/v2 v2.1.1/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/open-telemetry/opamp-go v0.23.0 h1:k7h7w/muprut9/DAhUC4anX4v7hIdgO02gIsSjV4uq0=
