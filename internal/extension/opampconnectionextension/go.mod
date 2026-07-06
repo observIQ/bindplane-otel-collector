@@ -6,11 +6,11 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.102.1
-	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.8.0
-	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.8.0
-	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.8.0
-	github.com/observiq/bindplane-otel-contrib/pkg/version v1.8.0
-	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.8.0
+	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.9.0
+	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.9.0
+	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.9.0
+	github.com/observiq/bindplane-otel-contrib/pkg/version v1.9.0
+	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.9.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.155.0
@@ -132,7 +132,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.8.0 // indirect
+	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.9.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.155.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.155.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.155.0 // indirect
