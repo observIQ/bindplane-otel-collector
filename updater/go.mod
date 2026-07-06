@@ -15,7 +15,7 @@ require gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.102.1
+	github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.103.0
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

@@ -36,7 +36,7 @@ extensions:
   # internal/extension/opampconnectionextension/, kept internal because the
   # whole runtime cluster (collector lifecycle, OpAMP client, packagestate,
   # report manager, etc.) ships in the same module. Local replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.102.0
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.103.0
 
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.155.0
@@ -126,7 +126,7 @@ processors:
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.9.0
   # Bindplane snapshot processor — its own internal go.mod, local replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.102.0
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.103.0
 
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.155.0

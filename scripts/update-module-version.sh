@@ -43,6 +43,12 @@ for local_mod in $LOCAL_MODULES; do
         echo "Skipping migrated module $local_mod"
         continue
     fi
+    # Skip gitignored modules (e.g. the generated ./build and ./builder trees);
+    # they are local artifacts, not source, and must not be rewritten here.
+    if git check-ignore -q "$local_mod" 2>/dev/null; then
+        echo "Skipping gitignored module $local_mod"
+        continue
+    fi
     # Run in a subshell so that the CD doesn't change this shell's current directory
     (
         echo "Updating version in $local_mod"
