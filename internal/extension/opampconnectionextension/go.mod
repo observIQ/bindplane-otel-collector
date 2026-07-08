@@ -266,4 +266,6 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windo
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260701212116-67bea8600013
 
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.0.0-20260708173836-48836fd1d949
+
 replace github.com/observiq/bindplane-otel-collector/internal/report => ../../../internal/report

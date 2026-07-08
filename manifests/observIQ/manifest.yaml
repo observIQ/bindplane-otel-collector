@@ -258,3 +258,7 @@ replaces:
   # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.103.0
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260701212116-67bea8600013
   - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260701212116-67bea8600013
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.103.0
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49566
+  # this can be removed once the above PR is merged and released. Expected to be in OTel v0.157.0
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.0.0-20260708173836-48836fd1d949
