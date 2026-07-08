@@ -27,6 +27,7 @@ User=root
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
+Environment=BINDPLANE_COLLECTOR_HOME={{.InstallDir}}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
@@ -112,6 +113,7 @@ PIDFILE=/var/run/"$BINARY".pid
 
 # Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+export BINDPLANE_COLLECTOR_HOME=/opt/observiq-otel-collector
 export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 
 RETVAL=0

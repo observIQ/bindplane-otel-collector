@@ -70,6 +70,7 @@ PIDFILE=/var/run/"$BINARY".pid
 
 # Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+export BINDPLANE_COLLECTOR_HOME=/opt/observiq-otel-collector
 export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 
 RETVAL=0

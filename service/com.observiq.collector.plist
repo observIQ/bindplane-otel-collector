@@ -8,6 +8,8 @@
     <dict>
         <key>OIQ_OTEL_COLLECTOR_HOME</key>
         <string>[INSTALLDIR]</string>
+        <key>BINDPLANE_COLLECTOR_HOME</key>
+        <string>[INSTALLDIR]</string>
         <key>OIQ_OTEL_COLLECTOR_STORAGE</key>
         <string>[INSTALLDIR]storage</string>
     </dict>

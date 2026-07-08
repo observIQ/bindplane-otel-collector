@@ -40,6 +40,7 @@ COPY --from=stage --chown=otel:otel /etc/otel/storage /etc/otel/storage
 COPY observiq-otel-collector /collector/observiq-otel-collector
 
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
+ENV BINDPLANE_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
 
 USER otel
