@@ -83,6 +83,25 @@ func TestCheckManagerConfigNoFile(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
+func TestCheckManagerConfigNoFileSecretKeyNotWrittenPlaintext(t *testing.T) {
+	t.Setenv(endpointENV, "0.0.0.0")
+	t.Setenv(secretKeyENV, "supersecret")
+
+	tmpdir := t.TempDir()
+	manager := filepath.Join(tmpdir, "manager.yaml")
+	err := bootstrapManagerConfig(&manager)
+	require.NoError(t, err)
+
+	raw, err := os.ReadFile(manager)
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "supersecret")
+	require.Contains(t, string(raw), "${env:OPAMP_SECRET_KEY}")
+
+	actual, err := opamp.ParseConfig(manager)
+	require.NoError(t, err)
+	require.Equal(t, "supersecret", *actual.SecretKey)
+}
+
 func TestCheckManagerConfigNoFileTLS(t *testing.T) {
 	testCases := []struct {
 		name        string
