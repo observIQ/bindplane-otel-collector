@@ -74,7 +74,8 @@ func bootstrapManagerConfig(configPath *string) error {
 			newConfig.AgentID = opamp.AgentIDFromUUID(u)
 		}
 
-		if sk, ok := os.LookupEnv(secretKeyENV); ok {
+		if _, ok := os.LookupEnv(secretKeyENV); ok {
+			sk := fmt.Sprintf("${env:%s}", secretKeyENV)
 			newConfig.SecretKey = &sk
 		}
 		if an, ok := os.LookupEnv(agentNameENV); ok {
