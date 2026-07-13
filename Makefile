@@ -13,6 +13,11 @@ OUTDIR=./dist
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
+# Private Dynatrace modules (e.g. dt-otelcol-edge-processing-components) are
+# not on the public module proxy or checksum database; fetch them directly
+# from git. Requires git credentials with read access to the Dynatrace org.
+export GOPRIVATE ?= github.com/Dynatrace/*
+
 INTEGRATION_TEST_ARGS?=-tags integration
 
 TOOLS_MOD_DIR := ./internal/tools

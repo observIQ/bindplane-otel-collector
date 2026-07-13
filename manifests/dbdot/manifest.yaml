@@ -223,6 +223,10 @@ receivers:
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/splunksearchapireceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.9.0
+  # This project doesn't have a tagged release of this module yet. Will need to generate a ref until tags are ready.
+  # Need `GOPRIVATE=github.com/Dynatrace/*` set in order to access this component.
+  # The current ref points to the last commit that imported OTel v0.155.0/v1.61.0 in order to be compatible with the other components.
+  - gomod: github.com/Dynatrace/dt-otelcol-edge-processing-components/receiver/dtedgeprocessingreceiver v0.0.0-20260629111846-213089236f57
 
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.155.0
