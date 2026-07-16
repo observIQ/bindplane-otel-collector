@@ -35,7 +35,6 @@ jobs:
       gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       manifest: ${{ steps.filter.outputs.manifest == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
-      components: ${{ steps.filter.outputs.components }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v7
@@ -381,23 +380,3 @@ jobs:
         uses: actions/checkout@v7
       - name: Check Dependabot
         run: make check-dependabot
-
-  check-component-changes:
-    if: ${{ needs.optimize_ci.outputs.skip != 'true' && needs.detect-changes.outputs.components == 'true' }}
-    runs-on: ubuntu-latest-8-cores
-    needs:
-      - optimize_ci
-      - detect-changes
-    steps:
-      - name: Fail on component changes
-        run: |
-          echo "::error::Changes detected in component directories that have been migrated to the bindplane-otel-contrib repository."
-          echo "The following directories must not be modified in this repository:"
-          echo "  receiver/, processor/, exporter/, extension/,"
-          echo "  counter/, expr/, version/, "
-          echo "  internal/aws/, internal/azureblob/, internal/blobconsume/,"
-          echo "  internal/exporterutils/, internal/measurements/, internal/osinfo/,"
-          echo "  internal/report/snapshot/, internal/storageclient/, internal/testutils/"
-          echo ""
-          echo "Please make these changes in https://github.com/observIQ/bindplane-otel-contrib instead."
-          exit 1
