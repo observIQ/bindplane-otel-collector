@@ -42,14 +42,6 @@ jobs:
           : > govulncheck-results.json
           failed=0
           for dir in $(find . -type f -name go.mod -not -path "./build/*" -exec dirname {} \; | sort); do
-            skip=false
-            while IFS= read -r pattern; do
-              case "${dir}" in "./${pattern}"*) skip=true; break;; esac
-            done < migrated-modules.txt
-            if [ "${skip}" = "true" ]; then
-              echo "Skipping migrated module: ${dir}"
-              continue
-            fi
             echo "Scanning module: ${dir}"
             if ! (cd "${dir}" && govulncheck -format json ./...) >> govulncheck-results.json; then
               echo "::error::govulncheck failed for ${dir}"

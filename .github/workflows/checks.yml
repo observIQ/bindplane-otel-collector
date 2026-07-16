@@ -44,7 +44,6 @@ jobs:
         id: filter
         with:
           # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
-          # Components list should be based on source of truth 'migrated-modules.txt' in root of repo
           filters: |
             checks:
               - '.github/workflows/checks.yml'
@@ -75,23 +74,6 @@ jobs:
               - '**/go.sum'
               - 'Makefile'
               - 'internal/extension/opampconnectionextension/cmd/main/**'
-            components:
-              - 'receiver/**'
-              - 'processor/**'
-              - 'exporter/**'
-              - 'extension/**'
-              - 'counter/**'
-              - 'expr/**'
-              - 'version/**'
-              - 'internal/aws/**'
-              - 'internal/azureblob/**'
-              - 'internal/blobconsume/**'
-              - 'internal/exporterutils/**'
-              - 'internal/measurements/**'
-              - 'internal/osinfo/**'
-              - 'internal/report/snapshot/**'
-              - 'internal/storageclient/**'
-              - 'internal/testutils/**'
 
   setup-tools:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' }}
