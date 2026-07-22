@@ -94,7 +94,7 @@ parameters:
   - name: offset_storage_dir
     description: The directory that the offset storage file will be created
     type: string
-    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+    default: ${env:BINDPLANE_COLLECTOR_STORAGE}
   - name: save_log_record_original
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
