@@ -6,11 +6,9 @@
     <string>com.observiq.collector</string>
     <key>EnvironmentVariables</key>
     <dict>
-        <key>OIQ_OTEL_COLLECTOR_HOME</key>
-        <string>[INSTALLDIR]</string>
         <key>BINDPLANE_COLLECTOR_HOME</key>
         <string>[INSTALLDIR]</string>
-        <key>OIQ_OTEL_COLLECTOR_STORAGE</key>
+        <key>BINDPLANE_COLLECTOR_STORAGE</key>
         <string>[INSTALLDIR]storage</string>
     </dict>
     <key>ProgramArguments</key>

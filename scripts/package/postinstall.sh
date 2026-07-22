@@ -101,9 +101,8 @@ Type=simple
 User=root
 Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=BINDPLANE_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
-Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+Environment=BINDPLANE_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 WorkingDirectory=${BDOT_CONFIG_HOME}
 ExecStart=${BDOT_CONFIG_HOME}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -222,9 +221,8 @@ LOCKFILE=/var/lock/"\$BINARY"
 PIDFILE=/var/run/"\$BINARY".pid
 
 # Exported variables are used by the collector process.
-export OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 export BINDPLANE_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
-export OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+export BINDPLANE_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 
 RETVAL=0
 start() {
@@ -359,7 +357,7 @@ otel_status() {
   echo
 }
 
-cd "\$OIQ_OTEL_COLLECTOR_HOME" || exit 1
+cd "\$BINDPLANE_COLLECTOR_HOME" || exit 1
 case "\$1" in
   # Start the service
   start)
