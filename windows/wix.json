@@ -49,16 +49,8 @@
   ],
   "environments": [
     {
-      "name": "OIQ_OTEL_COLLECTOR_STORAGE",
+      "name": "BINDPLANE_COLLECTOR_STORAGE",
       "value": "[INSTALLDIR]storage",
-      "permanent": "no",
-      "system": "yes",
-      "action": "set",
-      "part": "all"
-    },
-    {
-      "name": "OIQ_OTEL_COLLECTOR_HOME",
-      "value": "[INSTALLDIR]",
       "permanent": "no",
       "system": "yes",
       "action": "set",

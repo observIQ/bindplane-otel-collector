@@ -26,9 +26,8 @@ Type=simple
 User=root
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
 Environment=BINDPLANE_COLLECTOR_HOME={{.InstallDir}}
-Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
+Environment=BINDPLANE_COLLECTOR_STORAGE={{.InstallDir}}/storage
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -112,9 +111,8 @@ LOCKFILE=/var/lock/"$BINARY"
 PIDFILE=/var/run/"$BINARY".pid
 
 # Exported variables are used by the collector process.
-export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 export BINDPLANE_COLLECTOR_HOME=/opt/observiq-otel-collector
-export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
+export BINDPLANE_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 
 RETVAL=0
 start() {
@@ -249,7 +247,7 @@ otel_status() {
   echo
 }
 
-cd "$OIQ_OTEL_COLLECTOR_HOME" || exit 1
+cd "$BINDPLANE_COLLECTOR_HOME" || exit 1
 case "$1" in
   # Start the service
   start)
