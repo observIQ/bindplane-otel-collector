@@ -20,7 +20,10 @@ package service
 import (
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"strconv"
+	"syscall"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"
@@ -54,6 +57,46 @@ func TestLinuxSystemdServiceInstall(t *testing.T) {
 
 		//Make sure the service is no longer listed
 		requireSystemdServiceLoadedStatus(t, false)
+	})
+
+	t.Run("Test systemd install sets root:group 0640 ownership", func(t *testing.T) {
+		if os.Geteuid() != 0 {
+			t.Skip("requires root to chown to uid 0")
+		}
+
+		installedServicePath := "/usr/lib/systemd/system/linux-service.service"
+		uninstallSystemdService(t, installedServicePath, "linux-service")
+
+		l := &linuxSystemdService{
+			newServiceFilePath:       filepath.Join("testdata", "linux-service.service"),
+			serviceName:              "linux-service",
+			installedServiceFilePath: installedServicePath,
+			logger:                   zaptest.NewLogger(t),
+		}
+
+		err := l.install()
+		require.NoError(t, err)
+		require.FileExists(t, installedServicePath)
+
+		// The group comes from the Group= directive in testdata/linux-service.service.
+		group, err := collectorGroupFromServiceFile(l.newServiceFilePath)
+		require.NoError(t, err)
+		g, err := user.LookupGroup(group)
+		require.NoError(t, err)
+		wantGid, err := strconv.Atoi(g.Gid)
+		require.NoError(t, err)
+
+		info, err := os.Stat(installedServicePath)
+		require.NoError(t, err)
+		require.Equal(t, os.FileMode(0640), info.Mode().Perm(), "unit file mode should be 0640")
+
+		stat, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok, "expected *syscall.Stat_t")
+		require.Equal(t, uint32(0), stat.Uid, "unit file should be owned by root")
+		require.Equal(t, uint32(wantGid), stat.Gid, "unit file group should match Group= directive")
+
+		require.NoError(t, l.uninstall())
+		require.NoFileExists(t, installedServicePath)
 	})
 
 	t.Run("Test systemd stop + start", func(t *testing.T) {

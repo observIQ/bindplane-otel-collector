@@ -116,7 +116,9 @@ KillMode=process
 WantedBy=multi-user.target
 EOF
 
-  chown root:root "$config_file"
+  # Own the unit file by root:<runtime group> so the collector's runtime user
+  # (a member of BDOT_GROUP) can read it. Mode stays 0640 (group-readable only).
+  chown "root:${BDOT_GROUP}" "$config_file"
   chmod 0640 "$config_file"
 
   # Ensure the override dir exists.

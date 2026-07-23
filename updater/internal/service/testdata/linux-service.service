@@ -4,6 +4,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
+Group=root
 ExecStart=sleep 1000
 SuccessExitStatus=0
 [Install]

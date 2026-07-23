@@ -22,7 +22,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/updater/internal/file"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"
@@ -150,6 +153,56 @@ func (l linuxSystemdService) install() error {
 		return fmt.Errorf("enabling unit file failed: %w", err)
 	}
 
+	// Own the installed unit file root:<collector group> with 0640 so a non-root
+	// runtime user (member of the collector group) can read it. The group comes
+	// from the Group= directive in the service file we just installed.
+	group, err := collectorGroupFromServiceFile(l.newServiceFilePath)
+	if err != nil {
+		return fmt.Errorf("determine collector group: %w", err)
+	}
+	if err := setSystemdUnitOwnership(l.installedServiceFilePath, group); err != nil {
+		return fmt.Errorf("set unit file ownership: %w", err)
+	}
+
+	return nil
+}
+
+// collectorGroupFromServiceFile extracts the "Group=" value from a systemd unit
+// file. Returns an error if the directive is absent.
+func collectorGroupFromServiceFile(path string) (string, error) {
+	// #nosec G304 -- path is an internal service file path, not user input
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read service file: %w", err)
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Group=") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "Group=")), nil
+		}
+	}
+	return "", fmt.Errorf("Group= not found in %s", path)
+}
+
+// setSystemdUnitOwnership sets the installed unit file to root:<group> with mode
+// 0640 so the collector's runtime user (a member of <group>) can read it.
+func setSystemdUnitOwnership(installedPath, group string) error {
+	g, err := user.LookupGroup(group)
+	if err != nil {
+		return fmt.Errorf("lookup group %q: %w", group, err)
+	}
+	gid, err := strconv.Atoi(g.Gid)
+	if err != nil {
+		return fmt.Errorf("parse gid %q for group %q: %w", g.Gid, group, err)
+	}
+	if err := os.Chown(installedPath, 0, gid); err != nil {
+		return fmt.Errorf("chown %s to root:%s: %w", installedPath, group, err)
+	}
+	// #nosec G302 -- 0640 is intentional: group read is what lets the non-root
+	// runtime user (a member of the collector group) read the unit file.
+	if err := os.Chmod(installedPath, 0640); err != nil {
+		return fmt.Errorf("chmod %s to 0640: %w", installedPath, err)
+	}
 	return nil
 }
 
