@@ -19,10 +19,8 @@ jobs:
           cache-dependency-path: |
             **/go.sum
 
-      - name: Get official govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-        shell: bash
-
+      - name: Install tools (govulncheck)
+        run: make install-tools
 
       - name: Configure memory limits
         run: |

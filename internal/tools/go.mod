@@ -11,6 +11,7 @@ require (
 	github.com/vektra/mockery/v2 v2.53.0
 	go.opentelemetry.io/collector/cmd/mdatagen v0.156.0
 	golang.org/x/tools v0.48.0
+	golang.org/x/vuln v1.6.0
 	gotest.tools/gotestsum v1.12.3
 )
 
