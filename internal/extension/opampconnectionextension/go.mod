@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.104.0
+	github.com/observiq/bindplane-otel-collector/internal/report v1.105.0
 	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.10.0
 	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.10.0
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.10.0
