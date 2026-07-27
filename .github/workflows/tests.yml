@@ -187,13 +187,41 @@ jobs:
     if: always()
     needs: [optimize_ci, unit-tests]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     steps:
       - name: Check test results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          REPO: ${{ github.repository }}
+          RESULT: ${{ needs.unit-tests.result }}
         run: |
-          if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
+          if [[ "$RESULT" == "success" ]]; then
             echo "All tests passed"
-          elif [[ "${{ needs.unit-tests.result }}" == "skipped" ]]; then
+          elif [[ "$RESULT" == "skipped" ]]; then
             echo "Tests skipped"
+          elif [[ "$RESULT" == "cancelled" ]]; then
+            # A cancelled result is a false failure when the run was superseded by a
+            # newer run (concurrency cancel-in-progress). Pass in that case; fail only
+            # on a manual cancel with no replacement. Mirrors the enterprise ci-status
+            # gate (observIQ/bindplane-op-enterprise#7813) so this stays correct if this
+            # repo ever adopts cancel-in-progress, with no adjustment required.
+            ENCODED_BRANCH=$(printf '%s' "$BRANCH" | jq -sRr @uri)
+            NEWER_COUNT=$(gh api \
+              "repos/${REPO}/actions/workflows/tests.yml/runs?branch=${ENCODED_BRANCH}&per_page=5" \
+              --jq "[.workflow_runs[] | select(.id > ${CURRENT_RUN_ID})] | length" 2>&1)
+            if ! [[ "$NEWER_COUNT" =~ ^[0-9]+$ ]]; then
+              echo "Failed to query GitHub API: $NEWER_COUNT"
+              exit 1
+            fi
+            if [[ "$NEWER_COUNT" -gt 0 ]]; then
+              echo "Run was superseded by a newer run (concurrency cancellation), passing"
+            else
+              echo "Run was manually cancelled with no replacement, failing"
+              exit 1
+            fi
           else
             echo "Tests failed"
             exit 1
