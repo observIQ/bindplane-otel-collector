@@ -276,4 +276,4 @@ All sorts of contributions are **welcome and extremely helpful**. 🙌
 
 ## How can we help?
 
-If you need any additional help feel free to reach out to us at TODO-DBDOT-SUPPORT-EMAIL.
+If you need any additional help feel free to reach out to us at support@bindplane.com.

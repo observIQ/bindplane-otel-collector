@@ -4,6 +4,9 @@ on:
     tags:
       - "v[0-9]*"
 
+permissions:
+  contents: write
+
 jobs:
   build-msi:
     runs-on: windows-2022
@@ -66,8 +69,6 @@ jobs:
       - name: Build MSI
         run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.ref_name }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
-      # TODO(dbdot): the SM_* and DBDOT_DIGICERT_KEYPAIR_ALIAS secrets do not exist yet,
-      # and the DigiCert account itself is being migrated; revisit this signing setup.
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
       - name: Set up certificate
@@ -154,7 +155,7 @@ jobs:
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
         env:
-          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+          COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
         uses: actions/cache@v6
         with:
@@ -166,12 +167,12 @@ jobs:
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-amd64.msi.sig ./dbdot-collector-amd64.msi
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
       - name: Sign ARM64 MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-arm64.msi.sig ./dbdot-collector-arm64.msi
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -186,9 +187,9 @@ jobs:
           args: release --clean --timeout 120m
         env:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
-          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
       - name: Create artifact archive
@@ -209,7 +210,7 @@ jobs:
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./dbdot-collector-${{ github.ref_name }}-artifacts.tar.gz
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
       - name: Upload Latest Install Scripts
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://dbdot-release/latest/install_unix.sh
@@ -219,14 +220,16 @@ jobs:
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
         with:
-          repo-token: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           files: "dbdot-collector-${{ github.ref_name }}-artifacts.tar.gz*"
           release-tag: ${{ github.ref_name }}
-      # Trigger installation tests in TODO-DBDOT-INSTALLER-TESTING-REPO
-      - name: Trigger Installation Testing
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
-          repository: TODO-DBDOT-INSTALLER-TESTING-REPO
-          event-type: upstream_prerelease
-          client-payload: '{ "version": "${{ github.ref_name }}" }'
+      # TODO(dbdot): the installer testing repo does not exist yet. GITHUB_TOKEN
+      # cannot dispatch to another repository; this needs a PAT or GitHub App
+      # token once the repo exists.
+      # - name: Trigger Installation Testing
+      #   uses: peter-evans/repository-dispatch@v2
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     repository: TODO-DBDOT-INSTALLER-TESTING-REPO
+      #     event-type: upstream_prerelease
+      #     client-payload: '{ "version": "${{ github.ref_name }}" }'

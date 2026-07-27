@@ -6,8 +6,6 @@ jobs:
   test_gcs_release_bucket:
     runs-on: ubuntu-latest
     steps:
-      # TODO(dbdot): these secrets and the release bucket do not exist yet; provision
-      # Dynatrace-owned GCS infrastructure and configure the secrets before use.
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:

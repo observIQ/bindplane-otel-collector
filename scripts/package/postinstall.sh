@@ -445,7 +445,7 @@ To restart the dbdot-collector service, run:
 To enable the service on startup, run:
   sudo systemctl enable dbdot-collector
 
-If you have any other questions please contact us at TODO-DBDOT-SUPPORT-EMAIL
+If you have any other questions please contact us at support@bindplane.com
 EOF
 }
 

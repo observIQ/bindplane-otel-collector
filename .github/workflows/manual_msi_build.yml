@@ -87,8 +87,6 @@ jobs:
       - name: Build MSI
         run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.event.inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
-      # TODO(dbdot): the SM_* and DBDOT_DIGICERT_KEYPAIR_ALIAS secrets do not exist yet,
-      # and the DigiCert account itself is being migrated; revisit this signing setup.
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
       - name: Set up certificate

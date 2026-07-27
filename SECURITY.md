@@ -11,4 +11,4 @@ In order for the vulnerability reports to reach maintainers as soon as possible,
 communication channel between the reporter and the maintainers.
 
 If you are absolutely unable to or have strong reasons not to use GitHub reporting workflow, please send an email
-to TODO-DBDOT-SUPPORT-EMAIL.
+to support@bindplane.com.

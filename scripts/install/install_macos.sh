@@ -610,7 +610,7 @@ display_results()
     increase_indent
     info "$(fg_cyan "https://github.com/dynatrace/dynatrace-bindplane-otel-collector/tree/main")$(reset)"
     decrease_indent
-    info "If you have any other questions please contact us at $(fg_cyan TODO-DBDOT-SUPPORT-EMAIL)$(reset)"
+    info "If you have any other questions please contact us at $(fg_cyan support@bindplane.com)$(reset)"
     decrease_indent
 
     banner "$(fg_green Installation Complete!)"

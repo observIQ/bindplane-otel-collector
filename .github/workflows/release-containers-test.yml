@@ -48,7 +48,7 @@ jobs:
       #   run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
       #   shell: bash
       #   env:
-      #     COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      #     COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
         uses: actions/cache@v6
         with:
@@ -64,6 +64,6 @@ jobs:
           args: release --skip=publish --skip=validate --clean --config .goreleaser-docker.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}

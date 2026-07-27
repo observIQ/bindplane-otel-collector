@@ -68,8 +68,6 @@ jobs:
       - name: Build MSI
         run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.event.inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
-      # TODO(dbdot): the SM_* and DBDOT_DIGICERT_KEYPAIR_ALIAS secrets do not exist yet,
-      # and the DigiCert account itself is being migrated; revisit this signing setup.
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
       - name: Set up certificate
@@ -145,19 +143,19 @@ jobs:
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
         env:
-          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+          COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
 
       - name: Sign AMD64 MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-amd64.msi.sig ./dbdot-collector-amd64.msi
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
 
       - name: Sign ARM64 MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-arm64.msi.sig ./dbdot-collector-arm64.msi
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
 
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
@@ -184,10 +182,10 @@ jobs:
           args: release --skip=publish --skip=validate --clean
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
-          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNING_KEY_FILE: ci-signing-key.asc
-          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}
 
       - name: Debug list dist/
         run: |
@@ -212,7 +210,7 @@ jobs:
         run: cosign sign-blob --key=cosign.key --output-signature ./dbdot-collector-${{ github.event.inputs.version }}-artifacts.tar.gz.sig ./dbdot-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
         shell: bash
         env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
 
       - name: Check Artifacts Directory
         run: |

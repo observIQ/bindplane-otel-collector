@@ -112,7 +112,7 @@ nfpms:
     file_name_template: "{{ .PackageName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     package_name: dbdot-collector
     vendor: Dynatrace LLC
-    maintainer: Dynatrace LLC <TODO-DBDOT-SUPPORT-EMAIL>
+    maintainer: Dynatrace LLC <support@bindplane.com>
     description: Dynatrace Bindplane Distribution of OpenTelemetry Collector
     homepage: https://github.com/dynatrace/dynatrace-bindplane-otel-collector
     license: Apache 2.0
