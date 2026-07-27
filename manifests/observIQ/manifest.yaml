@@ -255,7 +255,7 @@ replaces:
   # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
   # Remove once the above PR is merged, released, and the relevant components are updated to that version.
   # The commits being replaced to are built on the OTel v0.157.0 tag. 
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.104.0
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.105.0
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260727182811-7a33d9cbe454
   - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260727182811-7a33d9cbe454
   # The JMX receiver was removed in OTel v0.157.0. Pinned to v0.156.0 until we can migrate users over to the new solution
