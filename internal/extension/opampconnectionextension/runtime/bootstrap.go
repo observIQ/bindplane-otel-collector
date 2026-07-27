@@ -15,6 +15,7 @@
 package runtime
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -42,22 +43,25 @@ const (
 )
 
 // bootstrapManagerConfig returns nil if the agent should run in managed mode
-// (either manager.yaml exists, or OPAMP_ENDPOINT is set and a new manager.yaml
-// gets written from env vars). Returns os.ErrNotExist if neither path is true
-// — caller drops to standalone mode.
+// (either manager.yaml has content, or OPAMP_ENDPOINT is set and a new
+// manager.yaml gets written from env vars). A blank manager.yaml is treated
+// the same as an absent one — it carries no user intent, so the env vars can
+// (re)create it instead of crash looping on a config with no endpoint.
+// Returns os.ErrNotExist if neither path is true — caller drops to
+// standalone mode.
 func bootstrapManagerConfig(configPath *string) error {
-	_, statErr := os.Stat(*configPath)
+	cBytes, readErr := os.ReadFile(filepath.Clean(*configPath))
 	switch {
-	case statErr == nil:
+	case readErr == nil && len(bytes.TrimSpace(cBytes)) > 0:
 		return ensureIdentity(*configPath)
-	case errors.Is(statErr, os.ErrNotExist):
+	case readErr == nil, errors.Is(readErr, os.ErrNotExist):
 		newConfig := &opamp.Config{}
 
 		var ok bool
 		newConfig.Endpoint, ok = os.LookupEnv(endpointENV)
 		if !ok {
-			// No file, no env — standalone mode.
-			return statErr
+			// No config, no env — standalone mode.
+			return os.ErrNotExist
 		}
 
 		if envString, ok := os.LookupEnv(agentIDENV); ok {
@@ -102,7 +106,7 @@ func bootstrapManagerConfig(configPath *string) error {
 		}
 		return nil
 	}
-	return statErr
+	return readErr
 }
 
 // ensureIdentity stamps a generated AgentID into manager.yaml on disk if the

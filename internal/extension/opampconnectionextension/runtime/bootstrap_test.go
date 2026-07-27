@@ -102,6 +102,62 @@ func TestCheckManagerConfigNoFileSecretKeyNotWrittenPlaintext(t *testing.T) {
 	require.Equal(t, "supersecret", *actual.SecretKey)
 }
 
+// A blank manager.yaml carries no user intent, so it must behave exactly like
+// an absent one: recreated from env vars when OPAMP_ENDPOINT is set, standalone
+// mode otherwise. Previously it entered managed mode with an empty endpoint and
+// crash looped the collector.
+func TestCheckManagerConfigBlankFile(t *testing.T) {
+	testCases := []struct {
+		name     string
+		contents string
+		setEnv   bool
+	}{
+		{
+			name:     "empty file with endpoint env",
+			contents: "",
+			setEnv:   true,
+		},
+		{
+			name:     "whitespace-only file with endpoint env",
+			contents: "\n  \n\t\n",
+			setEnv:   true,
+		},
+		{
+			name:     "empty file without endpoint env",
+			contents: "",
+			setEnv:   false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.setEnv {
+				t.Setenv(endpointENV, "ws://localhost:3001/v1/opamp")
+				t.Setenv(secretKeyENV, "secretKey")
+				t.Setenv(labelsENV, "install_id=blank-file-test")
+			}
+
+			tmpDir := t.TempDir()
+			manager := filepath.Join(tmpDir, "manager.yaml")
+			require.NoError(t, os.WriteFile(manager, []byte(tc.contents), 0600))
+
+			err := bootstrapManagerConfig(&manager)
+			if !tc.setEnv {
+				require.ErrorIs(t, err, os.ErrNotExist)
+				return
+			}
+			require.NoError(t, err)
+
+			actual, err := opamp.ParseConfig(manager)
+			require.NoError(t, err)
+			require.Equal(t, "ws://localhost:3001/v1/opamp", actual.Endpoint)
+			require.NotEqual(t, opamp.EmptyAgentID, actual.AgentID)
+			require.Equal(t, "secretKey", *actual.SecretKey)
+			require.Equal(t, "install_id=blank-file-test", *actual.Labels)
+		})
+	}
+}
+
 func TestCheckManagerConfigNoFileTLS(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -216,7 +272,7 @@ func TestCheckManagerConfigNoFileTLS(t *testing.T) {
 func TestManagerConfigNoAgentIDWillSet(t *testing.T) {
 	tmpDir := t.TempDir()
 	manager := filepath.Join(tmpDir, "manager.yaml")
-	data := []byte("")
+	data := []byte("endpoint: ws://localhost:3001/v1/opamp\n")
 	require.NoError(t, os.WriteFile(manager, data, 0600))
 	err := bootstrapManagerConfig(&manager)
 	require.NoError(t, err)
@@ -310,7 +366,7 @@ func TestManagerConfigCheckFileModes(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			manager := filepath.Join(tmpDir, fmt.Sprintf("manager-%d.yaml", idx))
-			require.NoError(t, os.WriteFile(manager, []byte(""), tc.fileMode))
+			require.NoError(t, os.WriteFile(manager, []byte("endpoint: ws://localhost:3001/v1/opamp\n"), tc.fileMode))
 			err := bootstrapManagerConfig(&manager)
 			if tc.expectedErr != nil {
 				require.ErrorContains(t, err, tc.expectedErr.Error())
