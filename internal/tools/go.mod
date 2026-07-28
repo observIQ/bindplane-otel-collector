@@ -9,7 +9,7 @@ require (
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
-	go.opentelemetry.io/collector/cmd/mdatagen v0.156.0
+	go.opentelemetry.io/collector/cmd/mdatagen v0.157.0
 	golang.org/x/tools v0.48.0
 	golang.org/x/vuln v1.6.0
 	gotest.tools/gotestsum v1.12.3
@@ -31,6 +31,7 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/licenseclassifier v0.0.0-20201113175434-78a70215ca36 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
+	github.com/iimos/ucum v0.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -78,13 +80,13 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.opentelemetry.io/collector/component v1.62.0 // indirect
-	go.opentelemetry.io/collector/confmap v1.62.0 // indirect
-	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.62.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.62.0 // indirect
-	go.opentelemetry.io/collector/filter v0.156.0 // indirect
-	go.opentelemetry.io/collector/internal/schemagen v0.156.0 // indirect
-	go.opentelemetry.io/collector/pdata v1.62.0 // indirect
+	go.opentelemetry.io/collector/component v1.63.0 // indirect
+	go.opentelemetry.io/collector/confmap v1.63.0 // indirect
+	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.63.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.63.0 // indirect
+	go.opentelemetry.io/collector/filter v0.157.0 // indirect
+	go.opentelemetry.io/collector/internal/schemagen v0.157.0 // indirect
+	go.opentelemetry.io/collector/pdata v1.63.0 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
@@ -97,7 +99,7 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260708182218-49f421fb7959 // indirect
 	golang.org/x/term v0.36.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
