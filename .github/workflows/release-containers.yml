@@ -37,6 +37,9 @@ jobs:
           echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
         uses: actions/checkout@v7
+        with:
+          # For goreleaser
+          fetch-depth: 0
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
