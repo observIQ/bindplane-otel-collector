@@ -42,13 +42,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-      # - name: Install cosign
-      #   run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
-      # - name: Build cosign key file
-      #   run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
-      #   shell: bash
-      #   env:
-      #     COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
         uses: actions/cache@v6
         with:
@@ -64,6 +57,6 @@ jobs:
           args: release --skip=publish --skip=validate --clean --config .goreleaser-docker.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
+          GAR_PROJECT_ID: ${{ vars.DBDOT_GAR_PROJECT_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}
