@@ -127,6 +127,11 @@ func TestCheckManagerConfigBlankFile(t *testing.T) {
 			contents: "",
 			setEnv:   false,
 		},
+		{
+			name:     "whitespace-only file without endpoint env",
+			contents: "\n  \n\t\n",
+			setEnv:   false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -156,6 +161,18 @@ func TestCheckManagerConfigBlankFile(t *testing.T) {
 			require.Equal(t, "install_id=blank-file-test", *actual.Labels)
 		})
 	}
+}
+
+// A read failure other than the file being absent must surface as an error —
+// not fall through to env-var synthesis or standalone mode.
+func TestCheckManagerConfigUnreadablePath(t *testing.T) {
+	t.Setenv(endpointENV, "ws://localhost:3001/v1/opamp")
+
+	// A directory is readable via Stat but fails ReadFile on every platform.
+	manager := t.TempDir()
+	err := bootstrapManagerConfig(&manager)
+	require.Error(t, err)
+	require.NotErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestCheckManagerConfigNoFileTLS(t *testing.T) {
