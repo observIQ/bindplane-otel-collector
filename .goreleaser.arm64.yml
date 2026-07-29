@@ -26,7 +26,7 @@ builds:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 dockers:
-  - id: ubuntu-arm64
+  - id: scratch-arm64
     goos: linux
     goarch: arm64
     retry:
@@ -35,10 +35,11 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+    # GHCR only, matching .goreleaser-docker.yml. Docker Hub and GAR
+    # publishing should be added back under Dynatrace-owned orgs/registries.
     image_templates:
-      - "dynatrace/dbdot-collector-arm64:{{ .Version }}"
-      - "dynatrace/dbdot-collector-arm64:latest"
-    dockerfile: ./docker/Dockerfile.ubuntu
+      - "ghcr.io/dynatrace/dbdot-arm64:{{ .Version }}"
+    dockerfile: ./docker/Dockerfile.scratch
     use: buildx
     build_flag_templates:
       - "--label=created={{.Date}}"
@@ -47,12 +48,10 @@ dockers:
       - "--label=version={{.Version}}"
       - "--platform=linux/arm64"
     extra_files:
-      - release_deps/VERSION.txt
       - release_deps/plugins
       - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
-      - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
 
 changelog:
   disable: true

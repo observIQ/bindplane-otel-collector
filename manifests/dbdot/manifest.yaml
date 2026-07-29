@@ -31,7 +31,6 @@ extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.156.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension v1.10.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.10.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/bindplaneextension v1.10.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.10.0
   - gomod: github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.10.0
   # Bindplane OpAMP connection extension. Internal module under
