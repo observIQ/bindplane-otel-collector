@@ -119,21 +119,24 @@ func Run(opts Options) {
 	}
 }
 
-// setLegacyEnvVars derives the legacy OIQ_* environment variables from the
-// BINDPLANE_* ones. Packages only set the BINDPLANE_* variables; configs and
-// code referencing ${env:OIQ_OTEL_COLLECTOR_HOME} et al. keep working. Must
-// run before logging setup, which expands OIQ_OTEL_COLLECTOR_HOME. An
-// explicitly set OIQ_* variable wins.
+// setLegacyEnvVars syncs the legacy OIQ_* and generic BINDPLANE_* environment
+// variables in both directions: new packages only set BINDPLANE_*, while
+// installs upgraded in place may only set OIQ_*. Whichever of the pair is set
+// fills in the missing one, so configs referencing either name keep working.
+// Must run before logging setup, which expands OIQ_OTEL_COLLECTOR_HOME. If
+// both are set, both are left as-is.
 func setLegacyEnvVars() {
 	for legacy, generic := range map[string]string{
 		"OIQ_OTEL_COLLECTOR_HOME":    "BINDPLANE_COLLECTOR_HOME",
 		"OIQ_OTEL_COLLECTOR_STORAGE": "BINDPLANE_COLLECTOR_STORAGE",
 	} {
-		if _, ok := os.LookupEnv(legacy); ok {
-			continue
-		}
-		if v, ok := os.LookupEnv(generic); ok {
-			_ = os.Setenv(legacy, v)
+		legacyVal, legacyOK := os.LookupEnv(legacy)
+		genericVal, genericOK := os.LookupEnv(generic)
+		switch {
+		case legacyOK && !genericOK:
+			_ = os.Setenv(generic, legacyVal)
+		case genericOK && !legacyOK:
+			_ = os.Setenv(legacy, genericVal)
 		}
 	}
 }

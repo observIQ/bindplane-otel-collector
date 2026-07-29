@@ -23,10 +23,12 @@ import (
 
 func TestSetLegacyEnvVars(t *testing.T) {
 	testCases := []struct {
-		name        string
-		env         map[string]string
-		wantHome    string
-		wantStorage string
+		name               string
+		env                map[string]string
+		wantHome           string
+		wantStorage        string
+		wantGenericHome    string
+		wantGenericStorage string
 	}{
 		{
 			name: "derives legacy vars from generic vars",
@@ -34,19 +36,33 @@ func TestSetLegacyEnvVars(t *testing.T) {
 				"BINDPLANE_COLLECTOR_HOME":    "/opt/observiq-otel-collector",
 				"BINDPLANE_COLLECTOR_STORAGE": "/opt/observiq-otel-collector/storage",
 			},
-			wantHome:    "/opt/observiq-otel-collector",
-			wantStorage: "/opt/observiq-otel-collector/storage",
+			wantHome:           "/opt/observiq-otel-collector",
+			wantStorage:        "/opt/observiq-otel-collector/storage",
+			wantGenericHome:    "/opt/observiq-otel-collector",
+			wantGenericStorage: "/opt/observiq-otel-collector/storage",
 		},
 		{
-			name: "explicitly set legacy var wins",
+			name: "derives generic vars from legacy vars",
+			env: map[string]string{
+				"OIQ_OTEL_COLLECTOR_HOME":    "/opt/observiq-otel-collector",
+				"OIQ_OTEL_COLLECTOR_STORAGE": "/opt/observiq-otel-collector/storage",
+			},
+			wantHome:           "/opt/observiq-otel-collector",
+			wantStorage:        "/opt/observiq-otel-collector/storage",
+			wantGenericHome:    "/opt/observiq-otel-collector",
+			wantGenericStorage: "/opt/observiq-otel-collector/storage",
+		},
+		{
+			name: "both set are left as-is",
 			env: map[string]string{
 				"BINDPLANE_COLLECTOR_HOME": "/opt/observiq-otel-collector",
 				"OIQ_OTEL_COLLECTOR_HOME":  "/custom/home",
 			},
-			wantHome: "/custom/home",
+			wantHome:        "/custom/home",
+			wantGenericHome: "/opt/observiq-otel-collector",
 		},
 		{
-			name: "nothing set leaves legacy vars unset",
+			name: "nothing set leaves all vars unset",
 			env:  map[string]string{},
 		},
 	}
@@ -68,6 +84,8 @@ func TestSetLegacyEnvVars(t *testing.T) {
 
 			require.Equal(t, tc.wantHome, os.Getenv("OIQ_OTEL_COLLECTOR_HOME"))
 			require.Equal(t, tc.wantStorage, os.Getenv("OIQ_OTEL_COLLECTOR_STORAGE"))
+			require.Equal(t, tc.wantGenericHome, os.Getenv("BINDPLANE_COLLECTOR_HOME"))
+			require.Equal(t, tc.wantGenericStorage, os.Getenv("BINDPLANE_COLLECTOR_STORAGE"))
 		})
 	}
 }
