@@ -172,7 +172,7 @@ jobs:
             ${{ runner.os }}-go-tools-
 
       - name: Install Tools
-        run: make install-tools-ci
+        run: bash .github/scripts/retry.sh make install-tools-ci
 
       - name: Run All Tests
         run: make test
