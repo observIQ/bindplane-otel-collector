@@ -115,10 +115,11 @@ func TestMeasurementsSender(t *testing.T) {
 		ms := newMeasurementsSender(zap.NewNop(), reg, client, 5*time.Hour, nil)
 		ms.Start()
 
-		// Wait 200 ms and ensure no data emitted
-		time.Sleep(200 * time.Millisecond)
-
-		require.Len(t, dataChan, 0)
+		// With a 5-hour interval, no data should be emitted yet; confirm the channel
+		// stays empty across a short window instead of sleeping once.
+		require.Never(t, func() bool {
+			return len(dataChan) > 0
+		}, 200*time.Millisecond, 10*time.Millisecond)
 
 		// Set time to 1ms. We should see data emit quickly after.
 		ms.SetInterval(1 * time.Millisecond)
