@@ -347,7 +347,9 @@ func TestHandleSnapshotRequest_WrongProcessorIDIsIgnored(t *testing.T) {
 	require.NoError(t, err)
 	handler.inbound <- &protobufs.CustomMessage{Type: snapshotRequestType, Data: body}
 
-	// Give the goroutine a chance to process; nothing should be sent.
-	time.Sleep(50 * time.Millisecond)
-	assert.Empty(t, handler.sentMessages(), "request for a different processor must not be answered")
+	// A request for a different processor must never be answered; confirm nothing is
+	// sent across a short window instead of sleeping once.
+	require.Never(t, func() bool {
+		return len(handler.sentMessages()) > 0
+	}, 50*time.Millisecond, 10*time.Millisecond, "request for a different processor must not be answered")
 }
