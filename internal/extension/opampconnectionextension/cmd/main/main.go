@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Go 1.25 made GOMAXPROCS container-aware: under a cgroup CPU limit it is
+// clamped to the limit (floor 2) instead of the node's core count. Every pod
+// on GKE Autopilot carries a CFS limit, so collectors there lost most of
+// their parallelism and Pub/Sub ingestion regressed (slow drains, expired
+// ack deadlines, redelivery storms). Keep the pre-1.25 behavior; operators
+// can still override with the GOMAXPROCS env var, which always wins over
+// these defaults.
+//
+//go:debug containermaxprocs=0
+//go:debug updatemaxprocs=0
+
 // Package main is the entry point for the ocb-built BDOT Collector. The
 // `agent` Make target copies this file over ocb's generated main.go after
 // `builder --skip-compilation` runs; `go build` then compiles it together
