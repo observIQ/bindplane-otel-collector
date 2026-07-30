@@ -16,23 +16,20 @@ Before installing the Dynatrace Bindplane Distribution of OpenTelemetry Collecto
 
 ```
 > config
-    manager.yaml
 > storage
     config.yaml
     logging.yaml
   docker-compose.yaml
 ```
 
-Proceed to add content into all files except the `manager.yaml` that will be auto-updated when creating rolling out a config from Bindplane.
+On startup the collector will create a `manager.yaml` in the config directory based on the OpAMP environment variables.
 
 2. Paste the following content into your `docker-compose.yaml`:
 
 ```yaml
-version: '3.8'
-
 services:
   dbdot-collector:
-    image: ghcr.io/dynatrace/dbdot-collector:latest
+    image: ghcr.io/dynatrace/dbdot:0.0.4
     command: ["--config=/etc/otel/storage/config.yaml"]
     volumes:
       - ./config:/etc/otel/config
@@ -45,13 +42,16 @@ services:
     environment:
       OPAMP_ENDPOINT: <your-endpoint> # use "wss://app.bindplane.com/v1/opamp" for Bindplane Cloud
       OPAMP_SECRET_KEY: <your-secret-key>
-      OPAMP_LABELS: install_id=<your-install-id>
       OPAMP_AGENT_NAME: dbdot-collector
       CONFIG_YAML_PATH: /etc/otel/storage/config.yaml
       MANAGER_YAML_PATH: /etc/otel/config/manager.yaml
       LOGGING_YAML_PATH: /etc/otel/storage/logging.yaml
 
 ```
+
+> Images are published to `ghcr.io/dynatrace/dbdot` with the version number as the tag (no `v` prefix, no `latest` tag). Replace `0.0.4` with the [release](https://github.com/dynatrace/dynatrace-bindplane-otel-collector/releases) you want to run.
+
+> The container runs as a non-root user (UID 10005), so the mounted `config` and `storage` directories must be writable by that UID.
 
 Get your keys from the **Agents > Install Agents** page in Bindplane.
 
@@ -62,15 +62,12 @@ Get your keys from the **Agents > Install Agents** page in Bindplane.
 ```yaml
 receivers:
   nop:
-processors:
-  batch:
 exporters:
   nop:
 service:
   pipelines:
     metrics:
       receivers: [nop]
-      processors: [batch]
       exporters: [nop]
   telemetry:
     metrics:
@@ -116,5 +113,4 @@ Stop Docker Compose and remove the DBDOT Collector container.
 
 ```
 docker compose down -v
-docker compose rm -f dbdot-collector
 ```

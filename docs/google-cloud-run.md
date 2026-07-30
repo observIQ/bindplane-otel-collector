@@ -8,13 +8,13 @@ for other configurations as well.
 ## Image
 
 Push the agent image to your GCR account:
-- replace `1.30.0` with your desired version
+- replace `0.0.4` with your desired version (images are tagged with the version number only — no `v` prefix, no `latest` tag)
 - replace `myproject` with your gcr project
 
 ```bash
-docker pull dynatrace/dbdot-collector:latest
-docker tag dynatrace/dbdot-collector:latest gcr.io/myproject/dbdot-collector:latest
-docker push gcr.io/myproject/dbdot-collector:latest
+docker pull ghcr.io/dynatrace/dbdot:0.0.4
+docker tag ghcr.io/dynatrace/dbdot:0.0.4 gcr.io/myproject/dbdot:0.0.4
+docker push gcr.io/myproject/dbdot:0.0.4
 ```
 
 ## Deployment
@@ -34,7 +34,7 @@ Follow the steps in [Image](./google-cloud-run.md#image) before continuing.
 **Cloud Run**
 
 1. Create Service.
-2. Container Image URL: Image tag pushed in the [build](README.md#build) step.
+2. Container Image URL: Image tag pushed in the [Image](./google-cloud-run.md#image) step.
 3. Check "cpu always allocated".
 4. Set autoscaling min 1 and max 1.
 5. Ingress: Allow internal traffic only.

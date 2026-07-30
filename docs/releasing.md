@@ -13,7 +13,7 @@ Releases are managed through GitHub releases. The steps to create a release are 
 3. Once the `release` workflow has completed successfully, manually trigger the `release-containers` workflow in GitHub Actions, providing the version tag (e.g. `v1.2.3`). This will:
   - Download the pre-built Linux binaries from GCS
   - Build and push Docker images for all supported architectures (amd64, arm64, ppc64le)
-  - Push multi-arch manifests to DockerHub, GHCR, and Google Artifact Registry
+  - Push multi-arch manifests to GHCR (`ghcr.io/dynatrace/dbdot`)
 
 > **Note:** The `release-containers` workflow is currently triggered manually to allow for confidence-building. In the future it is expected to trigger automatically upon successful completion of the `release` workflow.
 
