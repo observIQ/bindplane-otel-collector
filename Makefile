@@ -106,7 +106,13 @@ verify-manifest:
 	cd $(BUILD_DIR) && go mod tidy
 	# Compile with the same build tags as the release build ($(AGENT_BUILD_TAGS))
 	# so the gate exercises exactly what `make agent` ships.
-	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -o /dev/null .
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go build -tags "$(AGENT_BUILD_TAGS)" -o verify-binary .
+	# The GOMAXPROCS runtime default is carried by a //go:debug directive in
+	# $(AGENT_MAIN); it only takes effect if that file survives into the ocb
+	# main package. Assert it made it into the built binary.
+	cd $(BUILD_DIR) && go version -m verify-binary | grep -q 'containermaxprocs=0' || \
+		(echo "built binary is missing DefaultGODEBUG containermaxprocs=0 (lost $(AGENT_MAIN)?)"; exit 1)
+	rm -f $(BUILD_DIR)/verify-binary
 
 # Builds the collector for the current GOOS/GOARCH pair using ocb.
 .PHONY: agent

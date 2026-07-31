@@ -13,15 +13,19 @@
 // limitations under the License.
 
 // Go 1.25 made GOMAXPROCS container-aware: under a cgroup CPU limit it is
-// clamped to the limit (floor 2) instead of the node's core count. Every pod
+// clamped to max(2, ceil(limit)) instead of the node's core count. Every pod
 // on GKE Autopilot carries a CFS limit, so collectors there lost most of
 // their parallelism and Pub/Sub ingestion regressed (slow drains, expired
 // ack deadlines, redelivery storms). Keep the pre-1.25 behavior; operators
-// can still override with the GOMAXPROCS env var, which always wins over
-// these defaults.
+// can still override with the GOMAXPROCS env var (always wins) or opt the
+// clamp back in per deployment with GODEBUG=containermaxprocs=1.
+//
+// updatemaxprocs is deliberately left at its default: with the cgroup
+// consult disabled it only tracks CPU-affinity changes, and disabling it
+// would freeze GOMAXPROCS at startup for anyone who opts the clamp back
+// in via GODEBUG (stale under in-place pod resize).
 //
 //go:debug containermaxprocs=0
-//go:debug updatemaxprocs=0
 
 // Package main is the entry point for the ocb-built BDOT Collector. The
 // `agent` Make target copies this file over ocb's generated main.go after
@@ -43,6 +47,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	goruntime "runtime"
 	"strings"
 	_ "time/tzdata"
 
@@ -75,6 +80,11 @@ func main() {
 		fmt.Println("built at:", version.Date())
 		return
 	}
+
+	// Support triage for CPU-limited containers: makes the effective
+	// parallelism visible without GODEBUG=schedtrace.
+	log.Printf("go runtime: GOMAXPROCS=%d NumCPU=%d GOMAXPROCS_env=%q GODEBUG_env=%q",
+		goruntime.GOMAXPROCS(0), goruntime.NumCPU(), os.Getenv("GOMAXPROCS"), os.Getenv("GODEBUG"))
 
 	factories, err := components()
 	if err != nil {
