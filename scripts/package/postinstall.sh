@@ -54,8 +54,8 @@ install() {
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Ensure updater is owned by root.
-    chown root:root "$stage_dir/updater"
+    # Updater is owned by the runtime user, matching all other installed files.
+    # Privileged operations use sudo via the sudoers drop-in.
 
     # Seed default configs only when absent so upgrades/reinstalls preserve
     # user edits. The stage dir is ephemeral, so pruning it here is safe.
@@ -544,8 +544,21 @@ EOF
   chmod 0440 "$sudoers_file"
 }
 
+validate_sudoers() {
+  sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+  if [ -f "$sudoers_file" ]; then
+    if command -v visudo > /dev/null 2>&1; then
+      if ! visudo -cf "$sudoers_file" > /dev/null 2>&1; then
+        echo "WARNING: sudoers file $sudoers_file failed validation, removing"
+        rm -f "$sudoers_file"
+      fi
+    fi
+  fi
+}
+
 install
 install_service
 install_sudoers
 finish_permissions
+validate_sudoers
 manage_service
