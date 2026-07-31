@@ -34,15 +34,37 @@ func needsSudo() bool {
 	return os.Getuid() != 0
 }
 
-// sudoCommand creates an exec.Cmd, prepending "sudo" if the process is non-root.
+// sudoCommand creates an exec.Cmd, prepending "sudo -n" if the process is non-root.
 func sudoCommand(name string, args ...string) *exec.Cmd {
 	if needsSudo() {
-		allArgs := append([]string{name}, args...)
+		// -n runs sudo non-interactively: if credentials are required it fails
+		// immediately rather than blocking on a password prompt the updater
+		// (running without a TTY) cannot answer.
+		allArgs := append([]string{"-n", name}, args...)
 		//#nosec G204 -- arguments are not user-controlled
 		return exec.Command("sudo", allArgs...)
 	}
 	//#nosec G204 -- arguments are not user-controlled
 	return exec.Command(name, args...)
+}
+
+// CheckSudoAvailable verifies that sudo can be used non-interactively before the
+// updater takes any destructive action. When running as root, sudo is not
+// needed and this is a no-op. When running as non-root it runs `sudo -n true`,
+// which confirms both that sudo exists and that a NOPASSWD rule is in place, so
+// the caller can abort an update while the collector is still running rather
+// than failing partway through.
+func CheckSudoAvailable() error {
+	if !needsSudo() {
+		return nil
+	}
+
+	//#nosec G204 -- arguments are constant, not user-controlled
+	if err := exec.Command("sudo", "-n", "true").Run(); err != nil {
+		return fmt.Errorf("updater is running as a non-root user but cannot run sudo non-interactively (a NOPASSWD sudoers entry is required): %w", err)
+	}
+
+	return nil
 }
 
 // Option is an extra option for creating a Service

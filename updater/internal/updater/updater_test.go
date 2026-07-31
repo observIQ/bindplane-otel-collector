@@ -330,6 +330,35 @@ func TestUpdaterUpdate(t *testing.T) {
 	})
 }
 
+func TestUpdateAbortsWhenSudoUnavailable(t *testing.T) {
+	// When the sudo pre-flight check fails, the update must abort before any
+	// destructive action, so the service is never stopped and nothing installs.
+	installDir := t.TempDir()
+
+	installer := install_mocks.NewMockInstaller(t)
+	svc := service_mocks.NewMockService(t)
+	rollbacker := rollback_mocks.NewMockRollbacker(t)
+	monitor := state_mocks.NewMockMonitor(t)
+
+	updater := &Updater{
+		installDir:               installDir,
+		installer:                installer,
+		svc:                      svc,
+		rollbacker:               rollbacker,
+		monitor:                  monitor,
+		logger:                   zaptest.NewLogger(t),
+		installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
+		checkSudo:                func() error { return errors.New("sudo unavailable") },
+	}
+
+	err := updater.Update()
+	require.ErrorContains(t, err, "sudo pre-flight check failed")
+	// The mocks are constructed with t and have no expectations set, so any
+	// service or installer call would fail the test. Assert explicitly too.
+	svc.AssertNotCalled(t, "Stop")
+	installer.AssertNotCalled(t, "Install", mock.Anything)
+}
+
 func TestGenerateLinuxServiceFiles(t *testing.T) {
 	// Windows does not use the files tested here, and has
 	// different newline characters that fail the test.
@@ -363,9 +392,8 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 		// Verify install dir is templated correctly
 		require.Contains(t, generated, fmt.Sprintf("WorkingDirectory=%s", installDir))
 		require.Contains(t, generated, fmt.Sprintf("Environment=BINDPLANE_COLLECTOR_HOME=%s", installDir))
-		// Verify storage/log dirs read from golden file
+		// Verify storage dir read from golden file
 		require.Contains(t, generated, "Environment=BINDPLANE_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage")
-		require.Contains(t, generated, "Environment=BINDPLANE_COLLECTOR_LOGS=/opt/observiq-otel-collector/log")
 		// Check file permissions
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector"), 0755)
@@ -426,12 +454,6 @@ func TestReadEnvironmentFromSystemdFile(t *testing.T) {
 		val, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_STORAGE")
 		require.NoError(t, err)
 		require.Equal(t, "/opt/observiq-otel-collector/storage", val)
-	})
-
-	t.Run("Extract BINDPLANE_COLLECTOR_LOGS", func(t *testing.T) {
-		val, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_LOGS")
-		require.NoError(t, err)
-		require.Equal(t, "/opt/observiq-otel-collector/log", val)
 	})
 
 	t.Run("Missing key returns empty string", func(t *testing.T) {

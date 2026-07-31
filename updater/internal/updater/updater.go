@@ -53,6 +53,10 @@ type Updater struct {
 	monitor                  state.Monitor
 	logger                   *zap.Logger
 	installedSystemdUnitPath string
+	// checkSudo verifies sudo is usable before a destructive update. NewUpdater
+	// sets it to service.CheckSudoAvailable; a nil value skips the check and is
+	// used by tests that exercise the update flow with mocked services.
+	checkSudo func() error
 }
 
 // NewUpdater creates a new updater which can be used to update the installation based at
@@ -72,6 +76,7 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 		monitor:                  monitor,
 		logger:                   logger,
 		installedSystemdUnitPath: DefaultSystemdUnitFilePath,
+		checkSudo:                service.CheckSudoAvailable,
 	}, nil
 }
 
@@ -161,8 +166,8 @@ func (u *Updater) generateLinuxServiceFiles() error {
 	// from the config override files when the updater was created.
 	installDir := u.installDir
 
-	// Read storage and log directories from the existing systemd unit file,
-	// falling back to defaults relative to the install directory.
+	// Read the storage directory from the existing systemd unit file, falling
+	// back to a default relative to the install directory.
 	storageDir, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_STORAGE")
 	if err != nil {
 		return fmt.Errorf("read storage dir from systemd file %s: %w", u.installedSystemdUnitPath, err)
@@ -171,20 +176,11 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		storageDir = installDir + "/storage"
 	}
 
-	logDir, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_LOGS")
-	if err != nil {
-		return fmt.Errorf("read log dir from systemd file %s: %w", u.installedSystemdUnitPath, err)
-	}
-	if logDir == "" {
-		logDir = installDir + "/log"
-	}
-
 	params := map[string]string{
 		"User":       user,
 		"Group":      group,
 		"InstallDir": installDir,
 		"StorageDir": storageDir,
-		"LogDir":     logDir,
 	}
 
 	// Render the systemd service template with the Group value
@@ -213,6 +209,16 @@ func (u *Updater) generateLinuxServiceFiles() error {
 
 // Update performs the update of the collector binary
 func (u *Updater) Update() error {
+	// Abort before any destructive action if sudo is unavailable. When the
+	// updater runs as a non-root user it relies on sudo for service management,
+	// so checking here means a missing or misconfigured sudoers entry fails the
+	// update while the collector is still running rather than partway through.
+	if u.checkSudo != nil {
+		if err := u.checkSudo(); err != nil {
+			return fmt.Errorf("sudo pre-flight check failed: %w", err)
+		}
+	}
+
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
 	if runtime.GOOS == "linux" {

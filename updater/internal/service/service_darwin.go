@@ -162,3 +162,8 @@ func (d darwinService) Backup() error {
 
 	return nil
 }
+
+// CheckSudoAvailable is a no-op on darwin, where the updater does not use sudo.
+func CheckSudoAvailable() error {
+	return nil
+}
