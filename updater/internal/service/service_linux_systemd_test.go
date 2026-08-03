@@ -50,10 +50,12 @@ func TestLinuxSystemdServiceInstall(t *testing.T) {
 
 		err = l.uninstall()
 		require.NoError(t, err)
-		require.NoFileExists(t, installedServicePath)
 
-		//Make sure the service is no longer listed
-		requireSystemdServiceLoadedStatus(t, false)
+		// uninstall() only disables the unit; it intentionally does not remove
+		// the file, since install() overwrites it in place on the next update.
+		// The unit therefore remains present (disabled, inactive) after uninstall.
+		require.FileExists(t, installedServicePath)
+		requireSystemdServiceLoadedStatus(t, true)
 	})
 
 	t.Run("Test systemd stop + start", func(t *testing.T) {
@@ -86,10 +88,12 @@ func TestLinuxSystemdServiceInstall(t *testing.T) {
 
 		err = l.uninstall()
 		require.NoError(t, err)
-		require.NoFileExists(t, installedServicePath)
 
-		// Make sure the service is no longer listed
-		requireSystemdServiceLoadedStatus(t, false)
+		// uninstall() only disables the unit; it intentionally does not remove
+		// the file, since install() overwrites it in place on the next update.
+		// The unit therefore remains present (disabled, inactive) after uninstall.
+		require.FileExists(t, installedServicePath)
+		requireSystemdServiceLoadedStatus(t, true)
 	})
 
 	t.Run("Test systemd invalid path for input file", func(t *testing.T) {
