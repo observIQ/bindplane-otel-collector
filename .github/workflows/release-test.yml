@@ -225,7 +225,8 @@ jobs:
 
       - name: Upload Bindplane Linux AMD64 Deb Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
@@ -233,7 +234,8 @@ jobs:
 
       - name: Upload Bindplane Linux AMD64 RPM Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
@@ -241,7 +243,8 @@ jobs:
 
       - name: Upload Bindplane Linux ARM64 Deb Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
@@ -249,7 +252,8 @@ jobs:
 
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
@@ -257,7 +261,8 @@ jobs:
 
       - name: Upload Bindplane Linux ARM32 Deb Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
@@ -265,7 +270,8 @@ jobs:
 
       - name: Upload Bindplane Linux ARM32 RPM Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
@@ -273,7 +279,8 @@ jobs:
 
       - name: Upload Bindplane Linux PPC64LE Deb Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
@@ -281,7 +288,8 @@ jobs:
 
       - name: Upload Bindplane Linux PPC64LE RPM Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
@@ -289,7 +297,8 @@ jobs:
 
       - name: Upload Bindplane Linux PPC64 Deb Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
@@ -297,7 +306,8 @@ jobs:
 
       - name: Upload Bindplane Linux PPC64 RPM Package
         run: |
-          gcloud \
+          retry(){ for i in 1 2 3; do "$@" && return 0; sleep $((i*10)); done; return 1; }
+          retry gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
