@@ -82,6 +82,9 @@ exporters:
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.10.0
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter v1.10.0
   - gomod: github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter v1.10.0
+  # This project doesn't have a tagged release of this module yet. Will need to generate a ref until tags are ready.
+  # Need `GOPRIVATE=github.com/Dynatrace/*` set in order to access this component.
+  - gomod: github.com/Dynatrace/dt-otelcol-edge-processing-components/exporter/dtedgeprocessingexporter v0.0.0-20260731083904-5047d1f6edf0
 
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.156.0
@@ -226,7 +229,7 @@ receivers:
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.10.0
   # This project doesn't have a tagged release of this module yet. Will need to generate a ref until tags are ready.
   # Need `GOPRIVATE=github.com/Dynatrace/*` set in order to access this component.
-  - gomod: github.com/Dynatrace/dt-otelcol-edge-processing-components/receiver/dtedgeprocessingreceiver v0.156.1-0.20260721142618-c273cf1543fc
+  - gomod: github.com/Dynatrace/dt-otelcol-edge-processing-components/receiver/dtedgeprocessingreceiver v0.156.2-0.20260729144335-d8b0138eb7b9
 
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.156.0
