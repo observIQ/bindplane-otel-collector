@@ -214,6 +214,7 @@ receivers:
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/httpreceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/m365receiver v1.9.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/networkcheckreceiver v0.0.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/oktareceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver v1.9.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver v1.9.0
@@ -242,6 +243,8 @@ providers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.155.0
 
 replaces:
+  # Local development — networkcheckreceiver not yet published.
+  - github.com/observiq/bindplane-otel-contrib/receiver/networkcheckreceiver => ../../bindplane-otel-contrib/receiver/networkcheckreceiver
   # Internal Go modules — point ocb at the local checkouts.
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
   - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
