@@ -56,8 +56,8 @@ jobs:
       # Installs go-msi and wix.
       - name: Install Build Tools
         run: |
-          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
-          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          curl -f -L --retry 3 --retry-delay 5 --retry-connrefused -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
+          curl -f -L --retry 3 --retry-delay 5 --retry-connrefused -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
           unzip wix314-binaries.zip
         working-directory: C:/build
       - name: Build MSI
