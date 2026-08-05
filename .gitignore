@@ -64,3 +64,4 @@ ocsf_schema.json
 
 # Claude Code per-user local settings
 .claude/settings.local.json
+cmd/container-init/container-init
