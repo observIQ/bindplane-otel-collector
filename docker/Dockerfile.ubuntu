@@ -48,6 +48,7 @@ COPY LICENSE /licenses/observiq-otel-collector.license
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY container-init /collector/container-init
 COPY release_deps/plugins /etc/otel/plugins
 
 COPY config/logging.stdout.yaml /etc/otel/logging.yaml

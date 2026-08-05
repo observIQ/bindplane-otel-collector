@@ -127,9 +127,14 @@ agent:
 updater:
 	cd ./updater/; CGO_ENABLED=0 go build -ldflags "$(UPDATER_LDFLAGS)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
-# Builds the updater + agent for current GOOS/GOARCH pair
+# Builds the container-init binary for current GOOS/GOARCH pair
+.PHONY: container-init
+container-init:
+	cd ./cmd/container-init/; CGO_ENABLED=0 go build -ldflags "-s -w" -o ../../$(OUTDIR)/container-init_$(GOOS)_$(GOARCH)$(EXT) .
+
+# Builds the updater + agent + container-init for current GOOS/GOARCH pair
 .PHONY: build-binaries
-build-binaries: agent updater
+build-binaries: agent updater container-init
 
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
@@ -425,10 +430,16 @@ release-test:
 .PHONY: release-containers-test
 release-containers-test:
 	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
+	GOARCH=amd64 GOOS=linux $(MAKE) container-init
+	GOARCH=arm64 GOOS=linux $(MAKE) container-init
+	GOARCH=ppc64le GOOS=linux $(MAKE) container-init
 	mkdir -p tmp
 	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
 	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
 	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
+	mv ./dist/container-init_linux_amd64 ./tmp/container-init_linux_amd64
+	mv ./dist/container-init_linux_arm64 ./tmp/container-init_linux_arm64
+	mv ./dist/container-init_linux_ppc64le ./tmp/container-init_linux_ppc64le
 	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le

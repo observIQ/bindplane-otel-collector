@@ -47,6 +47,16 @@ jobs:
             tar -xzf "tmp/${ARCHIVE}" -C "tmp/${ARCH}" observiq-otel-collector
             mv "tmp/${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
           done
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cmd/container-init/go.mod
+      - name: Build container-init Binaries
+        run: |
+          for ARCH in amd64 arm64 ppc64le; do
+            GOOS=linux GOARCH=$ARCH make container-init
+            mv "./dist/container-init_linux_${ARCH}" "tmp/container-init_linux_${ARCH}"
+          done
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3

@@ -58,6 +58,7 @@ COPY LICENSE /licenses/observiq-otel-collector.license
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY container-init /collector/container-init
 COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/opentelemetry-java-contrib-jmx-metrics.jar
 COPY release_deps/plugins /etc/otel/plugins
 

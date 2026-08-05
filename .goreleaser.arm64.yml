@@ -24,6 +24,15 @@ builds:
       - arm64
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  - id: container-init
+    builder: prebuilt
+    binary: container-init
+    goos:
+      - linux
+    goarch:
+      - arm64
+    prebuilt:
+      path: tmp/container-init_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 dockers:
   - id: ubuntu-arm64
@@ -35,6 +44,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/bindplane-agent-arm64:{{ .Version }}"
       - "observiq/bindplane-agent-arm64:latest"

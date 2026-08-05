@@ -20,6 +20,17 @@ builds:
       - ppc64le
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}
+  - id: container-init
+    builder: prebuilt
+    binary: container-init
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - ppc64le
+    prebuilt:
+      path: tmp/container-init_{{ .Os }}_{{ .Arch }}
 
 # Build container images with docker buildx (mutli arch builds).
 dockers:
@@ -32,6 +43,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
       - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
@@ -59,6 +71,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
       - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
@@ -86,6 +99,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
       - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
@@ -114,6 +128,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-amd64:latest"
       - "observiq/observiq-otel-collector-amd64:{{ .Version }}"
@@ -151,6 +166,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-arm64:latest"
       - "observiq/observiq-otel-collector-arm64:{{ .Version }}"
@@ -188,6 +204,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-ppc64le:latest"
       - "observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
@@ -226,6 +243,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-amd64:{{ .Version }}-jmx"
       - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}-jmx"
@@ -258,6 +276,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-arm64:{{ .Version }}-jmx"
       - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}-jmx"
@@ -290,6 +309,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/observiq-otel-collector-ppc64le:{{ .Version }}-jmx"
       - "ghcr.io/observiq/observiq-otel-collector-ppc64le:{{ .Version }}-jmx"
