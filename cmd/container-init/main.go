@@ -87,10 +87,14 @@ func run(configPath, loggingPath string, overwrite bool) error {
 
 	for _, f := range files {
 		dir := filepath.Dir(f.path)
-		if err := os.MkdirAll(dir, 0750); err != nil {
-			return fmt.Errorf("create directory %s: %w", dir, err)
+		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+			if err := os.MkdirAll(dir, 0750); err != nil {
+				return fmt.Errorf("create directory %s: %w", dir, err)
+			}
+			log.Printf("created directory %s", dir)
+		} else if err != nil {
+			return fmt.Errorf("stat %s: %w", dir, err)
 		}
-		log.Printf("created directory %s", dir)
 		if !overwrite {
 			if _, err := os.Stat(f.path); err == nil {
 				log.Printf("skipped %s: file already exists", f.path)
