@@ -24,15 +24,19 @@ builds:
       - arm64
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  # Unlike the collector (built by ocb/make and imported prebuilt),
+  # container-init is a plain Go module goreleaser can build itself.
   - id: container-init
-    builder: prebuilt
+    dir: cmd/container-init
     binary: container-init
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
     goos:
       - linux
     goarch:
       - arm64
-    prebuilt:
-      path: tmp/container-init_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 dockers:
   - id: ubuntu-arm64

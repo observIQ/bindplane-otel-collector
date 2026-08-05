@@ -430,16 +430,10 @@ release-test:
 .PHONY: release-containers-test
 release-containers-test:
 	$(MAKE) -j3 agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
-	GOARCH=amd64 GOOS=linux $(MAKE) container-init
-	GOARCH=arm64 GOOS=linux $(MAKE) container-init
-	GOARCH=ppc64le GOOS=linux $(MAKE) container-init
 	mkdir -p tmp
 	mv ./dist/collector_linux_amd64 ./tmp/collector_linux_amd64
 	mv ./dist/collector_linux_arm64 ./tmp/collector_linux_arm64
 	mv ./dist/collector_linux_ppc64le ./tmp/collector_linux_ppc64le
-	mv ./dist/container-init_linux_amd64 ./tmp/container-init_linux_amd64
-	mv ./dist/container-init_linux_arm64 ./tmp/container-init_linux_arm64
-	mv ./dist/container-init_linux_ppc64le ./tmp/container-init_linux_ppc64le
 	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 .PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
