@@ -4,10 +4,6 @@ updates:
     directory: "/cmd/container-init"
     schedule:
       interval: "weekly"
-    ignore:
-      # Opentelemetry updates will be done manually
-      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
-      - dependency-name: "go.opentelemetry.io/*"
   - package-ecosystem: "gomod"
     directory: "/cmd/plugindocgen"
     schedule:

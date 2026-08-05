@@ -54,8 +54,8 @@ level: info
 )
 
 func main() {
-	configPath := flag.String("config", "", "path to write the default collector config (required)")
-	loggingPath := flag.String("logging", "", "path to write the default logging config (required)")
+	configPath := flag.String("config", "", "absolute path to write the default collector config (required)")
+	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required)")
 	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
 	flag.Parse()
 
@@ -70,21 +70,30 @@ func main() {
 }
 
 // run creates the parent directories of configPath and loggingPath and
-// writes default file contents to them. Existing files are left untouched
-// unless overwrite is true.
+// writes default file contents to them. Both paths must be absolute.
+// Existing files are left untouched unless overwrite is true.
 func run(configPath, loggingPath string, overwrite bool) error {
 	files := []struct{ path, contents string }{
 		{configPath, defaultCollectorConfig},
 		{loggingPath, defaultLoggingConfig},
 	}
+
+	// Validate both paths before touching the filesystem.
 	for _, f := range files {
-		if dir := filepath.Dir(f.path); dir != "." {
-			if err := os.MkdirAll(dir, 0750); err != nil {
-				return fmt.Errorf("create directory for %s: %w", f.path, err)
-			}
+		if !filepath.IsAbs(f.path) {
+			return fmt.Errorf("path %s must be absolute", f.path)
 		}
+	}
+
+	for _, f := range files {
+		dir := filepath.Dir(f.path)
+		if err := os.MkdirAll(dir, 0750); err != nil {
+			return fmt.Errorf("create directory %s: %w", dir, err)
+		}
+		log.Printf("created directory %s", dir)
 		if !overwrite {
 			if _, err := os.Stat(f.path); err == nil {
+				log.Printf("skipped %s: file already exists", f.path)
 				continue
 			} else if !errors.Is(err, os.ErrNotExist) {
 				return fmt.Errorf("stat %s: %w", f.path, err)
@@ -93,6 +102,7 @@ func run(configPath, loggingPath string, overwrite bool) error {
 		if err := os.WriteFile(f.path, []byte(f.contents), 0600); err != nil {
 			return fmt.Errorf("write %s: %w", f.path, err)
 		}
+		log.Printf("wrote %s", f.path)
 	}
 	return nil
 }

@@ -48,6 +48,15 @@ func TestRun(t *testing.T) {
 	requireFileContents(t, configPath, defaultCollectorConfig)
 }
 
+func TestRunRejectsRelativePaths(t *testing.T) {
+	if err := run("relative/config.yaml", "/abs/logging.yaml", false); err == nil {
+		t.Fatal("expected error for relative config path")
+	}
+	if err := run("/abs/config.yaml", "relative/logging.yaml", false); err == nil {
+		t.Fatal("expected error for relative logging path")
+	}
+}
+
 func requireFileContents(t *testing.T, path, expected string) {
 	t.Helper()
 	contents, err := os.ReadFile(path)
