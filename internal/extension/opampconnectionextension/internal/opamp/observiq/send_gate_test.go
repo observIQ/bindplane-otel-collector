@@ -72,7 +72,7 @@ func TestSendGate_ShorterBlockDoesNotShortenExistingDelay(t *testing.T) {
 }
 
 func TestSendGate_CloseUnblocksWait(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
+	synctest.Test(t, func(_ *testing.T) {
 		g := newSendGate()
 		g.block(10 * time.Second)
 
