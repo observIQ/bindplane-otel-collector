@@ -17,6 +17,7 @@ package observiq
 import (
 	"context"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp/mocks"
@@ -26,55 +27,61 @@ import (
 )
 
 func TestGatedOpAMPClient_WaitsForGateBeforeDelegating(t *testing.T) {
-	gate := newSendGate()
-	wait := 100 * time.Millisecond
-	gate.block(wait)
+	synctest.Test(t, func(t *testing.T) {
+		gate := newSendGate()
+		wait := 100 * time.Millisecond
+		gate.block(wait)
 
-	mockClient := new(mocks.MockOpAMPClient)
-	var calledAt time.Time
-	mockClient.On("SetHealth", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
-		calledAt = time.Now()
+		mockClient := new(mocks.MockOpAMPClient)
+		var calledAt time.Time
+		mockClient.On("SetHealth", mock.Anything).Return(nil).Run(func(_ mock.Arguments) {
+			calledAt = time.Now()
+		})
+
+		gated := newGatedOpAMPClient(mockClient, gate)
+
+		start := time.Now()
+		err := gated.SetHealth(&protobufs.ComponentHealth{})
+		assert.NoError(t, err)
+		assert.Equal(t, wait, calledAt.Sub(start))
+
+		mockClient.AssertExpectations(t)
 	})
-
-	gated := newGatedOpAMPClient(mockClient, gate)
-
-	start := time.Now()
-	err := gated.SetHealth(&protobufs.ComponentHealth{})
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, calledAt.Sub(start), wait)
-
-	mockClient.AssertExpectations(t)
 }
 
 func TestGatedOpAMPClient_NoDelayWhenGateOpen(t *testing.T) {
-	gate := newSendGate()
+	synctest.Test(t, func(t *testing.T) {
+		gate := newSendGate()
 
-	mockClient := new(mocks.MockOpAMPClient)
-	mockClient.On("SendCustomMessage", mock.Anything).Return((chan struct{})(nil), nil)
+		mockClient := new(mocks.MockOpAMPClient)
+		mockClient.On("SendCustomMessage", mock.Anything).Return((chan struct{})(nil), nil)
 
-	gated := newGatedOpAMPClient(mockClient, gate)
+		gated := newGatedOpAMPClient(mockClient, gate)
 
-	start := time.Now()
-	_, err := gated.SendCustomMessage(&protobufs.CustomMessage{})
-	assert.NoError(t, err)
-	assert.Less(t, time.Since(start), 50*time.Millisecond)
+		start := time.Now()
+		_, err := gated.SendCustomMessage(&protobufs.CustomMessage{})
+		assert.NoError(t, err)
+		assert.Equal(t, time.Duration(0), time.Since(start))
 
-	mockClient.AssertExpectations(t)
+		mockClient.AssertExpectations(t)
+	})
 }
 
 func TestGatedOpAMPClient_StopIsNotGated(t *testing.T) {
-	gate := newSendGate()
-	gate.block(10 * time.Second)
+	synctest.Test(t, func(t *testing.T) {
+		gate := newSendGate()
+		gate.block(10 * time.Second)
 
-	mockClient := new(mocks.MockOpAMPClient)
-	mockClient.On("Stop", mock.Anything).Return(nil)
+		mockClient := new(mocks.MockOpAMPClient)
+		mockClient.On("Stop", mock.Anything).Return(nil)
 
-	gated := newGatedOpAMPClient(mockClient, gate)
+		gated := newGatedOpAMPClient(mockClient, gate)
 
-	start := time.Now()
-	err := gated.Stop(context.Background())
-	assert.NoError(t, err)
-	assert.Less(t, time.Since(start), 50*time.Millisecond)
+		start := time.Now()
+		err := gated.Stop(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, time.Duration(0), time.Since(start))
 
-	mockClient.AssertExpectations(t)
+		mockClient.AssertExpectations(t)
+	})
 }
