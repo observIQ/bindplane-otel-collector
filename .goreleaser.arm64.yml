@@ -5,8 +5,12 @@ project_name: observiq-otel-collector
 before:
   hooks:
     - make release-prep CURR_VERSION={{ .Version }}
-    # Pre-build the linux/arm64 binary via ocb-driven `make`.
-    - GOOS=linux GOARCH=arm64 make build-binaries OUTDIR="tmp"
+    # Pre-build the linux/arm64 binary via ocb-driven `make`. Goreleaser runs
+    # hooks without a shell, so GOOS/GOARCH go in `env`, not as a command prefix.
+    - cmd: make build-binaries OUTDIR=tmp
+      env:
+        - GOOS=linux
+        - GOARCH=arm64
 
 after:
   hooks:
