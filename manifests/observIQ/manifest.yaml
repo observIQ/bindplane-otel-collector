@@ -149,6 +149,7 @@ receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/cloudfoundryreceiver v0.157.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.157.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/couchdbreceiver v0.157.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/datadogreceiver v0.157.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver v0.157.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/elasticsearchreceiver v0.157.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.157.0
