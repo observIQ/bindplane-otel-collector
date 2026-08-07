@@ -336,13 +336,13 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	// Ensure we're no longer monitoring the collector as we shutdown to avoid error messages due to shutdown
 	c.stopCollectorMonitoring()
 
-	c.safeSetDisconnecting(true)
-	c.collector.Stop(ctx)
-
 	// Release anything blocked waiting on a server-requested retry delay so shutdown isn't held up.
 	if c.sendGate != nil {
 		c.sendGate.close()
 	}
+
+	c.safeSetDisconnecting(true)
+	c.collector.Stop(ctx)
 
 	// Reset the measurements registry to prevent resending old metrics on reconnect
 	if c.measurementsSender != nil {
