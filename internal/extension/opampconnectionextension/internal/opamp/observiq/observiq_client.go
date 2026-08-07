@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -447,9 +448,12 @@ func (c *Client) onErrorHandler(_ context.Context, errResp *protobufs.ServerErro
 	c.logger.Error("Server returned an error response", zap.String("Error", errResp.GetErrorMessage()))
 
 	if retryInfo := errResp.GetRetryInfo(); retryInfo != nil {
-		wait := time.Duration(retryInfo.GetRetryAfterNanoseconds())
-		c.logger.Info("Server requested a retry delay, blocking outgoing messages", zap.Stringer("wait", wait))
-		c.sendGate.block(wait)
+		if c.sendGate != nil {
+			retryAfterNanoseconds := min(retryInfo.GetRetryAfterNanoseconds(), math.MaxInt64)
+			wait := time.Duration(retryAfterNanoseconds)
+			c.logger.Warn("Server requested a retry delay, blocking outgoing messages", zap.Stringer("wait", wait))
+			c.sendGate.block(wait)
+		}
 	}
 }
 
