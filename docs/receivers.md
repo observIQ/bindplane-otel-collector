@@ -28,6 +28,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | Cloudflare Receiver                        | [cloudflarereceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/cloudflarereceiver/README.md)                         |
 | Cloud Foundry Receiver                     | [cloudfoundryreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/cloudfoundryreceiver/README.md)                     |
 | collectd write_http Plugin JSON Receiver   | [collectdreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/collectdreceiver/README.md)                             |
+| Datadog Receiver                           | [datadogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/datadogreceiver/README.md)                               |
 | Docker Stats Receiver                      | [dockerstatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/dockerstatsreceiver/README.md)                       |
 | Elasticsearch Receiver                     | [elasticsearchreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/elasticsearchreceiver/README.md)                   |
 | File Log Receiver                          | [filelogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.157.0/receiver/filelogreceiver/README.md)                               |
