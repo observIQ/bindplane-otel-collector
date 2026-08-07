@@ -78,10 +78,9 @@ func (g *gatedOpAMPClient) RequestConnectionSettings(request *protobufs.Connecti
 	return g.OpAMPClient.RequestConnectionSettings(request)
 }
 
-// SetCustomCapabilities calls [client.OpAMPClient.SetCustomCapabilities] with its OpAMPClient after making sure
-// the sendGate isn't blocking
+// SetCustomCapabilities calls [client.OpAMPClient.SetCustomCapabilities] with its OpAMPClient.
+// It does not wait for the sendGate
 func (g *gatedOpAMPClient) SetCustomCapabilities(customCapabilities *protobufs.CustomCapabilities) error {
-	g.gate.wait()
 	return g.OpAMPClient.SetCustomCapabilities(customCapabilities)
 }
 
