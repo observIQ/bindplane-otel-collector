@@ -127,9 +127,14 @@ agent:
 updater:
 	cd ./updater/; CGO_ENABLED=0 go build -ldflags "$(UPDATER_LDFLAGS)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
-# Builds the updater + agent for current GOOS/GOARCH pair
+# Builds the container-init binary for current GOOS/GOARCH pair
+.PHONY: container-init
+container-init:
+	cd ./cmd/container-init/; CGO_ENABLED=0 go build -ldflags "-s -w" -o ../../$(OUTDIR)/container-init_$(GOOS)_$(GOARCH)$(EXT) .
+
+# Builds the updater + agent + container-init for current GOOS/GOARCH pair
 .PHONY: build-binaries
-build-binaries: agent updater
+build-binaries: agent updater container-init
 
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows

@@ -47,6 +47,12 @@ jobs:
             tar -xzf "tmp/${ARCHIVE}" -C "tmp/${ARCH}" observiq-otel-collector
             mv "tmp/${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
           done
+      # Goreleaser builds the container-init binary itself; it just needs
+      # a Go toolchain on the runner.
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cmd/container-init/go.mod
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3

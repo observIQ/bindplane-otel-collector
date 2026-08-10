@@ -1,6 +1,10 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
+    directory: "/cmd/container-init"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
     directory: "/cmd/plugindocgen"
     schedule:
       interval: "weekly"

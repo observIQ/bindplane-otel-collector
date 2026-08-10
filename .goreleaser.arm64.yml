@@ -5,8 +5,12 @@ project_name: observiq-otel-collector
 before:
   hooks:
     - make release-prep CURR_VERSION={{ .Version }}
-    # Pre-build the linux/arm64 binary via ocb-driven `make`.
-    - GOOS=linux GOARCH=arm64 make build-binaries OUTDIR="tmp"
+    # Pre-build the linux/arm64 binary via ocb-driven `make`. Goreleaser runs
+    # hooks without a shell, so GOOS/GOARCH go in `env`, not as a command prefix.
+    - cmd: make build-binaries OUTDIR=tmp
+      env:
+        - GOOS=linux
+        - GOARCH=arm64
 
 after:
   hooks:
@@ -24,6 +28,19 @@ builds:
       - arm64
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  # Unlike the collector (built by ocb/make and imported prebuilt),
+  # container-init is a plain Go module goreleaser can build itself.
+  - id: container-init
+    dir: cmd/container-init
+    binary: container-init
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+    goarch:
+      - arm64
 
 dockers:
   - id: ubuntu-arm64
@@ -35,6 +52,7 @@ dockers:
       max_delay: 1m
     ids:
       - collector
+      - container-init
     image_templates:
       - "observiq/bindplane-agent-arm64:{{ .Version }}"
       - "observiq/bindplane-agent-arm64:latest"
