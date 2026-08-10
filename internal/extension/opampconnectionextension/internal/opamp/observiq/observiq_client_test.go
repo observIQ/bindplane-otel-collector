@@ -864,7 +864,7 @@ func TestClient_onErrorHandler(t *testing.T) {
 		c.onErrorHandler(context.Background(), errResp)
 
 		start := time.Now()
-		gate.wait()
+		gate.wait(nil)
 		assert.Less(t, time.Since(start), 50*time.Millisecond)
 	})
 
@@ -892,7 +892,7 @@ func TestClient_onErrorHandler(t *testing.T) {
 
 		// A subsequent send should be held back for roughly the requested duration.
 		start = time.Now()
-		gate.wait()
+		gate.wait(nil)
 		assert.GreaterOrEqual(t, time.Since(start), wait)
 	})
 }

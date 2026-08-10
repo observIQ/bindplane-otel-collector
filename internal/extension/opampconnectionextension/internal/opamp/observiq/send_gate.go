@@ -53,20 +53,29 @@ func (g *sendGate) block(d time.Duration) {
 }
 
 // wait blocks until any delay set by block has elapsed, or the gate is closed.
-func (g *sendGate) wait() {
+// If cancel fires first, wait returns false to indicate that the caller should abandon whatever send it was waiting to make;
+// a nil cancel behaves as if it never fires. A nil *sendGate always returns true immediately,
+// so callers that only get a gate when it's needed (e.g. in tests) don't need to guard against it.
+func (g *sendGate) wait(cancel <-chan struct{}) bool {
+	if g == nil {
+		return true
+	}
+
 	for {
 		g.mu.Lock()
 		remaining := time.Until(g.notBefore)
 		g.mu.Unlock()
 
 		if remaining <= 0 {
-			return
+			return true
 		}
 
 		select {
 		case <-time.After(remaining):
 		case <-g.closed:
-			return
+			return true
+		case <-cancel:
+			return false
 		}
 	}
 }

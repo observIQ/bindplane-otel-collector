@@ -27,7 +27,7 @@ func TestSendGate_WaitWithoutBlockReturnsImmediately(t *testing.T) {
 		g := newSendGate()
 
 		start := time.Now()
-		g.wait()
+		g.wait(nil)
 		assert.Equal(t, time.Duration(0), time.Since(start))
 	})
 }
@@ -40,7 +40,7 @@ func TestSendGate_BlockDelaysWait(t *testing.T) {
 		g.block(wait)
 
 		start := time.Now()
-		g.wait()
+		g.wait(nil)
 		assert.Equal(t, wait, time.Since(start))
 	})
 }
@@ -53,7 +53,7 @@ func TestSendGate_LongerBlockWins(t *testing.T) {
 		g.block(200 * time.Millisecond)
 
 		start := time.Now()
-		g.wait()
+		g.wait(nil)
 		assert.Equal(t, 200*time.Millisecond, time.Since(start))
 	})
 }
@@ -66,7 +66,7 @@ func TestSendGate_ShorterBlockDoesNotShortenExistingDelay(t *testing.T) {
 		g.block(50 * time.Millisecond)
 
 		start := time.Now()
-		g.wait()
+		g.wait(nil)
 		assert.Equal(t, 200*time.Millisecond, time.Since(start))
 	})
 }
@@ -78,12 +78,47 @@ func TestSendGate_CloseUnblocksWait(t *testing.T) {
 
 		done := make(chan struct{})
 		go func() {
-			g.wait()
+			g.wait(nil)
 			close(done)
 		}()
 
 		g.close()
 		<-done
+	})
+}
+
+func TestSendGate_CancelUnblocksWaitAndReturnsFalse(t *testing.T) {
+	synctest.Test(t, func(_ *testing.T) {
+		g := newSendGate()
+		g.block(10 * time.Second)
+
+		cancel := make(chan struct{})
+		result := make(chan bool, 1)
+		go func() {
+			result <- g.wait(cancel)
+		}()
+
+		close(cancel)
+		assert.False(t, <-result)
+	})
+}
+
+func TestSendGate_WaitReturnsTrueWhenDelayElapsesBeforeCancel(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		g := newSendGate()
+		g.block(50 * time.Millisecond)
+
+		assert.True(t, g.wait(make(chan struct{})))
+	})
+}
+
+func TestSendGate_NilGateWaitReturnsTrueImmediately(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var g *sendGate
+
+		start := time.Now()
+		assert.True(t, g.wait(nil))
+		assert.Equal(t, time.Duration(0), time.Since(start))
 	})
 }
 
@@ -104,7 +139,7 @@ func TestSendGate_NonPositiveBlockIsNoop(t *testing.T) {
 		g.block(-1 * time.Second)
 
 		start := time.Now()
-		g.wait()
+		g.wait(nil)
 		assert.Equal(t, time.Duration(0), time.Since(start))
 	})
 }
