@@ -186,6 +186,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		clientLogger,
 		args.MeasurementsReporter,
 		observiqClient.opampClient,
+		observiqClient.sendGate,
 		args.Config.MeasurementsInterval,
 		args.Config.ExtraMeasurementsAttributes,
 	)
@@ -195,6 +196,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		clientLogger,
 		args.TopologyReporter,
 		observiqClient.opampClient,
+		observiqClient.sendGate,
 		args.Config.TopologyInterval,
 	)
 

@@ -62,7 +62,7 @@ func TestMeasurementsSender(t *testing.T) {
 		reg := measurements.NewResettableThroughputMeasurementsRegistry(false)
 		require.NoError(t, reg.RegisterThroughputMeasurements(processorID, tm))
 
-		ms := newMeasurementsSender(zap.NewNop(), reg, client, 1*time.Millisecond, nil)
+		ms := newMeasurementsSender(zap.NewNop(), reg, client, nil, 1*time.Millisecond, nil)
 		ms.Start()
 
 		select {
@@ -112,7 +112,7 @@ func TestMeasurementsSender(t *testing.T) {
 		reg := measurements.NewResettableThroughputMeasurementsRegistry(false)
 		reg.RegisterThroughputMeasurements(processorID, tm)
 
-		ms := newMeasurementsSender(zap.NewNop(), reg, client, 5*time.Hour, nil)
+		ms := newMeasurementsSender(zap.NewNop(), reg, client, nil, 5*time.Hour, nil)
 		ms.Start()
 
 		// With a 5-hour interval, no data should be emitted yet; confirm the channel

@@ -40,6 +40,7 @@ type topologySender struct {
 	logger      *zap.Logger
 	reporter    TopologyReporter
 	opampClient client.OpAMPClient
+	gate        *sendGate
 
 	interval           time.Duration
 	changeIntervalChan chan time.Duration
@@ -50,7 +51,7 @@ type topologySender struct {
 	wg        *sync.WaitGroup
 }
 
-func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient, interval *time.Duration) *topologySender {
+func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient, gate *sendGate, interval *time.Duration) *topologySender {
 	var topologyInterval time.Duration
 	if interval == nil {
 		topologyInterval = defaultTopologyInterval
@@ -62,6 +63,7 @@ func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient cli
 		logger:      l,
 		reporter:    reporter,
 		opampClient: opampClient,
+		gate:        gate,
 		interval:    topologyInterval,
 
 		changeIntervalChan: make(chan time.Duration, 1),
@@ -166,6 +168,15 @@ func (ts *topologySender) loop() {
 
 			success := false
 			for i := 0; i < maxSendRetries; i++ {
+				// Check the gate ourselves, with a cancellation path tied to
+				// this sender's done channel, rather than relying solely on
+				// the gated client's own (uncancelable) wait: otherwise Stop
+				// could block for the remainder of a server-requested retry
+				// delay if the server withdraws this capability mid-session.
+				if !ts.gate.wait(ts.done) {
+					return
+				}
+
 				sendingChannel, err := ts.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK

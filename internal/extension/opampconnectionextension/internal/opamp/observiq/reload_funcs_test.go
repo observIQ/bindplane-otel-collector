@@ -101,8 +101,8 @@ func Test_managerReload(t *testing.T) {
 					opampClient:        mockOpAmpClient,
 					ident:              newIdentity(zap.NewNop(), *currConfig, "0.0.0"),
 					currentConfig:      *currConfig,
-					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, 0, nil),
-					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil),
+					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, nil, 0, nil),
+					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil, nil),
 				}
 				reloadFunc := managerReload(client, managerFilePath)
 
@@ -236,8 +236,8 @@ labels: env=prod
 					opampClient:        mockOpAmpClient,
 					ident:              newIdentity(zap.NewNop(), *currConfig, "0.0.0"),
 					currentConfig:      *currConfig,
-					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, 0, nil),
-					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil),
+					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, nil, 0, nil),
+					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil, nil),
 				}
 				reloadFunc := managerReload(client, managerFilePath)
 
