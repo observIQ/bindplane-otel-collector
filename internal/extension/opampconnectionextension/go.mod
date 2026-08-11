@@ -11,7 +11,7 @@ require (
 	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.12.0
 	github.com/observiq/bindplane-otel-contrib/pkg/version v1.12.0
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.12.0
-	github.com/oklog/ulid/v2 v2.1.1
+	github.com/oklog/ulid/v2 v2.1.2
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.158.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.158.0
