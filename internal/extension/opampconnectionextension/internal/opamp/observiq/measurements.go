@@ -41,6 +41,7 @@ type measurementsSender struct {
 	logger          *zap.Logger
 	reporter        MeasurementsReporter
 	opampClient     client.OpAMPClient
+	gate            *sendGate
 	interval        time.Duration
 	extraAttributes map[string]string
 
@@ -56,11 +57,12 @@ type measurementsSender struct {
 	lastSendMux          *sync.RWMutex
 }
 
-func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
+func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, gate *sendGate, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
 	return &measurementsSender{
 		logger:          l,
 		reporter:        reporter,
 		opampClient:     opampClient,
+		gate:            gate,
 		interval:        interval,
 		extraAttributes: extraAttributes,
 
@@ -177,6 +179,14 @@ func (m *measurementsSender) loop() {
 
 			success := false
 			for i := 0; i < maxSendRetries; i++ {
+				// Check the gate ourselves, with a cancellation path tied to this sender's done channel,
+				// rather than relying solely on the gated client's own (uncancelable) wait:
+				// otherwise [measurementsSender.Stop] could block for the remainder of a server-requested retry delay
+				// if the server withdraws this capability mid-session.
+				if !m.gate.wait(m.done) {
+					return
+				}
+
 				sendingChannel, err := m.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK

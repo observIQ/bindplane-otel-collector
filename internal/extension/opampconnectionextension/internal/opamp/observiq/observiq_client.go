@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -86,6 +87,7 @@ type Client struct {
 	reportManager           *report.Manager
 	measurementsSender      *measurementsSender
 	topologySender          *topologySender
+	sendGate                *sendGate
 
 	// To signal if we are disconnecting already and not take any actions on connection failures
 	disconnecting bool
@@ -147,6 +149,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		updaterManager:          updaterManger,
 		reportManager:           reportManager,
 		managerConfigPath:       args.ManagerConfigPath,
+		sendGate:                newSendGate(),
 	}
 
 	// Parse URL to determin scheme
@@ -164,7 +167,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 	switch opampURL.Scheme {
 	case "ws", "wss":
 		logger := newZapOpAMPLoggerAdapter(clientLogger)
-		observiqClient.opampClient = client.NewWebSocket(logger)
+		observiqClient.opampClient = newGatedOpAMPClient(client.NewWebSocket(logger), observiqClient.sendGate)
 	default:
 		return nil, ErrUnsupportedURL
 	}
@@ -183,6 +186,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		clientLogger,
 		args.MeasurementsReporter,
 		observiqClient.opampClient,
+		observiqClient.sendGate,
 		args.Config.MeasurementsInterval,
 		args.Config.ExtraMeasurementsAttributes,
 	)
@@ -192,6 +196,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		clientLogger,
 		args.TopologyReporter,
 		observiqClient.opampClient,
+		observiqClient.sendGate,
 		args.Config.TopologyInterval,
 	)
 
@@ -333,6 +338,11 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	// Ensure we're no longer monitoring the collector as we shutdown to avoid error messages due to shutdown
 	c.stopCollectorMonitoring()
 
+	// Release anything blocked waiting on a server-requested retry delay so shutdown isn't held up.
+	if c.sendGate != nil {
+		c.sendGate.close()
+	}
+
 	c.safeSetDisconnecting(true)
 	c.collector.Stop(ctx)
 
@@ -438,6 +448,15 @@ func (c *Client) onConnectFailedHandler(_ context.Context, err error) {
 
 func (c *Client) onErrorHandler(_ context.Context, errResp *protobufs.ServerErrorResponse) {
 	c.logger.Error("Server returned an error response", zap.String("Error", errResp.GetErrorMessage()))
+
+	if retryInfo := errResp.GetRetryInfo(); retryInfo != nil {
+		if c.sendGate != nil {
+			retryAfterNanoseconds := min(retryInfo.GetRetryAfterNanoseconds(), math.MaxInt64)
+			wait := time.Duration(retryAfterNanoseconds)
+			c.logger.Warn("Server requested a retry delay, blocking outgoing messages", zap.Stringer("wait", wait))
+			c.sendGate.block(wait)
+		}
+	}
 }
 
 func (c *Client) onGetEffectiveConfigHandler(_ context.Context) (*protobufs.EffectiveConfig, error) {

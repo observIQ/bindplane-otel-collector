@@ -849,6 +849,54 @@ func TestClient_onConnectFailedHandler(t *testing.T) {
 	}
 }
 
+func TestClient_onErrorHandler(t *testing.T) {
+	t.Run("No retry info does not block sends", func(t *testing.T) {
+		gate := newSendGate()
+		c := &Client{
+			logger:   zap.NewNop(),
+			sendGate: gate,
+		}
+
+		errResp := &protobufs.ServerErrorResponse{
+			ErrorMessage: "oops",
+		}
+
+		c.onErrorHandler(context.Background(), errResp)
+
+		start := time.Now()
+		gate.wait(nil)
+		assert.Less(t, time.Since(start), 50*time.Millisecond)
+	})
+
+	t.Run("Retry info blocks sends for the requested duration", func(t *testing.T) {
+		gate := newSendGate()
+		c := &Client{
+			logger:   zap.NewNop(),
+			sendGate: gate,
+		}
+
+		wait := 100 * time.Millisecond
+		errResp := &protobufs.ServerErrorResponse{
+			ErrorMessage: "unavailable",
+			Details: &protobufs.ServerErrorResponse_RetryInfo{
+				RetryInfo: &protobufs.RetryInfo{
+					RetryAfterNanoseconds: uint64(wait.Nanoseconds()),
+				},
+			},
+		}
+
+		// onErrorHandler only arms the gate - it must return immediately itself.
+		start := time.Now()
+		c.onErrorHandler(context.Background(), errResp)
+		assert.Less(t, time.Since(start), 50*time.Millisecond)
+
+		// A subsequent send should be held back for roughly the requested duration.
+		start = time.Now()
+		gate.wait(nil)
+		assert.GreaterOrEqual(t, time.Since(start), wait)
+	})
+}
+
 func TestClient_onGetEffectiveConfigHandler(t *testing.T) {
 	mockManager := mocks.NewMockConfigManager(t)
 
