@@ -6,11 +6,11 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.106.0
-	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.11.0
-	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.11.0
-	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.11.0
-	github.com/observiq/bindplane-otel-contrib/pkg/version v1.11.0
-	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.11.0
+	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.12.0
+	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.12.0
+	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.12.0
+	github.com/observiq/bindplane-otel-contrib/pkg/version v1.12.0
+	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.12.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.158.0
@@ -131,7 +131,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.11.0 // indirect
+	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.12.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.158.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.158.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.158.0 // indirect
@@ -207,7 +207,7 @@ require (
 	go.opentelemetry.io/collector/pipeline v1.64.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.158.0 // indirect
 	go.opentelemetry.io/collector/processor v1.64.0 // indirect
-	go.opentelemetry.io/collector/processor/processorhelper v0.157.0 // indirect
+	go.opentelemetry.io/collector/processor/processorhelper v0.158.0 // indirect
 	go.opentelemetry.io/collector/processor/processortest v0.158.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.158.0 // indirect
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.158.0 // indirect
