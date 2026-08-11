@@ -13,7 +13,7 @@ Log parser for Kubernetes Container logs. This plugin is meant to be used with t
 | body_json_parsing | If the application log is detected as json, parse the values into the log entry's body. | bool | `true` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
 | log_driver | The container runtime's log driver used to write container logs to disk. Valid options include `auto`, `docker-json-file` and `containerd-cri`. When set to `auto`, the format will be detected using regex. Format detection is convenient but comes with the cost of performing a regex match against every log entry read by the file_log receiver. | string | `auto` | false | `auto`, `docker-json-file`, `containerd-cri` |
-| offset_storage_dir | The directory that the offset storage file will be created | string | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false |  |
+| offset_storage_dir | The directory that the offset storage file will be created | string | `${env:BINDPLANE_COLLECTOR_STORAGE}` | false |  |
 | parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
@@ -32,6 +32,6 @@ receivers:
       body_json_parsing: true
       start_at: end
       log_driver: auto
-      offset_storage_dir: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+      offset_storage_dir: ${env:BINDPLANE_COLLECTOR_STORAGE}
       parse: true
 ```

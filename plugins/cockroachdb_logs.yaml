@@ -94,7 +94,7 @@ parameters:
   - name: offset_storage_dir
     description: The directory that the offset storage file will be created
     type: string
-    default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+    default: ${env:BINDPLANE_COLLECTOR_STORAGE}
   - name: parse
     description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
     type: bool
