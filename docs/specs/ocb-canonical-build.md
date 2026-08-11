@@ -102,7 +102,7 @@ ocb's default `main.go`, no overlay. The binary is a vanilla otel-collector with
 
 ## Build flag
 
-`-tags bindplane` is required on the v1 build. Two contrib processors — `topologyprocessor` and `throughputmeasurementprocessor` — gate their Bindplane registry wiring on this tag. Without it those processors no-op on Bindplane state. The v1 `make agent` target sets it. v2 doesn't need it (no in-process Bindplane registry).
+The v1 build uses `-tags embed_library` (telemetry generator receiver). The `bindplane` tag is no longer needed: since bindplane-otel-contrib v1.12.0, `topologyprocessor` and `throughputmeasurementprocessor` no longer gate their Bindplane registry wiring behind a build tag.
 
 ## Replaces in manifests
 

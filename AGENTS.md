@@ -106,7 +106,7 @@ Custom components are organized by type:
 ### Build System
 
 The project uses a Makefile-based build system with:
-- **`make agent` runs ocb** against `manifests/observIQ/manifest.yaml`, overlays `internal/extension/opampconnectionextension/cmd/main/main.go`, and compiles. Build flag: `-tags bindplane` (enables Bindplane registry wiring in `topologyprocessor` and `throughputmeasurementprocessor`).
+- **`make agent` runs ocb** against `manifests/observIQ/manifest.yaml`, overlays `internal/extension/opampconnectionextension/cmd/main/main.go`, and compiles. Build tags: `embed_library` (see `AGENT_BUILD_TAGS` in the Makefile).
 - `make verify-manifest` is the CI gate for manifest correctness — regenerate sources + compile to `/dev/null`.
 - There's no top-level `go.mod`. ocb generates a per-build `go.mod` inside `./build/`.
 - Multi-platform cross-compilation support

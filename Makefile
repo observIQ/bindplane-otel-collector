@@ -45,9 +45,8 @@ AGENT_LDFLAGS = -s -w \
 	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
 
 # AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
-# 'bindplane' builds with logic used by the v1 OpAMP implementation
 # 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)
-AGENT_BUILD_TAGS = bindplane embed_library
+AGENT_BUILD_TAGS = embed_library
 
 # UPDATER_LDFLAGS stamps the same values into the updater binary.
 UPDATER_LDFLAGS = -s -w \
