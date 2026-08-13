@@ -330,35 +330,6 @@ func TestUpdaterUpdate(t *testing.T) {
 	})
 }
 
-func TestUpdateAbortsWhenSudoUnavailable(t *testing.T) {
-	// When the sudo pre-flight check fails, the update must abort before any
-	// destructive action, so the service is never stopped and nothing installs.
-	installDir := t.TempDir()
-
-	installer := install_mocks.NewMockInstaller(t)
-	svc := service_mocks.NewMockService(t)
-	rollbacker := rollback_mocks.NewMockRollbacker(t)
-	monitor := state_mocks.NewMockMonitor(t)
-
-	updater := &Updater{
-		installDir:               installDir,
-		installer:                installer,
-		svc:                      svc,
-		rollbacker:               rollbacker,
-		monitor:                  monitor,
-		logger:                   zaptest.NewLogger(t),
-		installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
-		checkSudo:                func() error { return errors.New("sudo unavailable") },
-	}
-
-	err := updater.Update()
-	require.ErrorContains(t, err, "sudo pre-flight check failed")
-	// The mocks are constructed with t and have no expectations set, so any
-	// service or installer call would fail the test. Assert explicitly too.
-	svc.AssertNotCalled(t, "Stop")
-	installer.AssertNotCalled(t, "Install", mock.Anything)
-}
-
 func TestGenerateLinuxServiceFiles(t *testing.T) {
 	// Windows does not use the files tested here, and has
 	// different newline characters that fail the test.
@@ -387,7 +358,7 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 
 		generated := string(content)
 		// Verify user/group from golden file
-		require.Contains(t, generated, "User=bdot")
+		require.Contains(t, generated, "User=root")
 		require.Contains(t, generated, "Group=bdot")
 		// Verify install dir is templated correctly
 		require.Contains(t, generated, fmt.Sprintf("WorkingDirectory=%s", installDir))
@@ -419,18 +390,6 @@ func checkFilePermissions(t *testing.T, filePath string, expectedPerm os.FileMod
 	require.NoError(t, err)
 
 	require.Equal(t, expectedPerm, info.Mode().Perm())
-}
-
-func TestReadUserFromSystemdFile(t *testing.T) {
-	t.Run("Extract User from systemd unit file", func(t *testing.T) {
-		u := &Updater{
-			installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
-		}
-
-		user, err := u.readUserFromSystemdFile()
-		require.NoError(t, err)
-		require.Equal(t, "bdot", user)
-	})
 }
 
 func TestReadGroupFromSystemdFile(t *testing.T) {

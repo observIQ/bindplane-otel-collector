@@ -23,7 +23,7 @@ StartLimitIntervalSec=120
 StartLimitBurst=5
 [Service]
 Type=simple
-User={{.User}}
+User=root
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=BINDPLANE_COLLECTOR_HOME={{.InstallDir}}
