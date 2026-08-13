@@ -53,10 +53,6 @@ type Updater struct {
 	monitor                  state.Monitor
 	logger                   *zap.Logger
 	installedSystemdUnitPath string
-	// checkSudo verifies sudo is usable before a destructive update. NewUpdater
-	// sets it to service.CheckSudoAvailable; a nil value skips the check and is
-	// used by tests that exercise the update flow with mocked services.
-	checkSudo func() error
 }
 
 // NewUpdater creates a new updater which can be used to update the installation based at
@@ -76,26 +72,7 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 		monitor:                  monitor,
 		logger:                   logger,
 		installedSystemdUnitPath: DefaultSystemdUnitFilePath,
-		checkSudo:                service.CheckSudoAvailable,
 	}, nil
-}
-
-// readUserFromSystemdFile reads the systemd unit file and extracts the User value.
-func (u *Updater) readUserFromSystemdFile() (string, error) {
-	// #nosec G304 - systemdUnitFilePath is not user configurable
-	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
-	}
-
-	lines := bytes.Split(fileContent, []byte("\n"))
-	for _, line := range lines {
-		if bytes.HasPrefix(line, []byte("User=")) {
-			return string(bytes.TrimSpace(bytes.TrimPrefix(line, []byte("User=")))), nil
-		}
-	}
-
-	return "", errors.New("User not found in systemd unit file")
 }
 
 // readGroupFromSystemdFile reads the systemd unit file and extracts the Group value.
@@ -150,16 +127,17 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("create install directory: %w", err)
 	}
 
-	// Read the User value from the systemd unit file
-	user, err := u.readUserFromSystemdFile()
-	if err != nil {
-		return fmt.Errorf("read user from systemd file %s: %w", u.installedSystemdUnitPath, err)
-	}
-
 	// Read the Group value from the systemd unit file
 	group, err := u.readGroupFromSystemdFile()
 	if err != nil {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+
+	// Hand the collector group to the service so it installs the unit file owned
+	// by root:<group>, matching the sudoers grant. Services that don't accept
+	// properties (darwin, windows) are a no-op here.
+	if pc, ok := u.svc.(service.PropertyConfigurable); ok {
+		pc.SetProperties(map[string]string{"group": group})
 	}
 
 	// Use the updater's install directory directly. This was already resolved
@@ -177,7 +155,6 @@ func (u *Updater) generateLinuxServiceFiles() error {
 	}
 
 	params := map[string]string{
-		"User":       user,
 		"Group":      group,
 		"InstallDir": installDir,
 		"StorageDir": storageDir,
@@ -209,16 +186,6 @@ func (u *Updater) generateLinuxServiceFiles() error {
 
 // Update performs the update of the collector binary
 func (u *Updater) Update() error {
-	// Abort before any destructive action if sudo is unavailable. When the
-	// updater runs as a non-root user it relies on sudo for service management,
-	// so checking here means a missing or misconfigured sudoers entry fails the
-	// update while the collector is still running rather than partway through.
-	if u.checkSudo != nil {
-		if err := u.checkSudo(); err != nil {
-			return fmt.Errorf("sudo pre-flight check failed: %w", err)
-		}
-	}
-
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
 	if runtime.GOOS == "linux" {

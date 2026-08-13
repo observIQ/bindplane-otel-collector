@@ -18,8 +18,6 @@ package service
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,25 +44,6 @@ func sudoCommand(name string, args ...string) *exec.Cmd {
 	}
 	//#nosec G204 -- arguments are not user-controlled
 	return exec.Command(name, args...)
-}
-
-// CheckSudoAvailable verifies that sudo can be used non-interactively before the
-// updater takes any destructive action. When running as root, sudo is not
-// needed and this is a no-op. When running as non-root it runs `sudo -n true`,
-// which confirms both that sudo exists and that a NOPASSWD rule is in place, so
-// the caller can abort an update while the collector is still running rather
-// than failing partway through.
-func CheckSudoAvailable() error {
-	if !needsSudo() {
-		return nil
-	}
-
-	//#nosec G204 -- arguments are constant, not user-controlled
-	if err := exec.Command("sudo", "-n", "true").Run(); err != nil {
-		return fmt.Errorf("updater is running as a non-root user but cannot run sudo non-interactively (a NOPASSWD sudoers entry is required): %w", err)
-	}
-
-	return nil
 }
 
 // Option is an extra option for creating a Service
@@ -126,6 +105,13 @@ type linuxSystemdService struct {
 	installedServiceFilePath string
 	installDir               string
 	logger                   *zap.Logger
+	// properties holds optional platform-specific service properties.
+	properties map[string]string
+}
+
+// SetProperties stores platform-specific properties for the systemd service.
+func (l *linuxSystemdService) SetProperties(props map[string]string) {
+	l.properties = props
 }
 
 // Start the service
@@ -146,48 +132,28 @@ func (l linuxSystemdService) Stop() error {
 	return nil
 }
 
-// installServiceFile copies the service file to its installed location.
-// When running as non-root, it uses "sudo install" to place the file
-// with root ownership. Otherwise, it copies the file directly.
-func installServiceFile(src, dst, mode string) error {
-	if needsSudo() {
-		cmd := sudoCommand("install", "-m", mode, "-o", "root", "-g", "root", src, dst)
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("sudo install failed: %w", err)
-		}
-		return nil
+// installServiceFile installs the service file to its destination with the
+// given mode and group ownership, prepending sudo when the updater runs as a
+// non-root user. The file is always owned by root; group is the collector's
+// runtime group so it can read the file.
+func installServiceFile(src, dst, mode, group string) error {
+	cmd := sudoCommand("install", "-m", mode, "-o", "root", "-g", group, src, dst)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("install service file failed: %w", err)
 	}
-
-	inFile, err := os.Open(src) // #nosec G304 -- src is an internal service file path, not user input
-	if err != nil {
-		return fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer func() {
-		if err := inFile.Close(); err != nil {
-			log.Default().Printf("Service Install: Failed to close input file: %s", err)
-		}
-	}()
-
-	outFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600) // #nosec G304 -- dst is an internal service file path, not user input
-	if err != nil {
-		return fmt.Errorf("failed to open output file: %w", err)
-	}
-	defer func() {
-		if err := outFile.Close(); err != nil {
-			log.Default().Printf("Service Install: Failed to close output file: %s", err)
-		}
-	}()
-
-	if _, err := io.Copy(outFile, inFile); err != nil {
-		return fmt.Errorf("failed to copy service file: %w", err)
-	}
-
 	return nil
 }
 
 // installs the service
 func (l linuxSystemdService) install() error {
-	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0640"); err != nil {
+	// The installed unit is owned root:<group> so the collector's runtime group
+	// can read it; fall back to root when no group was provided.
+	group := l.properties["group"]
+	if group == "" {
+		group = "root"
+	}
+
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0640", group); err != nil {
 		return fmt.Errorf("failed to install service file: %w", err)
 	}
 
@@ -278,7 +244,7 @@ func (l linuxSysVService) Stop() error {
 
 // installs the service
 func (l linuxSysVService) install() error {
-	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0755"); err != nil {
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0755", "root"); err != nil {
 		return fmt.Errorf("failed to install service file: %w", err)
 	}
 
