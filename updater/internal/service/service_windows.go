@@ -417,8 +417,3 @@ func setRecoveryActions(s *mgr.Service) error {
 
 	return s.SetRecoveryActions(recoveryActions, uint32(defaultResetPeriod.Seconds()))
 }
-
-// CheckSudoAvailable is a no-op on windows, where the updater does not use sudo.
-func CheckSudoAvailable() error {
-	return nil
-}

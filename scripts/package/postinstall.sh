@@ -515,26 +515,14 @@ install_sudoers() {
 # runtime user "${BDOT_USER}".
 
 # Service management via systemctl
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl start observiq-otel-collector
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl stop observiq-otel-collector
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart observiq-otel-collector
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl status observiq-otel-collector
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl enable observiq-otel-collector
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl disable observiq-otel-collector
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl start observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl stop observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl enable observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl disable observiq-otel-collector.service
 ${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
 
-# Service file installation and ownership via install(1)/chown/chmod
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 -o root -g root * /usr/lib/systemd/system/observiq-otel-collector.service
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/chown root\:${BDOT_GROUP} /usr/lib/systemd/system/observiq-otel-collector.service
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/chmod 0640 /usr/lib/systemd/system/observiq-otel-collector.service
-
-# SysV service management
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector start
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector stop
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector restart
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/service observiq-otel-collector status
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector on
-${BDOT_USER} ALL=(root) NOPASSWD: /usr/sbin/chkconfig observiq-otel-collector off
+# Service file installation via install(1)
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 -o root -g ${BDOT_GROUP} * /usr/lib/systemd/system/observiq-otel-collector.service
 EOF
 
   chown root:root "$sudoers_file"
@@ -546,8 +534,9 @@ validate_sudoers() {
   if [ -f "$sudoers_file" ]; then
     if command -v visudo > /dev/null 2>&1; then
       if ! visudo -cf "$sudoers_file" > /dev/null 2>&1; then
-        echo "WARNING: sudoers file $sudoers_file failed validation, removing"
+        echo "ERROR: sudoers file $sudoers_file failed validation" >&2
         rm -f "$sudoers_file"
+        exit 1
       fi
     fi
   fi
@@ -555,7 +544,11 @@ validate_sudoers() {
 
 install
 install_service
-install_sudoers
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  install_sudoers
+fi
 finish_permissions
-validate_sudoers
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  validate_sudoers
+fi
 manage_service
