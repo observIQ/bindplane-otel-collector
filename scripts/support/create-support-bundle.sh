@@ -260,6 +260,11 @@ function bundle_files() {
             tar --append --file="$tar_filename" -C "$log_dir" observiq_collector.err
             info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
         fi
+        err_backup_file="$log_dir/observiq_collector.err.1"
+        if [ -f "$err_backup_file" ]; then
+            tar --append --file="$tar_filename" -C "$log_dir" observiq_collector.err.1
+            info "Added file $(fg_cyan "$err_backup_file")$(reset) to the tar file."
+        fi
     fi
 
     # Check if the files exist, if yes append them to the tar file

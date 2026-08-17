@@ -54,6 +54,10 @@ if ($response -eq "n") {
         Write-Host "Adding $collector_dir\log\observiq_collector.err"
         Copy-Item "$collector_dir\log\observiq_collector.err" -Destination "$output_dir\" -Force
     }
+    if (Test-Path "$collector_dir\log\observiq_collector.err.1") {
+        Write-Host "Adding $collector_dir\log\observiq_collector.err.1"
+        Copy-Item "$collector_dir\log\observiq_collector.err.1" -Destination "$output_dir\" -Force
+    }
     Write-Host "Adding $collector_dir\log\collector.log"
     Copy-Item "$collector_dir\log\collector.log" -Destination "$output_dir\" -Force
 }
