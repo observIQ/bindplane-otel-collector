@@ -83,17 +83,17 @@ install_service() {
 }
 
 install_systemd_service() {
-  config_file="/usr/lib/systemd/system/observiq-otel-collector.service"
+  unit_file="/usr/lib/systemd/system/observiq-otel-collector.service"
 
-  if [ ! -f "$config_file" ]; then
-    echo "Installing systemd service to $config_file"
+  if [ ! -f "$unit_file" ]; then
+    echo "Installing systemd service to $unit_file"
   else
-    echo "Updating systemd service to $config_file"
+    echo "Updating systemd service to $unit_file"
   fi
 
-  mkdir -p "$(dirname "$config_file")"
+  mkdir -p "$(dirname "$unit_file")"
 
-  cat << EOF > "$config_file"
+  cat << EOF > "$unit_file"
 [Unit]
 Description=observIQ's distribution of the OpenTelemetry collector
 After=network.target
@@ -119,8 +119,8 @@ KillMode=process
 WantedBy=multi-user.target
 EOF
 
-  chown root:root "$config_file"
-  chmod 0640 "$config_file"
+  chown "root:${BDOT_GROUP}" "$unit_file"
+  chmod 0640 "$unit_file"
 
   # Ensure the override dir exists.
   override_dir="/etc/systemd/system/observiq-otel-collector.service.d"
@@ -142,17 +142,17 @@ EOF
 }
 
 install_initd_service() {
-  config_file="/etc/init.d/observiq-otel-collector"
+  init_file="/etc/init.d/observiq-otel-collector"
 
-  if [ ! -f "$config_file" ]; then
-    echo "Installing init.d service to $config_file"
+  if [ ! -f "$init_file" ]; then
+    echo "Installing init.d service to $init_file"
   else
-    echo "Updating init.d service to $config_file"
+    echo "Updating init.d service to $init_file"
   fi
 
-  mkdir -p "$(dirname "$config_file")"
+  mkdir -p "$(dirname "$init_file")"
 
-  cat << EOF > "$config_file"
+  cat << EOF > "$init_file"
 #!/bin/sh
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
@@ -409,8 +409,8 @@ fi
 exit "\$RETVAL"
 EOF
 
-  chown root:root "$config_file"
-  chmod 0755 "$config_file"
+  chown root:root "$init_file"
+  chmod 0755 "$init_file"
 }
 
 manage_systemd_service() {
