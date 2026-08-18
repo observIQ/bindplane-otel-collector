@@ -137,6 +137,16 @@ func (l linuxSystemdService) Stop() error {
 // non-root user. The file is always owned by root; group is the collector's
 // runtime group so it can read the file.
 func installServiceFile(src, dst, mode, group string) error {
+	// Pre-check the source and destination directory so a bad path yields a
+	// specific error; the install binary itself only exits non-zero with a
+	// generic status.
+	if _, err := os.Stat(src); err != nil {
+		return fmt.Errorf("failed to open input file: %w", err)
+	}
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil {
+		return fmt.Errorf("failed to open output file: %w", err)
+	}
+
 	cmd := sudoCommand("install", "-m", mode, "-o", "root", "-g", group, src, dst)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("install service file failed: %w", err)
