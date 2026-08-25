@@ -192,8 +192,15 @@ func redirectStderr() error {
 		return errors.New("OIQ_OTEL_COLLECTOR_HOME environment variable not set")
 	}
 
-	path := filepath.Join(homeDir, "log", "observiq_collector.err")
-	f, err := os.OpenFile(filepath.Clean(path), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0660)
+	path := filepath.Clean(filepath.Join(homeDir, "log", "observiq_collector.err"))
+
+	// Roll any previous contents to a backup so the file can't accumulate
+	// across service restarts. Must happen before the file is opened below.
+	if err := rollStderrFile(path); err != nil {
+		return fmt.Errorf("failed to roll stderr file: %w", err)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0660)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
@@ -203,6 +210,9 @@ func redirectStderr() error {
 	} else {
 		os.Stderr = f
 	}
+
+	// Bound the file in-flight so a runaway error stream can't fill the disk.
+	go watchStderrFile(path)
 
 	return nil
 }

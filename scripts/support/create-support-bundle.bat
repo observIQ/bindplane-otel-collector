@@ -44,6 +44,9 @@ if /I "%response%"=="n" (
     if exist "%collector_dir%\log\observiq_collector.err" (
         xcopy /Y "%collector_dir%\log\observiq_collector.err" "%output_dir%\"
     )
+    if exist "%collector_dir%\log\observiq_collector.err.1" (
+        xcopy /Y "%collector_dir%\log\observiq_collector.err.1" "%output_dir%\"
+    )
     xcopy /Y "%collector_dir%\log\collector.log" "%output_dir%\"
 )
 
