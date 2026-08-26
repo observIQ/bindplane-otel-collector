@@ -13,31 +13,31 @@ require (
 	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.12.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/open-telemetry/opamp-go v0.23.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.158.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.158.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.159.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.159.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.64.0
-	go.opentelemetry.io/collector/confmap v1.64.0
-	go.opentelemetry.io/collector/confmap/provider/envprovider v1.64.0
-	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.64.0
-	go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.64.0
-	go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.64.0
-	go.opentelemetry.io/collector/consumer v1.64.0
-	go.opentelemetry.io/collector/exporter v1.64.0
-	go.opentelemetry.io/collector/exporter/nopexporter v0.158.0
-	go.opentelemetry.io/collector/extension v1.64.0
-	go.opentelemetry.io/collector/featuregate v1.64.0
-	go.opentelemetry.io/collector/otelcol v0.158.0
-	go.opentelemetry.io/collector/pdata v1.64.0
-	go.opentelemetry.io/collector/receiver v1.64.0
-	go.opentelemetry.io/collector/service v0.158.0
+	go.opentelemetry.io/collector/component v1.65.0
+	go.opentelemetry.io/collector/confmap v1.65.0
+	go.opentelemetry.io/collector/confmap/provider/envprovider v1.65.0
+	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.65.0
+	go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.65.0
+	go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.65.0
+	go.opentelemetry.io/collector/consumer v1.65.0
+	go.opentelemetry.io/collector/exporter v1.65.0
+	go.opentelemetry.io/collector/exporter/nopexporter v0.159.0
+	go.opentelemetry.io/collector/extension v1.65.0
+	go.opentelemetry.io/collector/featuregate v1.65.0
+	go.opentelemetry.io/collector/otelcol v0.159.0
+	go.opentelemetry.io/collector/pdata v1.65.0
+	go.opentelemetry.io/collector/receiver v1.65.0
+	go.opentelemetry.io/collector/service v0.159.0
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/exp v0.0.0-20260527015227-08cc5374adb3

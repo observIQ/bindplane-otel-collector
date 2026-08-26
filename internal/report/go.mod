@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.12.0
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/pdata v1.64.0
+	go.opentelemetry.io/collector/pdata v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

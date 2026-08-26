@@ -258,9 +258,11 @@ replaces:
   - github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/DataDog/datadog-agent/comp/core/delegatedauth v0.78.2
   # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
   # Remove once the above PR is merged, released, and the relevant components are updated to that version.
-  # The commits being replaced to are built on the OTel v0.158.0 tag. 
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.106.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260807205552-1ebecdffff7a
-  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260807205552-1ebecdffff7a
+  # The commits being replaced to are built on the OTel v0.159.0 tag. 
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.107.0
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260826182017-e49dcc780902
+  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260826182017-e49dcc780902
   # The JMX receiver was removed in OTel v0.157.0. Pinned to a fork that we must maintain until we can migrate users to a new solution.
-  -  github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20260807210806-19b5f8384444
+  # The commit being replaced to is built on the OTel v0.159.0 tag. 
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.107.0
+  -  github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20260826182216-b54d93ff3625
