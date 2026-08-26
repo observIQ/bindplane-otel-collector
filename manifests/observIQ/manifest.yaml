@@ -255,7 +255,6 @@ replaces:
   # that must persist in release builds too.
   - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
-  - github.com/DataDog/datadog-agent/comp/core/delegatedauth => github.com/DataDog/datadog-agent/comp/core/delegatedauth v0.78.2
   # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
   # Remove once the above PR is merged, released, and the relevant components are updated to that version.
   # The commits being replaced to are built on the OTel v0.159.0 tag. 
