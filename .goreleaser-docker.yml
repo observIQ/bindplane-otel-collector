@@ -36,6 +36,21 @@ builds:
       - arm64
       - ppc64le
 
+# Container images and manifests are the only intended output of this config.
+# Without the three stanzas below, goreleaser applies its defaults: a tar.gz per
+# linux arch, a checksums file over them, and an upload of all of it to the GitHub
+# release for the tag. Those archives hold just the binaries and goreleaser's default
+# doc files, so they duplicate (less completely) the archives .goreleaser.yml already
+# publishes, and they ship unsigned.
+archives:
+  - formats: [binary]
+
+checksum:
+  disable: true
+
+release:
+  disable: true
+
 # Build container images with docker buildx (mutli arch builds).
 dockers:
   - id: scratch-amd64
