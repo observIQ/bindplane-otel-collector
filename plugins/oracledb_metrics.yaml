@@ -48,7 +48,7 @@ template: |
   {{end}}
 
   receivers:
-    sqlquery/oracledb:
+    sql_query/oracledb:
       collection_interval: {{ .scrape_interval }}
       datasource: {{ $datasource }}
       driver: oracle
@@ -677,5 +677,5 @@ template: |
   service:
     pipelines:
       metrics/oracledb:
-        receivers: [sqlquery/oracledb]
+        receivers: [sql_query/oracledb]
         processors: [metrics_transform]

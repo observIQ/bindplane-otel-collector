@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.12.0
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/pdata v1.64.0
+	go.opentelemetry.io/collector/pdata v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -18,6 +18,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	go.opentelemetry.io/collector/featuregate v1.64.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.65.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )
