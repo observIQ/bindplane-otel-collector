@@ -247,6 +247,10 @@ providers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.159.0
 
 replaces:
+  # Pub/Sub receiver + text_encoding hardening, carried on the observIQ contrib
+  # fork (upstream v0.159.0 + two commits) until the fixes are released upstream.
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.0.0-20260831181150-22486edfb3a9
+  - github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension => github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260831181150-22486edfb3a9
   # Internal Go modules — point ocb at the local checkouts.
   - github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
   - github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor => ../internal/processor/snapshotprocessor
