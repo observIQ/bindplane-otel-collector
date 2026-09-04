@@ -18,8 +18,6 @@ package service
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,6 +26,25 @@ import (
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"
 	"go.uber.org/zap"
 )
+
+// needsSudo returns true if the current process is not running as root.
+func needsSudo() bool {
+	return os.Getuid() != 0
+}
+
+// sudoCommand creates an exec.Cmd, prepending "sudo -n" if the process is non-root.
+func sudoCommand(name string, args ...string) *exec.Cmd {
+	if needsSudo() {
+		// -n runs sudo non-interactively: if credentials are required it fails
+		// immediately rather than blocking on a password prompt the updater
+		// (running without a TTY) cannot answer.
+		allArgs := append([]string{"-n", name}, args...)
+		//#nosec G204 -- arguments are not user-controlled
+		return exec.Command("sudo", allArgs...)
+	}
+	//#nosec G204 -- arguments are not user-controlled
+	return exec.Command(name, args...)
+}
 
 // Option is an extra option for creating a Service
 type Option func(linuxSvc linuxService)
@@ -88,12 +105,18 @@ type linuxSystemdService struct {
 	installedServiceFilePath string
 	installDir               string
 	logger                   *zap.Logger
+	// properties holds optional platform-specific service properties.
+	properties map[string]string
+}
+
+// SetProperties stores platform-specific properties for the systemd service.
+func (l *linuxSystemdService) SetProperties(props map[string]string) {
+	l.properties = props
 }
 
 // Start the service
 func (l linuxSystemdService) Start() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "start", l.serviceName)
+	cmd := sudoCommand("systemctl", "start", l.serviceName)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
@@ -102,50 +125,54 @@ func (l linuxSystemdService) Start() error {
 
 // Stop the service
 func (l linuxSystemdService) Stop() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "stop", l.serviceName)
+	cmd := sudoCommand("systemctl", "stop", l.serviceName)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
 	return nil
 }
 
-// installs the service
-func (l linuxSystemdService) install() error {
-	inFile, err := os.Open(l.newServiceFilePath)
-	if err != nil {
+// installServiceFile installs the service file to its destination with the
+// given mode and group ownership, prepending sudo when the updater runs as a
+// non-root user. The file is always owned by root; group is the collector's
+// runtime group so it can read the file.
+func installServiceFile(src, dst, mode, group string) error {
+	// Pre-check the source and destination directory so a bad path yields a
+	// specific error; the install binary itself only exits non-zero with a
+	// generic status.
+	if _, err := os.Stat(src); err != nil {
 		return fmt.Errorf("failed to open input file: %w", err)
 	}
-	defer func() {
-		err := inFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close input file: %s", err)
-		}
-	}()
-
-	outFile, err := os.OpenFile(l.installedServiceFilePath, os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
+	if _, err := os.Stat(filepath.Dir(dst)); err != nil {
 		return fmt.Errorf("failed to open output file: %w", err)
 	}
-	defer func() {
-		err := outFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close output file: %s", err)
-		}
-	}()
 
-	if _, err := io.Copy(outFile, inFile); err != nil {
-		return fmt.Errorf("failed to copy service file: %w", err)
+	cmd := sudoCommand("install", "-m", mode, "-o", "root", "-g", group, src, dst)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("install service file failed: %w", err)
+	}
+	return nil
+}
+
+// installs the service
+func (l linuxSystemdService) install() error {
+	// The installed unit is owned root:<group> so the collector's runtime group
+	// can read it; fall back to root when no group was provided.
+	group := l.properties["group"]
+	if group == "" {
+		group = "root"
 	}
 
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "daemon-reload")
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0640", group); err != nil {
+		return fmt.Errorf("failed to install service file: %w", err)
+	}
+
+	cmd := sudoCommand("systemctl", "daemon-reload")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("reloading systemctl failed: %w", err)
 	}
 
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd = exec.Command("systemctl", "enable", l.serviceName)
+	cmd = sudoCommand("systemctl", "enable", l.serviceName)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("enabling unit file failed: %w", err)
 	}
@@ -155,18 +182,16 @@ func (l linuxSystemdService) install() error {
 
 // uninstalls the service
 func (l linuxSystemdService) uninstall() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "disable", l.serviceName)
+	cmd := sudoCommand("systemctl", "disable", l.serviceName)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to disable unit: %w", err)
 	}
 
-	if err := os.Remove(l.installedServiceFilePath); err != nil {
-		return fmt.Errorf("failed to remove service file: %w", err)
-	}
+	// The service file is not removed here: on update, install() overwrites it
+	// in place via install(1), so an explicit rm is redundant and would require
+	// an additional sudoers grant for the unprivileged runtime user.
 
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd = exec.Command("systemctl", "daemon-reload")
+	cmd = sudoCommand("systemctl", "daemon-reload")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("reloading systemctl failed: %w", err)
 	}
@@ -211,8 +236,7 @@ type linuxSysVService struct {
 
 // Start the service
 func (l linuxSysVService) Start() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("service", l.serviceName, "start")
+	cmd := sudoCommand("service", l.serviceName, "start")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running service failed: %w", err)
 	}
@@ -221,8 +245,7 @@ func (l linuxSysVService) Start() error {
 
 // Stop the service
 func (l linuxSysVService) Stop() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("service", l.serviceName, "stop")
+	cmd := sudoCommand("service", l.serviceName, "stop")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running service failed: %w", err)
 	}
@@ -231,35 +254,11 @@ func (l linuxSysVService) Stop() error {
 
 // installs the service
 func (l linuxSysVService) install() error {
-	inFile, err := os.Open(l.newServiceFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer func() {
-		err := inFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close input file: %s", err)
-		}
-	}()
-
-	//#nosec G302 -- File permissions for the service file match install script and other installed services
-	outFile, err := os.OpenFile(l.installedServiceFilePath, os.O_CREATE|os.O_WRONLY, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to open output file: %w", err)
-	}
-	defer func() {
-		err := outFile.Close()
-		if err != nil {
-			log.Default().Printf("Service Install: Failed to close output file: %s", err)
-		}
-	}()
-
-	if _, err := io.Copy(outFile, inFile); err != nil {
-		return fmt.Errorf("failed to copy service file: %w", err)
+	if err := installServiceFile(l.newServiceFilePath, l.installedServiceFilePath, "0755", "root"); err != nil {
+		return fmt.Errorf("failed to install service file: %w", err)
 	}
 
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("chkconfig", l.serviceName, "on")
+	cmd := sudoCommand("chkconfig", l.serviceName, "on")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("chkconfig on failed: %w", err)
 	}
@@ -269,14 +268,20 @@ func (l linuxSysVService) install() error {
 
 // uninstalls the service
 func (l linuxSysVService) uninstall() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("chkconfig", l.serviceName, "off")
+	cmd := sudoCommand("chkconfig", l.serviceName, "off")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("chkconfig off failed: %w", err)
 	}
 
-	if err := os.Remove(l.installedServiceFilePath); err != nil {
-		return fmt.Errorf("failed to remove service file: %w", err)
+	if needsSudo() {
+		rmCmd := sudoCommand("rm", "-f", l.installedServiceFilePath)
+		if err := rmCmd.Run(); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
+	} else {
+		if err := os.Remove(l.installedServiceFilePath); err != nil {
+			return fmt.Errorf("failed to remove service file: %w", err)
+		}
 	}
 
 	return nil

@@ -95,6 +95,27 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", fmt.Errorf("Group not found in systemd unit file %s", u.installedSystemdUnitPath)
 }
 
+// readEnvironmentFromSystemdFile reads the systemd unit file and extracts
+// the value of the given Environment= key. Returns the value if found,
+// or an empty string if not found.
+func (u *Updater) readEnvironmentFromSystemdFile(key string) (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	prefix := []byte("Environment=" + key + "=")
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, prefix) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, prefix))), nil
+		}
+	}
+
+	return "", nil
+}
+
 // generateLinuxServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
 func (u *Updater) generateLinuxServiceFiles() error {
@@ -112,18 +133,31 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
-	// Get the install directory from path package. This will default
-	// to /opt/observiq-otel-collector unless BDOT_CONFIG_HOME is set
-	// in a package config file such as /etc/default/observiq-otel-collector
-	// or /etc/sysconfig/observiq-otel-collector.
-	installDir, err := path.InstallDir(u.logger, path.DefaultConfigOverrides)
+	// Hand the collector group to the service so it installs the unit file owned
+	// by root:<group>, matching the sudoers grant. Services that don't accept
+	// properties (darwin, windows) are a no-op here.
+	if pc, ok := u.svc.(service.PropertyConfigurable); ok {
+		pc.SetProperties(map[string]string{"group": group})
+	}
+
+	// Use the updater's install directory directly. This was already resolved
+	// from the config override files when the updater was created.
+	installDir := u.installDir
+
+	// Read the storage directory from the existing systemd unit file, falling
+	// back to a default relative to the install directory.
+	storageDir, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_STORAGE")
 	if err != nil {
-		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
+		return fmt.Errorf("read storage dir from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+	if storageDir == "" {
+		storageDir = installDir + "/storage"
 	}
 
 	params := map[string]string{
 		"Group":      group,
 		"InstallDir": installDir,
+		"StorageDir": storageDir,
 	}
 
 	// Render the systemd service template with the Group value
