@@ -46,8 +46,13 @@ jobs:
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
       - name: Install ocb
-        run: make install-ocb
-        shell: bash
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          shell: bash
+          command: make install-ocb
       - name: Prepare Release Dependencies
         run: make release-prep CURR_VERSION=${VERSION#v}
         shell: bash

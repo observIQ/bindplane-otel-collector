@@ -27,8 +27,13 @@ jobs:
         with:
           go-version-file: internal/extension/opampconnectionextension/go.mod
       - name: Install ocb
-        run: make install-ocb
-        shell: bash
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          shell: bash
+          command: make install-ocb
       - name: Prepare Release Dependencies
         run: make release-prep CURR_VERSION=${VERSION#v}
         shell: bash
@@ -113,7 +118,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Install ocb
-        run: make install-ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
 
       - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v8
@@ -126,7 +136,12 @@ jobs:
           name: observiq-otel-collector-arm64.msi
 
       - name: Install cosign
-        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
