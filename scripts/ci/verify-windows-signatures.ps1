@@ -26,7 +26,9 @@ publisher (BPOP-5780).
 For each Windows zip under -Root it verifies observiq-otel-collector.exe and
 updater.exe. For each MSI it verifies the MSI itself, then performs an
 administrative install to extract the payload and verifies the same two
-executables as installed.
+executables as installed. install_windows.ps1 is verified too: it is
+downloaded and executed by users, so an unsigned copy is not covered by
+publisher allow-listing or by an AllSigned/RemoteSigned execution policy.
 
 Exits non-zero if any artifact fails, so a release cannot be promoted out of
 prerelease with unsigned binaries in it.
@@ -164,6 +166,18 @@ foreach ($msi in $msis) {
       Test-Signature -Path $f.FullName -Context "$($msi.Name) (installed)"
     }
   }
+  Write-Host ""
+}
+
+# --- The bootstrap script users download and run ---
+$scripts = @(Get-ChildItem -Path $rootPath -Recurse -Filter 'install_windows.ps1')
+if ($scripts.Count -eq 0) {
+  $script:failures += 'install_windows.ps1 not found to verify'
+  Write-Host 'FAIL install_windows.ps1 not found to verify'
+}
+foreach ($installScript in $scripts) {
+  Write-Host "script $($installScript.Name)"
+  Test-Signature -Path $installScript.FullName -Context 'install script'
   Write-Host ""
 }
 
