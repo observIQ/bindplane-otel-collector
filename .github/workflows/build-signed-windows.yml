@@ -25,6 +25,11 @@ on:
         required: false
         type: boolean
         default: true
+      sign_install_script:
+        description: "Authenticode-sign scripts/install/install_windows.ps1 and publish it as an artifact"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   setup:
@@ -144,6 +149,34 @@ jobs:
           path: |
             dist/collector_windows_${{ matrix.arch }}.exe
             dist/updater_windows_${{ matrix.arch }}.exe
+          if-no-files-found: error
+          retention-days: 1
+      # The bootstrap script is downloaded and executed by users, so it needs a
+      # signature of its own: an unsigned .ps1 is not covered by publisher
+      # allow-listing or by an AllSigned/RemoteSigned execution policy. It is
+      # architecture independent, so sign it on the amd64 leg only.
+      - name: Sign Windows Install Script
+        if: inputs.sign_install_script && matrix.arch == 'amd64'
+        run: smctl sign --keypair-alias %KEYPAIR_ALIAS% --input scripts\install\install_windows.ps1 --config-file %SMCTL_CONFIG% || exit /b 1
+        shell: cmd
+        env:
+          KEYPAIR_ALIAS: ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }}
+      - name: Verify Windows Install Script Signature
+        if: inputs.sign_install_script && matrix.arch == 'amd64'
+        shell: pwsh
+        run: |
+          $f = "scripts/install/install_windows.ps1"
+          $sig = Get-AuthenticodeSignature $f
+          if ($sig.Status -ne 'Valid') {
+            throw "$f is not validly signed: $($sig.Status) - $($sig.StatusMessage)"
+          }
+          Write-Host "$f signed by $($sig.SignerCertificate.Subject)"
+      - name: Upload Signed Windows Install Script
+        if: inputs.sign_install_script && matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-install-script
+          path: scripts/install/install_windows.ps1
           if-no-files-found: error
           retention-days: 1
       - name: Copy Shared Files to MSI Build Directory

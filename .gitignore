@@ -53,6 +53,10 @@ ci-signing-key.asc
 # break the release.
 signed-windows/
 
+# Ignore the signed install script downloaded during the release process.
+# Same reason as above.
+signed-install-script/
+
 # Local performance testing and images
 ImagesAzure/
 perf-test/
