@@ -9,6 +9,7 @@ jobs:
     uses: ./.github/workflows/build-signed-windows.yml
     with:
       version: ${{ github.ref_name }}
+      sign_install_script: true
     secrets: inherit
 
   release:
@@ -91,6 +92,15 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      # Staged into place by goreleaser's overlay before-hook, not here:
+      # goreleaser validates git state before running its hooks, so touching
+      # the tracked script from a workflow step fails the release with
+      # "git is in a dirty state". The download directory is gitignored.
+      - name: Retrieve Signed Windows Install Script
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-install-script
+          path: signed-install-script
       # The Windows binaries goreleaser packages must be the signed ones from
       # the build-msi job, not the unsigned copies its before-hook builds here.
       - name: Retrieve Signed Windows Binaries
@@ -116,6 +126,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNED_WINDOWS_DIR: signed-windows
+          SIGNED_INSTALL_SCRIPT: signed-install-script/install_windows.ps1
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
@@ -266,7 +277,8 @@ jobs:
             --repo "$env:GITHUB_REPOSITORY" `
             --dir artifacts `
             --pattern "*-windows-*.zip" `
-            --pattern "*.msi"
+            --pattern "*.msi" `
+            --pattern "install_windows.ps1"
         shell: pwsh
         env:
           TAG: ${{ github.ref_name }}

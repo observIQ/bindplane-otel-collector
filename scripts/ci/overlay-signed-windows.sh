@@ -29,6 +29,14 @@
 #   (make release-test) keep working without signing credentials.
 # SIGNED_WINDOWS_DIR set   -> every expected binary must be present, or the
 #   script fails and aborts the release before anything is published.
+#
+# SIGNED_INSTALL_SCRIPT optionally names the signed install_windows.ps1 to put
+# in place of the tracked copy. This has to happen here rather than in a
+# workflow step: goreleaser validates git state before it runs these hooks, so
+# modifying a tracked file earlier fails a real release with "git is in a dirty
+# state". Everything downstream reads scripts/install/install_windows.ps1 --
+# goreleaser's release and blobs extra_files, the artifact bundle, and the
+# gsutil upload to the latest/ prefix.
 
 set -euo pipefail
 
@@ -99,3 +107,14 @@ for name in "${binaries[@]}"; do
 done
 
 echo "overlay-signed-windows: ${#binaries[@]} signed Windows binaries staged in ${outdir}."
+
+if [ -n "${SIGNED_INSTALL_SCRIPT+set}" ]; then
+  if [ ! -s "$SIGNED_INSTALL_SCRIPT" ]; then
+    echo "overlay-signed-windows: SIGNED_INSTALL_SCRIPT=${SIGNED_INSTALL_SCRIPT}" \
+      "is missing or empty. Did the signed-install-script artifact download fail?" >&2
+    exit 1
+  fi
+  cp -f "$SIGNED_INSTALL_SCRIPT" scripts/install/install_windows.ps1
+  echo "overlay-signed-windows: installed signed install_windows.ps1" \
+    "($(wc -c <scripts/install/install_windows.ps1 | tr -d ' ') bytes)"
+fi

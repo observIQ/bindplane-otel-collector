@@ -46,6 +46,11 @@ gha-creds-*.json
 # due to dirty git state.
 ci-signing-key.asc
 
+# Ignore the signed install script downloaded during the release process.
+# Same reason as above: an untracked file here fails Goreleaser's git state
+# check before the before-hooks ever run.
+signed-install-script/
+
 # Local performance testing and images
 ImagesAzure/
 perf-test/
