@@ -8,6 +8,13 @@ before:
     # Build collector + updater binaries via ocb-driven `make`. Goreleaser
     # picks them up below via `builder: prebuilt`. Mirrors v2.0.1-beta.3.
     - make build-all-non-aix OUTDIR="tmp"
+    # Replace the Windows binaries just built here with the Authenticode-signed
+    # copies from the build-signed-windows workflow. This runner has no DigiCert
+    # access, so without the overlay the Windows zip would ship unsigned
+    # executables (BPOP-5780). No-op when SIGNED_WINDOWS_DIR is unset, which is
+    # how local snapshot builds work; fails the release when it is set but the
+    # signed binaries are missing.
+    - ./scripts/ci/overlay-signed-windows.sh tmp
 
 after:
   hooks:
