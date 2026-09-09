@@ -27,6 +27,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Metric Extract Processor                | [metricextract](https://github.com/observiq/bindplane-otel-contrib/blob/v1.13.0/processor/metricextractprocessor/README.md)                                         |
 | Metrics Generation Processor            | [metricsgenerationprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/processor/metricsgenerationprocessor/README.md)       |
 | Metric Stats Processor                  | [metricstatsprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.13.0/processor/metricstatsprocessor/README.md)                                    |
+| Metric Start Time Processor             | [metricstarttimeprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/processor/metricstarttimeprocessor/README.md)           |
 | Metrics Transform Processor             | [metricstransformprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/processor/metricstransformprocessor/README.md)         |
 | OCSF Standardization Processor          | [ocsfstandardizationprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.13.0/processor/ocsfstandardizationprocessor/README.md)                    |
 | Probabilistic Sampling Processor        | [probabilisticsamplerprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/processor/probabilisticsamplerprocessor/README.md) |

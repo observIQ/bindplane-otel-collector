@@ -50,6 +50,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | journald Receiver                          | [journaldreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/journaldreceiver/README.md)                             |
 | Kubernetes Cluster Receiver                | [k8sclusterreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/k8sclusterreceiver/README.md)                         |
 | Kubernetes Events Receiver                 | [k8seventsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/k8seventsreceiver/README.md)                           |
+| Kubernetes Objects Receiver                | [k8sobjectsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/k8sobjectsreceiver/README.md)                         |
 | Kubernetes kubelet Stats Receiver          | [kubeletstatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/kubeletstatsreceiver/README.md)                     |
 | Kafka Receiver                             | [kafkareceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/kafkareceiver/README.md)                                   |
 | Kafka Metrics Receiver                     | [kafkametricsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/receiver/kafkametricsreceiver/README.md)                     |
