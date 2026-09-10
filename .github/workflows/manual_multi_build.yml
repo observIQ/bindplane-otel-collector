@@ -20,13 +20,23 @@ jobs:
             go.sum
             **/go.sum
       - name: Install ocb
-        run: make install-ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
       - name: Build
         run: make build-linux
+      - name: Install lichen
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/uw-labs/lichen@v0.1.7
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
+        run: lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
   build_darwin:
     if: github.actor != 'dependabot[bot]'
     runs-on: macos-14
@@ -41,13 +51,23 @@ jobs:
             go.sum
             **/go.sum
       - name: Install ocb
-        run: make install-ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
       - name: Build
         run: make build-darwin
+      - name: Install lichen
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/uw-labs/lichen@v0.1.7
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
+        run: lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
   build_windows:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest-4-cores
@@ -62,10 +82,20 @@ jobs:
             go.sum
             **/go.sum
       - name: Install ocb
-        run: make install-ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
       - name: Build
         run: make build-windows
+      - name: Install lichen
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/uw-labs/lichen@v0.1.7
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml dist/collector_windows_amd64.exe dist/updater_windows_amd64.exe dist/collector_windows_arm64.exe dist/updater_windows_arm64.exe
+        run: lichen --config=./license.yaml dist/collector_windows_amd64.exe dist/updater_windows_amd64.exe dist/collector_windows_arm64.exe dist/updater_windows_arm64.exe

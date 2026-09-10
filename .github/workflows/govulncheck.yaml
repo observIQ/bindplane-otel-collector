@@ -20,7 +20,7 @@ jobs:
             **/go.sum
 
       - name: Install tools (govulncheck)
-        run: make install-tools
+        run: bash .github/scripts/retry.sh make install-tools
 
       - name: Configure memory limits
         run: |
