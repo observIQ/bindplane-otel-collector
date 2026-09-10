@@ -116,6 +116,11 @@
                                             RestartServiceDelayInSeconds="5"/>
                     </ServiceInstall>
                     <ServiceControl Id="ServiceControl{{$f.ID}}" Name="{{$f.Service.Name}}" Start="install" Stop="both" Remove="uninstall"/>
+                    <!-- Register the service as an event log source so Event Viewer can resolve its messages -->
+                    <RegistryKey Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\{{$f.Service.Name}}">
+                        <RegistryValue Type="expandable" Name="EventMessageFile" Value="%SystemRoot%\System32\EventCreate.exe"/>
+                        <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
+                    </RegistryKey>
                     {{end}}
                  </Component>
                 {{end}}
