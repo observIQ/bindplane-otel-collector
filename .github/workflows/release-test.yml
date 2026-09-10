@@ -91,6 +91,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-goreleaser-
 
+      # The Windows binaries goreleaser packages must be the signed ones from
+      # the build-msi job, not the unsigned copies its before-hook builds here.
+      - name: Retrieve Signed Windows Binaries
+        uses: actions/download-artifact@v8
+        with:
+          pattern: signed-windows-*
+          merge-multiple: true
+          path: signed-windows
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -107,6 +115,7 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNED_WINDOWS_DIR: signed-windows
           SIGNING_KEY_FILE: ci-signing-key.asc
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
 
