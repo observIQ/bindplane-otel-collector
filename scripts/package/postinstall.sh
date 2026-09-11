@@ -32,6 +32,9 @@ set -e
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
 
+# Configurable storage directory
+: "${BDOT_STORAGE:=${BDOT_CONFIG_HOME}/storage}"
+
 
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
@@ -50,8 +53,8 @@ install() {
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Ensure updater is owned by root.
-    chown root:root "$stage_dir/updater"
+    # Updater is owned by the runtime user, matching all other installed files.
+    # Privileged operations use sudo via the sudoers drop-in.
 
     # Seed default configs only when absent so upgrades/reinstalls preserve
     # user edits. The stage dir is ephemeral, so pruning it here is safe.
@@ -80,17 +83,17 @@ install_service() {
 }
 
 install_systemd_service() {
-  config_file="/usr/lib/systemd/system/observiq-otel-collector.service"
+  unit_file="/usr/lib/systemd/system/observiq-otel-collector.service"
 
-  if [ ! -f "$config_file" ]; then
-    echo "Installing systemd service to $config_file"
+  if [ ! -f "$unit_file" ]; then
+    echo "Installing systemd service to $unit_file"
   else
-    echo "Updating systemd service to $config_file"
+    echo "Updating systemd service to $unit_file"
   fi
 
-  mkdir -p "$(dirname "$config_file")"
+  mkdir -p "$(dirname "$unit_file")"
 
-  cat << EOF > "$config_file"
+  cat << EOF > "$unit_file"
 [Unit]
 Description=observIQ's distribution of the OpenTelemetry collector
 After=network.target
@@ -102,7 +105,7 @@ User=root
 Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=BINDPLANE_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
-Environment=BINDPLANE_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+Environment=BINDPLANE_COLLECTOR_STORAGE=${BDOT_STORAGE}
 WorkingDirectory=${BDOT_CONFIG_HOME}
 ExecStart=${BDOT_CONFIG_HOME}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -116,8 +119,8 @@ KillMode=process
 WantedBy=multi-user.target
 EOF
 
-  chown root:root "$config_file"
-  chmod 0640 "$config_file"
+  chown "root:${BDOT_GROUP}" "$unit_file"
+  chmod 0640 "$unit_file"
 
   # Ensure the override dir exists.
   override_dir="/etc/systemd/system/observiq-otel-collector.service.d"
@@ -139,17 +142,17 @@ EOF
 }
 
 install_initd_service() {
-  config_file="/etc/init.d/observiq-otel-collector"
+  init_file="/etc/init.d/observiq-otel-collector"
 
-  if [ ! -f "$config_file" ]; then
-    echo "Installing init.d service to $config_file"
+  if [ ! -f "$init_file" ]; then
+    echo "Installing init.d service to $init_file"
   else
-    echo "Updating init.d service to $config_file"
+    echo "Updating init.d service to $init_file"
   fi
 
-  mkdir -p "$(dirname "$config_file")"
+  mkdir -p "$(dirname "$init_file")"
 
-  cat << EOF > "$config_file"
+  cat << EOF > "$init_file"
 #!/bin/sh
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
@@ -222,7 +225,7 @@ PIDFILE=/var/run/"\$BINARY".pid
 
 # Exported variables are used by the collector process.
 export BINDPLANE_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
-export BINDPLANE_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+export BINDPLANE_COLLECTOR_STORAGE=${BDOT_STORAGE}
 
 RETVAL=0
 start() {
@@ -406,8 +409,8 @@ fi
 exit "\$RETVAL"
 EOF
 
-  chown root:root "$config_file"
-  chmod 0755 "$config_file"
+  chown root:root "$init_file"
+  chmod 0755 "$init_file"
 }
 
 manage_systemd_service() {
@@ -496,7 +499,56 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+install_sudoers() {
+  # Generate the sudoers drop-in at install time so it reflects the configured
+  # runtime user (BDOT_USER), which may differ from the default on first
+  # install. Changing the runtime user after install is not supported.
+  sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+
+  echo "Installing sudoers drop-in to $sudoers_file"
+  mkdir -p "$(dirname "$sudoers_file")"
+
+  cat << EOF > "$sudoers_file"
+# Sudoers drop-in for the Bindplane Distribution for OpenTelemetry Collector.
+# Grants the collector's runtime user permission to manage the collector
+# service and install updated service files. Generated at install time for
+# runtime user "${BDOT_USER}".
+
+# Service management via systemctl
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl start observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl stop observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl enable observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl disable observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
+
+# Service file installation via install(1)
+${BDOT_USER} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 -o root -g ${BDOT_GROUP} * /usr/lib/systemd/system/observiq-otel-collector.service
+EOF
+
+  chown root:root "$sudoers_file"
+  chmod 0440 "$sudoers_file"
+}
+
+validate_sudoers() {
+  sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+  if [ -f "$sudoers_file" ]; then
+    if command -v visudo > /dev/null 2>&1; then
+      if ! visudo -cf "$sudoers_file" > /dev/null 2>&1; then
+        echo "ERROR: sudoers file $sudoers_file failed validation" >&2
+        rm -f "$sudoers_file"
+        exit 1
+      fi
+    fi
+  fi
+}
+
 install
 install_service
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  install_sudoers
+fi
 finish_permissions
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  validate_sudoers
+fi
 manage_service

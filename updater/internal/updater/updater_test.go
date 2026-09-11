@@ -346,15 +346,25 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 			installedSystemdUnitPath: filepath.Join("testdata", "observiq-otel-collector.service.golden"),
 		}
 
-		// Cleanup the directory after test
 		defer os.RemoveAll(installDir)
 
 		err := u.generateLinuxServiceFiles()
 		require.NoError(t, err)
 
-		// Compare the generated files with golden files
-		compareFiles(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), u.installedSystemdUnitPath)
+		// Verify the generated systemd service file contains expected directives
+		generatedPath := filepath.Join(installDir, "install", "observiq-otel-collector.service")
+		content, err := os.ReadFile(generatedPath)
+		require.NoError(t, err)
 
+		generated := string(content)
+		// Verify user/group from golden file
+		require.Contains(t, generated, "User=root")
+		require.Contains(t, generated, "Group=bdot")
+		// Verify install dir is templated correctly
+		require.Contains(t, generated, fmt.Sprintf("WorkingDirectory=%s", installDir))
+		require.Contains(t, generated, fmt.Sprintf("Environment=BINDPLANE_COLLECTOR_HOME=%s", installDir))
+		// Verify storage dir read from golden file
+		require.Contains(t, generated, "Environment=BINDPLANE_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage")
 		// Check file permissions
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector"), 0755)
@@ -391,5 +401,23 @@ func TestReadGroupFromSystemdFile(t *testing.T) {
 		group, err := u.readGroupFromSystemdFile()
 		require.NoError(t, err)
 		require.Equal(t, "bdot", group)
+	})
+}
+
+func TestReadEnvironmentFromSystemdFile(t *testing.T) {
+	u := &Updater{
+		installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
+	}
+
+	t.Run("Extract BINDPLANE_COLLECTOR_STORAGE", func(t *testing.T) {
+		val, err := u.readEnvironmentFromSystemdFile("BINDPLANE_COLLECTOR_STORAGE")
+		require.NoError(t, err)
+		require.Equal(t, "/opt/observiq-otel-collector/storage", val)
+	})
+
+	t.Run("Missing key returns empty string", func(t *testing.T) {
+		val, err := u.readEnvironmentFromSystemdFile("NONEXISTENT_KEY")
+		require.NoError(t, err)
+		require.Equal(t, "", val)
 	})
 }

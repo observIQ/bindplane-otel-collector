@@ -27,7 +27,7 @@ User=root
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=BINDPLANE_COLLECTOR_HOME={{.InstallDir}}
-Environment=BINDPLANE_COLLECTOR_STORAGE={{.InstallDir}}/storage
+Environment=BINDPLANE_COLLECTOR_STORAGE={{.StorageDir}}
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000

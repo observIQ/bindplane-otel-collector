@@ -38,6 +38,15 @@ type Service interface {
 	Backup() error
 }
 
+// PropertyConfigurable is optionally implemented by a Service that accepts
+// platform-specific properties (a generic key/value bag). Platforms that need
+// no extra properties simply don't implement it, so a caller's type assertion
+// is a no-op for them.
+type PropertyConfigurable interface {
+	// SetProperties stores platform-specific service properties.
+	SetProperties(map[string]string)
+}
+
 // replaceInstallDir replaces "[INSTALLDIR]" with the given installDir string.
 // This is meant to mimic windows "formatted" string syntax.
 func replaceInstallDir(unformattedBytes []byte, installDir string) []byte {
