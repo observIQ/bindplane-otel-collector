@@ -65,6 +65,32 @@ jobs:
           timeout_minutes: 10
           shell: bash
           command: make install-ocb
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        uses: digicert/ssm-code-signing@v1.0.0
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+        shell: bash
+      - name: Set variables for signing
+        run: |
+          {
+            echo "SM_HOST=${{ secrets.SM_HOST }}"
+            echo "SM_API_KEY=${{ secrets.SM_API_KEY }}"
+            echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12"
+            echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}"
+          } >> "$GITHUB_ENV"
+        shell: bash
+      # The DigiCert action drops its PKCS#11 config under the runner user's temp
+      # directory. Resolve it once from LOCALAPPDATA instead of hardcoding the
+      # 8.3 short path, and fail loudly if the layout ever changes.
+      - name: Resolve smctl signing config
+        shell: pwsh
+        run: |
+          $cfg = Join-Path $env:LOCALAPPDATA 'Temp\smtools-windows-x64\pkcs11properties.cfg'
+          if (-not (Test-Path $cfg)) {
+            throw "smctl PKCS#11 config not found at $cfg"
+          }
+          "SMCTL_CONFIG=$cfg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prepare Release Dependencies
         run: make release-prep "CURR_VERSION=${VERSION#v}"
         shell: bash
@@ -72,6 +98,54 @@ jobs:
           VERSION: ${{ inputs.version }}
       - name: Build Windows Binaries
         run: make build-windows-${{ matrix.arch }}
+      # Sign the executables themselves, before they are packaged. Signing only
+      # the MSI leaves these unsigned inside both the MSI and the release zip,
+      # and the console upgrade path downloads the zip and never touches the
+      # MSI -- so there is nothing for a customer to allow-list by publisher
+      # (BPOP-5780). Each invocation is guarded because the cmd shell reports
+      # only the last command's exit code.
+      - name: Sign Windows Binaries
+        run: |
+          smctl sign --keypair-alias %KEYPAIR_ALIAS% --input dist\collector_windows_${{ matrix.arch }}.exe --config-file %SMCTL_CONFIG% || exit /b 1
+          smctl sign --keypair-alias %KEYPAIR_ALIAS% --input dist\updater_windows_${{ matrix.arch }}.exe --config-file %SMCTL_CONFIG% || exit /b 1
+        shell: cmd
+        env:
+          KEYPAIR_ALIAS: ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }}
+      # Gate the rest of the job on a real signature check. This is the same
+      # call the acceptance criteria use, so it needs no Windows SDK signtool.
+      - name: Verify Windows Binary Signatures
+        shell: pwsh
+        run: |
+          $files = @(
+            "dist/collector_windows_${{ matrix.arch }}.exe",
+            "dist/updater_windows_${{ matrix.arch }}.exe"
+          )
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f
+            if ($sig.Status -ne 'Valid') {
+              throw "$f is not validly signed: $($sig.Status) - $($sig.StatusMessage)"
+            }
+            Write-Host "$f"
+            Write-Host "  signer:     $($sig.SignerCertificate.Subject)"
+            Write-Host "  thumbprint: $($sig.SignerCertificate.Thumbprint)"
+            Write-Host "  expires:    $($sig.SignerCertificate.NotAfter)"
+            if ($null -eq $sig.TimeStamperCertificate) {
+              Write-Warning "$f reports no countersignature. If this is real and not a Get-AuthenticodeSignature quirk, the signature stops validating when the cert expires."
+            } else {
+              Write-Host "  timestamp:  $($sig.TimeStamperCertificate.Subject)"
+            }
+          }
+      # Handed to the release job so goreleaser packages these exact signed
+      # bytes instead of the unsigned copies it builds on the Linux runner.
+      - name: Upload Signed Windows Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-windows-${{ matrix.arch }}
+          path: |
+            dist/collector_windows_${{ matrix.arch }}.exe
+            dist/updater_windows_${{ matrix.arch }}.exe
+          if-no-files-found: error
+          retention-days: 1
       - name: Copy Shared Files to MSI Build Directory
         run: |
           cp -r release_deps/plugins windows/
@@ -99,32 +173,6 @@ jobs:
       - name: Build MSI
         run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
-      - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate
-        run: |
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
-        shell: bash
-      - name: Set variables for signing
-        run: |
-          {
-            echo "SM_HOST=${{ secrets.SM_HOST }}"
-            echo "SM_API_KEY=${{ secrets.SM_API_KEY }}"
-            echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12"
-            echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}"
-          } >> "$GITHUB_ENV"
-        shell: bash
-      # The DigiCert action drops its PKCS#11 config under the runner user's temp
-      # directory. Resolve it once from LOCALAPPDATA instead of hardcoding the
-      # 8.3 short path, and fail loudly if the layout ever changes.
-      - name: Resolve smctl signing config
-        shell: pwsh
-        run: |
-          $cfg = Join-Path $env:LOCALAPPDATA 'Temp\smtools-windows-x64\pkcs11properties.cfg'
-          if (-not (Test-Path $cfg)) {
-            throw "smctl PKCS#11 config not found at $cfg"
-          }
-          "SMCTL_CONFIG=$cfg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Sign MSI
         run: smctl sign --keypair-alias %KEYPAIR_ALIAS% --input C:/build/${{ matrix.msi_name }} --config-file %SMCTL_CONFIG%
         shell: cmd

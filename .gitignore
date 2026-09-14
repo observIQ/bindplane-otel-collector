@@ -46,6 +46,13 @@ gha-creds-*.json
 # due to dirty git state.
 ci-signing-key.asc
 
+# Ignore the signed Windows binaries downloaded during the release process.
+# Same reason as above: an untracked file here fails Goreleaser's git state
+# check before the before-hooks ever run. The *.exe rule covers the current
+# contents, but the whole directory is ignored so a new sidecar file cannot
+# break the release.
+signed-windows/
+
 # Local performance testing and images
 ImagesAzure/
 perf-test/
