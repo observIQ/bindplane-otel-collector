@@ -249,3 +249,28 @@ jobs:
             artifacts yum upload stable-rpm \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
+
+  # Gate the prerelease on the executables actually being signed, not just the
+  # MSI. Releases publish as a prerelease first, so a failure here blocks
+  # promotion instead of arriving after customers have the artifacts.
+  verify-windows-release:
+    needs: [release]
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Download Windows Release Artifacts
+        run: |
+          mkdir artifacts
+          gh release download "$env:TAG" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --dir artifacts `
+            --pattern "*-windows-*.zip" `
+            --pattern "*.msi"
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+      - name: Verify Windows Signatures
+        run: ./scripts/ci/verify-windows-signatures.ps1 -Root ./artifacts
+        shell: pwsh
