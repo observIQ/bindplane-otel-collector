@@ -15,8 +15,6 @@
 package snapshotprocessor
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -61,6 +59,9 @@ type snapshotProcessor struct {
 	enabled     bool
 	snapShotter *report.SnapshotReporter
 	processorID component.ID
+	// componentID is processorID.String(), cached because it keys the
+	// reporter's buffers on every batch and String allocates.
+	componentID string
 
 	// opampExtensionID is the extension that hosts the custom-message
 	// registry. Zero value means v2 trigger path is disabled and the
@@ -80,6 +81,7 @@ func newSnapshotProcessor(logger *zap.Logger, cfg *Config, processorID component
 		enabled:          cfg.Enabled,
 		snapShotter:      getSnapshotReporter(),
 		processorID:      processorID,
+		componentID:      processorID.String(),
 		opampExtensionID: cfg.OpAMP,
 		started:          &atomic.Bool{},
 		stopped:          &atomic.Bool{},
@@ -155,7 +157,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		req.MaximumPayloadSizeBytes = defaultMaxPayloadBytes
 	}
 
-	componentID := sp.processorID.String()
+	componentID := sp.componentID
 
 	var report snapshotReport
 	switch req.PipelineType {
@@ -208,7 +210,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		sp.logger.Error("marshal snapshot report", zap.Error(err))
 		return
 	}
-	compressed, err := compress(body)
+	compressed, err := snapshot.Compress(body)
 	if err != nil {
 		sp.logger.Error("compress snapshot report", zap.Error(err))
 		return
@@ -234,27 +236,27 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 
 func (sp *snapshotProcessor) processTraces(_ context.Context, td ptrace.Traces) (ptrace.Traces, error) {
 	if sp.enabled {
-		newTraces := ptrace.NewTraces()
-		td.CopyTo(newTraces)
-		sp.snapShotter.SaveTraces(sp.processorID.String(), newTraces)
+		// The buffer copies at most the records it keeps; td itself is never
+		// retained or mutated.
+		sp.snapShotter.SaveTraces(sp.componentID, td)
 	}
 	return td, nil
 }
 
 func (sp *snapshotProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	if sp.enabled {
-		newLogs := plog.NewLogs()
-		ld.CopyTo(newLogs)
-		sp.snapShotter.SaveLogs(sp.processorID.String(), newLogs)
+		// The buffer copies at most the records it keeps; ld itself is never
+		// retained or mutated.
+		sp.snapShotter.SaveLogs(sp.componentID, ld)
 	}
 	return ld, nil
 }
 
 func (sp *snapshotProcessor) processMetrics(_ context.Context, md pmetric.Metrics) (pmetric.Metrics, error) {
 	if sp.enabled {
-		newMetrics := pmetric.NewMetrics()
-		md.CopyTo(newMetrics)
-		sp.snapShotter.SaveMetrics(sp.processorID.String(), newMetrics)
+		// The buffer copies at most the records it keeps; md itself is never
+		// retained or mutated.
+		sp.snapShotter.SaveMetrics(sp.componentID, md)
 	}
 	return md, nil
 }
@@ -284,17 +286,4 @@ func (sp *snapshotProcessor) stop(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// compress gzip compresses the given data.
-func compress(data []byte) ([]byte, error) {
-	var b bytes.Buffer
-	w := gzip.NewWriter(&b)
-	if _, err := w.Write(data); err != nil {
-		return nil, err
-	}
-	if err := w.Close(); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
 }
