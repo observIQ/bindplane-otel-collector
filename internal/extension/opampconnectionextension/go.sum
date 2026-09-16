@@ -389,8 +389,8 @@ github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.14.0 h1:BcxYwz36a
 github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.14.0/go.mod h1:ZPoYscHfIWyd7HeJadG2+V9tky4dG7T2PJrT7bz967w=
 github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.14.0 h1:BrIAglQMxdai9bInZ62PblGL4AbJVZBJ0Xnx856//3g=
 github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.14.0/go.mod h1:FE7+72uskK4ULGEhc5Qq6oOuTgMmGpxxLngIVfKpzcM=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916140926-e39ff27fd798 h1:vhVDV6LsgTTsZULv9y/hr0NNklt98YcKouqaXL9Jntk=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916140926-e39ff27fd798/go.mod h1:opahfVz0jK3kmKlytHpNMB8sNqAk9lcWtkFeJBRXXFg=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916162055-b7874c22cd61 h1:Ngu/q0HxvWiG2whwkQiU62xx2PcmZtHUb/0R1zq9Nks=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916162055-b7874c22cd61/go.mod h1:opahfVz0jK3kmKlytHpNMB8sNqAk9lcWtkFeJBRXXFg=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.14.0 h1:Va5RpQXgw0f+nx/zp+JDTvQiwrxugcIU5N3kO6G+ar4=
 github.com/observiq/bindplane-otel-contrib/pkg/version v1.14.0/go.mod h1:apqf05IsnXn0AdyK3E+eH/8Jj9+XHarJjP1du5xLtGU=
 github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.14.0 h1:4GeyXSBpsW5s+WWfb8w15PlH3G61Bbm8FESbfJsNz+Y=
