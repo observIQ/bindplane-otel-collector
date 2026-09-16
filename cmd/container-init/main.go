@@ -17,6 +17,11 @@
 // prepare a volume for the collector: it recursively creates the parent
 // directories of the given config and logging paths and writes default
 // collector and logging configs to them.
+//
+// The permissions subcommand prepares host volumes for a collector that runs
+// as an unprivileged user: it chowns storage volumes and grants read access
+// to log directories with POSIX ACLs. It must run as root with CAP_CHOWN,
+// CAP_FOWNER and CAP_DAC_READ_SEARCH.
 package main
 
 import (
@@ -54,6 +59,11 @@ level: info
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == permissionsCommand {
+		runPermissionsCommand(os.Args[2:])
+		return
+	}
+
 	configPath := flag.String("config", "", "absolute path to write the default collector config (required)")
 	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required)")
 	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
@@ -66,6 +76,31 @@ func main() {
 
 	if err := run(*configPath, *loggingPath, *overwrite); err != nil {
 		log.Fatalf("Failed to initialize container: %v", err)
+	}
+}
+
+// runPermissionsCommand runs the permissions subcommand and exits with the
+// same status conventions as the default command: 2 for usage errors and 1
+// for failures.
+func runPermissionsCommand(args []string) {
+	ops, err := newFS()
+	if err != nil {
+		log.Fatalf("Failed to set permissions: %v", err)
+	}
+	if desc := describeProcess(); desc != "" {
+		log.Printf("running as %s", desc)
+	}
+
+	err = runPermissions(args, ops)
+	var usage *usageError
+	switch {
+	case errors.As(err, &usage):
+		if errors.Is(err, flag.ErrHelp) {
+			os.Exit(0)
+		}
+		os.Exit(2)
+	case err != nil:
+		log.Fatalf("Failed to set permissions: %v", err)
 	}
 }
 
