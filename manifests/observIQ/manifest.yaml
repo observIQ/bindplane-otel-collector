@@ -216,7 +216,7 @@ receivers:
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.14.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.14.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver v1.14.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.14.0
+  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.14.1
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobrehydrationreceiver v1.14.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs v1.14.0
   - gomod: github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver v1.14.0
