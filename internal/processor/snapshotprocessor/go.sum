@@ -26,8 +26,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee h1:W5t00kpgFdJifH4BDsTlE89Zl93FEloxaWZfGcifgq8=
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916162055-b7874c22cd61 h1:Ngu/q0HxvWiG2whwkQiU62xx2PcmZtHUb/0R1zq9Nks=
-github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260916162055-b7874c22cd61/go.mod h1:opahfVz0jK3kmKlytHpNMB8sNqAk9lcWtkFeJBRXXFg=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260917150221-bd6c16522a80 h1:CyrjJNJ31W6mmNNOzQ4EYHv+LMPsYVmHuA8rZCJzu5A=
+github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.14.1-0.20260917150221-bd6c16522a80/go.mod h1:opahfVz0jK3kmKlytHpNMB8sNqAk9lcWtkFeJBRXXFg=
 github.com/open-telemetry/opamp-go v0.23.0 h1:k7h7w/muprut9/DAhUC4anX4v7hIdgO02gIsSjV4uq0=
 github.com/open-telemetry/opamp-go v0.23.0/go.mod h1:DIIVdkLefdqPW5L+4I2twmAicVrTB0Bp5XJAfedZzAM=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.160.0 h1:T1soWCeWreIpP0i9as+yvCKKnGnLk9Qg0+BM1tIWLk4=
