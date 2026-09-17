@@ -15,8 +15,6 @@
 package collector
 
 import (
-	"os"
-
 	"github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
@@ -29,12 +27,22 @@ import (
 	"go.uber.org/zap"
 )
 
-const buildDescription = "observIQ's opentelemetry-collector distribution"
+const buildDescription = "Bindplane's distribution of the OpenTelemetry collector"
+
+// buildCommand identifies the distribution. It is deliberately a constant
+// rather than os.Args[0]: BuildInfo.Command is how a collector names its
+// distribution to the outside world -- it becomes service.name on the
+// collector's own telemetry, and is what `--version` and `components` report --
+// so it should not vary with the path the binary happens to be invoked by.
+// The value matches the agent type Bindplane uses for this distribution
+// (model.BindplaneOTelCollectorV2AgentType), so a collector names itself the
+// same way in its telemetry as it does to the platform managing it.
+const buildCommand = "bindplane-otel-collector"
 
 // NewSettings returns new settings for the collector with default values.
 func NewSettings(configPaths []string, version string, loggingOpts []zap.Option, factories otelcol.Factories) (*otelcol.CollectorSettings, error) {
 	buildInfo := component.BuildInfo{
-		Command:     os.Args[0],
+		Command:     buildCommand,
 		Description: buildDescription,
 		Version:     version,
 	}
