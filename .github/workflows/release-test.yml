@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/build-signed-windows.yml
     with:
       version: ${{ inputs.version }}
+      sign_install_script: true
     secrets: inherit
 
   release-test:
@@ -91,6 +92,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-goreleaser-
 
+      # Staged into place by goreleaser's overlay before-hook, not here:
+      # goreleaser validates git state before running its hooks, so touching
+      # the tracked script from a workflow step fails the release with
+      # "git is in a dirty state". The download directory is gitignored.
+      - name: Retrieve Signed Windows Install Script
+        uses: actions/download-artifact@v8
+        with:
+          name: signed-install-script
+          path: signed-install-script
+      # The Windows binaries goreleaser packages must be the signed ones from
+      # the build-msi job, not the unsigned copies its before-hook builds here.
+      - name: Retrieve Signed Windows Binaries
+        uses: actions/download-artifact@v8
+        with:
+          pattern: signed-windows-*
+          merge-multiple: true
+          path: signed-windows
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -107,6 +125,8 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNED_WINDOWS_DIR: signed-windows
+          SIGNED_INSTALL_SCRIPT: signed-install-script/install_windows.ps1
           SIGNING_KEY_FILE: ci-signing-key.asc
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
 
@@ -237,3 +257,27 @@ jobs:
             artifacts yum upload devel-rpm \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
+
+  # The rehearsal runs goreleaser with --skip=publish, so there is no GitHub
+  # release to read. Verify the artifact bundle the release-test job uploads.
+  verify-windows-release:
+    needs: [release-test]
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Download Artifact Bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: observiq-otel-collector-${{ inputs.version }}-artifacts.tar.gz
+          path: bundle
+      - name: Unpack Artifact Bundle
+        run: |
+          mkdir artifacts
+          tar -xzvf "bundle/observiq-otel-collector-$env:VERSION-artifacts.tar.gz" -C artifacts
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+      - name: Verify Windows Signatures
+        run: ./scripts/ci/verify-windows-signatures.ps1 -Root ./artifacts
+        shell: pwsh
