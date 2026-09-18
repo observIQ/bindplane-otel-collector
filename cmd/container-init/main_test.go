@@ -15,45 +15,130 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
-func TestRun(t *testing.T) {
+func TestSeed(t *testing.T) {
 	dir := t.TempDir()
-	configPath := filepath.Join(dir, "storage", "config.yaml")
-	loggingPath := filepath.Join(dir, "storage", "nested", "logging.yaml")
+	opts := &options{
+		configPath:  filepath.Join(dir, "storage", "config.yaml"),
+		loggingPath: filepath.Join(dir, "storage", "nested", "logging.yaml"),
+	}
 
 	// Creates nested directories and writes defaults.
-	if err := run(configPath, loggingPath, false); err != nil {
-		t.Fatalf("run: %v", err)
+	if err := seed(opts); err != nil {
+		t.Fatalf("seed: %v", err)
 	}
-	requireFileContents(t, configPath, defaultCollectorConfig)
-	requireFileContents(t, loggingPath, defaultLoggingConfig)
+	requireFileContents(t, opts.configPath, defaultCollectorConfig)
+	requireFileContents(t, opts.loggingPath, defaultLoggingConfig)
 
 	// Existing files are preserved without overwrite.
-	if err := os.WriteFile(configPath, []byte("custom"), 0600); err != nil {
+	if err := os.WriteFile(opts.configPath, []byte("custom"), 0600); err != nil {
 		t.Fatalf("write custom config: %v", err)
 	}
-	if err := run(configPath, loggingPath, false); err != nil {
-		t.Fatalf("run: %v", err)
+	if err := seed(opts); err != nil {
+		t.Fatalf("seed: %v", err)
 	}
-	requireFileContents(t, configPath, "custom")
+	requireFileContents(t, opts.configPath, "custom")
 
 	// Overwrite replaces existing files.
-	if err := run(configPath, loggingPath, true); err != nil {
-		t.Fatalf("run with overwrite: %v", err)
+	opts.overwrite = true
+	if err := seed(opts); err != nil {
+		t.Fatalf("seed with overwrite: %v", err)
 	}
-	requireFileContents(t, configPath, defaultCollectorConfig)
+	requireFileContents(t, opts.configPath, defaultCollectorConfig)
 }
 
-func TestRunRejectsRelativePaths(t *testing.T) {
-	if err := run("relative/config.yaml", "/abs/logging.yaml", false); err == nil {
-		t.Fatal("expected error for relative config path")
+// TestRunChownsAfterSeeding pins the ordering the manifest depends on: the
+// files are written first and the chown that follows is what makes them
+// readable by the unprivileged collector.
+func TestRunChownsAfterSeeding(t *testing.T) {
+	storage := filepath.Join(t.TempDir(), "storage")
+	opts := &options{
+		configPath:  filepath.Join(storage, "config.yaml"),
+		loggingPath: filepath.Join(storage, "logging.yaml"),
+		chownPath:   storage,
+		uid:         testUID,
+		gid:         testGID,
 	}
-	if err := run("/abs/config.yaml", "relative/logging.yaml", false); err == nil {
-		t.Fatal("expected error for relative logging path")
+	ops := newFakeFS()
+
+	if err := run(opts, ops); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	for _, path := range []string{storage, opts.configPath, opts.loggingPath} {
+		if ops.owners[path] != [2]uint32{testUID, testGID} {
+			t.Fatalf("%s owner: got %v", path, ops.owners[path])
+		}
+	}
+}
+
+func TestRunWithoutChownLeavesOwnershipAlone(t *testing.T) {
+	dir := t.TempDir()
+	opts := &options{
+		configPath:  filepath.Join(dir, "config.yaml"),
+		loggingPath: filepath.Join(dir, "logging.yaml"),
+	}
+	ops := newFakeFS()
+
+	if err := run(opts, ops); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if len(ops.chowns) != 0 {
+		t.Fatalf("unexpected chowns: %v", ops.chowns)
+	}
+}
+
+func TestParseArgs(t *testing.T) {
+	const config = "-config=/etc/otel/storage/config.yaml"
+	const logging = "-logging=/etc/otel/storage/logging.yaml"
+
+	t.Run("seed only", func(t *testing.T) {
+		opts, err := parseArgs([]string{config, logging}, io.Discard)
+		if err != nil {
+			t.Fatalf("parseArgs: %v", err)
+		}
+		if opts.chownPath != "" || opts.uid != 0 || opts.gid != 0 {
+			t.Fatalf("unexpected chown options: %+v", opts)
+		}
+	})
+
+	t.Run("seed and chown", func(t *testing.T) {
+		opts, err := parseArgs([]string{
+			config, logging, "-chown=/etc/otel/storage", "-uid=1000000000", "-gid=1000000000",
+		}, io.Discard)
+		if err != nil {
+			t.Fatalf("parseArgs: %v", err)
+		}
+		if opts.chownPath != "/etc/otel/storage" || opts.uid != testUID || opts.gid != testGID {
+			t.Fatalf("unexpected options: %+v", opts)
+		}
+	})
+
+	for name, args := range map[string][]string{
+		"missing config":      {logging},
+		"missing logging":     {config},
+		"relative config":     {"-config=config.yaml", logging},
+		"relative logging":    {config, "-logging=logging.yaml"},
+		"chown without uid":   {config, logging, "-chown=/etc/otel/storage", "-gid=1000000000"},
+		"chown without gid":   {config, logging, "-chown=/etc/otel/storage", "-uid=1000000000"},
+		"uid without chown":   {config, logging, "-uid=1000000000", "-gid=1000000000"},
+		"root uid":            {config, logging, "-chown=/etc/otel/storage", "-uid=0", "-gid=1000000000"},
+		"reserved uid":        {config, logging, "-chown=/etc/otel/storage", "-uid=4294967295", "-gid=1"},
+		"relative chown":      {config, logging, "-chown=storage", "-uid=1", "-gid=1"},
+		"unclean chown":       {config, logging, "-chown=/etc/otel/../otel/storage", "-uid=1", "-gid=1"},
+		"root chown":          {config, logging, "-chown=/", "-uid=1", "-gid=1"},
+		"positional argument": {config, logging, "extra"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := parseArgs(slices.Clone(args), io.Discard); err == nil {
+				t.Fatalf("expected an error for %v", args)
+			}
+		})
 	}
 }
 

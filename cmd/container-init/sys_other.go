@@ -12,14 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux
+//go:build !unix
 
 package main
 
-import "errors"
+import (
+	"errors"
+	"io/fs"
+)
 
-func newFS() (fsOps, error) {
-	return nil, errors.New("the permissions command is only supported on linux")
+// unsupportedFS implements fsOps on platforms without unix ownership. The
+// container images are linux only, so this exists to keep the package
+// buildable elsewhere.
+type unsupportedFS struct{}
+
+func newFS() fsOps { return unsupportedFS{} }
+
+func (unsupportedFS) Lchown(string, uint32, uint32) error {
+	return errors.New("-chown is only supported on unix")
 }
+
+func (unsupportedFS) Owner(string, fs.FileInfo) (uint32, uint32, bool) { return 0, 0, false }
+
+func (unsupportedFS) Device(string, fs.FileInfo) (uint64, bool) { return 0, false }
 
 func describeProcess() string { return "" }

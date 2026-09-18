@@ -12,56 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux
+//go:build unix
 
 package main
 
 import (
 	"bufio"
-	"errors"
 	"io/fs"
 	"os"
 	"strings"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
-// linuxFS implements fsOps with the real syscalls.
-type linuxFS struct{}
+// unixFS implements fsOps with the real syscalls.
+type unixFS struct{}
 
-func newFS() (fsOps, error) { return linuxFS{}, nil }
+func newFS() fsOps { return unixFS{} }
 
-func (linuxFS) Lgetxattr(path, name string) ([]byte, bool, error) {
-	buf := make([]byte, 256)
-	for {
-		n, err := unix.Lgetxattr(path, name, buf)
-		switch {
-		case err == nil:
-			return buf[:n], true, nil
-		case errors.Is(err, unix.ENODATA):
-			return nil, false, nil
-		case errors.Is(err, unix.ERANGE):
-			size, err := unix.Lgetxattr(path, name, nil)
-			if err != nil {
-				return nil, false, err
-			}
-			buf = make([]byte, size)
-		default:
-			return nil, false, err
-		}
-	}
+func (unixFS) Lchown(path string, uid, gid uint32) error {
+	return os.Lchown(path, int(uid), int(gid))
 }
 
-func (linuxFS) Lsetxattr(path, name string, value []byte) error {
-	return unix.Lsetxattr(path, name, value, 0)
-}
-
-func (linuxFS) Lchown(path string, uid, gid uint32) error {
-	return unix.Lchown(path, int(uid), int(gid))
-}
-
-func (linuxFS) Owner(_ string, fi fs.FileInfo) (uint32, uint32, bool) {
+func (unixFS) Owner(_ string, fi fs.FileInfo) (uint32, uint32, bool) {
 	st, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
 		return 0, 0, false
@@ -69,16 +41,17 @@ func (linuxFS) Owner(_ string, fi fs.FileInfo) (uint32, uint32, bool) {
 	return st.Uid, st.Gid, true
 }
 
-func (linuxFS) Device(_ string, fi fs.FileInfo) (uint64, bool) {
+func (unixFS) Device(_ string, fi fs.FileInfo) (uint64, bool) {
 	st, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
 		return 0, false
 	}
-	return uint64(st.Dev), true // #nosec G115 -- Dev is unsigned on every linux architecture
+	return uint64(st.Dev), true // #nosec G115 -- Dev is unsigned on every supported platform
 }
 
 // describeProcess reports the identity and effective capabilities of this
-// process so init container logs show what the command was allowed to do.
+// process so init container logs show what the command was allowed to do. It
+// returns an empty string where /proc is not available.
 func describeProcess() string {
 	f, err := os.Open("/proc/self/status")
 	if err != nil {
@@ -90,7 +63,7 @@ func describeProcess() string {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		for _, key := range []string{"Uid:", "Gid:", "CapEff:"} {
+		for _, key := range []string{"Uid:", "Gid:", "Groups:", "CapEff:"} {
 			if strings.HasPrefix(line, key) {
 				fields = append(fields, strings.TrimSuffix(key, ":")+"="+strings.Join(strings.Fields(line[len(key):]), ","))
 			}

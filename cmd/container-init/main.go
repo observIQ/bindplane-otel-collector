@@ -18,16 +18,18 @@
 // directories of the given config and logging paths and writes default
 // collector and logging configs to them.
 //
-// The permissions subcommand prepares host volumes for a collector that runs
-// as an unprivileged user: it chowns storage volumes and grants read access
-// to log directories with POSIX ACLs. It must run as root with CAP_CHOWN,
-// CAP_FOWNER and CAP_DAC_READ_SEARCH.
+// With -chown it also hands the volume to the unprivileged user the collector
+// runs as, which Kubernetes cannot do itself because fsGroup does not apply to
+// hostPath volumes. That mode must run as root with CAP_CHOWN and
+// CAP_DAC_READ_SEARCH. Seeding happens before the chown, so the files written
+// here end up owned by the collector rather than by root.
 package main
 
 import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -58,66 +60,126 @@ level: info
 `
 )
 
-func main() {
-	if len(os.Args) > 1 && os.Args[1] == permissionsCommand {
-		runPermissionsCommand(os.Args[2:])
-		return
-	}
+// maxID is the reserved id the kernel reads as "leave unchanged", so it is
+// the exclusive upper bound for -uid and -gid.
+const maxID uint = 0xFFFFFFFF
 
-	configPath := flag.String("config", "", "absolute path to write the default collector config (required)")
-	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required)")
-	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
-	flag.Parse()
-
-	if *configPath == "" || *loggingPath == "" {
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	if err := run(*configPath, *loggingPath, *overwrite); err != nil {
-		log.Fatalf("Failed to initialize container: %v", err)
-	}
+// options is the parsed command line.
+type options struct {
+	configPath  string
+	loggingPath string
+	overwrite   bool
+	chownPath   string
+	uid, gid    uint32
 }
 
-// runPermissionsCommand runs the permissions subcommand and exits with the
-// same status conventions as the default command: 2 for usage errors and 1
-// for failures.
-func runPermissionsCommand(args []string) {
-	ops, err := newFS()
+func main() {
+	opts, err := parseArgs(os.Args[1:], os.Stderr)
 	if err != nil {
-		log.Fatalf("Failed to set permissions: %v", err)
-	}
-	if desc := describeProcess(); desc != "" {
-		log.Printf("running as %s", desc)
-	}
-
-	err = runPermissions(args, ops)
-	var usage *usageError
-	switch {
-	case errors.As(err, &usage):
 		if errors.Is(err, flag.ErrHelp) {
 			os.Exit(0)
 		}
 		os.Exit(2)
-	case err != nil:
-		log.Fatalf("Failed to set permissions: %v", err)
+	}
+
+	if desc := describeProcess(); desc != "" {
+		log.Printf("running as %s", desc)
+	}
+
+	if err := run(opts, newFS()); err != nil {
+		log.Fatalf("Failed to initialize container: %v", err)
 	}
 }
 
-// run creates the parent directories of configPath and loggingPath and
-// writes default file contents to them. Both paths must be absolute.
-// Existing files are left untouched unless overwrite is true.
-func run(configPath, loggingPath string, overwrite bool) error {
-	files := []struct{ path, contents string }{
-		{configPath, defaultCollectorConfig},
-		{loggingPath, defaultLoggingConfig},
+// parseArgs parses and validates the command line. Validation failures are
+// reported to output together with the usage text.
+func parseArgs(args []string, output io.Writer) (*options, error) {
+	fset := flag.NewFlagSet("container-init", flag.ContinueOnError)
+	fset.SetOutput(output)
+	opts := &options{}
+	fset.StringVar(&opts.configPath, "config", "", "absolute path to write the default collector config (required)")
+	fset.StringVar(&opts.loggingPath, "logging", "", "absolute path to write the default logging config (required)")
+	fset.BoolVar(&opts.overwrite, "overwrite", false, "overwrite existing files")
+	fset.StringVar(&opts.chownPath, "chown", "", "absolute path to recursively chown to uid:gid after writing the files above, created if missing")
+	uid := fset.Uint("uid", 0, "owner uid for -chown (required with -chown)")
+	gid := fset.Uint("gid", 0, "owner gid for -chown (required with -chown)")
+	if err := fset.Parse(args); err != nil {
+		return nil, err
 	}
 
-	// Validate both paths before touching the filesystem.
-	for _, f := range files {
-		if !filepath.IsAbs(f.path) {
-			return fmt.Errorf("path %s must be absolute", f.path)
+	if err := validate(opts, *uid, *gid, fset.Args()); err != nil {
+		fmt.Fprintf(output, "container-init: %v\n", err)
+		fset.Usage()
+		return nil, err
+	}
+	opts.uid = uint32(*uid) // #nosec G115 -- range checked by validate
+	opts.gid = uint32(*gid) // #nosec G115 -- range checked by validate
+	return opts, nil
+}
+
+func validate(opts *options, uid, gid uint, extra []string) error {
+	if len(extra) > 0 {
+		return fmt.Errorf("unexpected arguments: %v", extra)
+	}
+	for _, f := range []struct{ name, path string }{
+		{"-config", opts.configPath},
+		{"-logging", opts.loggingPath},
+	} {
+		if f.path == "" {
+			return fmt.Errorf("%s is required", f.name)
 		}
+		if !filepath.IsAbs(f.path) {
+			return fmt.Errorf("%s path %q must be absolute", f.name, f.path)
+		}
+	}
+
+	if opts.chownPath == "" {
+		if uid != 0 || gid != 0 {
+			return errors.New("-uid and -gid are only valid together with -chown")
+		}
+		return nil
+	}
+	if !filepath.IsAbs(opts.chownPath) || filepath.Clean(opts.chownPath) != opts.chownPath || opts.chownPath == "/" {
+		return fmt.Errorf("-chown path %q must be an absolute, clean path other than /", opts.chownPath)
+	}
+	for _, f := range []struct {
+		name string
+		id   uint
+	}{{"-uid", uid}, {"-gid", gid}} {
+		if f.id == 0 || f.id >= maxID {
+			return fmt.Errorf("%s must be between 1 and %d", f.name, maxID-1)
+		}
+	}
+	return nil
+}
+
+// run seeds the config and logging files and then, when -chown was given,
+// hands the whole tree to uid:gid. The order matters: the files are written
+// 0600 by whichever user runs this, so the chown is what makes them readable
+// by the unprivileged collector.
+func run(opts *options, ops fsOps) error {
+	if err := seed(opts); err != nil {
+		return err
+	}
+	if opts.chownPath == "" {
+		return nil
+	}
+	st, err := chownTree(opts.chownPath, opts.uid, opts.gid, ops)
+	log.Printf("chown %s to %d:%d: %s", opts.chownPath, opts.uid, opts.gid, st)
+	if err != nil {
+		return fmt.Errorf("chown %s: %w", opts.chownPath, err)
+	}
+	return nil
+}
+
+// seed creates the parent directories of the config and logging paths and
+// writes the default file contents to them. Existing files are left untouched
+// unless overwrite is set, so an agent keeps its OpAMP persisted configuration
+// across restarts.
+func seed(opts *options) error {
+	files := []struct{ path, contents string }{
+		{opts.configPath, defaultCollectorConfig},
+		{opts.loggingPath, defaultLoggingConfig},
 	}
 
 	for _, f := range files {
@@ -130,7 +192,7 @@ func run(configPath, loggingPath string, overwrite bool) error {
 		} else if err != nil {
 			return fmt.Errorf("stat %s: %w", dir, err)
 		}
-		if !overwrite {
+		if !opts.overwrite {
 			if _, err := os.Stat(f.path); err == nil {
 				log.Printf("skipped %s: file already exists", f.path)
 				continue
