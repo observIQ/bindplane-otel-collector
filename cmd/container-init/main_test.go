@@ -17,6 +17,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -65,5 +66,16 @@ func requireFileContents(t *testing.T, path, expected string) {
 	}
 	if string(contents) != expected {
 		t.Fatalf("unexpected contents of %s: got %q, want %q", path, contents, expected)
+	}
+}
+
+func TestDescribeProcess(t *testing.T) {
+	// /proc is linux only; elsewhere the helper returns an empty string.
+	if desc := describeProcess(); desc != "" {
+		for _, key := range []string{"Uid=", "Gid=", "CapEff="} {
+			if !strings.Contains(desc, key) {
+				t.Fatalf("%q lacks %s", desc, key)
+			}
+		}
 	}
 }
