@@ -282,14 +282,12 @@ nfpms:
           mode: 0640
           owner: root
           group: root
-        type: config|noreplace
       - src: release_deps/logging.yaml
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/logging.yaml
         file_info:
           mode: 0640
           owner: root
           group: root
-        type: config|noreplace
       - src: LICENSE
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/LICENSE
         file_info:
