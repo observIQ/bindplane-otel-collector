@@ -21,12 +21,15 @@ function Redact-File {
     if (-not (Test-Path $Path)) { return }
     $text = Get-Content -Raw -Path $Path
     if ($null -eq $text) { return }
-    $keyRe = '(?im)^([ \t]*-?[ \t]*[A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[ \t]*:[ \t]*).*$'
+    $keyRe = '(?im)^([ \t]*-?[ \t]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[ \t]*:[ \t]*).*$'
     $text = [regex]::Replace($text, $keyRe, '$1"[REDACTED]"')
     $text = [regex]::Replace($text, '([A-Za-z][A-Za-z0-9+.-]*://[^:/@\s]+):[^@/\s]+@', '$1:[REDACTED]@')
     $text = [regex]::Replace($text, '([Bb]earer[ \t]+)[A-Za-z0-9._~+/=-]+', '$1[REDACTED]')
     $text = [regex]::Replace($text, 'AKIA[0-9A-Z]{16}', '[REDACTED-AWS-ACCESS-KEY]')
     $text = [regex]::Replace($text, 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED-JWT]')
+    # Mid-line "<sensitive-key>: value" in log text, redacted to end of line.
+    $midRe = '(?i)([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[ \t]*[:=][ \t]*).*'
+    $text = [regex]::Replace($text, $midRe, '$1"[REDACTED]"')
     $text = [regex]::Replace($text, '(?s)-----BEGIN[A-Z ]*PRIVATE KEY-----.*?-----END[A-Z ]*PRIVATE KEY-----', '[REDACTED-PRIVATE-KEY]')
     Set-Content -Path $Path -Value $text -NoNewline
 }

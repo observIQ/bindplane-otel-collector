@@ -15,14 +15,14 @@
 
 set -e
 
-PREREQS="printf sed uname sudo tar gzip curl"
+PREREQS="printf sed awk uname sudo tar gzip curl"
 INDENT_WIDTH='  '
 indent=""
 
 collector_dir=/opt/observiq-otel-collector
 
 # Colors
-num_colors=$(tput colors 2>/dev/null)
+num_colors=$(tput colors 2>/dev/null || true)
 if test -n "$num_colors" && test "$num_colors" -ge 8; then
   reset="$(tput sgr0)"
   fg_cyan="$(tput setaf 6)"
@@ -216,21 +216,51 @@ check_prereqs() {
 }
 
 # Redact secrets from a staged bundle file in place (originals untouched).
-# Pass 1: YAML "<sensitive-key>: value" -> [REDACTED]. Pass 2: secret-shaped
-# values anywhere (URL creds, Bearer, AWS key, JWT, PEM), which covers logs.
-# Line-based, so multi-line YAML block scalars are not covered except PEM.
+# Pass 1: YAML "<sensitive-key>: value" at line start -> [REDACTED].
+# Passes 2-5: secret-shaped values anywhere (URL creds, Bearer, AWS key, JWT).
+# Pass 6: a mid-line "<sensitive-key>: value" in log text, redacted to
+# end of line so a secret printed inside a message is caught too.
+# Finally an awk pass collapses each PEM private-key block, whether the
+# BEGIN/END markers are on one line (escaped \n) or span multiple lines.
+# Ceiling: a multi-line YAML block scalar value is otherwise not covered.
 redact_in_place() {
   f="$1"
   [ -f "$f" ] || return 0
   sed -E -i \
-    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*).*$/\1"[REDACTED]"/I' \
+    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*).*$/\1"[REDACTED]"/I' \
     -e 's#([A-Za-z][A-Za-z0-9+.-]*://[^:/@[:space:]]+):[^@/[:space:]]+@#\1:[REDACTED]@#g' \
     -e 's/([Bb]earer[[:space:]]+)[A-Za-z0-9._~+/=-]+/\1[REDACTED]/g' \
     -e 's/AKIA[0-9A-Z]{16}/[REDACTED-AWS-ACCESS-KEY]/g' \
     -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED-JWT]/g' \
+    -e 's/([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*).*$/\1"[REDACTED]"/I' \
     "$f"
-  sed -E -i '/-----BEGIN[A-Z ]*PRIVATE KEY-----/,/-----END[A-Z ]*PRIVATE KEY-----/c\
-[REDACTED-PRIVATE-KEY]' "$f"
+  # Collapse PEM private-key blocks (same-line or multi-line) to one marker,
+  # preserving any text before BEGIN and after END so the file is not
+  # truncated to EOF when END is on the same line.
+  awk '
+    {
+      line = $0
+      while (match(line, /-----BEGIN[A-Z ]*PRIVATE KEY-----/)) {
+        b = RSTART
+        rest = substr(line, b)
+        if (match(rest, /-----END[A-Z ]*PRIVATE KEY-----/)) {
+          e = b + RSTART + RLENGTH - 1
+          line = substr(line, 1, b - 1) "[REDACTED-PRIVATE-KEY]" substr(line, e + 1)
+        } else {
+          prefix = substr(line, 1, b - 1)
+          done = 0
+          while ((getline nl) > 0) {
+            if (nl ~ /-----END[A-Z ]*PRIVATE KEY-----/) {
+              sub(/^.*-----END[A-Z ]*PRIVATE KEY-----/, "", nl)
+              line = prefix "[REDACTED-PRIVATE-KEY]" nl; done = 1; break
+            }
+          }
+          if (!done) { line = prefix "[REDACTED-PRIVATE-KEY]"; break }
+        }
+      }
+      print line
+    }
+  ' "$f" > "$f.redact.$$" && mv "$f.redact.$$" "$f"
 }
 
 function bundle_files() {
@@ -311,6 +341,11 @@ function bundle_files() {
         fi
     done
 
+    # Stage config, manager, and journalctl output into a private temp dir so
+    # redaction and cleanup never touch same-named files in the working dir.
+    file_stage="sb_files_$$"
+    mkdir -p "$file_stage"
+
     collector_config="$collector_dir/config.yaml"
     collector_manager="$collector_dir/manager.yaml"
     if [ -f "$collector_config" ] || [ -f "$collector_manager" ]; then
@@ -321,28 +356,26 @@ function bundle_files() {
             # originals are never modified.
             if [ -f "$collector_config" ]; then
                 info "Adding collector config (redacted) $(fg_cyan "$collector_config")$(reset)"
-                cp "$collector_config" config.yaml
-                redact_in_place config.yaml
-                tar --append --file="$tar_filename" config.yaml
-                rm -f config.yaml
+                cp "$collector_config" "$file_stage/config.yaml"
+                redact_in_place "$file_stage/config.yaml"
+                tar --append --file="$tar_filename" -C "$file_stage" config.yaml
             fi
             if [ -f "$collector_manager" ]; then
                 info "Adding manager config (redacted) $(fg_cyan "$collector_manager")$(reset)"
-                cp "$collector_manager" manager.yaml
-                redact_in_place manager.yaml
-                tar --append --file="$tar_filename" manager.yaml
-                rm -f manager.yaml
+                cp "$collector_manager" "$file_stage/manager.yaml"
+                redact_in_place "$file_stage/manager.yaml"
+                tar --append --file="$tar_filename" -C "$file_stage" manager.yaml
             fi
         fi
     fi
 
-    # Grab the logs from journalctl -- in some cases, the collector.log file 
+    # Grab the logs from journalctl -- in some cases, the collector.log file
     # may be empty, but there may be logs in journalctl
     info "Collecting logs from journalctl..."
-    journalctl -u observiq-otel-collector.service -n 50 > journalctl.log
-    redact_in_place journalctl.log
-    tar --append --file="$tar_filename" journalctl.log
-    rm journalctl.log
+    journalctl -u observiq-otel-collector.service -n 50 > "$file_stage/journalctl.log"
+    redact_in_place "$file_stage/journalctl.log"
+    tar --append --file="$tar_filename" -C "$file_stage" journalctl.log
+    rm -rf "$file_stage"
 
     collect_profiles "$tar_filename"
 
