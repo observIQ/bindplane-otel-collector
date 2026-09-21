@@ -216,30 +216,33 @@ check_prereqs() {
 }
 
 # Redact secrets from a staged bundle file in place (originals untouched).
-# Pass 1: YAML "<sensitive-key>: value" at line start -> [REDACTED].
-# Passes 2-5: secret-shaped values anywhere (URL creds, Bearer, AWS key, JWT).
-# Pass 6: a mid-line "<sensitive-key>: value" in log text, redacted to
-# end of line so a secret printed inside a message is caught too.
-# Finally an awk pass collapses each PEM private-key block, whether the
-# BEGIN/END markers are on one line (escaped \n) or span multiple lines.
-# Ceiling: a multi-line YAML block scalar value is otherwise not covered.
+# awk pass runs first (needs the raw block indicator): (1) redact a multi-line
+# YAML block scalar under a sensitive key by dropping its more-indented body;
+# (2) collapse PEM private-key blocks (same-line or multi-line) to one marker,
+# keeping text before BEGIN and after END so the file is not truncated to EOF.
+# sed passes then handle single-line keys, secret-shaped values anywhere (URL
+# creds, Bearer, AWS key, JWT), and a mid-line "key: value" in log text.
 redact_in_place() {
   f="$1"
   [ -f "$f" ] || return 0
-  sed -E -i \
-    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*).*$/\1"[REDACTED]"/I' \
-    -e 's#([A-Za-z][A-Za-z0-9+.-]*://[^:/@[:space:]]+):[^@/[:space:]]+@#\1:[REDACTED]@#g' \
-    -e 's/([Bb]earer[[:space:]]+)[A-Za-z0-9._~+/=-]+/\1[REDACTED]/g' \
-    -e 's/AKIA[0-9A-Z]{16}/[REDACTED-AWS-ACCESS-KEY]/g' \
-    -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED-JWT]/g' \
-    -e 's/([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*).*$/\1"[REDACTED]"/I' \
-    "$f"
-  # Collapse PEM private-key blocks (same-line or multi-line) to one marker,
-  # preserving any text before BEGIN and after END so the file is not
-  # truncated to EOF when END is on the same line.
   awk '
     {
       line = $0
+      while (1) {
+        if (match(tolower(line), /^[ \t]*[a-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[a-z0-9_.-]*[ \t]*:[ \t]*[|>][-+]?[0-9]?[ \t]*$/)) {
+          match(line, /^[ \t]*/); ind = RLENGTH
+          k = line; sub(/:[ \t]*[|>][-+]?[0-9]?[ \t]*$/, ": \"[REDACTED]\"", k); print k
+          got = 0
+          while ((getline b) > 0) {
+            if (b ~ /^[ \t]*$/) continue
+            match(b, /^[ \t]*/); if (RLENGTH > ind) continue
+            got = 1; break
+          }
+          if (!got) next
+          line = b; continue
+        }
+        break
+      }
       while (match(line, /-----BEGIN[A-Z ]*PRIVATE KEY-----/)) {
         b = RSTART
         rest = substr(line, b)
@@ -261,6 +264,14 @@ redact_in_place() {
       print line
     }
   ' "$f" > "$f.redact.$$" && mv "$f.redact.$$" "$f"
+  sed -E -i \
+    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*).*$/\1"[REDACTED]"/I' \
+    -e 's#([A-Za-z][A-Za-z0-9+.-]*://[^:/@[:space:]]+):[^@/[:space:]]+@#\1:[REDACTED]@#g' \
+    -e 's/([Bb]earer[[:space:]]+)[A-Za-z0-9._~+/=-]+/\1[REDACTED]/g' \
+    -e 's/AKIA[0-9A-Z]{16}/[REDACTED-AWS-ACCESS-KEY]/g' \
+    -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED-JWT]/g' \
+    -e 's/([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*).*$/\1"[REDACTED]"/I' \
+    "$f"
 }
 
 function bundle_files() {
