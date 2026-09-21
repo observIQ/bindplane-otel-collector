@@ -12,26 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Redact secrets from a staged copy in place (originals untouched): block
-# scalars, single-line keys, value shapes (URL/Bearer/AKIA/JWT), PEM, mid-line
-# log key:value.
+# Redact secrets from a staged copy in place; originals untouched. Best effort.
+# Key list from resource params marked sensitive:true (value/endpoint/DSN
+# excluded from whole-value redaction).
 function Redact-File {
     param([string]$Path)
     if (-not (Test-Path $Path)) { return }
     $text = Get-Content -Raw -Path $Path
     if ($null -eq $text) { return }
-    # Multi-line YAML block scalar under a sensitive key: drop the indented body.
-    $blockRe = '(?im)^(?<pre>(?<ind>[ \t]*)[A-Za-z0-9_.-]*(?:password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*)[ \t]*:[ \t]*[|>][-+]?\d?[ \t]*\r?\n(?:\k<ind>[ \t]+\S.*(?:\r?\n|$)|[ \t]*\r?\n)*'
+    $keys = 'password|passwd|secret|token|key|creds|credential|honeycomb|authorization|bearer|passphrase|client_id'
+    # Block scalar: drop the indented body.
+    $blockRe = '(?im)^(?<pre>(?<ind>[ \t]*)[A-Za-z0-9_.-]*(?:' + $keys + ')[A-Za-z0-9_.-]*)[ \t]*:[ \t]*[|>][-+]?\d?[ \t]*\r?\n(?:\k<ind>[ \t]+\S.*(?:\r?\n|$)|[ \t]*\r?\n)*'
     $text = [regex]::Replace($text, $blockRe, ('${pre}: "[REDACTED]"' + "`n"))
-    $keyRe = '(?im)^([ \t]*-?[ \t]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[ \t]*:[ \t]*).*$'
+    # Require non-empty value so a bare "key:" opener is kept.
+    $keyRe = '(?im)^([ \t]*-?[ \t]*[A-Za-z0-9_.-]*(?:' + $keys + ')[A-Za-z0-9_.-]*[ \t]*:[ \t]*)\S.*$'
     $text = [regex]::Replace($text, $keyRe, '$1"[REDACTED]"')
     $text = [regex]::Replace($text, '([A-Za-z][A-Za-z0-9+.-]*://[^:/@\s]+):[^@/\s]+@', '$1:[REDACTED]@')
     $text = [regex]::Replace($text, '([Bb]earer[ \t]+)[A-Za-z0-9._~+/=-]+', '$1[REDACTED]')
     $text = [regex]::Replace($text, 'AKIA[0-9A-Z]{16}', '[REDACTED-AWS-ACCESS-KEY]')
     $text = [regex]::Replace($text, 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED-JWT]')
-    # Mid-line "<sensitive-key>: value" in log text, redacted to end of line.
-    $midRe = '(?i)([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[ \t]*[:=][ \t]*).*'
-    $text = [regex]::Replace($text, $midRe, '$1"[REDACTED]"')
+    # Mid-line key:value in log/DSN text; value token only (keeps trailing fields).
+    $midRe = '(?i)([A-Za-z0-9_.-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[ \t]*[:=][ \t]*)[^\s;,"]+'
+    $text = [regex]::Replace($text, $midRe, '$1[REDACTED]')
     $text = [regex]::Replace($text, '(?s)-----BEGIN[A-Z ]*PRIVATE KEY-----.*?-----END[A-Z ]*PRIVATE KEY-----', '[REDACTED-PRIVATE-KEY]')
     Set-Content -Path $Path -Value $text -NoNewline
 }

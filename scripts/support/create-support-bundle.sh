@@ -215,9 +215,9 @@ check_prereqs() {
   decrease_indent
 }
 
-# Redact secrets from a staged copy in place (originals untouched). awk first
-# (needs raw block indicator): block-scalar bodies + PEM blocks. Then sed:
-# single-line keys, value shapes (URL/Bearer/AKIA/JWT), mid-line log key:value.
+# Redact secrets from a staged copy in place; originals untouched. Best effort.
+# Key list from resource params marked sensitive:true (value/endpoint/DSN
+# excluded from whole-value redaction). awk runs first (needs raw block char).
 redact_in_place() {
   f="$1"
   [ -f "$f" ] || return 0
@@ -225,7 +225,7 @@ redact_in_place() {
     {
       line = $0
       while (1) {
-        if (match(tolower(line), /^[ \t]*[a-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[a-z0-9_.-]*[ \t]*:[ \t]*[|>][-+]?[0-9]?[ \t]*$/)) {
+        if (match(tolower(line), /^[ \t]*[a-z0-9_.-]*(password|passwd|secret|token|key|creds|credential|honeycomb|authorization|bearer|passphrase|client_id)[a-z0-9_.-]*[ \t]*:[ \t]*[|>][-+]?[0-9]?[ \t]*$/)) {
           match(line, /^[ \t]*/); ind = RLENGTH
           k = line; sub(/:[ \t]*[|>][-+]?[0-9]?[ \t]*$/, ": \"[REDACTED]\"", k); print k
           got = 0
@@ -259,14 +259,16 @@ redact_in_place() {
       }
       print line
     }
-  ' "$f" > "$f.redact.$$" && mv "$f.redact.$$" "$f"
+  ' "$f" > "$f.redact.$$" || { rm -f "$f.redact.$$"; error_exit "$LINENO" "redaction failed for $f"; }
+  mv "$f.redact.$$" "$f"
+  # Require non-empty value so a bare "key:" opener stays valid YAML.
   sed -E -i \
-    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|honeycomb|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*).*$/\1"[REDACTED]"/I' \
+    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|credential|honeycomb|authorization|bearer|passphrase|client_id)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*)[^[:space:]].*$/\1"[REDACTED]"/I' \
     -e 's#([A-Za-z][A-Za-z0-9+.-]*://[^:/@[:space:]]+):[^@/[:space:]]+@#\1:[REDACTED]@#g' \
     -e 's/([Bb]earer[[:space:]]+)[A-Za-z0-9._~+/=-]+/\1[REDACTED]/g' \
     -e 's/AKIA[0-9A-Z]{16}/[REDACTED-AWS-ACCESS-KEY]/g' \
     -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED-JWT]/g' \
-    -e 's/([A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*).*$/\1"[REDACTED]"/I' \
+    -e 's/([A-Za-z0-9_.-]*(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*)[^[:space:];,"]+/\1[REDACTED]/Ig' \
     "$f"
 }
 
