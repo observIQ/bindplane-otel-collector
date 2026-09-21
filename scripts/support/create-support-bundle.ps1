@@ -18,7 +18,7 @@ $registry_path = "Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\Curren
 if (Test-Path $registry_path) {
     $collector_dir = (Get-ItemProperty -Path $registry_path -Name "InstallLocation").InstallLocation
 } else {
-    $collector_dir = "C:\Program Files\observIQ OpenTelemetry Collector"
+    $collector_dir = "C:/Program Files/observIQ OpenTelemetry Collector"
     Write-Host "observIQ OpenTelemetry Collector directory not found in the registry. Trying default location: $collector_dir"
 }
 
@@ -40,38 +40,38 @@ $output_dir = "Support_Bundle_$datestamp"
 New-Item -ItemType Directory -Force -Path $output_dir
 
 # Grab the collector VERSION.txt file
-if (Test-Path "$collector_dir\VERSION.txt") {
-    Write-Host "Adding $collector_dir\VERSION.txt"
-    Copy-Item "$collector_dir\VERSION.txt" -Destination "$output_dir\" -Force
+if (Test-Path "$collector_dir/VERSION.txt") {
+    Write-Host "Adding $collector_dir/VERSION.txt"
+    Copy-Item "$collector_dir/VERSION.txt" -Destination "$output_dir/" -Force
 }
 
 # Determine whether to copy only the most recent log
 $response = Read-Host -Prompt "Do you want to include only the most recent logs (Y or n)?  "
 if ($response -eq "n") {
-    Copy-Item "$collector_dir\log\*" -Destination "$output_dir\" -Force
+    Copy-Item "$collector_dir/log/*" -Destination "$output_dir/" -Force
 } else {
-    if (Test-Path "$collector_dir\log\observiq_collector.err") {
-        Write-Host "Adding $collector_dir\log\observiq_collector.err"
-        Copy-Item "$collector_dir\log\observiq_collector.err" -Destination "$output_dir\" -Force
+    if (Test-Path "$collector_dir/log/observiq_collector.err") {
+        Write-Host "Adding $collector_dir/log/observiq_collector.err"
+        Copy-Item "$collector_dir/log/observiq_collector.err" -Destination "$output_dir/" -Force
     }
-    if (Test-Path "$collector_dir\log\observiq_collector.err.1") {
-        Write-Host "Adding $collector_dir\log\observiq_collector.err.1"
-        Copy-Item "$collector_dir\log\observiq_collector.err.1" -Destination "$output_dir\" -Force
+    if (Test-Path "$collector_dir/log/observiq_collector.err.1") {
+        Write-Host "Adding $collector_dir/log/observiq_collector.err.1"
+        Copy-Item "$collector_dir/log/observiq_collector.err.1" -Destination "$output_dir/" -Force
     }
-    Write-Host "Adding $collector_dir\log\collector.log"
-    Copy-Item "$collector_dir\log\collector.log" -Destination "$output_dir\" -Force
+    Write-Host "Adding $collector_dir/log/collector.log"
+    Copy-Item "$collector_dir/log/collector.log" -Destination "$output_dir/" -Force
 }
 
 # Collector Config
 $response = Read-Host -Prompt "Do you want to include the collector config (Y or n)? "
 
 if ($response -ne "n") {
-    Write-Host "Adding $collector_dir\config.yaml"
-    Copy-Item "$collector_dir\config.yaml" -Destination "$output_dir\" -Force
+    Write-Host "Adding $collector_dir/config.yaml"
+    Copy-Item "$collector_dir/config.yaml" -Destination "$output_dir/" -Force
 }
 
 # Capture system info
-Get-ComputerInfo | Out-File "$output_dir\systeminfo.txt"
+Get-ComputerInfo | Out-File "$output_dir/systeminfo.txt"
 
 # Capture profiles
 $response = Read-Host -Prompt "Collect go pprof profiles [requires PowerShell 6.0.0 or greater]? (Y or n)? "
@@ -88,21 +88,39 @@ if ($response -ne "n") {
 
     $profiles = @("profile", "block", "goroutine", "heap", "mutex", "threadcreate", "trace")
 
+    # Launch every profile request concurrently as a background job. profile
+    # (CPU) and trace share the same 30s window so go tool trace can attribute
+    # CPU stacks to trace spans.
+    $jobs = @()
     foreach ($profile in $profiles) {
         $url = "http://localhost:$pprof_port/debug/pprof/$($profile)?seconds=30"
-        $output_file = "$output_dir\$profile.txt"
-        Write-Host "Collecting $profile profile from $url"
-        try {
-            Invoke-WebRequest -SkipCertificateCheck -Uri $url -OutFile $output_file -UseBasicParsing -ErrorAction Stop
-        } catch {
-            Write-Host "Failed to collect $profile profile: $_"
+        switch ($profile) {
+            "profile" { $output_file = "$output_dir/cpu.pprof" }
+            "trace"   { $output_file = "$output_dir/trace.out" }
+            default   { $output_file = "$output_dir/$profile.pprof" }
         }
+        Write-Host "Collecting $profile profile from $url"
+        $jobs += Start-Job -Name $profile -ScriptBlock {
+            param($url, $output_file)
+            Invoke-WebRequest -SkipCertificateCheck -Uri $url -OutFile $output_file -UseBasicParsing -ErrorAction Stop
+        } -ArgumentList $url, $output_file
+    }
+
+    # Wait for all jobs, then report each failure by name.
+    $jobs | Wait-Job | Out-Null
+    foreach ($job in $jobs) {
+        if ($job.State -eq "Failed") {
+            $reason = $job.ChildJobs[0].JobStateInfo.Reason.Message
+            Write-Host "Failed to collect $($job.Name) profile: $reason"
+        }
+        Receive-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
+        Remove-Job -Job $job
     }
 }
 
 # Compress the files into a zip archive
 $zip_filename = "$output_dir.zip"
-Compress-Archive -Path "$output_dir\*" -DestinationPath $zip_filename -Force
+Compress-Archive -Path "$output_dir/*" -DestinationPath $zip_filename -Force
 
 # Remove the original output directory
 Remove-Item -Path $output_dir -Force -Recurse

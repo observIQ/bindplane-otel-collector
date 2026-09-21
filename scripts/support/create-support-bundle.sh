@@ -298,7 +298,7 @@ function bundle_files() {
     tar --append --file="$tar_filename" journalctl.log
     rm journalctl.log
 
-    collect_profiles $tar_filename
+    collect_profiles "$tar_filename"
 
     # Compress the tar file
     info "Compressing the tar file..."
@@ -320,16 +320,43 @@ collect_profiles() {
     # shellcheck disable=SC2162
     read -p "Endpoint: " ENDPOINT
     printf "\n"
-    info "Collecting golang pprof profiles..."
-    curl -ksS "$ENDPOINT/debug/pprof/goroutine" --output goroutines.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/heap" --output heap.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/threadcreate" --output threadcreate.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/block" --output block.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/mutex" --output mutex.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/profile" --output profile.pprof
-    curl -ksS "$ENDPOINT/debug/pprof/trace?seconds=5" > profile.pb.gz
-    tar -rf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
-    rm -f goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+    info "Collecting golang pprof profiles in parallel..."
+    # Fire every profile request concurrently. profile (CPU) and trace use the
+    # same 30s window so go tool trace can attribute CPU stacks to trace spans.
+    # -f makes curl exit non-zero on an HTTP error so the per-PID status below
+    # reflects a real failure instead of a saved error page.
+    curl -fksS "$ENDPOINT/debug/pprof/goroutine" --output goroutines.pprof & pid_goroutine=$!
+    curl -fksS "$ENDPOINT/debug/pprof/heap" --output heap.pprof & pid_heap=$!
+    curl -fksS "$ENDPOINT/debug/pprof/threadcreate" --output threadcreate.pprof & pid_threadcreate=$!
+    curl -fksS "$ENDPOINT/debug/pprof/block" --output block.pprof & pid_block=$!
+    curl -fksS "$ENDPOINT/debug/pprof/mutex" --output mutex.pprof & pid_mutex=$!
+    curl -fksS "$ENDPOINT/debug/pprof/profile?seconds=30" --output cpu.pprof & pid_cpu=$!
+    curl -fksS "$ENDPOINT/debug/pprof/trace?seconds=30" --output trace.out & pid_trace=$!
+
+    # Wait on each PID individually so a single failure is attributed by name.
+    failed=""
+    wait $pid_goroutine || failed="$failed goroutine"
+    wait $pid_heap || failed="$failed heap"
+    wait $pid_threadcreate || failed="$failed threadcreate"
+    wait $pid_block || failed="$failed block"
+    wait $pid_mutex || failed="$failed mutex"
+    wait $pid_cpu || failed="$failed profile"
+    wait $pid_trace || failed="$failed trace"
+    if [ -n "$failed" ]; then
+      info "Warning: failed to collect the following profiles:$failed"
+    fi
+
+    # Bundle only the profiles that were actually written.
+    collected=""
+    for f in goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof cpu.pprof trace.out; do
+      [ -f "$f" ] && collected="$collected $f"
+    done
+    if [ -n "$collected" ]; then
+      # shellcheck disable=SC2086
+      tar -rf "$tar_filename" $collected
+      # shellcheck disable=SC2086
+      rm -f $collected
+    fi
 
     info "Profile files have been added to the file $(realpath "$tar_filename") successfully."
     decrease_indent
