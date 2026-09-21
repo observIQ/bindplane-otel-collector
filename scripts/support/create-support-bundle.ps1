@@ -12,6 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Redact secrets from a staged bundle file in place (originals untouched).
+# Pass 1: YAML "<sensitive-key>: value" -> [REDACTED]. Pass 2: secret-shaped
+# values anywhere (URL creds, Bearer, AWS key, JWT, PEM), which covers logs.
+# Line-based, so multi-line YAML block scalars are not covered except PEM.
+function Redact-File {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return }
+    $text = Get-Content -Raw -Path $Path
+    if ($null -eq $text) { return }
+    $keyRe = '(?im)^([ \t]*-?[ \t]*[A-Za-z0-9_.-]*(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|encryption[_-]?key|credential|passphrase|authorization|bearer|connection[_-]?string|account[_-]?key)[A-Za-z0-9_.-]*[ \t]*:[ \t]*).*$'
+    $text = [regex]::Replace($text, $keyRe, '$1"[REDACTED]"')
+    $text = [regex]::Replace($text, '([A-Za-z][A-Za-z0-9+.-]*://[^:/@\s]+):[^@/\s]+@', '$1:[REDACTED]@')
+    $text = [regex]::Replace($text, '([Bb]earer[ \t]+)[A-Za-z0-9._~+/=-]+', '$1[REDACTED]')
+    $text = [regex]::Replace($text, 'AKIA[0-9A-Z]{16}', '[REDACTED-AWS-ACCESS-KEY]')
+    $text = [regex]::Replace($text, 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED-JWT]')
+    $text = [regex]::Replace($text, '(?s)-----BEGIN[A-Z ]*PRIVATE KEY-----.*?-----END[A-Z ]*PRIVATE KEY-----', '[REDACTED-PRIVATE-KEY]')
+    Set-Content -Path $Path -Value $text -NoNewline
+}
+
+# When dot-sourced (e.g. by tests), stop here so only the function loads.
+if ($MyInvocation.InvocationName -eq '.') { return }
+
 # Define the default directory for logs
 $registry_path = "Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Uninstall\observIQ Distro for OpenTelemetry Collector"
 
@@ -62,12 +84,27 @@ if ($response -eq "n") {
     Copy-Item "$collector_dir/log/collector.log" -Destination "$output_dir/" -Force
 }
 
+# Redact any logs copied into the output directory before they are bundled.
+Get-ChildItem -Path $output_dir -File |
+    Where-Object { $_.Name -match '\.(log|err)(\.\d+)?$' } |
+    ForEach-Object { Redact-File $_.FullName }
+
 # Collector Config
 $response = Read-Host -Prompt "Do you want to include the collector config (Y or n)? "
 
 if ($response -ne "n") {
-    Write-Host "Adding $collector_dir/config.yaml"
-    Copy-Item "$collector_dir/config.yaml" -Destination "$output_dir/" -Force
+    # Stage a copy and redact it before bundling so the on-disk originals are
+    # never modified.
+    if (Test-Path "$collector_dir/config.yaml") {
+        Write-Host "Adding $collector_dir/config.yaml (redacted)"
+        Copy-Item "$collector_dir/config.yaml" -Destination "$output_dir/" -Force
+        Redact-File "$output_dir/config.yaml"
+    }
+    if (Test-Path "$collector_dir/manager.yaml") {
+        Write-Host "Adding $collector_dir/manager.yaml (redacted)"
+        Copy-Item "$collector_dir/manager.yaml" -Destination "$output_dir/" -Force
+        Redact-File "$output_dir/manager.yaml"
+    }
 }
 
 # Capture system info
