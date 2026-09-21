@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Redact secrets from a staged bundle file in place (originals untouched).
-# Pass 1: YAML "<sensitive-key>: value" -> [REDACTED]. Pass 2: secret-shaped
-# values anywhere (URL creds, Bearer, AWS key, JWT, PEM), which covers logs.
-# Line-based, so multi-line YAML block scalars are not covered except PEM.
+# Redact secrets from a staged copy in place (originals untouched): block
+# scalars, single-line keys, value shapes (URL/Bearer/AKIA/JWT), PEM, mid-line
+# log key:value.
 function Redact-File {
     param([string]$Path)
     if (-not (Test-Path $Path)) { return }
@@ -90,7 +89,7 @@ if ($response -eq "n") {
     Copy-Item "$collector_dir/log/collector.log" -Destination "$output_dir/" -Force
 }
 
-# Redact any logs copied into the output directory before they are bundled.
+# Redact copied logs before bundling.
 Get-ChildItem -Path $output_dir -File |
     Where-Object { $_.Name -match '\.(log|err)(\.\d+)?$' } |
     ForEach-Object { Redact-File $_.FullName }
@@ -99,8 +98,6 @@ Get-ChildItem -Path $output_dir -File |
 $response = Read-Host -Prompt "Do you want to include the collector config (Y or n)? "
 
 if ($response -ne "n") {
-    # Stage a copy and redact it before bundling so the on-disk originals are
-    # never modified.
     if (Test-Path "$collector_dir/config.yaml") {
         Write-Host "Adding $collector_dir/config.yaml (redacted)"
         Copy-Item "$collector_dir/config.yaml" -Destination "$output_dir/" -Force

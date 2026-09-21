@@ -215,13 +215,9 @@ check_prereqs() {
   decrease_indent
 }
 
-# Redact secrets from a staged bundle file in place (originals untouched).
-# awk pass runs first (needs the raw block indicator): (1) redact a multi-line
-# YAML block scalar under a sensitive key by dropping its more-indented body;
-# (2) collapse PEM private-key blocks (same-line or multi-line) to one marker,
-# keeping text before BEGIN and after END so the file is not truncated to EOF.
-# sed passes then handle single-line keys, secret-shaped values anywhere (URL
-# creds, Bearer, AWS key, JWT), and a mid-line "key: value" in log text.
+# Redact secrets from a staged copy in place (originals untouched). awk first
+# (needs raw block indicator): block-scalar bodies + PEM blocks. Then sed:
+# single-line keys, value shapes (URL/Bearer/AKIA/JWT), mid-line log key:value.
 redact_in_place() {
   f="$1"
   [ -f "$f" ] || return 0
@@ -295,8 +291,7 @@ function bundle_files() {
     read -p "Do you want to include only the most recent logs (y or n)? " response
     increase_indent
     tar_filename="support_bundle_$(date +%Y%m%d_%H%M%S).tar"
-    # Stage selected logs, redact them, then build the tarball from the
-    # redacted copies. The originals under $log_dir are never modified.
+    # Stage logs, redact copies, tar from the stage. Originals untouched.
     log_stage="sb_logs_$$"
     mkdir -p "$log_stage"
     if [ "$response" = "n" ]; then
@@ -352,8 +347,7 @@ function bundle_files() {
         fi
     done
 
-    # Stage config, manager, and journalctl output into a private temp dir so
-    # redaction and cleanup never touch same-named files in the working dir.
+    # Stage config/manager/journalctl in a temp dir, not the working dir.
     file_stage="sb_files_$$"
     mkdir -p "$file_stage"
 
@@ -363,8 +357,6 @@ function bundle_files() {
         # shellcheck disable=SC2162
         read -p "Do you want to include the collector config (y or n)? " response
         if [ "$response" != "n" ]; then
-            # Stage a copy, redact it, then bundle the copy so the on-disk
-            # originals are never modified.
             if [ -f "$collector_config" ]; then
                 info "Adding collector config (redacted) $(fg_cyan "$collector_config")$(reset)"
                 cp "$collector_config" "$file_stage/config.yaml"
