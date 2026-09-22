@@ -44,13 +44,13 @@ func newChownTarget(path string, uid, gid uint) (chownTarget, error) {
 	if !filepath.IsAbs(path) || path == "/" {
 		return chownTarget{}, fmt.Errorf("-chown path %q must be absolute and not /", path)
 	}
-	for _, f := range []struct {
-		name string
-		id   uint
-	}{{"-uid", uid}, {"-gid", gid}} {
-		if f.id == 0 || f.id >= maxID {
-			return chownTarget{}, fmt.Errorf("%s must be between 1 and %d", f.name, maxID-1)
-		}
+	if uid == 0 || uid >= maxID {
+		return chownTarget{}, fmt.Errorf("-uid must be between 1 and %d", maxID-1)
+	}
+	// gid 0 is allowed: OpenShift runs containers as an arbitrary uid whose
+	// primary group is root, so its volumes are handed to uid:0.
+	if gid >= maxID {
+		return chownTarget{}, fmt.Errorf("-gid must be between 0 and %d", maxID-1)
 	}
 	return chownTarget{
 		path: path,

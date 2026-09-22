@@ -37,6 +37,10 @@ func TestNewChownTarget(t *testing.T) {
 			name: "valid", path: "/etc/otel/storage/", uid: 1000000000, gid: 1000000000,
 			want: chownTarget{path: "/etc/otel/storage", uid: 1000000000, gid: 1000000000},
 		},
+		{
+			name: "root gid", path: "/etc/otel", uid: 1000650000,
+			want: chownTarget{path: "/etc/otel", uid: 1000650000},
+		},
 		{name: "ids without path", uid: 1, wantErr: true},
 		{name: "relative path", path: "etc/otel", uid: 1, gid: 1, wantErr: true},
 		{name: "root path", path: "/etc/..", uid: 1, gid: 1, wantErr: true},
