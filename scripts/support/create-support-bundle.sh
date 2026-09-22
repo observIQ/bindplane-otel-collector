@@ -15,14 +15,14 @@
 
 set -e
 
-PREREQS="printf sed uname sudo tar gzip curl"
+PREREQS="printf sed awk uname sudo tar gzip curl"
 INDENT_WIDTH='  '
 indent=""
 
 collector_dir=/opt/observiq-otel-collector
 
 # Colors
-num_colors=$(tput colors 2>/dev/null)
+num_colors=$(tput colors 2>/dev/null || true)
 if test -n "$num_colors" && test "$num_colors" -ge 8; then
   reset="$(tput sgr0)"
   fg_cyan="$(tput setaf 6)"
@@ -215,6 +215,63 @@ check_prereqs() {
   decrease_indent
 }
 
+# Redact secrets from a staged copy in place; originals untouched. Best effort.
+# Key list from resource params marked sensitive:true (value/endpoint/DSN
+# excluded from whole-value redaction). awk runs first (needs raw block char).
+redact_in_place() {
+  f="$1"
+  [ -f "$f" ] || return 0
+  awk '
+    {
+      line = $0
+      while (1) {
+        if (match(tolower(line), /^[ \t]*[a-z0-9_.-]*(password|passwd|secret|token|key|creds|credential|honeycomb|authorization|bearer|passphrase|client_id)[a-z0-9_.-]*[ \t]*:[ \t]*[|>][-+]?[0-9]?[ \t]*$/)) {
+          match(line, /^[ \t]*/); ind = RLENGTH
+          k = line; sub(/:[ \t]*[|>][-+]?[0-9]?[ \t]*$/, ": \"[REDACTED]\"", k); print k
+          got = 0
+          while ((getline b) > 0) {
+            if (b ~ /^[ \t]*$/) continue
+            match(b, /^[ \t]*/); if (RLENGTH > ind) continue
+            got = 1; break
+          }
+          if (!got) next
+          line = b; continue
+        }
+        break
+      }
+      while (match(line, /-----BEGIN[A-Z ]*PRIVATE KEY-----/)) {
+        b = RSTART
+        rest = substr(line, b)
+        if (match(rest, /-----END[A-Z ]*PRIVATE KEY-----/)) {
+          e = b + RSTART + RLENGTH - 1
+          line = substr(line, 1, b - 1) "[REDACTED-PRIVATE-KEY]" substr(line, e + 1)
+        } else {
+          prefix = substr(line, 1, b - 1)
+          done = 0
+          while ((getline nl) > 0) {
+            if (nl ~ /-----END[A-Z ]*PRIVATE KEY-----/) {
+              sub(/^.*-----END[A-Z ]*PRIVATE KEY-----/, "", nl)
+              line = prefix "[REDACTED-PRIVATE-KEY]" nl; done = 1; break
+            }
+          }
+          if (!done) { line = prefix "[REDACTED-PRIVATE-KEY]"; break }
+        }
+      }
+      print line
+    }
+  ' "$f" > "$f.redact.$$" || { rm -f "$f.redact.$$"; error_exit "$LINENO" "redaction failed for $f"; }
+  mv "$f.redact.$$" "$f"
+  # Require non-empty value so a bare "key:" opener stays valid YAML.
+  sed -E -i \
+    -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z0-9_.-]*(password|passwd|secret|token|key|creds|credential|honeycomb|authorization|bearer|passphrase|client_id)[A-Za-z0-9_.-]*[[:space:]]*:[[:space:]]*)[^[:space:]].*$/\1"[REDACTED]"/I' \
+    -e 's#([A-Za-z][A-Za-z0-9+.-]*://[^:/@[:space:]]+):[^@/[:space:]]+@#\1:[REDACTED]@#g' \
+    -e 's/([Bb]earer[[:space:]]+)[A-Za-z0-9._~+/=-]+/\1[REDACTED]/g' \
+    -e 's/AKIA[0-9A-Z]{16}/[REDACTED-AWS-ACCESS-KEY]/g' \
+    -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED-JWT]/g' \
+    -e 's/([A-Za-z0-9_.-]*(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|passphrase|authorization|bearer)[A-Za-z0-9_.-]*[[:space:]]*[:=][[:space:]]*)[^[:space:];,"]+/\1[REDACTED]/Ig' \
+    "$f"
+}
+
 function bundle_files() {
     banner "Collecting files for support bundle"
     increase_indent
@@ -236,36 +293,47 @@ function bundle_files() {
     read -p "Do you want to include only the most recent logs (y or n)? " response
     increase_indent
     tar_filename="support_bundle_$(date +%Y%m%d_%H%M%S).tar"
+    # Stage logs, redact copies, tar from the stage. Originals untouched.
+    log_stage="sb_logs_$$"
+    mkdir -p "$log_stage"
     if [ "$response" = "n" ]; then
         # Get all the log files
         info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
-        # shellcheck disable=SC2046
-        tar -cf "$tar_filename" -C "$log_dir" $(ls -Art "$log_dir")
+        for log_file in "$log_dir"/*; do
+            [ -f "$log_file" ] && cp "$log_file" "$log_stage/"
+        done
     else
         # Get the most recent log file
         # shellcheck disable=SC2012
         recent_log=$(ls -Art "$log_dir" | tail -n 1)
         if [ -n "$recent_log" ]; then
-            tar -cf "$tar_filename" -C "$log_dir" "$recent_log"
+            cp "$log_dir/$recent_log" "$log_stage/"
             info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
 
         else
             # shellcheck disable=SC2086
             info "No logs found in $(fg_red $log_dir)"
+            rm -rf "$log_stage"
             return 1
         fi
         # Get the /log/observiq_collector.err file
         err_file="$log_dir/observiq_collector.err"
         if [ -f "$err_file" ]; then
-            tar --append --file="$tar_filename" -C "$log_dir" observiq_collector.err
+            cp "$err_file" "$log_stage/"
             info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
         fi
         err_backup_file="$log_dir/observiq_collector.err.1"
         if [ -f "$err_backup_file" ]; then
-            tar --append --file="$tar_filename" -C "$log_dir" observiq_collector.err.1
+            cp "$err_backup_file" "$log_stage/"
             info "Added file $(fg_cyan "$err_backup_file")$(reset) to the tar file."
         fi
     fi
+    # Redact every staged log before it enters the bundle.
+    for log_file in "$log_stage"/*; do
+        [ -f "$log_file" ] && redact_in_place "$log_file"
+    done
+    tar -cf "$tar_filename" -C "$log_stage" .
+    rm -rf "$log_stage"
 
     # Check if the files exist, if yes append them to the tar file
     for file in issue os-release redhat-release debian_version
@@ -281,22 +349,38 @@ function bundle_files() {
         fi
     done
 
+    # Stage config/manager/journalctl in a temp dir, not the working dir.
+    file_stage="sb_files_$$"
+    mkdir -p "$file_stage"
+
     collector_config="$collector_dir/config.yaml"
-    if [ -f "$collector_config" ]; then
+    collector_manager="$collector_dir/manager.yaml"
+    if [ -f "$collector_config" ] || [ -f "$collector_manager" ]; then
         # shellcheck disable=SC2162
         read -p "Do you want to include the collector config (y or n)? " response
         if [ "$response" != "n" ]; then
-            info "Adding collector config $(fg_cyan "$collector_config")$(reset)"
-            tar --append --file="$tar_filename" -C "$collector_dir" config.yaml
+            if [ -f "$collector_config" ]; then
+                info "Adding collector config (redacted) $(fg_cyan "$collector_config")$(reset)"
+                cp "$collector_config" "$file_stage/config.yaml"
+                redact_in_place "$file_stage/config.yaml"
+                tar --append --file="$tar_filename" -C "$file_stage" config.yaml
+            fi
+            if [ -f "$collector_manager" ]; then
+                info "Adding manager config (redacted) $(fg_cyan "$collector_manager")$(reset)"
+                cp "$collector_manager" "$file_stage/manager.yaml"
+                redact_in_place "$file_stage/manager.yaml"
+                tar --append --file="$tar_filename" -C "$file_stage" manager.yaml
+            fi
         fi
     fi
 
-    # Grab the logs from journalctl -- in some cases, the collector.log file 
+    # Grab the logs from journalctl -- in some cases, the collector.log file
     # may be empty, but there may be logs in journalctl
     info "Collecting logs from journalctl..."
-    journalctl -u observiq-otel-collector.service -n 50 > journalctl.log
-    tar --append --file="$tar_filename" journalctl.log
-    rm journalctl.log
+    journalctl -u observiq-otel-collector.service -n 50 > "$file_stage/journalctl.log"
+    redact_in_place "$file_stage/journalctl.log"
+    tar --append --file="$tar_filename" -C "$file_stage" journalctl.log
+    rm -rf "$file_stage"
 
     collect_profiles "$tar_filename"
 
@@ -387,4 +471,8 @@ main() {
   bundle_files
 }
 
-main "$@"
+# Only run main when executed directly, so tests can source the redaction
+# helpers without triggering collection.
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  main "$@"
+fi
