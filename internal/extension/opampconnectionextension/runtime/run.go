@@ -23,6 +23,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/logging"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/service"
+	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 )
@@ -60,6 +61,13 @@ type Options struct {
 	// FeatureGates is the list of otel collector feature gate identifiers to
 	// enable at startup.
 	FeatureGates []string
+
+	// AvailableComponentsMutator, if set, is applied to the OpAMP
+	// AvailableComponents report after it is built from the factory set and
+	// before it is sent. Distributions use it to add or rewrite component
+	// metadata (for example, to report an additional code.namespace) without
+	// the runtime knowing the specifics. Nil leaves the report unchanged.
+	AvailableComponentsMutator func(*protobufs.AvailableComponents)
 }
 
 // Run boots the managed agent runtime with the supplied options. It returns
@@ -103,7 +111,7 @@ func Run(opts Options) {
 			logger.Error("Error occurred while checking for collector config rollbacks", zap.Error(err))
 		}
 
-		runnableService, err = service.NewManagedCollectorService(col, logger, opts.ManagerConfigPath, collectorConfigPath, opts.LoggingConfigPath)
+		runnableService, err = service.NewManagedCollectorService(col, logger, opts.ManagerConfigPath, collectorConfigPath, opts.LoggingConfigPath, opts.AvailableComponentsMutator)
 		if err != nil {
 			logger.Fatal("Failed to initiate managed mode", zap.Error(err))
 		}
