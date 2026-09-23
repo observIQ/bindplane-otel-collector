@@ -3,19 +3,28 @@ on:
   pull_request:
 
 jobs:
-  # Graphite CI optimization: skip redundant CI runs for stacked PRs.
-  # See https://graphite.com/docs/stacking-and-ci
+  # CI optimization: skip redundant CI runs for stacked PRs.
+  # Graphite stacks: https://graphite.com/docs/stacking-and-ci
+  # GitHub native stacks: https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests
   optimize_ci:
     runs-on: ubuntu-latest
     continue-on-error: true
     outputs:
-      skip: ${{ steps.check_skip.outputs.skip }}
+      skip: ${{ steps.graphite_check.outputs.skip || steps.github_check.outputs.skip }}
     steps:
-      - name: Optimize CI
-        id: check_skip
+      - name: Graphite CI optimization
+        id: graphite_check
+        continue-on-error: true
         uses: withgraphite/graphite-ci-action@26bc0dcdeaba101794931d67a464ecbb21a76a8b # v0.0.9 tag (no formal releases)
         with:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+      - name: GitHub stacked PR optimization
+        id: github_check
+        if: github.event_name == 'pull_request' && steps.graphite_check.outputs.skip != 'true'
+        run: |
+          if [[ "${{ github.base_ref }}" != "${{ github.event.repository.default_branch }}" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
   # Detect which files changed to skip irrelevant jobs on PRs.
   detect-changes:
