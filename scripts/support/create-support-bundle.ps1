@@ -115,9 +115,19 @@ if ($collector_version -eq "v2") {
     } elseif ($response -eq "n") {
         $v2_logs | ForEach-Object { Copy-Item $_.FullName -Destination "$output_dir/" -Force }
     } else {
-        $recent = $v2_logs | Sort-Object LastWriteTime | Select-Object -Last 1
-        Write-Host "Adding $($recent.FullName)"
-        Copy-Item $recent.FullName -Destination "$output_dir/" -Force
+        # supervisor.log (the supervisor) and supervisor_storage/agent.log (the
+        # collector) are distinct live logs. Collect supervisor.log plus the newest
+        # supervisor_storage log so neither is dropped by a race.
+        if (Test-Path "$collector_dir/supervisor.log") {
+            Write-Host "Adding $collector_dir/supervisor.log"
+            Copy-Item "$collector_dir/supervisor.log" -Destination "$output_dir/" -Force
+        }
+        $newest = Get-ChildItem "$collector_dir/supervisor_storage" -Filter *.log -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime | Select-Object -Last 1
+        if ($newest) {
+            Write-Host "Adding $($newest.FullName)"
+            Copy-Item $newest.FullName -Destination "$output_dir/" -Force
+        }
     }
 } else {
     if ($response -eq "n") {
@@ -142,12 +152,12 @@ Get-ChildItem -Path $output_dir -File |
     ForEach-Object { Redact-File $_.FullName }
 
 # Collector Config. Artifacts differ by version: v1 ships config.yaml +
-# manager.yaml, v2 ships supervisor.yaml + supervisor_storage/effective.yaml.
+# manager.yaml, v2 ships supervisor_config.yaml + supervisor_storage/effective.yaml.
 $response = Read-Host -Prompt "Do you want to include the collector config and manager files (Y or n)? "
 
 if ($response -ne "n") {
     if ($collector_version -eq "v2") {
-        $config_files = @("$collector_dir/supervisor.yaml", "$collector_dir/supervisor_storage/effective.yaml")
+        $config_files = @("$collector_dir/supervisor_config.yaml", "$collector_dir/supervisor_storage/effective.yaml")
     } else {
         $config_files = @("$collector_dir/config.yaml", "$collector_dir/manager.yaml")
     }
@@ -185,6 +195,8 @@ try {
             @{n='FreeGB';e={[math]::Round($_.SizeRemaining/1GB,2)}} |
         Format-Table -AutoSize | Out-File -Append $statsFile
 } catch { "Disk stats unavailable: $($_.Exception.Message)" | Out-File -Append $statsFile }
+# Redact before bundling, per the bundle-wide redaction rule (df/mounts can name hosts).
+Redact-File $statsFile
 
 # Capture profiles
 $response = Read-Host -Prompt "Collect go pprof profiles [requires PowerShell 6.0.0 or greater]? (Y or n)? "

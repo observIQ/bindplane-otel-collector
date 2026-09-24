@@ -365,11 +365,21 @@ function bundle_files() {
             info "Collecting all v2 collector logs"
             for log_file in "${v2_logs[@]}"; do cp "$log_file" "$log_stage/"; done
         else
-            # shellcheck disable=SC2012
-            recent_log=$(ls -Art "${v2_logs[@]}" | tail -n 1)
-            if [ -n "$recent_log" ]; then
-                cp "$recent_log" "$log_stage/"
-                info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
+            # supervisor.log (the supervisor) and supervisor_storage/agent.log (the
+            # collector) are distinct live logs. Collect supervisor.log plus the
+            # newest supervisor_storage log so neither is dropped by a race.
+            if [ -f "$collector_dir/supervisor.log" ]; then
+                cp "$collector_dir/supervisor.log" "$log_stage/"
+                info "Added file $(fg_cyan "$collector_dir/supervisor.log")$(reset) to the tar file."
+            fi
+            newest_storage=""
+            for log_file in "$collector_dir"/supervisor_storage/*.log; do
+                [ -f "$log_file" ] || continue
+                { [ -z "$newest_storage" ] || [ "$log_file" -nt "$newest_storage" ]; } && newest_storage="$log_file"
+            done
+            if [ -n "$newest_storage" ]; then
+                cp "$newest_storage" "$log_stage/"
+                info "Added file $(fg_cyan "$newest_storage")$(reset) to the tar file."
             fi
         fi
     else
@@ -444,9 +454,9 @@ function bundle_files() {
     mkdir -p "$file_stage"
 
     # Config artifacts differ by version: v1 ships config.yaml + manager.yaml,
-    # v2 ships supervisor.yaml + supervisor_storage/effective.yaml.
+    # v2 ships supervisor_config.yaml + supervisor_storage/effective.yaml.
     if [ "$collector_version" = v2 ]; then
-        config_one="$collector_dir/supervisor.yaml"
+        config_one="$collector_dir/supervisor_config.yaml"
         config_two="$collector_dir/supervisor_storage/effective.yaml"
     else
         config_one="$collector_dir/config.yaml"
@@ -598,6 +608,8 @@ collect_system_stats() {
     echo "=== disk usage (all filesystems) ==="; df -h 2>/dev/null || true
     echo "=== disk usage (collector dir) ==="; df -h "$collector_dir" 2>/dev/null || true
   } > "$stage/system_stats.txt"
+  # Redact before bundling, per the bundle-wide redaction rule (#3655).
+  redact_in_place "$stage/system_stats.txt"
   tar --append --file="$tar_filename" -C "$stage" system_stats.txt
   rm -rf "$stage"
 }
