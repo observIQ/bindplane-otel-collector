@@ -63,6 +63,7 @@ func Test_processTraces(t *testing.T) {
 				enabled:     tc.enabled,
 				snapShotter: reporter,
 				processorID: processorID,
+				componentID: processorID.String(),
 			}
 
 			td := ptrace.NewTraces()
@@ -99,6 +100,7 @@ func Test_processLogs(t *testing.T) {
 				enabled:     tc.enabled,
 				snapShotter: reporter,
 				processorID: processorID,
+				componentID: processorID.String(),
 			}
 
 			ld := plog.NewLogs()
@@ -135,6 +137,7 @@ func Test_processMetrics(t *testing.T) {
 				enabled:     tc.enabled,
 				snapShotter: reporter,
 				processorID: processorID,
+				componentID: processorID.String(),
 			}
 
 			md := pmetric.NewMetrics()
