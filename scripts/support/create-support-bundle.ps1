@@ -176,13 +176,18 @@ if ($response -ne "n") {
         "Collector process not found." | Out-File "$output_dir/handle_count.txt"
     }
 
+    # System-wide handle count from the process list (no perf counters needed).
+    $sysHandles = (Get-Process -ErrorAction SilentlyContinue | Measure-Object Handles -Sum).Sum
+    "System-wide handle count: $sysHandles" | Out-File "$output_dir/system_handles.txt"
+    # Paged/nonpaged pool bytes, best effort (needs the perf counter subsystem).
     try {
-        Get-Counter '\Process(_Total)\Handle Count', '\Memory\Pool Paged Bytes', '\Memory\Pool Nonpaged Bytes' -ErrorAction Stop |
+        Get-Counter '\Memory\Pool Paged Bytes', '\Memory\Pool Nonpaged Bytes' -ErrorAction Stop |
             ForEach-Object { $_.CounterSamples } |
             Select-Object Path, CookedValue |
-            Format-List | Out-File "$output_dir/system_handles.txt"
+            Format-List | Out-File -Append "$output_dir/system_handles.txt"
     } catch {
-        "Get-Counter failed: $_" | Out-File "$output_dir/system_handles.txt"
+        "Paged/nonpaged pool bytes unavailable (Get-Counter: $($_.Exception.Message))" |
+            Out-File -Append "$output_dir/system_handles.txt"
     }
     "Windows has no configurable file-handle limit; exhaustion is bounded by paged/nonpaged pool." |
         Out-File -Append "$output_dir/system_handles.txt"
@@ -194,7 +199,7 @@ if ($response -ne "n") {
             try {
                 $zip = Join-Path $env:TEMP "Handle.zip"
                 $dest = Join-Path $env:TEMP "Handle"
-                Invoke-WebRequest -Uri "https://download.sysinternals.com/files/Handle.zip" -OutFile $zip -UseBasicParsing -ErrorAction Stop
+                Invoke-WebRequest -Uri "https://download.sysinternals.com/files/Handle.zip" -OutFile $zip -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
                 Expand-Archive -Path $zip -DestinationPath $dest -Force
                 $handleExe = Get-Command (Join-Path $dest "handle64.exe"), (Join-Path $dest "handle.exe") -ErrorAction SilentlyContinue | Select-Object -First 1
             } catch {
