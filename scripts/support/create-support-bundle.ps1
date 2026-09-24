@@ -41,20 +41,47 @@ function Redact-File {
 # When dot-sourced (e.g. by tests), stop here so only the function loads.
 if ($MyInvocation.InvocationName -eq '.') { return }
 
-# Define the default directory for logs
-$registry_path = "Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Uninstall\observIQ Distro for OpenTelemetry Collector"
+# Detect the installed collector version by its uninstall registry key
+# (dir-independent). Prompt when both or neither are installed, since the
+# stopped one may be the one under investigation.
+$v1_reg = "Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Uninstall\observIQ Distro for OpenTelemetry Collector"
+$v2_reg = "Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Uninstall\BindPlane Distro for OpenTelemetry Collector (BDOT)"
+$v1_installed = Test-Path $v1_reg
+$v2_installed = Test-Path $v2_reg
 
+if ($v1_installed -and $v2_installed) {
+    $choice = Read-Host -Prompt "Which collector version to collect? (1 = v1, 2 = v2) "
+    $collector_version = if ($choice -eq "2") { "v2" } else { "v1" }
+} elseif ($v2_installed) {
+    $collector_version = "v2"
+} elseif ($v1_installed) {
+    $collector_version = "v1"
+} else {
+    $choice = Read-Host -Prompt "No collector found in the registry. Which version? (1 = v1, 2 = v2) "
+    $collector_version = if ($choice -eq "2") { "v2" } else { "v1" }
+}
+
+if ($collector_version -eq "v2") {
+    $collector_service = "bindplane-otel-collector"
+    $registry_path = $v2_reg
+} else {
+    $collector_service = "observiq-otel-collector"
+    $registry_path = $v1_reg
+}
+
+# Install dir: registry InstallLocation, else the default (unchanged across
+# versions), else prompt.
 if (Test-Path $registry_path) {
     $collector_dir = (Get-ItemProperty -Path $registry_path -Name "InstallLocation").InstallLocation
 } else {
     $collector_dir = "C:/Program Files/observIQ OpenTelemetry Collector"
-    Write-Host "observIQ OpenTelemetry Collector directory not found in the registry. Trying default location: $collector_dir"
+    Write-Host "Collector directory not found in the registry. Trying default location: $collector_dir"
 }
 
 # Check if the directory exists
 if (!(Test-Path $collector_dir)) {
     Write-Host "Directory $collector_dir does not exist."
-    $collector_dir = Read-Host -Prompt "Please enter the directory for the observIQ OpenTelemetry Collector installation"
+    $collector_dir = Read-Host -Prompt "Please enter the collector installation directory"
     if (!(Test-Path $collector_dir)) {
         Write-Host "Directory $collector_dir does not exist."
         exit
@@ -76,19 +103,47 @@ if (Test-Path "$collector_dir/VERSION.txt") {
 
 # Determine whether to copy only the most recent log
 $response = Read-Host -Prompt "Do you want to include only the most recent logs (Y or n)?  "
-if ($response -eq "n") {
-    Copy-Item "$collector_dir/log/*" -Destination "$output_dir/" -Force
+if ($collector_version -eq "v2") {
+    # v2 logs: supervisor.log in the install dir plus the supervisor_storage logs.
+    $v2_logs = @()
+    if (Test-Path "$collector_dir/supervisor.log") { $v2_logs += Get-Item "$collector_dir/supervisor.log" }
+    if (Test-Path "$collector_dir/supervisor_storage") {
+        $v2_logs += Get-ChildItem "$collector_dir/supervisor_storage" -Filter *.log -File -ErrorAction SilentlyContinue
+    }
+    if ($v2_logs.Count -eq 0) {
+        Write-Host "No logs found for the v2 collector in $collector_dir"
+    } elseif ($response -eq "n") {
+        $v2_logs | ForEach-Object { Copy-Item $_.FullName -Destination "$output_dir/" -Force }
+    } else {
+        # supervisor.log (the supervisor) and supervisor_storage/agent.log (the
+        # collector) are distinct live logs. Collect supervisor.log plus the newest
+        # supervisor_storage log so neither is dropped by a race.
+        if (Test-Path "$collector_dir/supervisor.log") {
+            Write-Host "Adding $collector_dir/supervisor.log"
+            Copy-Item "$collector_dir/supervisor.log" -Destination "$output_dir/" -Force
+        }
+        $newest = Get-ChildItem "$collector_dir/supervisor_storage" -Filter *.log -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime | Select-Object -Last 1
+        if ($newest) {
+            Write-Host "Adding $($newest.FullName)"
+            Copy-Item $newest.FullName -Destination "$output_dir/" -Force
+        }
+    }
 } else {
-    if (Test-Path "$collector_dir/log/observiq_collector.err") {
-        Write-Host "Adding $collector_dir/log/observiq_collector.err"
-        Copy-Item "$collector_dir/log/observiq_collector.err" -Destination "$output_dir/" -Force
+    if ($response -eq "n") {
+        Copy-Item "$collector_dir/log/*" -Destination "$output_dir/" -Force
+    } else {
+        if (Test-Path "$collector_dir/log/observiq_collector.err") {
+            Write-Host "Adding $collector_dir/log/observiq_collector.err"
+            Copy-Item "$collector_dir/log/observiq_collector.err" -Destination "$output_dir/" -Force
+        }
+        if (Test-Path "$collector_dir/log/observiq_collector.err.1") {
+            Write-Host "Adding $collector_dir/log/observiq_collector.err.1"
+            Copy-Item "$collector_dir/log/observiq_collector.err.1" -Destination "$output_dir/" -Force
+        }
+        Write-Host "Adding $collector_dir/log/collector.log"
+        Copy-Item "$collector_dir/log/collector.log" -Destination "$output_dir/" -Force
     }
-    if (Test-Path "$collector_dir/log/observiq_collector.err.1") {
-        Write-Host "Adding $collector_dir/log/observiq_collector.err.1"
-        Copy-Item "$collector_dir/log/observiq_collector.err.1" -Destination "$output_dir/" -Force
-    }
-    Write-Host "Adding $collector_dir/log/collector.log"
-    Copy-Item "$collector_dir/log/collector.log" -Destination "$output_dir/" -Force
 }
 
 # Redact copied logs before bundling.
@@ -96,24 +151,52 @@ Get-ChildItem -Path $output_dir -File |
     Where-Object { $_.Name -match '\.(log|err)(\.\d+)?$' } |
     ForEach-Object { Redact-File $_.FullName }
 
-# Collector Config
-$response = Read-Host -Prompt "Do you want to include the collector config (Y or n)? "
+# Collector Config. Artifacts differ by version: v1 ships config.yaml +
+# manager.yaml, v2 ships supervisor_config.yaml + supervisor_storage/effective.yaml.
+$response = Read-Host -Prompt "Do you want to include the collector config and manager files (Y or n)? "
 
 if ($response -ne "n") {
-    if (Test-Path "$collector_dir/config.yaml") {
-        Write-Host "Adding $collector_dir/config.yaml (redacted)"
-        Copy-Item "$collector_dir/config.yaml" -Destination "$output_dir/" -Force
-        Redact-File "$output_dir/config.yaml"
+    if ($collector_version -eq "v2") {
+        $config_files = @("$collector_dir/supervisor_config.yaml", "$collector_dir/supervisor_storage/effective.yaml")
+    } else {
+        $config_files = @("$collector_dir/config.yaml", "$collector_dir/manager.yaml")
     }
-    if (Test-Path "$collector_dir/manager.yaml") {
-        Write-Host "Adding $collector_dir/manager.yaml (redacted)"
-        Copy-Item "$collector_dir/manager.yaml" -Destination "$output_dir/" -Force
-        Redact-File "$output_dir/manager.yaml"
+    foreach ($config_file in $config_files) {
+        if (Test-Path $config_file) {
+            $name = Split-Path $config_file -Leaf
+            Write-Host "Adding $config_file (redacted)"
+            Copy-Item $config_file -Destination "$output_dir/$name" -Force
+            Redact-File "$output_dir/$name"
+        }
     }
 }
 
 # Capture system info
 Get-ComputerInfo | Out-File "$output_dir/systeminfo.txt"
+
+# Live CPU, memory, and disk stats. Always collected (cheap, non-sensitive).
+$statsFile = "$output_dir/system_stats.txt"
+"=== cpu load (%) ===" | Out-File $statsFile
+try {
+    (Get-CimInstance Win32_Processor -ErrorAction Stop |
+        Measure-Object -Property LoadPercentage -Average).Average | Out-File -Append $statsFile
+} catch { "CPU load unavailable: $($_.Exception.Message)" | Out-File -Append $statsFile }
+"=== memory (KB) ===" | Out-File -Append $statsFile
+try {
+    Get-CimInstance Win32_OperatingSystem -ErrorAction Stop |
+        Select-Object TotalVisibleMemorySize, FreePhysicalMemory |
+        Format-List | Out-File -Append $statsFile
+} catch { "Memory stats unavailable: $($_.Exception.Message)" | Out-File -Append $statsFile }
+"=== disk ===" | Out-File -Append $statsFile
+try {
+    Get-Volume -ErrorAction Stop |
+        Select-Object DriveLetter, FileSystemLabel,
+            @{n='SizeGB';e={[math]::Round($_.Size/1GB,2)}},
+            @{n='FreeGB';e={[math]::Round($_.SizeRemaining/1GB,2)}} |
+        Format-Table -AutoSize | Out-File -Append $statsFile
+} catch { "Disk stats unavailable: $($_.Exception.Message)" | Out-File -Append $statsFile }
+# Redact before bundling, per the bundle-wide redaction rule (df/mounts can name hosts).
+Redact-File $statsFile
 
 # Capture profiles
 $response = Read-Host -Prompt "Collect go pprof profiles [requires PowerShell 6.0.0 or greater]? (Y or n)? "
@@ -165,8 +248,8 @@ if ($response -ne "n") {
 $response = Read-Host -Prompt "Collect open file handles? (Y or n)? "
 
 if ($response -ne "n") {
-    $svc = Get-CimInstance Win32_Service -Filter "Name='observiq-otel-collector'" -ErrorAction SilentlyContinue
-    $collectorPid = if ($svc -and $svc.ProcessId) { $svc.ProcessId } else { (Get-Process -Name observiq-otel-collector -ErrorAction SilentlyContinue).Id }
+    $svc = Get-CimInstance Win32_Service -Filter "Name='$collector_service'" -ErrorAction SilentlyContinue
+    $collectorPid = if ($svc -and $svc.ProcessId) { $svc.ProcessId } else { (Get-Process -Name $collector_service -ErrorAction SilentlyContinue).Id }
 
     if ($collectorPid) {
         Get-Process -Id $collectorPid -ErrorAction SilentlyContinue |

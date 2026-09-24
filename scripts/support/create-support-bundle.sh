@@ -19,7 +19,65 @@ PREREQS="printf sed awk uname sudo tar gzip curl"
 INDENT_WIDTH='  '
 indent=""
 
-collector_dir=/opt/observiq-otel-collector
+V1_SERVICE=observiq-otel-collector
+V2_SERVICE=bindplane-otel-collector
+V1_DEFAULT_DIR=/opt/observiq-otel-collector
+V2_DEFAULT_DIR=/opt/bindplane-otel-collector
+
+# Resolved by detect_install.
+collector_dir=""
+collector_service=""
+collector_version=""
+
+# True when a systemd unit for the given collector name is installed.
+# Dir-independent, so a non-standard install dir does not defeat detection.
+service_installed() {
+  systemctl list-unit-files --no-legend "$1.service" 2>/dev/null | grep -q "^$1.service"
+}
+
+# Choose the version to collect from the installed flags ($1,$2 = v1,v2 booleans).
+# Prompts when both or neither are installed, since the stopped one may be the
+# one under investigation. Echoes "v1" or "v2".
+select_version() {
+  if { [ "$1" = true ] && [ "$2" = true ]; } || { [ "$1" != true ] && [ "$2" != true ]; }; then
+    # shellcheck disable=SC2162
+    read -p "Which collector version to collect? (1 = v1, 2 = v2) " choice
+    if [ "$choice" = 2 ]; then echo v2; else echo v1; fi
+  elif [ "$2" = true ]; then
+    echo v2
+  else
+    echo v1
+  fi
+}
+
+# Install dir for a service (precedence): COLLECTOR_DIR env, else the dir of the
+# service ExecStart binary (works stopped or running, any location), else the
+# standard default, else prompt. Echoes the dir.
+resolve_dir() {
+  svc="$1"; default="$2"
+  if [ -n "${COLLECTOR_DIR:-}" ]; then echo "$COLLECTOR_DIR"; return 0; fi
+  execpath=$(systemctl show "$svc" -p ExecStart 2>/dev/null | sed -n 's/.*path=\([^ ;]*\).*/\1/p' | head -n 1)
+  if [ -n "$execpath" ]; then dirname "$execpath"; return 0; fi
+  if [ -d "$default" ]; then echo "$default"; return 0; fi
+  # shellcheck disable=SC2162
+  read -p "Collector directory not found. Enter the collector install directory: " entered
+  echo "$entered"
+}
+
+# Detect the installed collector version, then resolve its service and install dir.
+detect_install() {
+  v1i=false; v2i=false
+  if service_installed "$V1_SERVICE"; then v1i=true; fi
+  if service_installed "$V2_SERVICE"; then v2i=true; fi
+  collector_version=$(select_version "$v1i" "$v2i")
+  if [ "$collector_version" = v2 ]; then
+    collector_service="$V2_SERVICE.service"
+    collector_dir=$(resolve_dir "$collector_service" "$V2_DEFAULT_DIR")
+  else
+    collector_service="$V1_SERVICE.service"
+    collector_dir=$(resolve_dir "$collector_service" "$V1_DEFAULT_DIR")
+  fi
+}
 
 # Colors
 num_colors=$(tput colors 2>/dev/null || true)
@@ -272,22 +330,19 @@ redact_in_place() {
     "$f"
 }
 
+# Copy a file into the staging dir under a target name, redact it, append to the
+# tar. No-op when the source is absent. Args: src, name-in-tar, tar, stage.
+stage_redacted() {
+    [ -f "$1" ] || return 0
+    info "Adding $(fg_cyan "$1")$(reset) (redacted)"
+    cp "$1" "$4/$2"
+    redact_in_place "$4/$2"
+    tar --append --file="$3" -C "$4" "$2"
+}
+
 function bundle_files() {
     banner "Collecting files for support bundle"
     increase_indent
-    # Directory for logs
-    log_dir="$collector_dir/log"
-    
-    # Check if directory exists
-    if [ ! -d "$log_dir" ]; then
-        info "Directory ($fg_red $log_dir)$(reset) does not exist."
-        # shellcheck disable=SC2162
-        read -p "Please enter an existing directory for logs: " log_dir
-        if [ ! -d "$log_dir" ]; then
-            echo "Directory $log_dir does not exist."
-            return 1
-        fi
-    fi
 
     # shellcheck disable=SC2162
     read -p "Do you want to include only the most recent logs (y or n)? " response
@@ -296,36 +351,81 @@ function bundle_files() {
     # Stage logs, redact copies, tar from the stage. Originals untouched.
     log_stage="sb_logs_$$"
     mkdir -p "$log_stage"
-    if [ "$response" = "n" ]; then
-        # Get all the log files
-        info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
-        for log_file in "$log_dir"/*; do
-            [ -f "$log_file" ] && cp "$log_file" "$log_stage/"
-        done
-    else
-        # Get the most recent log file
-        # shellcheck disable=SC2012
-        recent_log=$(ls -Art "$log_dir" | tail -n 1)
-        if [ -n "$recent_log" ]; then
-            cp "$log_dir/$recent_log" "$log_stage/"
-            info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
 
+    if [ "$collector_version" = v2 ]; then
+        # v2 logs: supervisor.log in the install dir plus the supervisor_storage logs.
+        v2_logs=()
+        [ -f "$collector_dir/supervisor.log" ] && v2_logs+=("$collector_dir/supervisor.log")
+        for log_file in "$collector_dir"/supervisor_storage/*.log; do
+            [ -f "$log_file" ] && v2_logs+=("$log_file")
+        done
+        if [ "${#v2_logs[@]}" -eq 0 ]; then
+            info "No logs found for the v2 collector in $(fg_red "$collector_dir")$(reset)"
+        elif [ "$response" = "n" ]; then
+            info "Collecting all v2 collector logs"
+            for log_file in "${v2_logs[@]}"; do cp "$log_file" "$log_stage/"; done
         else
-            # shellcheck disable=SC2086
-            info "No logs found in $(fg_red $log_dir)"
-            rm -rf "$log_stage"
-            return 1
+            # supervisor.log (the supervisor) and supervisor_storage/agent.log (the
+            # collector) are distinct live logs. Collect supervisor.log plus the
+            # newest supervisor_storage log so neither is dropped by a race.
+            if [ -f "$collector_dir/supervisor.log" ]; then
+                cp "$collector_dir/supervisor.log" "$log_stage/"
+                info "Added file $(fg_cyan "$collector_dir/supervisor.log")$(reset) to the tar file."
+            fi
+            newest_storage=""
+            for log_file in "$collector_dir"/supervisor_storage/*.log; do
+                [ -f "$log_file" ] || continue
+                { [ -z "$newest_storage" ] || [ "$log_file" -nt "$newest_storage" ]; } && newest_storage="$log_file"
+            done
+            if [ -n "$newest_storage" ]; then
+                cp "$newest_storage" "$log_stage/"
+                info "Added file $(fg_cyan "$newest_storage")$(reset) to the tar file."
+            fi
         fi
-        # Get the /log/observiq_collector.err file
-        err_file="$log_dir/observiq_collector.err"
-        if [ -f "$err_file" ]; then
-            cp "$err_file" "$log_stage/"
-            info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
+    else
+        # v1 logs live under $collector_dir/log.
+        log_dir="$collector_dir/log"
+        if [ ! -d "$log_dir" ]; then
+            info "Directory ($fg_red $log_dir)$(reset) does not exist."
+            # shellcheck disable=SC2162
+            read -p "Please enter an existing directory for logs: " log_dir
+            if [ ! -d "$log_dir" ]; then
+                echo "Directory $log_dir does not exist."
+                rm -rf "$log_stage"
+                return 1
+            fi
         fi
-        err_backup_file="$log_dir/observiq_collector.err.1"
-        if [ -f "$err_backup_file" ]; then
-            cp "$err_backup_file" "$log_stage/"
-            info "Added file $(fg_cyan "$err_backup_file")$(reset) to the tar file."
+        if [ "$response" = "n" ]; then
+            # Get all the log files
+            info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
+            for log_file in "$log_dir"/*; do
+                [ -f "$log_file" ] && cp "$log_file" "$log_stage/"
+            done
+        else
+            # Get the most recent log file
+            # shellcheck disable=SC2012
+            recent_log=$(ls -Art "$log_dir" | tail -n 1)
+            if [ -n "$recent_log" ]; then
+                cp "$log_dir/$recent_log" "$log_stage/"
+                info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
+
+            else
+                # shellcheck disable=SC2086
+                info "No logs found in $(fg_red $log_dir)"
+                rm -rf "$log_stage"
+                return 1
+            fi
+            # Get the /log/observiq_collector.err file
+            err_file="$log_dir/observiq_collector.err"
+            if [ -f "$err_file" ]; then
+                cp "$err_file" "$log_stage/"
+                info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
+            fi
+            err_backup_file="$log_dir/observiq_collector.err.1"
+            if [ -f "$err_backup_file" ]; then
+                cp "$err_backup_file" "$log_stage/"
+                info "Added file $(fg_cyan "$err_backup_file")$(reset) to the tar file."
+            fi
         fi
     fi
     # Redact every staged log before it enters the bundle.
@@ -353,31 +453,28 @@ function bundle_files() {
     file_stage="sb_files_$$"
     mkdir -p "$file_stage"
 
-    collector_config="$collector_dir/config.yaml"
-    collector_manager="$collector_dir/manager.yaml"
-    if [ -f "$collector_config" ] || [ -f "$collector_manager" ]; then
+    # Config artifacts differ by version: v1 ships config.yaml + manager.yaml,
+    # v2 ships supervisor_config.yaml + supervisor_storage/effective.yaml.
+    if [ "$collector_version" = v2 ]; then
+        config_one="$collector_dir/supervisor_config.yaml"
+        config_two="$collector_dir/supervisor_storage/effective.yaml"
+    else
+        config_one="$collector_dir/config.yaml"
+        config_two="$collector_dir/manager.yaml"
+    fi
+    if [ -f "$config_one" ] || [ -f "$config_two" ]; then
         # shellcheck disable=SC2162
-        read -p "Do you want to include the collector config (y or n)? " response
+        read -p "Do you want to include the collector config and manager files (y or n)? " response
         if [ "$response" != "n" ]; then
-            if [ -f "$collector_config" ]; then
-                info "Adding collector config (redacted) $(fg_cyan "$collector_config")$(reset)"
-                cp "$collector_config" "$file_stage/config.yaml"
-                redact_in_place "$file_stage/config.yaml"
-                tar --append --file="$tar_filename" -C "$file_stage" config.yaml
-            fi
-            if [ -f "$collector_manager" ]; then
-                info "Adding manager config (redacted) $(fg_cyan "$collector_manager")$(reset)"
-                cp "$collector_manager" "$file_stage/manager.yaml"
-                redact_in_place "$file_stage/manager.yaml"
-                tar --append --file="$tar_filename" -C "$file_stage" manager.yaml
-            fi
+            stage_redacted "$config_one" "$(basename "$config_one")" "$tar_filename" "$file_stage"
+            stage_redacted "$config_two" "$(basename "$config_two")" "$tar_filename" "$file_stage"
         fi
     fi
 
     # Grab the logs from journalctl -- in some cases, the collector.log file
     # may be empty, but there may be logs in journalctl
     info "Collecting logs from journalctl..."
-    journalctl -u observiq-otel-collector.service -n 50 > "$file_stage/journalctl.log"
+    journalctl -u "$collector_service" -n 50 > "$file_stage/journalctl.log"
     redact_in_place "$file_stage/journalctl.log"
     tar --append --file="$tar_filename" -C "$file_stage" journalctl.log
     rm -rf "$file_stage"
@@ -385,6 +482,8 @@ function bundle_files() {
     collect_profiles "$tar_filename"
 
     collect_handles_limits "$tar_filename"
+
+    collect_system_stats "$tar_filename"
 
     # Compress the tar file
     info "Compressing the tar file..."
@@ -457,7 +556,7 @@ collect_handles_limits() {
   [[ "$HL" == y* ]] || return 0
   tar_filename="$1"
   increase_indent
-  service="observiq-otel-collector.service"
+  service="${collector_service:-observiq-otel-collector.service}"
   proc="${PROC:-/proc}"
   stage="sb_handles_$$"
   mkdir -p "$stage"
@@ -493,6 +592,28 @@ collect_handles_limits() {
   decrease_indent
 }
 
+# Collect CPU, memory, and disk stats. Always collected (cheap, non-sensitive).
+# PROC defaults to /proc (overridable for tests).
+collect_system_stats() {
+  tar_filename="$1"
+  proc="${PROC:-/proc}"
+  stage="sb_stats_$$"
+  mkdir -p "$stage"
+  info "Collecting CPU, memory, and disk stats..."
+  # Each collector is best-effort; a missing source must not abort the bundle.
+  {
+    echo "=== cpu count ==="; nproc 2>/dev/null || true
+    echo "=== loadavg ==="; cat "$proc/loadavg" 2>/dev/null || true
+    echo "=== meminfo ==="; cat "$proc/meminfo" 2>/dev/null || true
+    echo "=== disk usage (all filesystems) ==="; df -h 2>/dev/null || true
+    echo "=== disk usage (collector dir) ==="; df -h "$collector_dir" 2>/dev/null || true
+  } > "$stage/system_stats.txt"
+  # Redact before bundling, per the bundle-wide redaction rule (#3655).
+  redact_in_place "$stage/system_stats.txt"
+  tar --append --file="$tar_filename" -C "$stage" system_stats.txt
+  rm -rf "$stage"
+}
+
 main() {
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
@@ -514,6 +635,7 @@ main() {
 
   bindplane_banner
   check_prereqs
+  detect_install
   bundle_files
 }
 
