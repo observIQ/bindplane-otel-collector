@@ -208,7 +208,12 @@ if ($response -ne "n") {
         }
     }
     if ($handleExe) {
-        if ($collectorPid) {
+        # Verify the Authenticode signature before executing a fetched binary on a
+        # production host. Sysinternals tools are Microsoft-signed.
+        $sig = Get-AuthenticodeSignature $handleExe.Source
+        if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft') {
+            Write-Host "Skipping handle.exe: Authenticode signature not valid or not Microsoft-signed (status: $($sig.Status))."
+        } elseif ($collectorPid) {
             & $handleExe.Source -accepteula -p $collectorPid 2>&1 | Out-File "$output_dir/open_handles.txt"
         } else {
             & $handleExe.Source -accepteula 2>&1 | Out-File "$output_dir/open_handles.txt"

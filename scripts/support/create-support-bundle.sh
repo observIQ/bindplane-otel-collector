@@ -463,20 +463,30 @@ collect_handles_limits() {
   mkdir -p "$stage"
 
   # Configured limits, all soft/hard. Works even when the collector is stopped.
+  # grep '^Limit' is deliberate: it drops Environment= (which carries the OpAMP
+  # secret key) from the output. Do not broaden this filter.
   systemctl show "$service" 2>/dev/null | grep '^Limit' > "$stage/systemd_limits.txt" || true
 
   pid=$(systemctl show "$service" -p MainPID --value 2>/dev/null)
   if [ -n "$pid" ] && [ "$pid" != "0" ] && [ -d "$proc/$pid" ]; then
     info "Collecting open files and limits for pid $(fg_cyan "$pid")$(reset)"
-    cat "$proc/$pid/limits" > "$stage/proc_limits.txt" 2>/dev/null
-    ls -l "$proc/$pid/fd" > "$stage/open_fds.txt" 2>/dev/null
+    cat "$proc/$pid/limits" > "$stage/proc_limits.txt" 2>/dev/null || true
+    # /proc/<pid>/fd is owner-only; capture stderr so a permission failure is
+    # distinguishable from a genuinely empty listing rather than a silent 0-byte file.
+    ls -l "$proc/$pid/fd" > "$stage/open_fds.txt" 2>"$stage/open_fds.err" || true
+    [ -s "$stage/open_fds.err" ] || rm -f "$stage/open_fds.err"
     if command -v lsof >/dev/null; then
-      lsof -p "$pid" > "$stage/lsof.txt" 2>/dev/null
+      lsof -p "$pid" > "$stage/lsof.txt" 2>"$stage/lsof.err" || true
+      [ -s "$stage/lsof.err" ] || rm -f "$stage/lsof.err"
     fi
   else
     info "Collector process not running; collected configured limits only"
   fi
 
+  # Redact staged files before bundling, per the bundle-wide redaction rule (#3655).
+  for f in "$stage"/*; do
+    [ -f "$f" ] && redact_in_place "$f"
+  done
   tar --append --file="$tar_filename" -C "$stage" .
   rm -rf "$stage"
   info "Handle and limit files have been added to the file $(realpath "$tar_filename")"
