@@ -384,6 +384,8 @@ function bundle_files() {
 
     collect_profiles "$tar_filename"
 
+    collect_handles_limits "$tar_filename"
+
     # Compress the tar file
     info "Compressing the tar file..."
     gzip "$tar_filename"
@@ -445,6 +447,50 @@ collect_profiles() {
     info "Profile files have been added to the file $(realpath "$tar_filename") successfully."
     decrease_indent
   fi
+}
+
+# Collect the collector's open file descriptors and resource limits.
+# PROC defaults to /proc (overridable for tests).
+collect_handles_limits() {
+  # shellcheck disable=SC2162
+  read -p "Collect the collector's open files and resource limits? (y or n) " HL
+  [[ "$HL" == y* ]] || return 0
+  tar_filename="$1"
+  increase_indent
+  service="observiq-otel-collector.service"
+  proc="${PROC:-/proc}"
+  stage="sb_handles_$$"
+  mkdir -p "$stage"
+
+  # Configured limits, all soft/hard. Works even when the collector is stopped.
+  # grep '^Limit' is deliberate: it drops Environment= (which carries the OpAMP
+  # secret key) from the output. Do not broaden this filter.
+  systemctl show "$service" 2>/dev/null | grep '^Limit' > "$stage/systemd_limits.txt" || true
+
+  pid=$(systemctl show "$service" -p MainPID --value 2>/dev/null)
+  if [ -n "$pid" ] && [ "$pid" != "0" ] && [ -d "$proc/$pid" ]; then
+    info "Collecting open files and limits for pid $(fg_cyan "$pid")$(reset)"
+    cat "$proc/$pid/limits" > "$stage/proc_limits.txt" 2>/dev/null || true
+    # /proc/<pid>/fd is owner-only; capture stderr so a permission failure is
+    # distinguishable from a genuinely empty listing rather than a silent 0-byte file.
+    ls -l "$proc/$pid/fd" > "$stage/open_fds.txt" 2>"$stage/open_fds.err" || true
+    [ -s "$stage/open_fds.err" ] || rm -f "$stage/open_fds.err"
+    if command -v lsof >/dev/null; then
+      lsof -p "$pid" > "$stage/lsof.txt" 2>"$stage/lsof.err" || true
+      [ -s "$stage/lsof.err" ] || rm -f "$stage/lsof.err"
+    fi
+  else
+    info "Collector process not running; collected configured limits only"
+  fi
+
+  # Redact staged files before bundling, per the bundle-wide redaction rule (#3655).
+  for f in "$stage"/*; do
+    [ -f "$f" ] && redact_in_place "$f"
+  done
+  tar --append --file="$tar_filename" -C "$stage" .
+  rm -rf "$stage"
+  info "Handle and limit files have been added to the file $(realpath "$tar_filename")"
+  decrease_indent
 }
 
 main() {

@@ -160,6 +160,67 @@ if ($response -ne "n") {
     }
 }
 
+# Open file handles. Windows has no nofile-style cap, so exhaustion is bounded
+# by paged/nonpaged pool; collect the counts and, best effort, the handle list.
+$response = Read-Host -Prompt "Collect open file handles? (Y or n)? "
+
+if ($response -ne "n") {
+    $svc = Get-CimInstance Win32_Service -Filter "Name='observiq-otel-collector'" -ErrorAction SilentlyContinue
+    $collectorPid = if ($svc -and $svc.ProcessId) { $svc.ProcessId } else { (Get-Process -Name observiq-otel-collector -ErrorAction SilentlyContinue).Id }
+
+    if ($collectorPid) {
+        Get-Process -Id $collectorPid -ErrorAction SilentlyContinue |
+            Select-Object Id, ProcessName, Handles |
+            Format-List | Out-File "$output_dir/handle_count.txt"
+    } else {
+        "Collector process not found." | Out-File "$output_dir/handle_count.txt"
+    }
+
+    # System-wide handle count from the process list (no perf counters needed).
+    $sysHandles = (Get-Process -ErrorAction SilentlyContinue | Measure-Object Handles -Sum).Sum
+    "System-wide handle count: $sysHandles" | Out-File "$output_dir/system_handles.txt"
+    # Paged/nonpaged pool bytes, best effort (needs the perf counter subsystem).
+    try {
+        Get-Counter '\Memory\Pool Paged Bytes', '\Memory\Pool Nonpaged Bytes' -ErrorAction Stop |
+            ForEach-Object { $_.CounterSamples } |
+            Select-Object Path, CookedValue |
+            Format-List | Out-File -Append "$output_dir/system_handles.txt"
+    } catch {
+        "Paged/nonpaged pool bytes unavailable (Get-Counter: $($_.Exception.Message))" |
+            Out-File -Append "$output_dir/system_handles.txt"
+    }
+    "Windows has no configurable file-handle limit; exhaustion is bounded by paged/nonpaged pool." |
+        Out-File -Append "$output_dir/system_handles.txt"
+
+    $handleExe = Get-Command handle64.exe, handle.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $handleExe) {
+        $dl = Read-Host -Prompt "handle.exe not found. Download it from Sysinternals? (Y or n)? "
+        if ($dl -ne "n") {
+            try {
+                $zip = Join-Path $env:TEMP "Handle.zip"
+                $dest = Join-Path $env:TEMP "Handle"
+                Invoke-WebRequest -Uri "https://download.sysinternals.com/files/Handle.zip" -OutFile $zip -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
+                Expand-Archive -Path $zip -DestinationPath $dest -Force
+                $handleExe = Get-Command (Join-Path $dest "handle64.exe"), (Join-Path $dest "handle.exe") -ErrorAction SilentlyContinue | Select-Object -First 1
+            } catch {
+                Write-Host "handle.exe download failed. Download it manually from https://learn.microsoft.com/sysinternals/downloads/handle and re-run this script."
+            }
+        }
+    }
+    if ($handleExe) {
+        # Verify the Authenticode signature before executing a fetched binary on a
+        # production host. Sysinternals tools are Microsoft-signed.
+        $sig = Get-AuthenticodeSignature $handleExe.Source
+        if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft') {
+            Write-Host "Skipping handle.exe: Authenticode signature not valid or not Microsoft-signed (status: $($sig.Status))."
+        } elseif ($collectorPid) {
+            & $handleExe.Source -accepteula -p $collectorPid 2>&1 | Out-File "$output_dir/open_handles.txt"
+        } else {
+            & $handleExe.Source -accepteula 2>&1 | Out-File "$output_dir/open_handles.txt"
+        }
+    }
+}
+
 # Compress the files into a zip archive
 $zip_filename = "$output_dir.zip"
 Compress-Archive -Path "$output_dir/*" -DestinationPath $zip_filename -Force
