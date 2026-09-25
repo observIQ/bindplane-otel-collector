@@ -29,14 +29,17 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	_ "time/tzdata"
 
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/runtime"
 	"github.com/observiq/bindplane-otel-contrib/pkg/version"
+	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/spf13/pflag"
 )
 
@@ -46,6 +49,19 @@ const (
 	managerPathENV  = "MANAGER_YAML_PATH"
 	loggingPathENV  = "LOGGING_YAML_PATH"
 	featureGatesENV = "COLLECTOR_FEATURE_GATES"
+)
+
+// Components that moved from bindplane-otel-contrib to dbdot-contrib keep
+// their subpath but change module prefix and restart versioning. This
+// preserves their lineage from before the migration.
+const (
+	dbdotContribPrefix  = "github.com/dynatrace/dynatrace-bindplane-otel-contrib/"
+	legacyContribPrefix = "github.com/observiq/bindplane-otel-contrib/"
+
+	// legacyContribAliasVersion is the version reported on the contrib-path
+	// alias. Pinned to the last bindplane-otel-contrib release the migrated
+	// components shipped in. Do not bump with dbdot-contrib.
+	legacyContribAliasVersion = "v1.14.0"
 )
 
 func main() {
@@ -77,7 +93,42 @@ func main() {
 		ManagerConfigPath:    *managerConfigPath,
 		LoggingConfigPath:    *loggingConfigPath,
 		FeatureGates:         *featureGates,
+
+		AvailableComponentsMutator: addLegacyContribAliases,
 	})
+}
+
+// addLegacyContribAliases prepends a bindplane-otel-contrib code.namespace
+// entry to every dbdot-contrib component and extends the report hash so an
+// aliased report never collides with a cached un-aliased one on the server.
+func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
+	var aliases []string
+	for _, group := range ac.GetComponents() {
+		for _, comp := range group.GetSubComponentMap() {
+			if len(comp.Metadata) == 0 {
+				continue
+			}
+			ref, _, _ := strings.Cut(comp.Metadata[0].GetValue().GetStringValue(), " ")
+			subpath, ok := strings.CutPrefix(ref, dbdotContribPrefix)
+			if !ok {
+				continue
+			}
+			alias := legacyContribPrefix + subpath + " " + legacyContribAliasVersion
+			comp.Metadata = append([]*protobufs.KeyValue{{
+				Key:   "code.namespace",
+				Value: &protobufs.AnyValue{Value: &protobufs.AnyValue_StringValue{StringValue: alias}},
+			}}, comp.Metadata...)
+			aliases = append(aliases, alias)
+		}
+	}
+	if len(aliases) == 0 {
+		return
+	}
+	sort.Strings(aliases) // map iteration order is random; hash input must be stable
+	h := sha256.New()
+	h.Write(ac.Hash)
+	h.Write([]byte(strings.Join(aliases, ";")))
+	ac.Hash = h.Sum(nil)
 }
 
 func defaultCollectorPaths() []string {
