@@ -29,7 +29,7 @@ func TestRun(t *testing.T) {
 	loggingPath := filepath.Join(dir, "storage", "nested", "logging.yaml")
 
 	// Creates nested directories and writes defaults.
-	if err := run(configPath, loggingPath, false); err != nil {
+	if err := run(configPath, loggingPath, false, false); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	requireFileContents(t, configPath, defaultCollectorConfig)
@@ -39,23 +39,23 @@ func TestRun(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte("custom"), 0600); err != nil {
 		t.Fatalf("write custom config: %v", err)
 	}
-	if err := run(configPath, loggingPath, false); err != nil {
+	if err := run(configPath, loggingPath, false, false); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	requireFileContents(t, configPath, "custom")
 
 	// Overwrite replaces existing files.
-	if err := run(configPath, loggingPath, true); err != nil {
+	if err := run(configPath, loggingPath, true, false); err != nil {
 		t.Fatalf("run with overwrite: %v", err)
 	}
 	requireFileContents(t, configPath, defaultCollectorConfig)
 }
 
 func TestRunRejectsRelativePaths(t *testing.T) {
-	if err := run("relative/config.yaml", "/abs/logging.yaml", false); err == nil {
+	if err := run("relative/config.yaml", "/abs/logging.yaml", false, false); err == nil {
 		t.Fatal("expected error for relative config path")
 	}
-	if err := run("/abs/config.yaml", "relative/logging.yaml", false); err == nil {
+	if err := run("/abs/config.yaml", "relative/logging.yaml", false, false); err == nil {
 		t.Fatal("expected error for relative logging path")
 	}
 }

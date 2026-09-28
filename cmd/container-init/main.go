@@ -89,7 +89,7 @@ func main() {
 	}
 
 	if seed {
-		if err := run(*configPath, *loggingPath, *overwrite); err != nil {
+		if err := run(*configPath, *loggingPath, *overwrite, target.path != ""); err != nil {
 			log.Fatalf("Failed to initialize container: %v", err)
 		}
 	}
@@ -119,8 +119,12 @@ func validateFlags(configPath, loggingPath, chownPath string) (bool, error) {
 
 // run creates the parent directories of configPath and loggingPath and
 // writes default file contents to them. Both paths must be absolute.
-// Existing files are left untouched unless overwrite is true.
-func run(configPath, loggingPath string, overwrite bool) error {
+// Existing files are left untouched unless overwrite is true. With reclaim, a
+// file's directory is chowned to root right before the file is written: root
+// holds CAP_CHOWN but not CAP_DAC_OVERRIDE, so a directory handed to the
+// collector on an earlier start is otherwise not writable. The chown that
+// follows hands it back.
+func run(configPath, loggingPath string, overwrite, reclaim bool) error {
 	files := []struct{ path, contents string }{
 		{configPath, defaultCollectorConfig},
 		{loggingPath, defaultLoggingConfig},
@@ -149,6 +153,11 @@ func run(configPath, loggingPath string, overwrite bool) error {
 				continue
 			} else if !errors.Is(err, os.ErrNotExist) {
 				return fmt.Errorf("stat %s: %w", f.path, err)
+			}
+		}
+		if reclaim {
+			if err := os.Lchown(dir, 0, 0); err != nil {
+				return fmt.Errorf("reclaim directory %s: %w", dir, err)
 			}
 		}
 		if err := os.WriteFile(f.path, []byte(f.contents), 0600); err != nil {
