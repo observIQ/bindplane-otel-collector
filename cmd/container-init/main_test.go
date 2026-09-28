@@ -60,6 +60,32 @@ func TestRunRejectsRelativePaths(t *testing.T) {
 	}
 }
 
+func TestValidateFlags(t *testing.T) {
+	tests := []struct {
+		name                               string
+		configPath, loggingPath, chownPath string
+		wantSeed, wantErr                  bool
+	}{
+		{name: "seed only", configPath: "/c", loggingPath: "/l", wantSeed: true},
+		{name: "seed and chown", configPath: "/c", loggingPath: "/l", chownPath: "/s", wantSeed: true},
+		{name: "chown only", chownPath: "/s"},
+		{name: "config without logging", configPath: "/c", chownPath: "/s", wantErr: true},
+		{name: "logging without config", loggingPath: "/l", wantErr: true},
+		{name: "nothing", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seed, err := validateFlags(tt.configPath, tt.loggingPath, tt.chownPath)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+			if seed != tt.wantSeed {
+				t.Fatalf("seed = %v, want %v", seed, tt.wantSeed)
+			}
+		})
+	}
+}
+
 func requireFileContents(t *testing.T, path, expected string) {
 	t.Helper()
 	contents, err := os.ReadFile(path)
