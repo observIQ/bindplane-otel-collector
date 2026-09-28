@@ -17,7 +17,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Group by Attributes Processor           | [groupbyattrsprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/groupbyattrsprocessor/README.md)                 |
 | Group by Trace Processor                | [groupbytraceprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/groupbytraceprocessor/README.md)                 |
 | Interval Processor                      | [intervalprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/intervalprocessor/README.md)                         |
-| Kubernetes Attributes Processor         | [k8sattributesprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/k8sattributesprocessor/README.md)               |
+| Kubernetes Attributes Processor         | [k8sattributesprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v1.0.0/processor/k8sattributesprocessor/README.md)               |
 | Log Count Processor                     | [logcountprocessor](https://github.com/observiq/bindplane-otel-contrib/blob/v1.15.0/processor/logcountprocessor/README.md)                                          |
 | Log DeDuplication Processor             | [logdedupprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/logdedupprocessor/README.md)                         |
 | Logs Transform Processor                | [logstransform](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/processor/logstransformprocessor/README.md)                        |

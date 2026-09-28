@@ -32,12 +32,26 @@ if [ -z "$BDOT_CONTRIB_VERSION" ]; then
     exit 1
 fi
 
+CONTRIB_STABLE_VERSION=$4
+if [ -z "$CONTRIB_STABLE_VERSION" ]; then
+    echo "Must specify a target stable contrib version"
+    exit 1
+fi
+
 read -r -d '' DOC_FILES << EOF
 docs/processors.md
 docs/extensions.md
 docs/connectors.md
 docs/exporters.md
 docs/receivers.md
+EOF
+
+# Contrib modules that have reached v1.0.0+ and are versioned independently of the
+# main contrib release. Their doc links point to CONTRIB_STABLE_VERSION instead of
+# CONTRIB_TARGET_VERSION. Paths are relative to the contrib repo root and must match
+# the STABLE_CONTRIB_MODULES list in update-otel.sh (with the module prefix stripped).
+read -r -d '' STABLE_CONTRIB_PATHS << EOF
+processor/k8sattributesprocessor
 EOF
 
 for doc in $DOC_FILES
@@ -50,6 +64,17 @@ do
     sed -i '' -Ee \
         "s|https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v[^/]*|https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/$CONTRIB_TARGET_VERSION|" \
         "$doc"
+    # Re-point stable contrib components (v1.0.0+) to their independent version.
+    # The blanket rewrite above moved them to CONTRIB_TARGET_VERSION; override each
+    # by its component path so only that link is pinned to CONTRIB_STABLE_VERSION.
+    for stable_path in $STABLE_CONTRIB_PATHS; do
+        sed -i '' -Ee \
+            "s|(opentelemetry-collector-contrib/blob/)v[^/]*(/${stable_path}/)|\1${CONTRIB_STABLE_VERSION}\2|g" \
+            "$doc"
+        sed -i '' -Ee \
+            "s|(opentelemetry-collector-contrib/tree/)v[^/]*(/${stable_path}/)|\1${CONTRIB_STABLE_VERSION}\2|g" \
+            "$doc"
+    done
     # Point core links to new version
     sed -i '' -Ee \
         "s|https://github.com/open-telemetry/opentelemetry-collector/blob/v[^/]*|https://github.com/open-telemetry/opentelemetry-collector/blob/$TARGET_VERSION|" \
