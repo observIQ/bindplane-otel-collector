@@ -9,7 +9,7 @@ require (
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
-	go.opentelemetry.io/collector/cmd/mdatagen v0.160.0
+	go.opentelemetry.io/collector/cmd/mdatagen v0.161.0
 	golang.org/x/tools v0.49.0
 	golang.org/x/vuln v1.7.0
 	gotest.tools/gotestsum v1.12.3
@@ -80,13 +80,13 @@ require (
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.opentelemetry.io/collector/component v1.66.0 // indirect
-	go.opentelemetry.io/collector/confmap v1.66.0 // indirect
-	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.66.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.66.0 // indirect
-	go.opentelemetry.io/collector/filter v0.160.0 // indirect
-	go.opentelemetry.io/collector/internal/schemagen v0.160.0 // indirect
-	go.opentelemetry.io/collector/pdata v1.66.0 // indirect
+	go.opentelemetry.io/collector/component v1.67.0 // indirect
+	go.opentelemetry.io/collector/confmap v1.67.0 // indirect
+	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.67.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.67.0 // indirect
+	go.opentelemetry.io/collector/filter v0.161.0 // indirect
+	go.opentelemetry.io/collector/internal/schemagen v0.161.0 // indirect
+	go.opentelemetry.io/collector/pdata v1.67.0 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
 	go.opentelemetry.io/otel/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
@@ -94,9 +94,9 @@ require (
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/mod v0.40.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260811182544-a038080d80e5 // indirect
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
