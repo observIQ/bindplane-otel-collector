@@ -42,6 +42,7 @@ G="$WORK/gnupg"; mkdir -m 700 "$G"
 gpgq() { gpg --homedir "$G" --batch --quiet --pinentry-mode loopback --passphrase '' "$@" 2>/dev/null; }
 fpr() { gpg --homedir "$G" --with-colons --list-keys "$1" 2>/dev/null | awk -F: '/^fpr/{print $10; exit}'; }
 rev() { sed 's/^:-----BEGIN/-----BEGIN/' "$G/openpgp-revocs.d/$1.rev"; }
+REAL_RPM=$(command -v rpm)
 
 # Keys: a cert-only primary with a signing subkey (like BDOT's), an unrelated key, revoked by
 # certificate and embedded, expired after signing (still valid), expired before signing, and
@@ -224,10 +225,11 @@ if [ "$out" = unknown ]; then report status-fingerprint-mismatch 0 ok "" ""; els
 
 # rpm: a stub answers verify_package_rpm's calls, since the real rpm database needs root. It
 # returns real signature packets, and keeps installed keys as "name fingerprints" lines. Like
-# rpm 4.11, it imports a multi-key file as one entry named after the file's last key.
+# rpm 4.11, it imports a multi-key file as one entry named after the file's last key. Given a
+# testdata .rpm instead of an armor file, it passes queries to the real rpm.
 # PRESEED lists "name fingerprint" entries installed before the run; "name @file" serves that
 # file as the entry's key.
-# rpm_case <name> <armor file> <key> <revocation cert> <checksig text> <checksig rc> <rpmdb key> <expect> <message> [rpm version]
+# rpm_case <name> <armor file or rpm> <key> <revocation cert> <checksig text> <checksig rc> <rpmdb key> <expect> <message> [rpm version]
 rpm_case() {
   t="$WORK/rpm-$1"; mkdir -p "$t/bin"; bundle "$t" "$3" "$4"
   printf '%s\n' "$5" > "$t/checksig.txt"
@@ -236,10 +238,16 @@ rpm_case() {
   # An rpmdb key outside the bundle stands in for an import that did not take
   f7=$(fpr "$7"); case " $3 " in *" $f7 "*) ;; *) echo "$f7" > "$t/rpmdb-override" ;; esac
   legacy=""; case "${10:-4.16.1.3}" in 4.[0-9].* | 4.1[01].*) legacy=1 ;; esac
+  pkg="$t/pkg.rpm"; query="cat '$WORK/$2' 2>/dev/null"
+  case "$2" in
+    /*) pkg=$2; query="exec '$REAL_RPM' \"\$@\"" ;;
+    *.rpm) pkg="$DATA/$2"; query="exec '$REAL_RPM' \"\$@\"" ;;
+  esac
+  [ -n "$NO_SIGPGP" ] && query="case \"\$*\" in *SIGPGP*) echo '(none)' ;; *) $query ;; esac"
   cat > "$t/bin/rpm" <<STUB
 #!/bin/sh
 case "\$*" in
-  *"--qf %{RSAHEADER:armor}"*) cat "$WORK/$2" 2>/dev/null ;;
+  *"--qf "*) $query ;;
   *--checksig*) cat "$t/checksig.txt"; exit $6 ;;
   --version) echo "RPM version ${10:-4.16.1.3}" ;;
   "--import "*)
@@ -279,7 +287,7 @@ STUB
   [ -n "$ERASE_FAILS" ] && echo "$ERASE_FAILS" > "$t/erase-fails"
   [ -n "$IMPORT_FAILS" ] && touch "$t/import-fails"
   [ -n "$TOUCH" ] && touch "$t/$TOUCH"
-  out=$(run_verify "$t" "$t/pkg.rpm" rpm de_DE.UTF-8 "PATH='$t/bin':\$PATH;"); rc=$?
+  out=$(run_verify "$t" "$pkg" rpm de_DE.UTF-8 "PATH='$t/bin':\$PATH;"); rc=$?
   report "rpm-$1" $rc "$8" "$9" "$out"
 }
 # installed <case> <name>: the case's rpm keyring still has that entry
@@ -377,10 +385,32 @@ rpm_case unparsable-version good.armor "$S" "" "$NOKEY" 1 "$S" fail "could not b
 # One key that will not come out does not keep the rest in
 PRESEED="$(printf 'gpg-pubkey-%s-5f000000 %s\ngpg-pubkey-%s-5f000000 %s' "$R8" "$R" "$L8" "$L")" RPM_REVOKE="gpg-pubkey-$R8-5f000000 gpg-pubkey-$L8-5f000000" ERASE_FAILS=gpg-pubkey-$R8-5f000000 rpm_case remove-fails good.armor "$S $R $L" "$RREV" "$OK" 0 "$S" fail "Failed to remove revoked key gpg-pubkey-$R8-5f000000"
 if installed remove-fails gpg-pubkey-$L8-5f000000; then report remove-fails-continues 1 ok "" "gpg-pubkey-$L8-5f000000 is still installed"; else report remove-fails-continues 0 ok "" ""; fi
-# rpm before 4.12 cannot check subkey signatures: the accepted carve-out for older hosts
-rpm_case legacy-nokey     good.armor    "$S" ""                       "$NOKEY" 1 "$S" ok   "" 4.11.3
-case "$out" in *"Package signature is valid"*) report legacy-nokey-not-valid 1 ok "" "$out" ;; *"rpm could not verify"*) report legacy-nokey-not-valid 0 ok "" "" ;; *) report legacy-nokey-not-valid 1 ok "" "$out" ;; esac
-rpm_case legacy-nokey-el6 good.armor    "$S" ""                       "$NOKEY" 1 "$S" ok   "" 4.8.0
+# rpm before 4.12 cannot check subkey signatures and reports NOKEY, so gpg checks the header
+# and payload signature over the same bytes rpm installs. The fixtures are signed like the
+# BDOT packages: by a signing subkey, with both a header and a header and payload signature.
+gpg --homedir "$G" --batch --quiet --import "$DATA/signed-test-key.asc" 2>/dev/null
+FIX=$(fpr test@example.com)
+FIXSUB=$(gpg --homedir "$G" --with-colons --list-keys "$FIX" 2>/dev/null | awk -F: '/^sub/{print $5; exit}')
+FIXNOKEY="Header V4 RSA/SHA256 Signature, key ID $(printf '%s' "$FIXSUB" | cut -c9-16 | tr '[:upper:]' '[:lower:]'): NOKEY"
+# grafted.rpm: signed-test.rpm's signed header in front of signed-test-other.rpm's payload
+# shellcheck disable=SC2046 # split od's bytes into the positional parameters
+header_end() { f=$1; set -- $(od -An -v -tu1 -j 96 -N 16 "$f"); s=$((16 + 16 * (($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}) + ((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}))); s=$((96 + (s + 7) / 8 * 8)); set -- $(od -An -v -tu1 -j "$((s + 8))" -N 8 "$f"); echo $((s + 16 + 16 * (($1 << 24) + ($2 << 16) + ($3 << 8) + $4) + (($5 << 24) + ($6 << 16) + ($7 << 8) + $8))); }
+{ head -c "$(header_end "$DATA/signed-test.rpm")" "$DATA/signed-test.rpm"; tail -c +"$(($(header_end "$DATA/signed-test-other.rpm") + 1))" "$DATA/signed-test-other.rpm"; } > "$WORK/grafted.rpm"
+rpm_case legacy-verified  signed-test.rpm "$FIX" ""                   "$FIXNOKEY" 1 "$FIX" ok   "" 4.11.3
+case "$out" in *"did not verify"*) report legacy-verified-by-gpg 1 ok "" "$out" ;; *) report legacy-verified-by-gpg 0 ok "" "" ;; esac
+rpm_case legacy-verified-el6 signed-test.rpm "$FIX" ""                "$FIXNOKEY" 1 "$FIX" ok   "" 4.8.0
+rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
+NO_SIGPGP=1 rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" ""  "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
+# The main header starts where rpm_header_offset says, and a non-rpm has no offset
+out=$(sh -c ". '$WORK/lib.sh'; o=\$(rpm_header_offset '$DATA/signed-test.rpm') && od -An -tx1 -j \"\$o\" -N 4 '$DATA/signed-test.rpm'" 2>&1); rc=$?
+case "$out" in *"8e ad e8 01"*) report rpm-header-offset $rc ok "" "$out" ;; *) report rpm-header-offset 1 ok "" "$out" ;; esac
+out=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$WORK/payload' || { echo no-offset; exit 1; }" 2>&1); rc=$?
+report rpm-header-offset-not-rpm $rc fail no-offset "$out"
+# A signature header of 16 + 16 + 4 bytes pads to 40, so the main header starts at 96 + 40
+{ head -c 96 /dev/zero; printf '\216\255\350\001\000\000\000\000\000\000\000\001\000\000\000\004'; } > "$WORK/padded.rpm"
+out=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$WORK/padded.rpm'" 2>&1); rc=$?
+[ "$out" = 136 ] || rc=1
+report rpm-header-offset-padded $rc ok "" "$out"
 rpm_case legacy-other-nokey good.armor  "$S" ""                       "$(printf '%s' "$OTHER_OK" | sed 's/OK$/NOKEY/')" 1 "$S" fail "could not be checked against the BDOT key" 4.11.3
 rpm_case legacy-bad       good.armor    "$S" ""                       "$(printf '%s\nMD5 digest: BAD (Expected 1 != 2)' "$NOKEY")" 1 "$S" hard "RPM signature is BAD" 4.11.3
 rpm_case legacy-revoked   revoked.armor "$R" "$WORK/revoked-cert.asc" "$NOKEY" 1 "$R" hard "is revoked" 4.11.3
@@ -400,7 +430,7 @@ report unknown-package-type $rc fail "Unrecognized package type" "$out"
 t="$WORK/rpm-real"; mkdir -p "$t/keys/deb-revocations"; cp "$DATA/signed-test-key.asc" "$t/keys/bdot-public-gpg-key.asc"
 (cd "$t/keys" && tar -czf "$t/gpg-keys.tar.gz" .)
 out=$(cd "$t" && LC_ALL=de_DE.UTF-8 sh -c ". '$WORK/lib.sh'; TMP_DIR='$t'; package_out_file_path='$DATA/signed-test.rpm'; GPG_DIR=\$(mktemp -d '$t/gpg.XXXXXX'); tar -xzf '$t/gpg-keys.tar.gz' -C \"\$GPG_DIR\"; rpm_signing_key_check && echo \"KEYID=\$SIGNING_KEYID\"; gpg_cleanup" 2>&1); rc=$?
-case "$out" in *KEYID=27067A30EAEBD59F*) report rpm-real-header $rc ok "" "$out" ;; *) report rpm-real-header 1 ok "" "$out" ;; esac
+case "$out" in *KEYID=$FIXSUB*) report rpm-real-header $rc ok "" "$out" ;; *) report rpm-real-header 1 ok "" "$out" ;; esac
 bundle "$t" "$S" ""
 out=$(cd "$t" && sh -c ". '$WORK/lib.sh'; TMP_DIR='$t'; package_out_file_path='$DATA/signed-test.rpm'; GPG_DIR=\$(mktemp -d '$t/gpg.XXXXXX'); tar -xzf '$t/gpg-keys.tar.gz' -C \"\$GPG_DIR\"; rpm_signing_key_check; r=\$?; gpg_cleanup; exit \$r" 2>&1); rc=$?
 report rpm-real-header-wrong-bundle $rc fail "not signed by a key in the BDOT key bundle" "$out"

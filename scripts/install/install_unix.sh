@@ -1124,6 +1124,38 @@ gpg_key_verdict() {
   esac
 }
 
+# gpg_verify_file <signature file> <data file> <label> checks the data against a detached
+# signature and the bundle keyring. It judges the result from gpg's status channel, which is
+# not translated.
+gpg_verify_file() {
+  OUTPUT=$(GNUPGHOME="$GPG_DIR" gpg --batch --keyserver-options no-auto-key-retrieve --status-fd 1 --verify "$1" "$2" 2> "$GPG_DIR/verify.err")
+  EXIT_CODE=$?
+
+  case "$OUTPUT" in
+    *"[GNUPG:] REVKEYSIG"* | *"[GNUPG:] KEYREVOKED"*)
+      error "$3 signing key is revoked"
+      return 3
+      ;;
+    *"[GNUPG:] EXPSIG"*)
+      error "$3 signature has expired"
+      return 3
+      ;;
+    *"[GNUPG:] BADSIG"*)
+      error "$3 was altered: its signature does not match its contents"
+      return 3
+      ;;
+  esac
+  # command printf: the script's printf wrapper prints nothing in quiet mode
+  _validsig=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $3, $5; exit }')
+  if [ $EXIT_CODE -ne 0 ] || [ -z "$_validsig" ]; then
+    error "$3 signature is invalid"
+    [ -s "$GPG_DIR/verify.err" ] && error "$(literal "$(cat "$GPG_DIR/verify.err")")"
+    return 1
+  fi
+
+  gpg_key_verdict "${_validsig% *}" "${_validsig#* }" "$3"
+}
+
 verify_package_deb() {
   # dpkg installs the first control.tar.* and data.tar.* it finds, but the signature covers
   # only these members, so the layout is pinned. A compression change must update it.
@@ -1153,34 +1185,7 @@ verify_package_deb() {
     error "Failed to extract the signed package contents"
     return 1
   fi
-
-  # Judge the result from gpg's status channel, which is not translated
-  OUTPUT=$(GNUPGHOME="$GPG_DIR" gpg --batch --keyserver-options no-auto-key-retrieve --status-fd 1 --verify "$GPG_DIR/_gpgorigin" "$GPG_DIR/signed-data" 2> "$GPG_DIR/verify.err")
-  EXIT_CODE=$?
-
-  case "$OUTPUT" in
-    *"[GNUPG:] REVKEYSIG"* | *"[GNUPG:] KEYREVOKED"*)
-      error "Package signing key is revoked"
-      return 3
-      ;;
-    *"[GNUPG:] EXPSIG"*)
-      error "Package signature has expired"
-      return 3
-      ;;
-    *"[GNUPG:] BADSIG"*)
-      error "Package was altered: its signature does not match its contents"
-      return 3
-      ;;
-  esac
-  # command printf: the script's printf wrapper prints nothing in quiet mode
-  _validsig=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $3, $5; exit }')
-  if [ $EXIT_CODE -ne 0 ] || [ -z "$_validsig" ]; then
-    error "Package signature is invalid"
-    [ -s "$GPG_DIR/verify.err" ] && error "$(literal "$(cat "$GPG_DIR/verify.err")")"
-    return 1
-  fi
-
-  gpg_key_verdict "${_validsig% *}" "${_validsig#* }" "Package" || return $?
+  gpg_verify_file "$GPG_DIR/_gpgorigin" "$GPG_DIR/signed-data" "Package" || return $?
 
   success "Package signature is valid, and its key was neither revoked nor expired when it signed"
   return 0
@@ -1302,6 +1307,35 @@ rpm_restore_stale_key() {
   _stale_saved=""
 }
 
+# rpm_header_offset <rpm file> prints the byte offset of the main header, which follows the
+# 96-byte lead and the signature header padded to 8 bytes.
+rpm_header_offset() {
+  # shellcheck disable=SC2046 # split od's bytes into the positional parameters
+  set -- $(od -An -v -tu1 -j 96 -N 16 "$1" 2> /dev/null)
+  [ $# -eq 16 ] && [ "$1 $2 $3 $4" = "142 173 232 1" ] || return 1
+  command printf '%s' $((96 + (16 + 16 * (($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}) + ((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}) + 7) / 8 * 8))
+}
+
+# rpm_legacy_verify checks the header and payload signature with gpg, for rpm that cannot use
+# the BDOT signing subkey. gpg reads the same bytes rpm installs: everything after the
+# unsigned signature header.
+rpm_legacy_verify() {
+  LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
+  if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
+    error "RPM has no header and payload signature for gpg to check"
+    return 1
+  fi
+  if ! _rpm_offset=$(rpm_header_offset "$package_out_file_path"); then
+    error "Could not read the RPM header layout"
+    return 1
+  fi
+  if ! tail -c +$((_rpm_offset + 1)) "$package_out_file_path" > "$GPG_DIR/rpm-signed-data" 2> /dev/null; then
+    error "Failed to extract the signed RPM contents"
+    return 1
+  fi
+  gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM"
+}
+
 # rpm_read_revoked_list sets _revoked_keys from RPM_GPG_KEYS_TO_REMOVE and the bundle's
 # rpm-revocations.txt, and returns 3 for an entry that is not a bundle key's rpm name.
 rpm_read_revoked_list() {
@@ -1395,12 +1429,10 @@ verify_package_rpm() {
   _key_pattern=" ($(command printf '%s' "$_key_names" | tr ' ' '|')): "
   if command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}ok\$"; then
     :
-  # rpm before 4.12 (EL6, EL7, Amazon Linux 2, SLES 12) reports NOKEY for subkey signatures;
-  # those hosts keep the accepted carve-out
+  # rpm before 4.12 (EL6, EL7, Amazon Linux 2, SLES 12) reports NOKEY for subkey signatures,
+  # so gpg checks SIGPGP instead
   elif rpm_lacks_subkey_support && command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}nokey\$"; then
-    warn "rpm on this OS cannot check signatures made by signing subkeys, so rpm did not verify the package signature."
-    success "Package signing key checked; rpm could not verify the signature on this OS"
-    return 0
+    rpm_legacy_verify || return $?
   else
     error "RPM signature could not be checked against the BDOT key"
     return 1
