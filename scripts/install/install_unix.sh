@@ -1015,6 +1015,7 @@ package_type_check()
     if command -v mkssys > /dev/null 2>&1 \
       && command -v mkgroup > /dev/null 2>&1 \
       && command -v useradd > /dev/null 2>&1 \
+      && command -v chuser > /dev/null 2>&1 \
       && command -v startsrc > /dev/null 2>&1 \
       && command -v stopsrc > /dev/null 2>&1 \
       && command -v lssrc > /dev/null 2>&1 \
@@ -1467,7 +1468,10 @@ install_aix()
     mkgroup "$COLLECTOR_GROUP" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
   fi
   if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
-    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_GROUP" -s /usr/bin/false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+    # No -s: AIX only accepts shells listed in /etc/security/login.cfg, and /usr/bin/false
+    # is not there by default. The mkuser.default shell always is, so use it and lock the account.
+    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_GROUP" "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+    chuser account_locked=true login=false rlogin=false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to lock user '$COLLECTOR_USER'"
   fi
 
   # Create the install & storage directories
