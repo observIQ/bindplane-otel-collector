@@ -43,16 +43,17 @@ type windowsUpdaterManager struct {
 
 // newUpdaterManager creates a new updaterManager
 func newUpdaterManager(defaultLogger *zap.Logger, tmpPath string) (updaterManager, error) {
-	cwd, err := os.Getwd()
+	ex, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cwd: %w", err)
+		return nil, fmt.Errorf("failed to get executable path: %w", err)
 	}
+	installDir := filepath.Dir(ex)
 
 	return &windowsUpdaterManager{
 		tmpPath:             filepath.Clean(tmpPath),
 		logger:              defaultLogger.Named("updater manager"),
 		updaterName:         defaultWindowsUpdaterName,
-		cwd:                 cwd,
+		cwd:                 installDir,
 		shutdownWaitTimeout: defaultShutdownWaitTimeout,
 	}, nil
 }
@@ -68,6 +69,7 @@ func (m windowsUpdaterManager) StartAndMonitorUpdater() error {
 
 	//#nosec G204 -- paths are not determined via user input
 	cmd := exec.Command(updaterPath)
+	cmd.Dir = m.cwd
 
 	// Start does not block
 	if err := cmd.Start(); err != nil {

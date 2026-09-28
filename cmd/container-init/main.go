@@ -17,15 +17,23 @@
 // prepare a volume for the collector: it recursively creates the parent
 // directories of the given config and logging paths and writes default
 // collector and logging configs to them.
+//
+// With -chown it also hands the volume to the unprivileged user the collector
+// runs as, which Kubernetes cannot do itself because fsGroup does not apply to
+// hostPath volumes. That mode must run as root with CAP_CHOWN and
+// CAP_DAC_READ_SEARCH. The chown runs after the files are written, so they end
+// up owned by the collector rather than by root.
 package main
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Default file contents. The collector config is the same minimal nop
@@ -57,15 +65,35 @@ func main() {
 	configPath := flag.String("config", "", "absolute path to write the default collector config (required)")
 	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required)")
 	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
+	chownPath := flag.String("chown", "", "absolute path to recursively chown to -uid:-gid after writing the files")
+	uid := flag.Uint("uid", 0, "owner uid for -chown")
+	gid := flag.Uint("gid", 0, "owner gid for -chown")
 	flag.Parse()
 
 	if *configPath == "" || *loggingPath == "" {
 		flag.Usage()
 		os.Exit(2)
 	}
+	target, err := newChownTarget(*chownPath, *uid, *gid)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "container-init: %v\n", err)
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	if desc := describeProcess(); desc != "" {
+		log.Printf("running as %s", desc)
+	}
 
 	if err := run(*configPath, *loggingPath, *overwrite); err != nil {
 		log.Fatalf("Failed to initialize container: %v", err)
+	}
+	// After run, so the files it wrote are handed over as well.
+	if target.path != "" {
+		if err := chownTree(target.path, target.uid, target.gid, os.Lchown); err != nil {
+			log.Fatalf("Failed to chown %s: %v", target.path, err)
+		}
+		log.Printf("chowned %s to %d:%d", target.path, target.uid, target.gid)
 	}
 }
 
@@ -109,4 +137,27 @@ func run(configPath, loggingPath string, overwrite bool) error {
 		log.Printf("wrote %s", f.path)
 	}
 	return nil
+}
+
+// describeProcess reports the identity and effective capabilities of this
+// process so init container logs show what the chown was allowed to do. It
+// returns an empty string where /proc is not available.
+func describeProcess() string {
+	f, err := os.Open("/proc/self/status")
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	var fields []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		for _, key := range []string{"Uid:", "Gid:", "Groups:", "CapEff:"} {
+			if strings.HasPrefix(line, key) {
+				fields = append(fields, strings.TrimSuffix(key, ":")+"="+strings.Join(strings.Fields(line[len(key):]), ","))
+			}
+		}
+	}
+	return strings.Join(fields, " ")
 }

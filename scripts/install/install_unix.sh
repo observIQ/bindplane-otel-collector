@@ -877,11 +877,6 @@ install_package()
   fi
 
   info "Installing package..."
-  # if target install directory doesn't exist and we're using dpkg ensure a clean state 
-  # by checking for the package and running purge if it exists.
-  if [ ! -d "${BDOT_CONFIG_HOME}" ] && [ "$package_type" = "deb" ]; then
-    dpkg -s "observiq-otel-collector" > /dev/null 2>&1 && dpkg --purge "observiq-otel-collector" > /dev/null 2>&1
-  fi
 
   # Verify the package signature, with optional user override on failure
   # Capture GPG verification output to display failure details

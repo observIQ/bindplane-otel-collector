@@ -9,6 +9,7 @@ jobs:
     uses: ./.github/workflows/build-signed-windows.yml
     with:
       version: ${{ github.ref_name }}
+      sign_install_script: true
     secrets: inherit
 
   release:
@@ -91,6 +92,23 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      # Staged into place by goreleaser's overlay before-hook, not here:
+      # goreleaser validates git state before running its hooks, so touching
+      # the tracked script from a workflow step fails the release with
+      # "git is in a dirty state". The download directory is gitignored.
+      - name: Retrieve Signed Windows Install Script
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-install-script
+          path: signed-install-script
+      # The Windows binaries goreleaser packages must be the signed ones from
+      # the build-msi job, not the unsigned copies its before-hook builds here.
+      - name: Retrieve Signed Windows Binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: signed-windows-*
+          merge-multiple: true
+          path: signed-windows
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -107,6 +125,8 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNED_WINDOWS_DIR: signed-windows
+          SIGNED_INSTALL_SCRIPT: signed-install-script/install_windows.ps1
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
@@ -240,3 +260,29 @@ jobs:
             artifacts yum upload stable-rpm \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
+
+  # Gate the prerelease on the executables actually being signed, not just the
+  # MSI. Releases publish as a prerelease first, so a failure here blocks
+  # promotion instead of arriving after customers have the artifacts.
+  verify-windows-release:
+    needs: [release]
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Download Windows Release Artifacts
+        run: |
+          mkdir artifacts
+          gh release download "$env:TAG" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --dir artifacts `
+            --pattern "*-windows-*.zip" `
+            --pattern "*.msi" `
+            --pattern "install_windows.ps1"
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+      - name: Verify Windows Signatures
+        run: ./scripts/ci/verify-windows-signatures.ps1 -Root ./artifacts
+        shell: pwsh
