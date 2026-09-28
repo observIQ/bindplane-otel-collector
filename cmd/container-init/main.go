@@ -22,7 +22,8 @@
 // runs as, which Kubernetes cannot do itself because fsGroup does not apply to
 // hostPath volumes. That mode must run as root with CAP_CHOWN and
 // CAP_DAC_READ_SEARCH. The chown runs after the files are written, so they end
-// up owned by the collector rather than by root.
+// up owned by the collector rather than by root. Seeding is optional in that
+// mode, for collectors whose config is delivered some other way.
 package main
 
 import (
@@ -62,15 +63,17 @@ level: info
 )
 
 func main() {
-	configPath := flag.String("config", "", "absolute path to write the default collector config (required)")
-	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required)")
+	configPath := flag.String("config", "", "absolute path to write the default collector config (required unless -chown is set)")
+	loggingPath := flag.String("logging", "", "absolute path to write the default logging config (required unless -chown is set)")
 	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
 	chownPath := flag.String("chown", "", "absolute path to recursively chown to -uid:-gid after writing the files")
 	uid := flag.Uint("uid", 0, "owner uid for -chown")
 	gid := flag.Uint("gid", 0, "owner gid for -chown")
 	flag.Parse()
 
-	if *configPath == "" || *loggingPath == "" {
+	seed, err := validateFlags(*configPath, *loggingPath, *chownPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "container-init: %v\n", err)
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -85,8 +88,10 @@ func main() {
 		log.Printf("running as %s", desc)
 	}
 
-	if err := run(*configPath, *loggingPath, *overwrite); err != nil {
-		log.Fatalf("Failed to initialize container: %v", err)
+	if seed {
+		if err := run(*configPath, *loggingPath, *overwrite); err != nil {
+			log.Fatalf("Failed to initialize container: %v", err)
+		}
 	}
 	// After run, so the files it wrote are handed over as well.
 	if target.path != "" {
@@ -94,6 +99,21 @@ func main() {
 			log.Fatalf("Failed to chown %s: %v", target.path, err)
 		}
 		log.Printf("chowned %s to %d:%d", target.path, target.uid, target.gid)
+	}
+}
+
+// validateFlags reports whether the seed files should be written. Seeding
+// needs both -config and -logging; -chown on its own is a complete invocation.
+func validateFlags(configPath, loggingPath, chownPath string) (bool, error) {
+	switch {
+	case configPath != "" && loggingPath != "":
+		return true, nil
+	case configPath != "" || loggingPath != "":
+		return false, errors.New("-config and -logging must be set together")
+	case chownPath == "":
+		return false, errors.New("nothing to do: set -config and -logging, -chown, or both")
+	default:
+		return false, nil
 	}
 }
 
