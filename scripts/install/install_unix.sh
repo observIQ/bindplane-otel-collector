@@ -1028,7 +1028,7 @@ verification_missing_tools() {
   _tools="gpg tar gzip awk sed grep tr cut"
   [ "$package_type" = "deb" ] && _tools="$_tools ar"
   # od and tail locate the header and payload that gpg checks where rpm cannot
-  [ "$package_type" = "rpm" ] && _tools="$_tools od tail"
+  if [ "$package_type" = "rpm" ] && rpm_lacks_subkey_support; then _tools="$_tools od tail"; fi
   for _tool in $_tools; do
     command -v "$_tool" > /dev/null 2>&1 || _missing="${_missing:+$_missing, }$_tool"
   done
@@ -1315,7 +1315,9 @@ rpm_header_offset() {
   # shellcheck disable=SC2046 # split od's bytes into the positional parameters
   set -- $(od -An -v -tu1 -j 96 -N 16 "$1" 2> /dev/null)
   [ $# -eq 16 ] && [ "$1 $2 $3 $4" = "142 173 232 1" ] || return 1
-  command printf '%s' $((96 + (16 + 16 * (($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}) + ((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}) + 7) / 8 * 8))
+  _il=$((($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}))
+  _dl=$(((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}))
+  command printf '%s' $((96 + (16 + 16 * _il + _dl + 7) / 8 * 8))
 }
 
 # rpm_legacy_verify checks the header and payload signature with gpg, for rpm that cannot use

@@ -18,7 +18,7 @@
 # cannot make a certify-only primary, so this one can sign too, but gpg signs with the subkey.
 # It runs on Amazon Linux 2, whose rpm 4.11 rpmsign writes both the header signature and the
 # header and payload signature, as the BDOT release packages carry. Run it from this directory:
-#   podman run --rm -v "$PWD:/out:Z" -w /out amazonlinux:2 sh make-signed-test-rpm.sh
+#   podman run --rm -v "$PWD:/out:z" -w /out amazonlinux:2 sh make-signed-test-rpm.sh
 set -e
 yum install -y -q rpm-build rpm-sign gnupg2 > /dev/null
 GNUPGHOME=$(mktemp -d); export GNUPGHOME
