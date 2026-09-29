@@ -243,7 +243,7 @@ rpm_case() {
     /*) pkg=$2; query="exec '$REAL_RPM' \"\$@\"" ;;
     *.rpm) pkg="$DATA/$2"; query="exec '$REAL_RPM' \"\$@\"" ;;
   esac
-  [ -n "$NO_SIGPGP" ] && query="case \"\$*\" in *SIGPGP*) echo '(none)' ;; *) $query ;; esac"
+  [ -n "$SIGPGP_FILE" ] && query="case \"\$*\" in *SIGPGP*) cat '$SIGPGP_FILE' ;; *) $query ;; esac"
   cat > "$t/bin/rpm" <<STUB
 #!/bin/sh
 case "\$*" in
@@ -399,7 +399,25 @@ header_end() { f=$1; s=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$f'"); set 
 rpm_case legacy-verified  signed-test.rpm "$FIX" ""                   "$FIXNOKEY" 1 "$FIX" ok   "" 4.11.3
 rpm_case legacy-verified-el6 signed-test.rpm "$FIX" ""                "$FIXNOKEY" 1 "$FIX" ok   "" 4.8.0
 rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
-NO_SIGPGP=1 rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" ""  "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
+echo '(none)' > "$WORK/no-sigpgp"
+SIGPGP_FILE="$WORK/no-sigpgp" rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
+# The header and payload signature gets the same key checks as any other: signatures over
+# signed-test.rpm's header and payload by a revoked key, a key expired when it signed, and
+# a key missing from the bundle, each shipped as its SIGPGP
+off=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$DATA/signed-test.rpm'")
+tail -c +$((off + 1)) "$DATA/signed-test.rpm" > "$WORK/fixture-signed-bytes"
+gpgq --local-user "$R" --armor --detach-sign --output "$WORK/sigpgp-revoked.asc" "$WORK/fixture-signed-bytes"
+gpgq --faked-system-time 20200101T000000 --quick-gen-key 'Late2 <x2@x>' rsa2048 sign never; X2=$(fpr x2@x)
+gpgq --local-user "$X2" --armor --detach-sign --faked-system-time 20200601T000000 --output "$WORK/sigpgp-late.asc" "$WORK/fixture-signed-bytes"
+gpgq --faked-system-time 20200102T000000 --quick-set-expire "$X2" 1d
+gpgq --local-user o@x --armor --detach-sign --output "$WORK/sigpgp-unknown.asc" "$WORK/fixture-signed-bytes"
+SIGPGP_FILE="$WORK/sigpgp-revoked.asc" rpm_case legacy-sigpgp-revoked signed-test.rpm "$FIX $R" "$WORK/revoked-cert.asc" "$FIXNOKEY" 1 "$FIX" hard "RPM signing key is revoked" 4.11.3
+SIGPGP_FILE="$WORK/sigpgp-late.asc" rpm_case legacy-sigpgp-late signed-test.rpm "$FIX $X2" "" "$FIXNOKEY" 1 "$FIX" hard "had expired when it signed" 4.11.3
+SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-unknown signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "RPM signature is invalid" 4.11.3
+# A package whose header layout cannot be read never reaches gpg
+LC_ALL=C rpm -qp --qf '%{RSAHEADER:armor}' "$DATA/signed-test.rpm" > "$WORK/fixture-rsaheader.armor" 2>/dev/null
+LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$DATA/signed-test.rpm" > "$WORK/fixture-sigpgp.armor" 2>/dev/null
+SIGPGP_FILE="$WORK/fixture-sigpgp.armor" rpm_case legacy-bad-layout fixture-rsaheader.armor "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "Could not read the RPM header layout" 4.11.3
 # The main header starts where rpm_header_offset says, and a non-rpm has no offset
 out=$(sh -c ". '$WORK/lib.sh'; o=\$(rpm_header_offset '$DATA/signed-test.rpm') && od -An -tx1 -j \"\$o\" -N 4 '$DATA/signed-test.rpm'" 2>&1); rc=$?
 case "$out" in *"8e ad e8 01"*) report rpm-header-offset $rc ok "" "$out" ;; *) report rpm-header-offset 1 ok "" "$out" ;; esac
@@ -462,7 +480,9 @@ tool_case check-no-gpg-skipped "gpg gpg2" "package_type=rpm; skip_gpg_check=true
 tool_case check-deb-no-ar      "ar"       "package_type=deb; verification_check"                       abort "requires: [ar]"
 tool_case check-rpm-no-ar      "ar"       "package_type=rpm; verification_check"                       ok
 tool_case check-no-text-tools  "awk sed grep tr cut" "package_type=rpm; verification_check"             abort "requires: [awk, sed, grep, tr, cut]"
-tool_case check-rpm-no-od-tail "od tail"  "package_type=rpm; verification_check"                       abort "requires: [od, tail]"
+# od and tail are needed only where rpm cannot use signing subkeys
+tool_case check-legacy-rpm-no-od-tail "od tail" "package_type=rpm; rpm_lacks_subkey_support() { return 0; }; verification_check" abort "requires: [od, tail]"
+tool_case check-rpm-no-od-tail "od tail"  "package_type=rpm; rpm_lacks_subkey_support() { return 1; }; verification_check" ok
 tool_case check-all-present    ""         "package_type=deb; verification_check"                       ok
 # gnupg2-minimal has no gpgconf, and gpg 2.0's cannot stop daemons; cleanup must still succeed
 tool_case verify-no-gpgconf    "gpgconf"  "package_type=deb; verify_package"                           ok
