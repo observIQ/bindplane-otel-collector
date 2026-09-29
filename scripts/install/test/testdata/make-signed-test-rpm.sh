@@ -14,28 +14,30 @@
 # limitations under the License.
 
 # Regenerates signed-test.rpm, signed-test-other.rpm, and signed-test-key.asc with a new
-# throwaway key laid out like the BDOT key, whose signing subkey makes the signatures. gpg 2.0
-# cannot make a certify-only primary, so this one can sign too, but gpg signs with the subkey.
-# It runs on Amazon Linux 2, whose rpm 4.11 rpmsign writes both the header signature and the
-# header and payload signature, as the BDOT release packages carry. Run it from this directory:
-#   podman run --rm -v "$PWD:/out:z" -w /out amazonlinux:2 sh make-signed-test-rpm.sh
+# throwaway key laid out like the BDOT key: a certify-only primary with a signing subkey,
+# certified with SHA-512. gpg 2.1 or newer on this host makes the key, since gpg 2.0 cannot
+# make a certify-only primary. Amazon Linux 2 then signs the packages, since its rpm 4.11
+# rpmsign writes both the header signature and the header and payload signature, as the
+# BDOT release packages carry. Run it from this directory on a host with podman:
+#   sh make-signed-test-rpm.sh
+set -e
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+GNUPGHOME="$work/gnupg"; export GNUPGHOME
+mkdir -m 700 "$GNUPGHOME"
+gpg --batch --pinentry-mode loopback --passphrase '' --cert-digest-algo SHA512 \
+  --quick-gen-key 'BDOT install test <test@example.com>' rsa2048 cert never
+fpr=$(gpg --with-colons --list-keys test@example.com | awk -F: '/^fpr/ { print $10; exit }')
+gpg --batch --pinentry-mode loopback --passphrase '' --cert-digest-algo SHA512 \
+  --quick-add-key "$fpr" rsa2048 sign never
+gpg --armor --export > signed-test-key.asc
+gpg --batch --pinentry-mode loopback --passphrase '' --armor --export-secret-keys > "$work/secret.asc"
+
+cat > "$work/sign.sh" <<'SIGN'
 set -e
 yum install -y -q rpm-build rpm-sign gnupg2 > /dev/null
 GNUPGHOME=$(mktemp -d); export GNUPGHOME
-# gpg 2.0 certifies keys with SHA-1 by default, which rpm on EL9 refuses to import
-gpg --batch --cert-digest-algo SHA512 --gen-key <<'EOF'
-Key-Type: RSA
-Key-Length: 2048
-Subkey-Type: RSA
-Subkey-Length: 2048
-Subkey-Usage: sign
-Name-Real: BDOT install test
-Name-Email: test@example.com
-Expire-Date: 0
-%commit
-EOF
-gpg --armor --export > signed-test-key.asc
-
+gpg --batch --import /work/secret.asc
 # Two packages with different payloads, so the tests can graft one's payload onto the other
 top=$(mktemp -d)
 for v in 1 2; do
@@ -58,5 +60,7 @@ EOF
   # rpm 4.11 reads the empty passphrase from stdin when there is no terminal
   echo | rpmsign --define '_gpg_name test@example.com' --define '_gpg_digest_algo sha256' --addsign "$top/RPMS/noarch/signed-test-$v-1.noarch.rpm" > /dev/null
 done
-cp "$top/RPMS/noarch/signed-test-1-1.noarch.rpm" signed-test.rpm
-cp "$top/RPMS/noarch/signed-test-2-1.noarch.rpm" signed-test-other.rpm
+cp "$top/RPMS/noarch/signed-test-1-1.noarch.rpm" /out/signed-test.rpm
+cp "$top/RPMS/noarch/signed-test-2-1.noarch.rpm" /out/signed-test-other.rpm
+SIGN
+podman run --rm -v "$PWD:/out:z" -v "$work:/work:ro,z" amazonlinux:2 sh /work/sign.sh

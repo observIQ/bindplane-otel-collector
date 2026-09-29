@@ -1314,7 +1314,7 @@ rpm_restore_stale_key() {
 rpm_header_offset() {
   # shellcheck disable=SC2046 # split od's bytes into the positional parameters
   set -- $(od -An -v -tu1 -j 96 -N 16 "$1" 2> /dev/null)
-  [ $# -eq 16 ] && [ "$1 $2 $3 $4" = "142 173 232 1" ] || return 1
+  [ $# -eq 16 ] && [ "$1 $2 $3 $4 $5 $6 $7 $8" = "142 173 232 1 0 0 0 0" ] || return 1
   _il=$((($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}))
   _dl=$(((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}))
   command printf '%s' $((96 + (16 + 16 * _il + _dl + 7) / 8 * 8))
@@ -1337,7 +1337,13 @@ rpm_legacy_verify() {
     error "Failed to extract the signed RPM contents"
     return 1
   fi
-  gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM"
+  gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM" || return $?
+  # rpm checked no signature here, so the rpm revoked-key list must see this signer too
+  _signer_primary=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $12; exit }')
+  if rpm_list_revokes "$_signer_primary"; then
+    error "RPM signing key $_signer_primary is revoked"
+    return 3
+  fi
 }
 
 # rpm_read_revoked_list sets _revoked_keys from RPM_GPG_KEYS_TO_REMOVE and the bundle's
