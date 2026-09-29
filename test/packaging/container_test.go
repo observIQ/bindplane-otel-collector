@@ -125,7 +125,7 @@ func startBox(t *testing.T, env *suiteEnv, image string) *box {
 			"/run":      "rw,nosuid,nodev,mode=755",
 			"/run/lock": "rw,nosuid,nodev,noexec",
 		}),
-		testcontainers.WithWaitStrategyAndDeadline(2*time.Minute, systemdReady{}),
+		testcontainers.WithWaitStrategyAndDeadline(2*time.Minute, &systemdReady{}),
 	)
 	// Cleanups run last in, first out: diagnostics run before the
 	// container is terminated.
@@ -258,12 +258,15 @@ func (b *box) dumpDiagnostics() {
 // systemdReady waits until systemd inside the container has finished
 // booting. A "degraded" system counts as ready: some units fail in
 // containers without affecting the package under test. The deadline is set
-// by the caller, see startBox.
+// by the caller, see startBox. It must be used as a pointer: testcontainers
+// calls reflect.Value.IsNil on wait strategies.
 type systemdReady struct{}
 
-var _ wait.Strategy = systemdReady{}
+var _ wait.Strategy = (*systemdReady)(nil)
 
-func (systemdReady) WaitUntilReady(ctx context.Context, target wait.StrategyTarget) error {
+func (*systemdReady) String() string { return "systemd is running" }
+
+func (*systemdReady) WaitUntilReady(ctx context.Context, target wait.StrategyTarget) error {
 	last := ""
 	for {
 		if state, err := target.State(ctx); err == nil && !state.Running {
