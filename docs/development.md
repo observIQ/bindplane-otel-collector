@@ -34,21 +34,22 @@ The steps are as follows:
 
 1. Run:
     ```sh
-    ./scripts/update-otel.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {PDATA_VERSION}
+    ./scripts/update-otel.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {PDATA_VERSION} {CONTRIB_STABLE_VERSION}
     ```
     Grab the different versions from OTEL's GitHub by checking the latest release versions of [collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) and the [collector](https://github.com/open-telemetry/opentelemetry-collector). They should be the same.
-    The pdata version can be found by checking the latest release notes of the collector in a header with {PDATA_VERSION}/{COLLECTOR_VERSION}. All three version arguments should include the v - an example run of the script would look like this:
+    The pdata version can be found by checking the latest release notes of the collector in a header with {PDATA_VERSION}/{COLLECTOR_VERSION}. The `CONTRIB_STABLE_VERSION` is the version of contrib's stable (v1.0.0+) modules, which are versioned independently of the main contrib release (e.g. the k8sattributes processor). All version arguments should include the v - an example run of the script would look like this:
     ```sh
-    ./scripts/update-otel.sh v0.114.0 v0.114.0 v1.20.0
+    ./scripts/update-otel.sh v0.114.0 v0.114.0 v1.20.0 v1.0.0
     ```
+    The stable contrib modules are tracked in an allowlist near the top of `update-otel.sh` (and `update-docs.sh`). When a new contrib component reaches v1.0.0, add its module path to both lists. Note: these scripts update the `go.mod` files and docs; bump the matching versions in `manifests/observIQ/manifest.yaml` by hand.
 
 2. Run `make tidy`
 
 3. Run:
     ```sh
-    ./scripts/update-docs.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {BDOT_CONTRIB_VERSION}
+    ./scripts/update-docs.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {BDOT_CONTRIB_VERSION} {CONTRIB_STABLE_VERSION}
     ```
-    The collector and contrib versions should be the same as in step 1. The `BDOT_CONTRIB_VERSION` is the latest release version of [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib).
+    The collector and contrib versions should be the same as in step 1. The `BDOT_CONTRIB_VERSION` is the latest release version of [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib). The `CONTRIB_STABLE_VERSION` is the same value passed in step 1.
 
 4. Run `make install-tools`
 
