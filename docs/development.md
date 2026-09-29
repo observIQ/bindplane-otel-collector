@@ -18,6 +18,17 @@ Build files will show up in the `./dist` directory
 
 Tests can be run with `make test`.
 
+## Testing Linux packages
+
+The deb and rpm packages can be tested in systemd-enabled distro containers. The suite covers fresh install, upgrade from a previous release, and uninstall. It requires Docker.
+
+```sh
+make release-test   # builds the packages into ./dist
+make test-packages  # runs the package tests against ./dist
+```
+
+See [test/packaging](../test/packaging/README.md) for options and for how to add a distribution.
+
 ## Running CI checks locally
 
 The CI runs the `ci-checks` make target, which includes linting, testing, and checking documentation for misspelling.
