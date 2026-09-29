@@ -1,6 +1,9 @@
 name: Package Tests
 on:
   workflow_dispatch:
+  # Temporary: registers the workflow so it can be run from this branch.
+  push:
+    branches: [feat/container-package-tests]
 
 permissions:
   contents: read
