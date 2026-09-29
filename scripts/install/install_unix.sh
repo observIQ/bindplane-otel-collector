@@ -1027,6 +1027,8 @@ verification_missing_tools() {
   _missing=""
   _tools="gpg tar gzip awk sed grep tr cut"
   [ "$package_type" = "deb" ] && _tools="$_tools ar"
+  # od and tail locate the header and payload that gpg checks where rpm cannot
+  [ "$package_type" = "rpm" ] && _tools="$_tools od tail"
   for _tool in $_tools; do
     command -v "$_tool" > /dev/null 2>&1 || _missing="${_missing:+$_missing, }$_tool"
   done

@@ -22,7 +22,8 @@
 set -e
 yum install -y -q rpm-build rpm-sign gnupg2 > /dev/null
 GNUPGHOME=$(mktemp -d); export GNUPGHOME
-gpg --batch --gen-key <<'EOF'
+# gpg 2.0 certifies keys with SHA-1 by default, which rpm on EL9 refuses to import
+gpg --batch --cert-digest-algo SHA512 --gen-key <<'EOF'
 Key-Type: RSA
 Key-Length: 2048
 Subkey-Type: RSA

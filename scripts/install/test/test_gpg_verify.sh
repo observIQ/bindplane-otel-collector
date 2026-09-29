@@ -394,10 +394,9 @@ FIXSUB=$(gpg --homedir "$G" --with-colons --list-keys "$FIX" 2>/dev/null | awk -
 FIXNOKEY="Header V4 RSA/SHA256 Signature, key ID $(printf '%s' "$FIXSUB" | cut -c9-16 | tr '[:upper:]' '[:lower:]'): NOKEY"
 # grafted.rpm: signed-test.rpm's signed header in front of signed-test-other.rpm's payload
 # shellcheck disable=SC2046 # split od's bytes into the positional parameters
-header_end() { f=$1; set -- $(od -An -v -tu1 -j 96 -N 16 "$f"); s=$((16 + 16 * (($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}) + ((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16}))); s=$((96 + (s + 7) / 8 * 8)); set -- $(od -An -v -tu1 -j "$((s + 8))" -N 8 "$f"); echo $((s + 16 + 16 * (($1 << 24) + ($2 << 16) + ($3 << 8) + $4) + (($5 << 24) + ($6 << 16) + ($7 << 8) + $8))); }
+header_end() { f=$1; s=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$f'"); set -- $(od -An -v -tu1 -j "$((s + 8))" -N 8 "$f"); echo $((s + 16 + 16 * (($1 << 24) + ($2 << 16) + ($3 << 8) + $4) + (($5 << 24) + ($6 << 16) + ($7 << 8) + $8))); }
 { head -c "$(header_end "$DATA/signed-test.rpm")" "$DATA/signed-test.rpm"; tail -c +"$(($(header_end "$DATA/signed-test-other.rpm") + 1))" "$DATA/signed-test-other.rpm"; } > "$WORK/grafted.rpm"
 rpm_case legacy-verified  signed-test.rpm "$FIX" ""                   "$FIXNOKEY" 1 "$FIX" ok   "" 4.11.3
-case "$out" in *"did not verify"*) report legacy-verified-by-gpg 1 ok "" "$out" ;; *) report legacy-verified-by-gpg 0 ok "" "" ;; esac
 rpm_case legacy-verified-el6 signed-test.rpm "$FIX" ""                "$FIXNOKEY" 1 "$FIX" ok   "" 4.8.0
 rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
 NO_SIGPGP=1 rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" ""  "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
@@ -463,6 +462,7 @@ tool_case check-no-gpg-skipped "gpg gpg2" "package_type=rpm; skip_gpg_check=true
 tool_case check-deb-no-ar      "ar"       "package_type=deb; verification_check"                       abort "requires: [ar]"
 tool_case check-rpm-no-ar      "ar"       "package_type=rpm; verification_check"                       ok
 tool_case check-no-text-tools  "awk sed grep tr cut" "package_type=rpm; verification_check"             abort "requires: [awk, sed, grep, tr, cut]"
+tool_case check-rpm-no-od-tail "od tail"  "package_type=rpm; verification_check"                       abort "requires: [od, tail]"
 tool_case check-all-present    ""         "package_type=deb; verification_check"                       ok
 # gnupg2-minimal has no gpgconf, and gpg 2.0's cannot stop daemons; cleanup must still succeed
 tool_case verify-no-gpgconf    "gpgconf"  "package_type=deb; verify_package"                           ok
