@@ -14,8 +14,8 @@
 # limitations under the License.
 
 # Tests for install_unix.sh signature checks, which must hold under any locale since gpg
-# translates its warnings. Needs gpg, ar, rpm, and de_DE.UTF-8, and fails rather than skips
-# without them.
+# translates its warnings. Needs gpg, ar, rpm, od, tail, and de_DE.UTF-8, and fails rather
+# than skips without them.
 # Usage: test_gpg_verify.sh [path-to-install_unix.sh]
 SCRIPT=$(cd "$(dirname "${1:-$(dirname "$0")/../install_unix.sh}")" && pwd)/$(basename "${1:-install_unix.sh}")
 DATA=$(cd "$(dirname "$0")" && pwd)/testdata
@@ -23,7 +23,7 @@ WORK=$(mktemp -d)
 # Stop every gpg-agent the tests started, including those whose gpgconf the tests hide
 trap 'pkill -u "$(id -u)" -f "gpg-agent --homedir $WORK" 2> /dev/null; rm -rf "$WORK"' EXIT
 fail=0; pass=0
-for tool in gpg ar rpm; do
+for tool in gpg ar rpm od tail; do
   command -v "$tool" > /dev/null 2>&1 || { echo "FAIL setup: $tool is not installed"; exit 1; }
 done
 if ! locale -a 2>/dev/null | grep -qix 'de_DE.utf8'; then
@@ -414,6 +414,10 @@ gpgq --local-user o@x --armor --detach-sign --output "$WORK/sigpgp-unknown.asc" 
 SIGPGP_FILE="$WORK/sigpgp-revoked.asc" rpm_case legacy-sigpgp-revoked signed-test.rpm "$FIX $R" "$WORK/revoked-cert.asc" "$FIXNOKEY" 1 "$FIX" hard "RPM signing key is revoked" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-late.asc" rpm_case legacy-sigpgp-late signed-test.rpm "$FIX $X2" "" "$FIXNOKEY" 1 "$FIX" hard "had expired when it signed" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-unknown signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "RPM signature is invalid" 4.11.3
+# The header signature is not checked on these hosts, so the rpm revoked-key list applies to
+# the header and payload signer too
+O=$(fpr o@x)
+RPM_REVOKE="gpg-pubkey-$(printf '%s' "$O" | cut -c33-40 | tr '[:upper:]' '[:lower:]')-5f000000" SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-list-revoked signed-test.rpm "$FIX $O" "" "$FIXNOKEY" 1 "$FIX" hard "is revoked" 4.11.3
 gpgq --local-user o@x --include-key-block --armor --detach-sign --output "$WORK/sigpgp-embedded.asc" "$WORK/fixture-signed-bytes"
 EXTRA_PATH="$WORK/gpg-autoimport" SIGPGP_FILE="$WORK/sigpgp-embedded.asc" rpm_case legacy-sigpgp-auto-key-import signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "not signed by a key in the BDOT key bundle" 4.11.3
 mkdir -p "$WORK/tail-fails"
@@ -433,6 +437,10 @@ report rpm-header-offset-not-rpm $rc fail no-offset "$out"
 out=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$WORK/padded.rpm'" 2>&1); rc=$?
 [ "$out" = 136 ] || rc=1
 report rpm-header-offset-padded $rc ok "" "$out"
+# The signature header magic is 8 bytes, the last 4 reserved as zero
+{ head -c 96 /dev/zero; printf '\216\255\350\001\000\000\000\001\000\000\000\001\000\000\000\004'; } > "$WORK/reserved.rpm"
+out=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$WORK/reserved.rpm' || { echo no-offset; exit 1; }" 2>&1); rc=$?
+report rpm-header-offset-reserved $rc fail no-offset "$out"
 rpm_case legacy-other-nokey good.armor  "$S" ""                       "$(printf '%s' "$OTHER_OK" | sed 's/OK$/NOKEY/')" 1 "$S" fail "could not be checked against the BDOT key" 4.11.3
 rpm_case legacy-bad       good.armor    "$S" ""                       "$(printf '%s\nMD5 digest: BAD (Expected 1 != 2)' "$NOKEY")" 1 "$S" hard "RPM signature is BAD" 4.11.3
 rpm_case legacy-revoked   revoked.armor "$R" "$WORK/revoked-cert.asc" "$NOKEY" 1 "$R" hard "is revoked" 4.11.3
