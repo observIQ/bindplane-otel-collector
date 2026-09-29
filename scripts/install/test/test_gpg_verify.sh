@@ -287,7 +287,7 @@ STUB
   [ -n "$ERASE_FAILS" ] && echo "$ERASE_FAILS" > "$t/erase-fails"
   [ -n "$IMPORT_FAILS" ] && touch "$t/import-fails"
   [ -n "$TOUCH" ] && touch "$t/$TOUCH"
-  out=$(run_verify "$t" "$pkg" rpm de_DE.UTF-8 "PATH='$t/bin':\$PATH;"); rc=$?
+  out=$(run_verify "$t" "$pkg" rpm de_DE.UTF-8 "PATH='$t/bin${EXTRA_PATH:+:$EXTRA_PATH}':\$PATH;"); rc=$?
   report "rpm-$1" $rc "$8" "$9" "$out"
 }
 # installed <case> <name>: the case's rpm keyring still has that entry
@@ -414,6 +414,11 @@ gpgq --local-user o@x --armor --detach-sign --output "$WORK/sigpgp-unknown.asc" 
 SIGPGP_FILE="$WORK/sigpgp-revoked.asc" rpm_case legacy-sigpgp-revoked signed-test.rpm "$FIX $R" "$WORK/revoked-cert.asc" "$FIXNOKEY" 1 "$FIX" hard "RPM signing key is revoked" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-late.asc" rpm_case legacy-sigpgp-late signed-test.rpm "$FIX $X2" "" "$FIXNOKEY" 1 "$FIX" hard "had expired when it signed" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-unknown signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "RPM signature is invalid" 4.11.3
+gpgq --local-user o@x --include-key-block --armor --detach-sign --output "$WORK/sigpgp-embedded.asc" "$WORK/fixture-signed-bytes"
+EXTRA_PATH="$WORK/gpg-autoimport" SIGPGP_FILE="$WORK/sigpgp-embedded.asc" rpm_case legacy-sigpgp-auto-key-import signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "not signed by a key in the BDOT key bundle" 4.11.3
+mkdir -p "$WORK/tail-fails"
+printf '#!/bin/sh\nexit 1\n' > "$WORK/tail-fails/tail"; chmod +x "$WORK/tail-fails/tail"
+EXTRA_PATH="$WORK/tail-fails" rpm_case legacy-tail-fails signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "Failed to extract the signed RPM contents" 4.11.3
 # A package whose header layout cannot be read never reaches gpg
 LC_ALL=C rpm -qp --qf '%{RSAHEADER:armor}' "$DATA/signed-test.rpm" > "$WORK/fixture-rsaheader.armor" 2>/dev/null
 LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$DATA/signed-test.rpm" > "$WORK/fixture-sigpgp.armor" 2>/dev/null
