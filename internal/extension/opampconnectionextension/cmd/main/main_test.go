@@ -40,6 +40,7 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	const (
 		dbdotRef    = dbdotContribPrefix + "extension/awss3eventextension v0.0.1"
 		contribRef  = legacyContribPrefix + "extension/pebbleextension v1.14.0"
+		newDbdotRef = dbdotContribPrefix + "receiver/brandnewreceiver v0.0.1"
 		upstreamRef = "go.opentelemetry.io/collector/exporter/otlpexporter v0.160.0"
 	)
 	build := func() *protobufs.AvailableComponents {
@@ -49,6 +50,7 @@ func TestAddLegacyContribAliases(t *testing.T) {
 				"extensions": {SubComponentMap: map[string]*protobufs.ComponentDetails{
 					"s3event": {Metadata: []*protobufs.KeyValue{codeNamespace(dbdotRef)}},
 					"pebble":  {Metadata: []*protobufs.KeyValue{codeNamespace(contribRef)}},
+					"newrecv": {Metadata: []*protobufs.KeyValue{codeNamespace(newDbdotRef)}},
 				}},
 				"exporters": {SubComponentMap: map[string]*protobufs.ComponentDetails{
 					"otlp": {Metadata: []*protobufs.KeyValue{codeNamespace(upstreamRef)}},
@@ -71,6 +73,8 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	}
 	// non-dbdot components are untouched
 	require.Equal(t, []string{contribRef}, values(ext["pebble"].Metadata))
+	// dbdot component that never shipped under the contrib path gets no alias
+	require.Equal(t, []string{newDbdotRef}, values(ext["newrecv"].Metadata))
 	require.Equal(t, []string{upstreamRef}, values(ac.Components["exporters"].SubComponentMap["otlp"].Metadata))
 	// hash changes when an alias was added, and is deterministic
 	require.NotEqual(t, []byte("base"), ac.Hash)
@@ -78,7 +82,7 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	addLegacyContribAliases(again)
 	require.Equal(t, ac.Hash, again.Hash)
 
-	// no dbdot components: report and hash pass through unchanged
+	// no aliasable components: report and hash pass through unchanged
 	plain := build()
 	delete(plain.Components["extensions"].SubComponentMap, "s3event")
 	addLegacyContribAliases(plain)

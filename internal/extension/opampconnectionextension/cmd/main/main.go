@@ -59,10 +59,72 @@ const (
 	legacyContribPrefix = "github.com/observiq/bindplane-otel-contrib/"
 
 	// legacyContribAliasVersion is the version reported on the contrib-path
-	// alias. Pinned to the last bindplane-otel-contrib release the migrated
-	// components shipped in. Do not bump with dbdot-contrib.
-	legacyContribAliasVersion = "v1.14.0"
+	// alias. Pinned to the bindplane-otel-contrib release paired with the
+	// collector release that introduced the aliases. Do not bump with
+	// dbdot-contrib.
+	legacyContribAliasVersion = "v1.15.0"
 )
+
+// legacyContribComponents is the set of component subpaths that existed in
+// bindplane-otel-contrib at legacyContribAliasVersion. Only these get an
+// alias; a component added to dbdot-contrib later never shipped under the
+// contrib path, so claiming one would be a lie. Frozen; do not extend.
+var legacyContribComponents = map[string]bool{
+	"exporter/awssecuritylakeexporter":               true,
+	"exporter/azureblobexporter":                     true,
+	"exporter/azureloganalyticsexporter":             true,
+	"exporter/chronicleexporter":                     true,
+	"exporter/chronicleforwarderexporter":            true,
+	"exporter/googlecloudexporter":                   true,
+	"exporter/googlecloudstorageexporter":            true,
+	"exporter/googlemanagedprometheusexporter":       true,
+	"exporter/opampexporter":                         true,
+	"exporter/qradar":                                true,
+	"exporter/snowflakeexporter":                     true,
+	"exporter/webhookexporter":                       true,
+	"extension/awss3eventextension":                  true,
+	"extension/badgerextension":                      true,
+	"extension/bindplaneextension":                   true,
+	"extension/opampgateway":                         true,
+	"extension/pebbleextension":                      true,
+	"processor/asimstandardizationprocessor":         true,
+	"processor/datapointcountprocessor":              true,
+	"processor/logcountprocessor":                    true,
+	"processor/logtypedetectionprocessor":            true,
+	"processor/lookupprocessor":                      true,
+	"processor/maskprocessor":                        true,
+	"processor/metricextractprocessor":               true,
+	"processor/metricstatsprocessor":                 true,
+	"processor/ocsfstandardizationprocessor":         true,
+	"processor/randomfailureprocessor":               true,
+	"processor/removeemptyvaluesprocessor":           true,
+	"processor/resourceattributetransposerprocessor": true,
+	"processor/samplingprocessor":                    true,
+	"processor/snapshotprocessor":                    true,
+	"processor/spancountprocessor":                   true,
+	"processor/threatenrichmentprocessor":            true,
+	"processor/throughputmeasurementprocessor":       true,
+	"processor/topologyprocessor":                    true,
+	"receiver/awsneuronreceiver":                     true,
+	"receiver/awss3eventreceiver":                    true,
+	"receiver/awss3rehydrationreceiver":              true,
+	"receiver/azureblobpollingreceiver":              true,
+	"receiver/azureblobrehydrationreceiver":          true,
+	"receiver/bindplaneauditlogs":                    true,
+	"receiver/gcspubsubeventreceiver":                true,
+	"receiver/googlecloudstoragerehydrationreceiver": true,
+	"receiver/httpreceiver":                          true,
+	"receiver/m365receiver":                          true,
+	"receiver/oktareceiver":                          true,
+	"receiver/pcapreceiver":                          true,
+	"receiver/pluginreceiver":                        true,
+	"receiver/restapireceiver":                       true,
+	"receiver/routereceiver":                         true,
+	"receiver/sapnetweaverreceiver":                  true,
+	"receiver/splunksearchapireceiver":               true,
+	"receiver/telemetrygeneratorreceiver":            true,
+	"receiver/windowseventtracereceiver":             true,
+}
 
 func main() {
 	collectorConfigPaths := pflag.StringSlice("config", defaultCollectorPaths(), "the collector config path")
@@ -110,7 +172,7 @@ func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
 			}
 			ref, _, _ := strings.Cut(comp.Metadata[0].GetValue().GetStringValue(), " ")
 			subpath, ok := strings.CutPrefix(ref, dbdotContribPrefix)
-			if !ok {
+			if !ok || !legacyContribComponents[subpath] {
 				continue
 			}
 			alias := legacyContribPrefix + subpath + " " + legacyContribAliasVersion
