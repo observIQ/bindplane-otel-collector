@@ -29,14 +29,17 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	_ "time/tzdata"
 
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/runtime"
 	"github.com/observiq/bindplane-otel-contrib/pkg/version"
+	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/spf13/pflag"
 )
 
@@ -47,6 +50,81 @@ const (
 	loggingPathENV  = "LOGGING_YAML_PATH"
 	featureGatesENV = "COLLECTOR_FEATURE_GATES"
 )
+
+// Components that moved from bindplane-otel-contrib to dbdot-contrib keep
+// their subpath but change module prefix and restart versioning. This
+// preserves their lineage from before the migration.
+const (
+	dbdotContribPrefix  = "github.com/dynatrace/dynatrace-bindplane-otel-contrib/"
+	legacyContribPrefix = "github.com/observiq/bindplane-otel-contrib/"
+
+	// legacyContribAliasVersion is the version reported on the contrib-path
+	// alias. Pinned to the bindplane-otel-contrib release paired with the
+	// collector release that introduced the aliases. Do not bump with
+	// dbdot-contrib.
+	legacyContribAliasVersion = "v1.15.0"
+)
+
+// legacyContribComponents is the set of component subpaths that existed in
+// bindplane-otel-contrib at legacyContribAliasVersion. Only these get an
+// alias; a component added to dbdot-contrib later never shipped under the
+// contrib path, so claiming one would be a lie. Frozen; do not extend.
+var legacyContribComponents = map[string]bool{
+	"exporter/awssecuritylakeexporter":               true,
+	"exporter/azureblobexporter":                     true,
+	"exporter/azureloganalyticsexporter":             true,
+	"exporter/chronicleexporter":                     true,
+	"exporter/chronicleforwarderexporter":            true,
+	"exporter/googlecloudexporter":                   true,
+	"exporter/googlecloudstorageexporter":            true,
+	"exporter/googlemanagedprometheusexporter":       true,
+	"exporter/opampexporter":                         true,
+	"exporter/qradar":                                true,
+	"exporter/snowflakeexporter":                     true,
+	"exporter/webhookexporter":                       true,
+	"extension/awss3eventextension":                  true,
+	"extension/badgerextension":                      true,
+	"extension/bindplaneextension":                   true,
+	"extension/opampgateway":                         true,
+	"extension/pebbleextension":                      true,
+	"processor/asimstandardizationprocessor":         true,
+	"processor/datapointcountprocessor":              true,
+	"processor/logcountprocessor":                    true,
+	"processor/logtypedetectionprocessor":            true,
+	"processor/lookupprocessor":                      true,
+	"processor/maskprocessor":                        true,
+	"processor/metricextractprocessor":               true,
+	"processor/metricstatsprocessor":                 true,
+	"processor/ocsfstandardizationprocessor":         true,
+	"processor/randomfailureprocessor":               true,
+	"processor/removeemptyvaluesprocessor":           true,
+	"processor/resourceattributetransposerprocessor": true,
+	"processor/samplingprocessor":                    true,
+	"processor/snapshotprocessor":                    true,
+	"processor/spancountprocessor":                   true,
+	"processor/threatenrichmentprocessor":            true,
+	"processor/throughputmeasurementprocessor":       true,
+	"processor/topologyprocessor":                    true,
+	"receiver/awsneuronreceiver":                     true,
+	"receiver/awss3eventreceiver":                    true,
+	"receiver/awss3rehydrationreceiver":              true,
+	"receiver/azureblobpollingreceiver":              true,
+	"receiver/azureblobrehydrationreceiver":          true,
+	"receiver/bindplaneauditlogs":                    true,
+	"receiver/gcspubsubeventreceiver":                true,
+	"receiver/googlecloudstoragerehydrationreceiver": true,
+	"receiver/httpreceiver":                          true,
+	"receiver/m365receiver":                          true,
+	"receiver/oktareceiver":                          true,
+	"receiver/pcapreceiver":                          true,
+	"receiver/pluginreceiver":                        true,
+	"receiver/restapireceiver":                       true,
+	"receiver/routereceiver":                         true,
+	"receiver/sapnetweaverreceiver":                  true,
+	"receiver/splunksearchapireceiver":               true,
+	"receiver/telemetrygeneratorreceiver":            true,
+	"receiver/windowseventtracereceiver":             true,
+}
 
 func main() {
 	collectorConfigPaths := pflag.StringSlice("config", defaultCollectorPaths(), "the collector config path")
@@ -77,7 +155,42 @@ func main() {
 		ManagerConfigPath:    *managerConfigPath,
 		LoggingConfigPath:    *loggingConfigPath,
 		FeatureGates:         *featureGates,
+
+		AvailableComponentsMutator: addLegacyContribAliases,
 	})
+}
+
+// addLegacyContribAliases prepends a bindplane-otel-contrib code.namespace
+// entry to every dbdot-contrib component and extends the report hash so an
+// aliased report never collides with a cached un-aliased one on the server.
+func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
+	var aliases []string
+	for _, group := range ac.GetComponents() {
+		for _, comp := range group.GetSubComponentMap() {
+			if len(comp.Metadata) == 0 {
+				continue
+			}
+			ref, _, _ := strings.Cut(comp.Metadata[0].GetValue().GetStringValue(), " ")
+			subpath, ok := strings.CutPrefix(ref, dbdotContribPrefix)
+			if !ok || !legacyContribComponents[subpath] {
+				continue
+			}
+			alias := legacyContribPrefix + subpath + " " + legacyContribAliasVersion
+			comp.Metadata = append([]*protobufs.KeyValue{{
+				Key:   "code.namespace",
+				Value: &protobufs.AnyValue{Value: &protobufs.AnyValue_StringValue{StringValue: alias}},
+			}}, comp.Metadata...)
+			aliases = append(aliases, alias)
+		}
+	}
+	if len(aliases) == 0 {
+		return
+	}
+	sort.Strings(aliases) // map iteration order is random; hash input must be stable
+	h := sha256.New()
+	h.Write(ac.Hash)
+	h.Write([]byte(strings.Join(aliases, ";")))
+	ac.Hash = h.Sum(nil)
 }
 
 func defaultCollectorPaths() []string {
