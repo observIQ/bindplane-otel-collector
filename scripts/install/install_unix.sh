@@ -1127,7 +1127,8 @@ gpg_key_verdict() {
 }
 
 # gpg_verify_file <signature> <data> <label> checks a detached signature by gpg's untranslated
-# status output, and sets SIGNER_PRIMARY to the signer's primary key fingerprint.
+# status output. Returns 0 when valid, 1 when unverifiable, and 3 for a revoked or expired key
+# or altered data; sets SIGNER_PRIMARY to the signer's primary key fingerprint.
 gpg_verify_file() {
   SIGNER_PRIMARY=""
   OUTPUT=$(GNUPGHOME="$GPG_DIR" gpg --batch --keyserver-options no-auto-key-retrieve --status-fd 1 --verify "$1" "$2" 2> "$GPG_DIR/verify.err")
@@ -1322,8 +1323,8 @@ rpm_header_offset() {
 }
 
 # rpm_legacy_verify checks SIGPGP (header and payload) with gpg over the bytes rpm installs, for
-# rpm older than 4.12. Nothing checks the header-only signature on these hosts, so its key ID
-# only gates the earlier checks.
+# rpm older than 4.12. The header-only signature is unverified there, so its key ID can only
+# make the earlier checks fail; SIGPGP is the real check.
 rpm_legacy_verify() {
   LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
   if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
@@ -1339,7 +1340,7 @@ rpm_legacy_verify() {
     return 1
   fi
   gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM" || return $?
-  # rpm checked nothing here, so apply the rpm revoked-key list to this signer too
+  # rpm verified no signature here, so apply the rpm revoked-key list to this signer too
   if [ -z "$SIGNER_PRIMARY" ]; then
     error "RPM signature names no primary key"
     return 1
