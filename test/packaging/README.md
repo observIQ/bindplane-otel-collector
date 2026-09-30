@@ -85,6 +85,58 @@ package manager, such as openSUSE with zypper, needs a new `images/Dockerfile.<m
 It should install systemd and the tools the package scripts use, following the
 existing files.
 
+## Checks
+
+The types of checks the scenarios perform.
+
+### Package
+
+- Package file checksum matches `artifacts.json`
+- Installed package version matches the package file version
+- Only one instance of the package is installed
+- Package state after removal (dpkg status or rpm query)
+- Package payload contents (plugin list)
+
+### Files and directories
+
+- File exists
+- File does not exist
+- File type (regular file, directory)
+- File owner and group
+- File permissions (mode)
+- Directory tree matches exactly (no missing or unexpected entries)
+- File contents match an expected value
+- File contents unchanged across upgrade (sha256)
+- File contains a log line (and how many times)
+
+### Users and groups
+
+- User exists
+- User login shell
+- User is a system user (UID below `UID_MIN`)
+- User primary group
+- User is kept after package removal
+
+### Binary
+
+- Version output contains the expected tag and commit
+
+### systemd service
+
+- Unit properties (user, group, working directory, restart policy, file limit, kill mode, command line, environment)
+- Service enabled or disabled
+- Service active or inactive
+- `multi-user.target.wants` symlink exists or not
+- Service restart count is zero
+- Service stays active over a period of time
+
+### Process
+
+- Process runs as the expected user and group
+- Process executable path
+- Process ID unchanged (no restart) or changed (after restart)
+- No process running after package removal
+
 ## Expected state
 
 The expected state is defined in [expect_test.go](expect_test.go), based on
