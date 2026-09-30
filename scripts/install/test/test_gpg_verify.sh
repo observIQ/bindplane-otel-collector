@@ -396,7 +396,7 @@ FIXNOKEY="Header V4 RSA/SHA256 Signature, key ID $(printf '%s' "$FIXSUB" | cut -
 header_end() { f=$1; s=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$f'"); set -- $(od -An -v -tu1 -j "$((s + 8))" -N 8 "$f"); echo $((s + 16 + 16 * (($1 << 24) + ($2 << 16) + ($3 << 8) + $4) + (($5 << 24) + ($6 << 16) + ($7 << 8) + $8))); }
 { head -c "$(header_end "$DATA/signed-test.rpm")" "$DATA/signed-test.rpm"; tail -c +"$(($(header_end "$DATA/signed-test-other.rpm") + 1))" "$DATA/signed-test-other.rpm"; } > "$WORK/grafted.rpm"
 rpm_case legacy-verified  signed-test.rpm "$FIX" ""                   "$FIXNOKEY" 1 "$FIX" ok   "" 4.11.3
-rpm_case legacy-verified-el6 signed-test.rpm "$FIX" ""                "$FIXNOKEY" 1 "$FIX" ok   "" 4.8.0
+rpm_case legacy-verified-rpm48 signed-test.rpm "$FIX" ""                "$FIXNOKEY" 1 "$FIX" ok   "" 4.8.0
 rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
 echo '(none)' > "$WORK/no-sigpgp"
 SIGPGP_FILE="$WORK/no-sigpgp" rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3

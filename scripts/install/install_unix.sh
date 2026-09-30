@@ -1127,8 +1127,9 @@ gpg_key_verdict() {
 }
 
 # gpg_verify_file <signature> <data> <label> checks a detached signature by gpg's untranslated
-# status output, which it leaves in OUTPUT.
+# status output, and sets SIGNER_PRIMARY to the signer's primary key fingerprint.
 gpg_verify_file() {
+  SIGNER_PRIMARY=""
   OUTPUT=$(GNUPGHOME="$GPG_DIR" gpg --batch --keyserver-options no-auto-key-retrieve --status-fd 1 --verify "$1" "$2" 2> "$GPG_DIR/verify.err")
   EXIT_CODE=$?
 
@@ -1148,6 +1149,7 @@ gpg_verify_file() {
   esac
   # command printf: the script's printf wrapper prints nothing in quiet mode
   _validsig=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $3, $5; exit }')
+  SIGNER_PRIMARY=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $12; exit }')
   if [ $EXIT_CODE -ne 0 ] || [ -z "$_validsig" ]; then
     error "$3 signature is invalid"
     [ -s "$GPG_DIR/verify.err" ] && error "$(literal "$(cat "$GPG_DIR/verify.err")")"
@@ -1319,9 +1321,9 @@ rpm_header_offset() {
   command printf '%s' $((96 + (16 + 16 * _il + _dl + 7) / 8 * 8))
 }
 
-# rpm_legacy_verify checks the header and payload signature (SIGPGP) with gpg, over the bytes
-# rpm installs, for rpm that cannot check subkey signatures. The header-only signature is never
-# checked there; only its key ID feeds the earlier checks.
+# rpm_legacy_verify checks SIGPGP (header and payload) with gpg over the bytes rpm installs, for
+# rpm older than 4.12. Nothing checks the header-only signature on these hosts, so its key ID
+# only gates the earlier checks.
 rpm_legacy_verify() {
   LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
   if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
@@ -1338,13 +1340,12 @@ rpm_legacy_verify() {
   fi
   gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM" || return $?
   # rpm checked nothing here, so apply the rpm revoked-key list to this signer too
-  _signer_primary=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $12; exit }')
-  if [ -z "$_signer_primary" ]; then
+  if [ -z "$SIGNER_PRIMARY" ]; then
     error "RPM signature names no primary key"
     return 1
   fi
-  if rpm_list_revokes "$_signer_primary"; then
-    error "RPM signing key $_signer_primary is revoked"
+  if rpm_list_revokes "$SIGNER_PRIMARY"; then
+    error "RPM signing key $SIGNER_PRIMARY is revoked"
     return 3
   fi
 }
@@ -1431,7 +1432,7 @@ verify_package_rpm() {
     return 1
   fi
 
-  # rpm also fails for other keyless signatures, so the BDOT key's line must read OK
+  # rpm's exit code also fails for other keyless signatures, so judge the BDOT key's own line
   _checksig=$(LC_ALL=C rpm --checksig --verbose "$package_out_file_path" 2>&1 | tr '[:upper:]' '[:lower:]')
   # Any BAD line fails: a bad digest means the package was altered
   if command printf '%s\n' "$_checksig" | grep -qE ': bad( |$)'; then
