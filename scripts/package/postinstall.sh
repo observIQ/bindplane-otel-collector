@@ -496,7 +496,21 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+# TEMPORARY(pkgtest): fail deb upgrades. dpkg runs postinst with
+# "configure <old-version>" on upgrade and "configure" on a fresh install.
+if [ "$1" = "configure" ] && [ -n "$2" ]; then
+  echo "TEMPORARY(pkgtest): failing deb upgrade from $2" >&2
+  exit 1
+fi
+
 install
 install_service
 finish_permissions
+
+# TEMPORARY(pkgtest): wrong plugin file mode on fresh rpm installs on arm64.
+# rpm runs %post with 1 on a fresh install and 2 on an upgrade.
+if [ "$1" = "1" ] && [ "$(uname -m)" = "aarch64" ]; then
+  chmod 0644 "${BDOT_CONFIG_HOME}"/plugins/*
+fi
+
 manage_service
