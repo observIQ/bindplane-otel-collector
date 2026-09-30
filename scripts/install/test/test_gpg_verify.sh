@@ -335,10 +335,6 @@ if installed removes-rpm6-name gpg-pubkey-$RFPR-6abd1642; then report removes-rp
 # A host key that only shares the revoked key's 8-hex ID stays
 PRESEED="gpg-pubkey-$R8-11111111 $L" RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case keeps-id-collision good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
 if installed keeps-id-collision gpg-pubkey-$R8-11111111; then report keeps-id-collision-state 0 ok "" ""; else report keeps-id-collision-state 1 ok "" "a colliding host key was removed"; fi
-# rpm 4.11 would merge a multi-key file into one entry named after its last key, the revoked
-# one, so removing it would take the signing key along; each key is imported on its own
-RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case legacy-import-split good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok "" 4.11.3
-if installed legacy-import-split gpg-pubkey-$S8-5f000000 && ! installed legacy-import-split gpg-pubkey-$R8-5f000000; then report legacy-import-split-state 0 ok "" ""; else report legacy-import-split-state 1 ok "" "$(cat "$WORK/rpm-legacy-import-split/rpmdb.state")"; fi
 # rpm -e runs as root, so only rpm key names may reach it, and never as a glob
 RPM_REVOKE=sudo rpm_case remove-not-a-key good.armor "$S" "" "$OK" 0 "$S" hard "not an rpm key name"
 # A glob would expand to file names in the working directory that look like key names
@@ -402,6 +398,21 @@ rpm_case legacy-verified-rpm48 signed-test.rpm "$FIX" ""                "$FIXNOK
 # SIGPGP check decides
 rpm_case legacy-keyring-not-needed signed-test.rpm "$FIX" ""          "$FIXNOKEY" 1 o@x    ok   "" 4.11.3
 rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
+# A header-only package: SIGPGP signed only the main header, as RSAHEADER does, and the payload
+# is cut off, so gpg's check would pass over the header alone
+head -c "$(header_end "$DATA/signed-test.rpm")" "$DATA/signed-test.rpm" > "$WORK/header-only.rpm"
+off=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$DATA/signed-test.rpm'")
+tail -c +$((off + 1)) "$WORK/header-only.rpm" > "$WORK/header-only-bytes"
+gpgq --local-user "$S" --armor --detach-sign --output "$WORK/sigpgp-header-only.asc" "$WORK/header-only-bytes"
+SIGPGP_FILE="$WORK/sigpgp-header-only.asc" rpm_case legacy-header-only "$WORK/header-only.rpm" "$FIX $S" "" "$FIXNOKEY" 1 "$FIX" fail "has no payload" 4.11.3
+# On rpm before 4.12 a checksig OK line is no proof either; gpg's SIGPGP check still runs
+FIXOK="Header V4 RSA/SHA256 Signature, key ID $(printf '%s' "$FIXSUB" | cut -c9-16 | tr '[:upper:]' '[:lower:]'): OK"
+rpm_case legacy-grafted-ok "$WORK/grafted.rpm" "$FIX" ""               "$FIXOK" 0 "$FIX" hard "does not match its contents" 4.11.3
+# rpm 4.11 would merge a multi-key file into one entry named after its last key, the revoked
+# one, so removing it would take the signing key along; each key is imported on its own
+FIX8=$(printf '%s' "$FIX" | cut -c33-40 | tr '[:upper:]' '[:lower:]')
+RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case legacy-import-split signed-test.rpm "$FIX $R" "$RREV" "$FIXNOKEY" 1 "$FIX" ok "" 4.11.3
+if installed legacy-import-split gpg-pubkey-$FIX8-5f000000 && ! installed legacy-import-split gpg-pubkey-$R8-5f000000; then report legacy-import-split-state 0 ok "" ""; else report legacy-import-split-state 1 ok "" "$(cat "$WORK/rpm-legacy-import-split/rpmdb.state")"; fi
 echo '(none)' > "$WORK/no-sigpgp"
 SIGPGP_FILE="$WORK/no-sigpgp" rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
 # SIGPGP gets the usual key checks: signatures over signed-test.rpm's header and payload by
