@@ -4,13 +4,18 @@ This suite tests the deb and rpm packages built by goreleaser. It uses
 [testcontainers-go](https://golang.testcontainers.org/) to install the packages
 into systemd-enabled distro containers, and checks the result from Go.
 
-Scenarios, one fresh container each:
+The suite runs actions against distros. Each action runs in a fresh container
+and ends with an `uninstall` step:
 
-| Scenario | What it does |
-|---|---|
-| `install` | Installs the package, checks files, ownership, modes, the `bdot` user, the systemd unit, and versions. Then it runs `systemctl enable --now`, the same as `install_unix.sh`, and checks that the collector runs. |
-| `upgrade_from_<version>` | Installs a released package and starts it. It edits `config.yaml` and `logging.yaml`, and creates `manager.yaml`, a storage file, and the package override file. Then it upgrades to the package under test, checks that those files are preserved, restarts the service, and checks that it runs. |
-| `uninstall` | Installs and starts the package, removes it, and checks what is removed and what is kept. |
+| Action | Test name | What it does |
+|---|---|---|
+| `install` | `TestPackages/<distro>/install` | Installs the package, checks files, ownership, modes, the `bdot` user, the systemd unit, and versions. Then it runs `systemctl enable --now`, the same as `install_unix.sh`, and checks that the collector runs. |
+| `upgrade` | `TestPackages/<distro>/upgrade_from_<version>` | Installs a released package and starts it. It edits `config.yaml` and `logging.yaml`, and creates `manager.yaml`, a storage file, and the package override file. Then it upgrades to the package under test, checks that those files are preserved, restarts the service, and checks that it runs. |
+
+The `uninstall` step is a subtest of each action, for example
+`TestPackages/debian-13/install/uninstall`. It creates `manager.yaml`, a storage
+file, and the package override file, removes the running package, and checks
+what is removed and what is kept.
 
 ## Usage
 
@@ -21,11 +26,21 @@ make release-test
 make test-packages
 ```
 
-Run a single distro or scenario with `RUN`, which is passed to `go test -run`:
+By default every action runs on every distro. `PKGTEST_DISTRO` and
+`PKGTEST_ACTION` select a comma separated subset. An unknown name fails the
+run:
 
 ```sh
-make test-packages RUN=TestPackages/debian-13
-make test-packages RUN=TestPackages/rocky-10/uninstall
+make test-packages PKGTEST_DISTRO=debian-13
+make test-packages PKGTEST_DISTRO=rocky-10 PKGTEST_ACTION=upgrade
+```
+
+The make variables are passed to the suite as the `-distro` and `-action` test
+flags. To run the suite without make:
+
+```sh
+cd test/packaging
+BDOT_PKGTEST_DIST=../../dist go test -tags packaging -v -count=1 -timeout 45m ./... -args -distro=debian-13 -action=install
 ```
 
 `PKGTEST_TIMEOUT` (default `45m`) and `PKGTEST_PARALLEL` (default `4`) set the
@@ -78,6 +93,10 @@ Add an entry to `distros` in [distros_test.go](distros_test.go):
 ```go
 {Name: "almalinux-10", BaseImage: "almalinux:10", Dockerfile: "Dockerfile.dnf", Format: formatRPM},
 ```
+
+Then add the name to the `distro` matrix in
+[package-tests.yml](../../.github/workflows/package-tests.yml), which runs each
+distro and action in its own job.
 
 `Dockerfile` selects the image recipe in [images](images) by package manager.
 `Format` selects the package and the `dpkg`/`rpm` commands. A distro with a new
@@ -165,7 +184,7 @@ the package scripts.
 To inspect a container after a run, keep it and exec into it:
 
 ```sh
-BDOT_PKGTEST_KEEP=1 TESTCONTAINERS_RYUK_DISABLED=true make test-packages RUN=TestPackages/debian-13/install
+BDOT_PKGTEST_KEEP=1 TESTCONTAINERS_RYUK_DISABLED=true make test-packages PKGTEST_DISTRO=debian-13 PKGTEST_ACTION=install
 docker exec -it <container id from the test log> bash
 ```
 

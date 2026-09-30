@@ -107,6 +107,11 @@ type box struct {
 	env *suiteEnv
 }
 
+// withT returns a copy of b that reports to t, for use in a subtest.
+func (b *box) withT(t *testing.T) *box {
+	return &box{t: t, ctr: b.ctr, env: b.env}
+}
+
 // startBox starts a fresh container from image and waits for systemd to
 // finish booting. The container is removed when the test ends. When the test
 // fails, diagnostics are logged before the container is removed.

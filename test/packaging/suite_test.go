@@ -18,17 +18,33 @@ package packaging
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+)
+
+// Actions are the scenarios the suite can run. Each one ends with the
+// package being removed, see scenario.uninstall.
+const (
+	actionInstall = "install"
+	actionUpgrade = "upgrade"
+)
+
+var actions = []string{actionInstall, actionUpgrade}
+
+var (
+	distroFlag = flag.String("distro", "", "comma separated distros to test, from distros_test.go (default all)")
+	actionFlag = flag.String("action", "", "comma separated actions to run: "+strings.Join(actions, ", ")+" (default all)")
 )
 
 // suiteEnv is the state shared by every distro and scenario.
@@ -45,12 +61,25 @@ type suiteEnv struct {
 	upgradeErr  error
 }
 
-// TestPackages installs, upgrades, and uninstalls the packages in dist on
-// every distro in the matrix. Run it with `make test-packages`.
+// TestPackages runs the selected actions against the packages in dist on
+// the selected distros. The -distro and -action flags select them. Run it
+// with `make test-packages`.
 func TestPackages(t *testing.T) {
+	names := make([]string, len(distros))
+	for i, d := range distros {
+		names[i] = d.Name
+	}
+	runDistros, err := selectNames("distro", *distroFlag, names)
+	require.NoError(t, err)
+	runActions, err := selectNames("action", *actionFlag, actions)
+	require.NoError(t, err)
+
 	env := setupSuite(t)
 
 	for _, d := range distros {
+		if !runDistros[d.Name] {
+			continue
+		}
 		t.Run(d.Name, func(t *testing.T) {
 			t.Parallel()
 
@@ -58,25 +87,45 @@ func TestPackages(t *testing.T) {
 			require.NoError(t, err)
 			s := &scenario{env: env, distro: d, ops: ops[d.Format], pkg: pkg, image: buildImage(t, d)}
 
-			t.Run("install", func(t *testing.T) {
-				t.Parallel()
-				s.install(t)
-			})
-			if env.upgradeErr != nil {
-				t.Run("upgrade", func(t *testing.T) { t.Fatal(env.upgradeErr) })
-			}
-			for _, from := range env.upgradeFrom {
-				t.Run("upgrade_from_"+from, func(t *testing.T) {
+			if runActions[actionInstall] {
+				t.Run(actionInstall, func(t *testing.T) {
 					t.Parallel()
-					s.upgrade(t, from)
+					s.install(t)
 				})
 			}
-			t.Run("uninstall", func(t *testing.T) {
-				t.Parallel()
-				s.uninstall(t)
-			})
+			if runActions[actionUpgrade] {
+				if env.upgradeErr != nil {
+					t.Run(actionUpgrade, func(t *testing.T) { t.Fatal(env.upgradeErr) })
+				}
+				for _, from := range env.upgradeFrom {
+					t.Run(actionUpgrade+"_from_"+from, func(t *testing.T) {
+						t.Parallel()
+						s.upgrade(t, from)
+					})
+				}
+			}
 		})
 	}
+}
+
+// selectNames parses the comma separated value of flag name into a set. An
+// empty value selects every valid name.
+func selectNames(name, value string, valid []string) (map[string]bool, error) {
+	set := map[string]bool{}
+	if value == "" {
+		for _, v := range valid {
+			set[v] = true
+		}
+		return set, nil
+	}
+	for v := range strings.SplitSeq(value, ",") {
+		v = strings.TrimSpace(v)
+		if !slices.Contains(valid, v) {
+			return nil, fmt.Errorf("-%s: unknown value %q, valid values are: %s", name, v, strings.Join(valid, ", "))
+		}
+		set[v] = true
+	}
+	return set, nil
 }
 
 // setupSuite validates the environment before any container is started.

@@ -66,13 +66,22 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Run the package test suite natively on each architecture.
+  # Run each distro and action in its own job, natively on each architecture.
+  # distro must match a Name in test/packaging/distros_test.go.
   test:
+    name: test (${{ matrix.distro }}, ${{ matrix.action }}, ${{ matrix.arch }})
     needs: build
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        distro: [debian-13, rocky-10]
+        action: [install, upgrade]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Repo
@@ -92,3 +101,6 @@ jobs:
 
       - name: Run package tests
         run: make test-packages
+        env:
+          PKGTEST_DISTRO: ${{ matrix.distro }}
+          PKGTEST_ACTION: ${{ matrix.action }}

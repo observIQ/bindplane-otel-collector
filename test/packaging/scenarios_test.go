@@ -38,8 +38,8 @@ type scenario struct {
 	image string
 }
 
-// install installs the package on a clean system, then starts the service
-// the way install_unix.sh does.
+// install installs the package on a clean system, starts the service the
+// way install_unix.sh does, and then removes the package.
 func (s *scenario) install(t *testing.T) {
 	b := startBox(t, s.env, s.image)
 	pkg := b.copyPackage(s.pkg)
@@ -54,10 +54,12 @@ func (s *scenario) install(t *testing.T) {
 
 	b.mustRun("systemctl enable --now " + packageName)
 	b.assertServiceRunning(1)
+
+	s.uninstall(t, b)
 }
 
 // upgrade installs a released package, starts it, modifies the files a user
-// would, and then upgrades to the package under test.
+// would, upgrades to the package under test, and then removes the package.
 func (s *scenario) upgrade(t *testing.T, from string) {
 	oldHostPkg := releasePackage(t, from, s.env.arch, s.distro.Format)
 	b := startBox(t, s.env, s.image)
@@ -113,32 +115,37 @@ func (s *scenario) upgrade(t *testing.T, from string) {
 	b.mustRun("systemctl restart " + packageName)
 	pid := b.assertServiceRunning(starts + 1)
 	assert.NotEqual(t, oldPID, pid, "service should have a new process after restart")
+
+	s.uninstall(t, b)
 }
 
-// uninstall installs and starts the package, then removes it.
-func (s *scenario) uninstall(t *testing.T) {
-	b := startBox(t, s.env, s.image)
-	pkg := b.copyPackage(s.pkg)
+// uninstall removes the installed and running package from b, and checks
+// what is removed and what is kept. It runs as the "uninstall" subtest of
+// each action.
+func (s *scenario) uninstall(t *testing.T, b *box) {
+	t.Run("uninstall", func(t *testing.T) {
+		b := b.withT(t)
 
-	b.writeOverride(s.ops)
-	b.installPackage(s.ops, pkg, false)
-	b.mustRun("systemctl enable --now " + packageName)
-	require.True(t, poll(time.Minute, func() bool { return b.startupCount() >= 1 }), "service should start")
-	b.writeUserFiles(false)
+		// User state that removal keeps, or removes where the per-format
+		// expectations say so. The package scripts source the override
+		// file on removal too.
+		b.writeOverride(s.ops)
+		b.writeUserFiles(false)
 
-	b.removePackage(s.ops)
+		b.removePackage(s.ops)
 
-	assert.NotEqual(t, "active", b.unitState("is-active"), "service should be stopped")
-	assert.NotEqual(t, "enabled", b.unitState("is-enabled"), "service should be disabled")
-	// The bracket keeps pgrep from matching the shell running it.
-	assert.NotZero(t, b.run("pgrep -f '[/]opt/observiq-otel-collector/observiq-otel-collector'").code, "collector process should be stopped")
+		assert.NotEqual(t, "active", b.unitState("is-active"), "service should be stopped")
+		assert.NotEqual(t, "enabled", b.unitState("is-enabled"), "service should be disabled")
+		// The bracket keeps pgrep from matching the shell running it.
+		assert.NotZero(t, b.run("pgrep -f '[/]opt/observiq-otel-collector/observiq-otel-collector'").code, "collector process should be stopped")
 
-	b.assertPresent(uninstallShared.present...)
-	b.assertAbsent(uninstallShared.absent...)
-	b.assertPresent(s.ops.uninstall.present...)
-	b.assertAbsent(s.ops.uninstall.absent...)
-	assert.Equal(t, s.ops.uninstall.state, b.mustRun(s.ops.packageState), "package state after removal")
-	assert.Zero(t, b.run("id "+runtimeUser).code, "user %s should be kept", runtimeUser)
+		b.assertPresent(uninstallShared.present...)
+		b.assertAbsent(uninstallShared.absent...)
+		b.assertPresent(s.ops.uninstall.present...)
+		b.assertAbsent(s.ops.uninstall.absent...)
+		assert.Equal(t, s.ops.uninstall.state, b.mustRun(s.ops.packageState), "package state after removal")
+		assert.Zero(t, b.run("id "+runtimeUser).code, "user %s should be kept", runtimeUser)
+	})
 }
 
 // assertInstalled checks the state of a system with pkg installed.
@@ -176,8 +183,8 @@ func (b *box) pkgCommand(cmd string) {
 	require.Zero(b.t, res.code, "%s failed", cmd)
 }
 
-// writeOverride writes a package override file that keeps the defaults. It
-// must be written before the first install to be sourced by the scripts.
+// writeOverride writes a package override file that keeps the defaults. The
+// install scripts only source it when it is written before the install.
 func (b *box) writeOverride(o formatOps) {
 	b.t.Helper()
 	b.mustRun("mkdir -p \"$(dirname " + o.overridePath + ")\" && echo '# written by the packaging test suite' > " + o.overridePath)

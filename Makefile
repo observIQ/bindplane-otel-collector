@@ -269,10 +269,14 @@ test-updater-integration:
 # See test/packaging/README.md.
 PKGTEST_TIMEOUT ?= 45m
 PKGTEST_PARALLEL ?= 4
+# Comma separated distros and actions to test. Empty runs all of them.
+PKGTEST_DISTRO ?=
+PKGTEST_ACTION ?=
 .PHONY: test-packages
 test-packages:
 	cd test/packaging && BDOT_PKGTEST_DIST="$(CURDIR)/dist" go test -tags packaging -v -count=1 \
-		-timeout $(PKGTEST_TIMEOUT) -parallel $(PKGTEST_PARALLEL) $(if $(RUN),-run '$(RUN)',) ./...
+		-timeout $(PKGTEST_TIMEOUT) -parallel $(PKGTEST_PARALLEL) ./... \
+		-args -distro='$(PKGTEST_DISTRO)' -action='$(PKGTEST_ACTION)'
 
 .PHONY: bench
 bench:
