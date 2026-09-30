@@ -1027,7 +1027,7 @@ verification_missing_tools() {
   _missing=""
   _tools="gpg tar gzip awk sed grep tr cut"
   [ "$package_type" = "deb" ] && _tools="$_tools ar"
-  # od and tail locate the header and payload that gpg checks where rpm cannot
+  # od and tail feed gpg's check on rpm older than 4.12, which cannot check subkey signatures
   if [ "$package_type" = "rpm" ] && rpm_lacks_subkey_support; then _tools="$_tools od tail"; fi
   for _tool in $_tools; do
     command -v "$_tool" > /dev/null 2>&1 || _missing="${_missing:+$_missing, }$_tool"
@@ -1126,9 +1126,8 @@ gpg_key_verdict() {
   esac
 }
 
-# gpg_verify_file <signature file> <data file> <label> checks the data against a detached
-# signature and the bundle keyring. It judges the result from gpg's status channel, which is
-# not translated.
+# gpg_verify_file <signature> <data> <label> checks a detached signature by gpg's untranslated
+# status output, which it leaves in OUTPUT.
 gpg_verify_file() {
   OUTPUT=$(GNUPGHOME="$GPG_DIR" gpg --batch --keyserver-options no-auto-key-retrieve --status-fd 1 --verify "$1" "$2" 2> "$GPG_DIR/verify.err")
   EXIT_CODE=$?
@@ -1320,9 +1319,9 @@ rpm_header_offset() {
   command printf '%s' $((96 + (16 + 16 * _il + _dl + 7) / 8 * 8))
 }
 
-# rpm_legacy_verify checks the header and payload signature with gpg, for rpm that cannot use
-# the BDOT signing subkey. gpg reads the same bytes rpm installs: everything after the
-# unsigned signature header.
+# rpm_legacy_verify checks the header and payload signature (SIGPGP) with gpg, over the bytes
+# rpm installs, for rpm that cannot check subkey signatures. The header-only signature is never
+# checked there; only its key ID feeds the earlier checks.
 rpm_legacy_verify() {
   LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
   if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
@@ -1338,8 +1337,12 @@ rpm_legacy_verify() {
     return 1
   fi
   gpg_verify_file "$GPG_DIR/rpm-payload.sig" "$GPG_DIR/rpm-signed-data" "RPM" || return $?
-  # rpm checked no signature here, so the rpm revoked-key list must see this signer too
+  # rpm checked nothing here, so apply the rpm revoked-key list to this signer too
   _signer_primary=$(command printf '%s\n' "$OUTPUT" | awk '$2 == "VALIDSIG" { print $12; exit }')
+  if [ -z "$_signer_primary" ]; then
+    error "RPM signature names no primary key"
+    return 1
+  fi
   if rpm_list_revokes "$_signer_primary"; then
     error "RPM signing key $_signer_primary is revoked"
     return 3

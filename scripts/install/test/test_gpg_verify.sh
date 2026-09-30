@@ -385,9 +385,8 @@ rpm_case unparsable-version good.armor "$S" "" "$NOKEY" 1 "$S" fail "could not b
 # One key that will not come out does not keep the rest in
 PRESEED="$(printf 'gpg-pubkey-%s-5f000000 %s\ngpg-pubkey-%s-5f000000 %s' "$R8" "$R" "$L8" "$L")" RPM_REVOKE="gpg-pubkey-$R8-5f000000 gpg-pubkey-$L8-5f000000" ERASE_FAILS=gpg-pubkey-$R8-5f000000 rpm_case remove-fails good.armor "$S $R $L" "$RREV" "$OK" 0 "$S" fail "Failed to remove revoked key gpg-pubkey-$R8-5f000000"
 if installed remove-fails gpg-pubkey-$L8-5f000000; then report remove-fails-continues 1 ok "" "gpg-pubkey-$L8-5f000000 is still installed"; else report remove-fails-continues 0 ok "" ""; fi
-# rpm before 4.12 cannot check subkey signatures and reports NOKEY, so gpg checks the header
-# and payload signature over the same bytes rpm installs. The fixtures are signed like the
-# BDOT packages: by a signing subkey, with both a header and a header and payload signature.
+# rpm before 4.12 reports NOKEY for subkey signatures, so gpg checks SIGPGP. The fixtures are
+# signed like BDOT's packages: by a subkey, with both signatures.
 gpg --homedir "$G" --batch --quiet --import "$DATA/signed-test-key.asc" 2>/dev/null
 FIX=$(fpr test@example.com)
 FIXSUB=$(gpg --homedir "$G" --with-colons --list-keys "$FIX" 2>/dev/null | awk -F: '/^sub/{print $5; exit}')
@@ -401,9 +400,8 @@ rpm_case legacy-verified-el6 signed-test.rpm "$FIX" ""                "$FIXNOKEY
 rpm_case legacy-grafted   "$WORK/grafted.rpm" "$FIX" ""               "$FIXNOKEY" 1 "$FIX" hard "does not match its contents" 4.11.3
 echo '(none)' > "$WORK/no-sigpgp"
 SIGPGP_FILE="$WORK/no-sigpgp" rpm_case legacy-no-payload-sig signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "has no header and payload signature" 4.11.3
-# The header and payload signature gets the same key checks as any other: signatures over
-# signed-test.rpm's header and payload by a revoked key, a key expired when it signed, and
-# a key missing from the bundle, each shipped as its SIGPGP
+# SIGPGP gets the usual key checks: signatures over signed-test.rpm's header and payload by
+# a revoked, an expired, and an unknown key
 off=$(sh -c ". '$WORK/lib.sh'; rpm_header_offset '$DATA/signed-test.rpm'")
 tail -c +$((off + 1)) "$DATA/signed-test.rpm" > "$WORK/fixture-signed-bytes"
 gpgq --local-user "$R" --armor --detach-sign --output "$WORK/sigpgp-revoked.asc" "$WORK/fixture-signed-bytes"
@@ -414,10 +412,17 @@ gpgq --local-user o@x --armor --detach-sign --output "$WORK/sigpgp-unknown.asc" 
 SIGPGP_FILE="$WORK/sigpgp-revoked.asc" rpm_case legacy-sigpgp-revoked signed-test.rpm "$FIX $R" "$WORK/revoked-cert.asc" "$FIXNOKEY" 1 "$FIX" hard "RPM signing key is revoked" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-late.asc" rpm_case legacy-sigpgp-late signed-test.rpm "$FIX $X2" "" "$FIXNOKEY" 1 "$FIX" hard "had expired when it signed" 4.11.3
 SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-unknown signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "RPM signature is invalid" 4.11.3
-# The header signature is not checked on these hosts, so the rpm revoked-key list applies to
-# the header and payload signer too
+# The header signature goes unchecked here, so the rpm revoked-key list covers the SIGPGP
+# signer, by its primary even when a subkey signed
 O=$(fpr o@x)
 RPM_REVOKE="gpg-pubkey-$(printf '%s' "$O" | cut -c33-40 | tr '[:upper:]' '[:lower:]')-5f000000" SIGPGP_FILE="$WORK/sigpgp-unknown.asc" rpm_case legacy-sigpgp-list-revoked signed-test.rpm "$FIX $O" "" "$FIXNOKEY" 1 "$FIX" hard "is revoked" 4.11.3
+gpgq --local-user "$PR" --armor --detach-sign --output "$WORK/sigpgp-subkey.asc" "$WORK/fixture-signed-bytes"
+RPM_REVOKE="gpg-pubkey-$(printf '%s' "$PR" | cut -c33-40 | tr '[:upper:]' '[:lower:]')-5f000000" SIGPGP_FILE="$WORK/sigpgp-subkey.asc" rpm_case legacy-sigpgp-subkey-list-revoked signed-test.rpm "$FIX $PR" "" "$FIXNOKEY" 1 "$FIX" hard "is revoked" 4.11.3
+# A VALIDSIG line without the primary fingerprint must not skip the list check
+mkdir -p "$WORK/gpg-short-validsig"
+printf '#!/bin/sh\ncase " $* " in *" --verify "*) %s "$@" | awk '"'"'$2 == "VALIDSIG" { print $1, $2, $3, $4, $5; next } 1'"'"'; exit 0 ;; esac\nexec %s "$@"\n' "$(command -v gpg)" "$(command -v gpg)" > "$WORK/gpg-short-validsig/gpg"
+chmod +x "$WORK/gpg-short-validsig/gpg"
+EXTRA_PATH="$WORK/gpg-short-validsig" rpm_case legacy-sigpgp-no-primary signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "names no primary key" 4.11.3
 gpgq --local-user o@x --include-key-block --armor --detach-sign --output "$WORK/sigpgp-embedded.asc" "$WORK/fixture-signed-bytes"
 EXTRA_PATH="$WORK/gpg-autoimport" SIGPGP_FILE="$WORK/sigpgp-embedded.asc" rpm_case legacy-sigpgp-auto-key-import signed-test.rpm "$FIX" "" "$FIXNOKEY" 1 "$FIX" fail "not signed by a key in the BDOT key bundle" 4.11.3
 mkdir -p "$WORK/tail-fails"
