@@ -1323,8 +1323,8 @@ rpm_header_offset() {
 }
 
 # rpm_legacy_verify checks SIGPGP (header and payload) with gpg over the bytes rpm installs, for
-# rpm older than 4.12. The header-only signature is unverified there, so its key ID can only
-# make the earlier checks fail; SIGPGP is the real check.
+# rpm older than 4.12. rpm cannot check the header signature there, so rpm_signing_key_check
+# only screens its key ID; the SIGPGP signature over header and payload is what gpg verifies.
 rpm_legacy_verify() {
   LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
   if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
@@ -1422,15 +1422,18 @@ verify_package_rpm() {
     fi
   done
 
-  # rpm must hold the signing key. Read its keyring through gpg (--show-keys needs 2.1).
-  mkdir -m 700 "$GPG_DIR/rpmdb"
-  for _rpm_key in $(rpm -qa 'gpg-pubkey*'); do
-    rpm -qi "$_rpm_key" 2> /dev/null
-  done | GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --import > /dev/null 2>&1 || true
-  if ! GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --with-colons --list-keys 2> /dev/null | \
-      awk -F: -v id="$SIGNING_KEYID" '($1 == "pub" || $1 == "sub") && $5 == id { found = 1 } END { exit !found }'; then
-    error "RPM signing key $SIGNING_KEYID is not in the rpm keyring"
-    return 1
+  # rpm must hold the signing key, except before 4.12, where rpm cannot use it and gpg's
+  # SIGPGP check decides. Read its keyring through gpg (--show-keys needs 2.1).
+  if ! rpm_lacks_subkey_support; then
+    mkdir -m 700 "$GPG_DIR/rpmdb"
+    for _rpm_key in $(rpm -qa 'gpg-pubkey*'); do
+      rpm -qi "$_rpm_key" 2> /dev/null
+    done | GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --import > /dev/null 2>&1 || true
+    if ! GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --with-colons --list-keys 2> /dev/null | \
+        awk -F: -v id="$SIGNING_KEYID" '($1 == "pub" || $1 == "sub") && $5 == id { found = 1 } END { exit !found }'; then
+      error "RPM signing key $SIGNING_KEYID is not in the rpm keyring"
+      return 1
+    fi
   fi
 
   # rpm's exit code also fails for other keyless signatures, so judge the BDOT key's own line
