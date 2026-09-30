@@ -23,11 +23,44 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/updater/internal/file"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"
 	"go.uber.org/zap"
 )
+
+// needsSudo returns true if the current process is not running as root.
+func needsSudo() bool {
+	return os.Getuid() != 0
+}
+
+// sudoCommand creates an exec.Cmd, prepending "sudo -n" if the process is non-root.
+func sudoCommand(name string, args ...string) *exec.Cmd {
+	if needsSudo() {
+		// -n runs sudo non-interactively: if credentials are required it fails
+		// immediately rather than blocking on a password prompt the updater
+		// (running without a TTY) cannot answer.
+		allArgs := append([]string{"-n", name}, args...)
+		//#nosec G204 -- arguments are not user-controlled
+		return exec.Command("sudo", allArgs...)
+	}
+	//#nosec G204 -- arguments are not user-controlled
+	return exec.Command(name, args...)
+}
+
+// runWithOutput runs cmd and adds its output to the error when it fails. When
+// sudo refuses a command, its message is the only record of why.
+func runWithOutput(cmd *exec.Cmd) error {
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		return nil
+	}
+	if msg := strings.TrimSpace(string(out)); msg != "" {
+		return fmt.Errorf("%w: %s", err, msg)
+	}
+	return err
+}
 
 // Option is an extra option for creating a Service
 type Option func(linuxSvc linuxService)
@@ -56,6 +89,7 @@ func NewService(logger *zap.Logger, installDir string, opts ...Option) Service {
 			installedServiceFilePath: path.SystemdFilePath,
 			installDir:               installDir,
 			logger:                   logger.Named("linux-systemd-service"),
+			unprivileged:             needsSudo(),
 		}
 	} else {
 		linuxSvc = &linuxSysVService{
@@ -88,23 +122,27 @@ type linuxSystemdService struct {
 	installedServiceFilePath string
 	installDir               string
 	logger                   *zap.Logger
+	// unprivileged is true when the updater runs as a non-root user. In that
+	// case the unit file is managed by the package only, and the only
+	// privileged commands are Start and Stop (via sudo).
+	unprivileged bool
 }
 
-// Start the service
+// Start the service. When unprivileged, the arguments must exactly match the
+// sudoers entry written by install_sudoers in scripts/package/postinstall.sh.
 func (l linuxSystemdService) Start() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "start", l.serviceName)
-	if err := cmd.Run(); err != nil {
+	cmd := sudoCommand("systemctl", "start", l.serviceName)
+	if err := runWithOutput(cmd); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
 	return nil
 }
 
-// Stop the service
+// Stop the service. When unprivileged, the arguments must exactly match the
+// sudoers entry written by install_sudoers in scripts/package/postinstall.sh.
 func (l linuxSystemdService) Stop() error {
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("systemctl", "stop", l.serviceName)
-	if err := cmd.Run(); err != nil {
+	cmd := sudoCommand("systemctl", "stop", l.serviceName)
+	if err := runWithOutput(cmd); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
 	return nil
@@ -174,7 +212,15 @@ func (l linuxSystemdService) uninstall() error {
 	return nil
 }
 
+// Update replaces the installed unit file with the new one. When unprivileged
+// it does nothing: the package owns the unit file, and the non-root updater
+// must never write it.
 func (l linuxSystemdService) Update() error {
+	if l.unprivileged {
+		l.logger.Info("Skipping systemd unit update: the updater is not running as root and the package manages the unit file")
+		return nil
+	}
+
 	if err := l.uninstall(); err != nil {
 		return fmt.Errorf("failed to uninstall old service: %w", err)
 	}
@@ -186,7 +232,14 @@ func (l linuxSystemdService) Update() error {
 	return nil
 }
 
+// Backup copies the installed unit file so a unit update can be rolled back.
+// When unprivileged the unit is never updated, so there is nothing to back up.
 func (l linuxSystemdService) Backup() error {
+	if l.unprivileged {
+		l.logger.Debug("Skipping systemd unit backup: the unit is not updated when the updater is not running as root")
+		return nil
+	}
+
 	if err := file.CopyFileNoOverwrite(l.logger.Named("copy-file"), l.installedServiceFilePath, path.BackupServiceFile(l.installDir)); err != nil {
 		return fmt.Errorf("failed to copy service file: %w", err)
 	}

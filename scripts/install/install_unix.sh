@@ -28,6 +28,9 @@ set -e
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
 
+# Whether or not the collector runs as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
+
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
@@ -680,6 +683,7 @@ check_prereqs()
   os_arch_check
   package_type_check
   dependencies_check
+  unprivileged_check
   user_check
   success "Prerequisite check complete!"
   decrease_indent
@@ -789,6 +793,21 @@ dependencies_check()
   if [ -n "$FAILED_PREREQS" ]; then
     failed
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
+  fi
+  succeeded
+}
+
+# This warns when BDOT_UNPRIVILEGED is true but sudo is missing. The updater
+# needs sudo to stop and start the service, so remote updates would fail.
+unprivileged_check()
+{
+  if [ "$BDOT_UNPRIVILEGED" != "true" ] || [ "$SVC_PRE" != "systemctl" ]; then
+    return 0
+  fi
+
+  info "BDOT_UNPRIVILEGED is set to true, checking for sudo..."
+  if ! command -v sudo >/dev/null 2>&1 || ! command -v visudo >/dev/null 2>&1; then
+    warn "sudo is not installed. The collector will run, but remote updates will fail until sudo is installed and the collector is reinstalled or upgraded."
   fi
   succeeded
 }
