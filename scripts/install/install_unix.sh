@@ -1027,7 +1027,7 @@ verification_missing_tools() {
   _missing=""
   _tools="gpg tar gzip awk sed grep tr cut"
   [ "$package_type" = "deb" ] && _tools="$_tools ar"
-  # od and tail feed gpg's check on rpm older than 4.12, which cannot check subkey signatures
+  # od and tail feed the legacy rpm check
   if [ "$package_type" = "rpm" ] && rpm_lacks_subkey_support; then _tools="$_tools od tail"; fi
   for _tool in $_tools; do
     command -v "$_tool" > /dev/null 2>&1 || _missing="${_missing:+$_missing, }$_tool"
@@ -1322,9 +1322,10 @@ rpm_header_offset() {
   command printf '%s' $((96 + (16 + 16 * _il + _dl + 7) / 8 * 8))
 }
 
-# rpm_legacy_verify checks SIGPGP (header and payload) with gpg over the bytes rpm installs, for
-# rpm older than 4.12. rpm cannot check the header signature there, so rpm_signing_key_check
-# only screens its key ID; the SIGPGP signature over header and payload is what gpg verifies.
+# rpm_legacy_verify checks SIGPGP with gpg over the header and payload rpm installs, for rpm
+# older than 4.12. rpm cannot check the header signature there, so rpm_signing_key_check only
+# screens its key ID. A package must carry a payload, since a header-only signature over the
+# header alone would otherwise pass as SIGPGP.
 rpm_legacy_verify() {
   LC_ALL=C rpm -qp --qf '%{SIGPGP:armor}' "$package_out_file_path" > "$GPG_DIR/rpm-payload.sig" 2> /dev/null
   if ! grep -q -- '-----BEGIN PGP SIGNATURE-----' "$GPG_DIR/rpm-payload.sig"; then
@@ -1333,6 +1334,17 @@ rpm_legacy_verify() {
   fi
   if ! _rpm_offset=$(rpm_header_offset "$package_out_file_path"); then
     error "Could not read the RPM header layout"
+    return 1
+  fi
+  # shellcheck disable=SC2046 # split od's bytes into the positional parameters
+  set -- $(od -An -v -tu1 -j "$_rpm_offset" -N 16 "$package_out_file_path" 2> /dev/null)
+  if [ $# -ne 16 ] || [ "$1 $2 $3 $4" != "142 173 232 1" ]; then
+    error "Could not read the RPM header layout"
+    return 1
+  fi
+  _header_end=$((_rpm_offset + 16 + 16 * (($9 << 24) + (${10} << 16) + (${11} << 8) + ${12}) + ((${13} << 24) + (${14} << 16) + (${15} << 8) + ${16})))
+  if [ "$(wc -c < "$package_out_file_path")" -le "$_header_end" ]; then
+    error "RPM has no payload; the download may be incomplete"
     return 1
   fi
   if ! tail -c +$((_rpm_offset + 1)) "$package_out_file_path" > "$GPG_DIR/rpm-signed-data" 2> /dev/null; then
@@ -1445,12 +1457,12 @@ verify_package_rpm() {
   fi
 
   _key_pattern=" ($(command printf '%s' "$_key_names" | tr ' ' '|')): "
-  if command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}ok\$"; then
-    :
-  # rpm before 4.12 (EL6, EL7, Amazon Linux 2, SLES 12) reports NOKEY for subkey signatures,
-  # so gpg checks SIGPGP instead
-  elif rpm_lacks_subkey_support && command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}nokey\$"; then
+  # rpm before 4.12 (EL6, EL7, Amazon Linux 2, SLES 12) cannot check subkey signatures and
+  # leaves the payload unsigned, so gpg's SIGPGP check decides there, whatever rpm reports
+  if rpm_lacks_subkey_support && command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}(ok|nokey)\$"; then
     rpm_legacy_verify || return $?
+  elif command printf '%s\n' "$_checksig" | grep -qE "${_key_pattern}ok\$"; then
+    :
   else
     error "RPM signature could not be checked against the BDOT key"
     return 1
