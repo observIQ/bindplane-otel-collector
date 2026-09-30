@@ -61,8 +61,8 @@ gpg_tar_out_file_path="unknown"
 
 offline_installation=false
 
-# RPM_GPG_KEYS_TO_REMOVE is a space-separated list of revoked rpm key names to remove from
-# the rpm keyring. See signature/gpg/revocations.md.
+# RPM_GPG_KEYS_TO_REMOVE lists revoked rpm key names to remove; the bundle's
+# rpm-revocations.txt adds more. See signature/gpg/revocations.md.
 RPM_GPG_KEYS_TO_REMOVE=""
 
 # Colors
@@ -1227,25 +1227,151 @@ rpm_key_names() {
       $1 == "fpr" && next_fpr { if (prim) pfpr = $10; if (hit) f = $10; prim = 0; next_fpr = 0; if (hit) { print tolower(substr(id, 9) " " id " " f " " pfpr); exit } }'
 }
 
+# bundle_primary <rpm key version> prints the fingerprint of the bundle's primary key with that
+# 8-hex ID (rpm 4) or fingerprint (rpm 6), and fails when there is none.
+bundle_primary() {
+  awk -F: -v v="$1" '
+    $1 == "pub" { prim = 1; next }
+    $1 == "fpr" && prim { f = tolower($10); prim = 0; if (f == v || substr(f, 33) == v) { print $10; found = 1; exit } }
+    END { exit !found }' "$GPG_DIR/bundle-keys" 2> /dev/null
+}
+
+# rpm_entry_keyring <gpg-pubkey name> imports that rpm keyring entry into a new gpg home and
+# prints the home's path.
+rpm_entry_keyring() {
+  _home=$(mktemp -d "$GPG_DIR/rpmkey.XXXXXX") || return 1
+  rpm -qi "$1" 2> /dev/null | GNUPGHOME="$_home" gpg --batch --import > /dev/null 2>&1
+  command printf '%s' "$_home"
+}
+
+# rpm_entry_has_key <gpg-pubkey name> <primary fingerprint> [key ID] succeeds when that rpm
+# keyring entry carries the primary, and the key ID when given. A short-ID match alone could
+# name another vendor's key.
+rpm_entry_has_key() {
+  _home=$(rpm_entry_keyring "$1") || return 1
+  GNUPGHOME="$_home" gpg --batch --with-colons --fixed-list-mode --with-fingerprint --list-keys 2> /dev/null | \
+    awk -F: -v f="$2" -v id="$3" '
+      $1 == "pub" { p = 1 } $1 == "pub" || $1 == "sub" { if ($5 == id) hasid = 1 }
+      $1 == "fpr" && p { if ($10 == f) found = 1; p = 0 }
+      END { exit !(found && (id == "" || hasid)) }'
+}
+
+# rpm_version_matches <rpm key version> <fingerprint> succeeds when an rpm key name's version
+# names the key: its 8-hex ID on rpm 4 or its fingerprint on rpm 6.
+rpm_version_matches() {
+  _lower=$(command printf '%s' "$2" | tr '[:upper:]' '[:lower:]')
+  [ -n "$_lower" ] && { [ "$1" = "$_lower" ] || [ "$1" = "$(command printf '%s' "$_lower" | cut -c33-40)" ]; }
+}
+
+# rpm_list_revokes <primary fingerprint> succeeds when the revoked-key list names the key, by
+# 8-hex ID (rpm 4) or fingerprint (rpm 6).
+rpm_list_revokes() {
+  for key in $_revoked_keys; do
+    _version=${key#gpg-pubkey-}
+    rpm_version_matches "${_version%-*}" "$1" && return 0
+  done
+  return 1
+}
+
+# rpm_refresh_stale_key <primary fingerprint> removes an installed copy of the signing key's
+# primary that lacks the signing key, as an install before a subkey rotation leaves, so the
+# import that follows can replace it: rpm 4 skips a key whose entry is already installed. It
+# saves the old copy for rpm_restore_stale_key.
+rpm_refresh_stale_key() {
+  _stale_saved=""
+  _key_names=$(rpm_key_names "$SIGNING_KEYID")
+  [ "${_key_names##* }" = "$(command printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ] || return 0
+  for _entry in $(rpm -qa 'gpg-pubkey*' 2> /dev/null); do
+    _version=${_entry#gpg-pubkey-}
+    rpm_version_matches "${_version%-*}" "$1" || continue
+    rpm_entry_has_key "$_entry" "$1" || continue
+    rpm_entry_has_key "$_entry" "$1" "$SIGNING_KEYID" && continue
+    _home=$(rpm_entry_keyring "$_entry")
+    GNUPGHOME="$_home" gpg --batch --armor --export > "$GPG_DIR/rpm-stale.asc" 2> /dev/null
+    if ! rpm -e "$_entry" > /dev/null 2>&1; then
+      error "Failed to remove outdated key $_entry"
+      return 1
+    fi
+    _stale_saved=1
+  done
+}
+
+# rpm_restore_stale_key puts back the copy rpm_refresh_stale_key removed.
+rpm_restore_stale_key() {
+  [ -n "$_stale_saved" ] && rpm --import "$GPG_DIR/rpm-stale.asc" > /dev/null 2>&1
+  _stale_saved=""
+}
+
+# rpm_read_revoked_list sets _revoked_keys from RPM_GPG_KEYS_TO_REMOVE and the bundle's
+# rpm-revocations.txt, and returns 3 for an entry that is not a bundle key's rpm name.
+rpm_read_revoked_list() {
+  # rpm -e runs as root: validate every entry before importing, with globbing off
+  set -f
+  # shellcheck disable=SC2046,SC2086 # split the list into one entry per line
+  _revoked_keys=$(command printf '%s\n' $RPM_GPG_KEYS_TO_REMOVE $(tr -d '\r' 2> /dev/null < "$GPG_DIR/rpm-revocations.txt"))
+  for key in $_revoked_keys; do
+    if ! command printf '%s\n' "$key" | grep -qxE 'gpg-pubkey-[0-9a-f]+-[0-9a-f]+'; then
+      set +f
+      error "Revoked key list has an entry that is not an rpm key name: $(literal "$key")"
+      return 3
+    fi
+    # Only bundle keys, so a bad bundle cannot strip host keys
+    _version=${key#gpg-pubkey-}
+    if ! bundle_primary "${_version%-*}" > /dev/null; then
+      set +f
+      error "Revoked key list names $key, which is not a key in the BDOT key bundle"
+      return 3
+    fi
+  done
+  # Entries are hex and dashes now, so globbing is harmless
+  set +f
+}
+
 verify_package_rpm() {
   # Check the key against the bundle before rpm trusts it
   rpm_signing_key_check || return $?
 
-  # The imported keys stay in the host's rpm keyring even if a later check fails
-  if ! IMPORT_OUTPUT=$(rpm --import "$GPG_DIR/bdot-public-gpg-key.asc" 2>&1); then
-    error "Failed to import public key: $(literal "$IMPORT_OUTPUT")"
-    return 1
-  fi
+  rpm_read_revoked_list || return $?
 
-  # Remove revoked keys after the import, which can add them back when the bundle still
-  # carries them
-  for key in $RPM_GPG_KEYS_TO_REMOVE; do
-    if rpm -q "$key" > /dev/null 2>&1 && ! rpm -e "$key" > /dev/null 2>&1; then
-      error "Failed to remove revoked key $key"
+  # Revoked primaries are the listed ones plus any the bundle itself marks revoked. Remove
+  # entries an earlier install left, matched by fingerprint so a wrong release or a foreign key
+  # sharing the short ID stays.
+  _remove_failed=""
+  _revoked_fprs=$(awk -F: '$1 == "pub" { r = ($2 == "r"); next } $1 == "fpr" && r != "" { if (r) print $10; r = "" }' "$GPG_DIR/bundle-keys")
+  for key in $_revoked_keys; do
+    _version=${key#gpg-pubkey-}
+    _revoked_fprs="$_revoked_fprs $(bundle_primary "${_version%-*}")"
+  done
+  for _fpr in $_revoked_fprs; do
+    for _entry in $(rpm -qa 'gpg-pubkey*' 2> /dev/null); do
+      _version=${_entry#gpg-pubkey-}
+      rpm_version_matches "${_version%-*}" "$_fpr" || continue
+      if rpm_entry_has_key "$_entry" "$_fpr" && ! rpm -e "$_entry" > /dev/null 2>&1; then
+        error "Failed to remove revoked key $_entry"
+        _remove_failed=1
+      fi
+    done
+  done
+  # Fail on a revoked signer before importing anything
+  _key_names=$(rpm_key_names "$SIGNING_KEYID")
+  if rpm_list_revokes "${_key_names##* }"; then
+    error "RPM signing key $SIGNING_KEYID is revoked"
+    return 3
+  fi
+  [ -z "$_remove_failed" ] || return 1
+
+  # Import each key that is not revoked on its own, since rpm 4.11 merges a multi-key file into
+  # one entry named after its last key. The imported keys stay even if a later check fails.
+  for _fpr in $(awk -F: '$1 == "pub" { p = 1; next } $1 == "fpr" && p { print $10; p = 0 }' "$GPG_DIR/bundle-keys"); do
+    case " $(command printf '%s' "$_revoked_fprs" | tr '\n' ' ') " in *" $_fpr "*) continue ;; esac
+    rpm_refresh_stale_key "$_fpr" || return $?
+    GNUPGHOME="$GPG_DIR" gpg --batch --armor --export "$_fpr" > "$GPG_DIR/rpm-key.asc" 2> /dev/null
+    if ! IMPORT_OUTPUT=$(rpm --import "$GPG_DIR/rpm-key.asc" 2>&1); then
+      error "Failed to import public key: $(literal "$IMPORT_OUTPUT")"
+      rpm_restore_stale_key
       return 1
     fi
   done
-  _key_names=$(rpm_key_names "$SIGNING_KEYID")
 
   # rpm must hold the signing key. Read its keyring through gpg (--show-keys needs 2.1).
   mkdir -m 700 "$GPG_DIR/rpmdb"
