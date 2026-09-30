@@ -96,13 +96,13 @@ Add an entry to `distros` in [distros_test.go](distros_test.go):
 
 Then add the name to the `distro` matrix in
 [package-tests.yml](../../.github/workflows/package-tests.yml), which runs each
-distro and action in its own job.
+distro and action in its own job. Use `exclude` in the matrix to skip an
+architecture.
 
 `Dockerfile` selects the image recipe in [images](images) by package manager.
 `Format` selects the package and the `dpkg`/`rpm` commands. A distro with a new
-package manager, such as openSUSE with zypper, needs a new `images/Dockerfile.<manager>`.
-It should install systemd and the tools the package scripts use, following the
-existing files.
+package manager needs a new `images/Dockerfile.<manager>`. It should install
+systemd and the tools the package scripts use, following the existing files.
 
 ## Checks
 
@@ -193,5 +193,5 @@ Remove kept containers with `docker rm -f`.
 The test images are kept to reuse the Docker build cache. Remove them with:
 
 ```sh
-docker image rm bdot-pkgtest:debian-13 bdot-pkgtest:rocky-10
+docker image rm bdot-pkgtest:debian-13 bdot-pkgtest:ubuntu-26.04 bdot-pkgtest:rocky-10 bdot-pkgtest:opensuse-leap-16.0
 ```

@@ -68,16 +68,20 @@ jobs:
           retention-days: 1
 
   # Run each distro and action in its own job, natively on each architecture.
-  # distro must match a Name in test/packaging/distros_test.go.
+  # distro must match a Name in test/packaging/distros_test.go. openSUSE runs
+  # on amd64 only.
   test:
     name: test (${{ matrix.distro }}, ${{ matrix.action }}, ${{ matrix.arch }})
     needs: build
     strategy:
       fail-fast: false
       matrix:
-        distro: [debian-13, rocky-10]
+        distro: [debian-13, ubuntu-26.04, rocky-10, opensuse-leap-16.0]
         action: [install, upgrade]
         arch: [amd64, arm64]
+        exclude:
+          - distro: opensuse-leap-16.0
+            arch: arm64
         include:
           - arch: amd64
             runner: ubuntu-latest

@@ -48,7 +48,9 @@ type distro struct {
 // manager only requires a new entry here.
 var distros = []distro{
 	{Name: "debian-13", BaseImage: "debian:13", Dockerfile: "Dockerfile.apt", Format: formatDeb},
+	{Name: "ubuntu-26.04", BaseImage: "ubuntu:26.04", Dockerfile: "Dockerfile.apt", Format: formatDeb},
 	{Name: "rocky-10", BaseImage: "rockylinux/rockylinux:10", Dockerfile: "Dockerfile.dnf", Format: formatRPM},
+	{Name: "opensuse-leap-16.0", BaseImage: "opensuse/leap:16.0", Dockerfile: "Dockerfile.zypper", Format: formatRPM},
 }
 
 const (

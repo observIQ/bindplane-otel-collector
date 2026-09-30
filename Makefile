@@ -265,7 +265,7 @@ test-updater-integration:
 
 # Linux package (deb/rpm) install, upgrade, and uninstall tests. Requires Docker
 # (cgroup v2) and the packages built by `make release-test` in ./dist.
-# Filter scenarios with RUN, e.g. `make test-packages RUN=TestPackages/debian-13/install`.
+# Select distros and actions, e.g. `make test-packages PKGTEST_DISTRO=debian-13 PKGTEST_ACTION=install`.
 # See test/packaging/README.md.
 PKGTEST_TIMEOUT ?= 45m
 PKGTEST_PARALLEL ?= 4

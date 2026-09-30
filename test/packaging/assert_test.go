@@ -187,10 +187,11 @@ func (b *box) assertRuntimeUser() {
 	require.Len(b.t, fields, 7, "getent passwd output")
 	assert.Equal(b.t, "/sbin/nologin", fields[6], "login shell of %s", runtimeUser)
 
-	// useradd --system allocates a UID below the distro's UID_MIN.
+	// useradd --system allocates a UID below the distro's UID_MIN. openSUSE
+	// ships login.defs in /usr/etc, and /etc/login.defs overrides it.
 	uid, err := strconv.Atoi(fields[2])
 	require.NoError(b.t, err)
-	uidMin, err := strconv.Atoi(b.mustRun(`awk '$1 == "UID_MIN" {print $2}' /etc/login.defs`))
+	uidMin, err := strconv.Atoi(b.mustRun(`cat /etc/login.defs /usr/etc/login.defs 2>/dev/null | awk '$1 == "UID_MIN" {print $2; exit}'`))
 	require.NoError(b.t, err)
 	assert.Less(b.t, uid, uidMin, "%s should be a system user", runtimeUser)
 
