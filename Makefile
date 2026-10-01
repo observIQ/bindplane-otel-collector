@@ -263,6 +263,21 @@ test-updater-integration:
 	cd updater; gotestsum --rerun-fails --packages="./..." -- \
 		$(INTEGRATION_TEST_ARGS) -race
 
+# Linux package (deb/rpm) install, upgrade, and uninstall tests. Requires Docker
+# (cgroup v2) and the packages built by `make release-test` in ./dist.
+# Select distros and actions, e.g. `make test-packages PKGTEST_DISTRO=debian-13 PKGTEST_ACTION=install`.
+# See test/packaging/README.md.
+PKGTEST_TIMEOUT ?= 45m
+PKGTEST_PARALLEL ?= 4
+# Comma separated distros and actions to test. Empty runs all of them.
+PKGTEST_DISTRO ?=
+PKGTEST_ACTION ?=
+.PHONY: test-packages
+test-packages:
+	cd test/packaging && BDOT_PKGTEST_DIST="$(CURDIR)/dist" go test -tags packaging -v -count=1 \
+		-timeout $(PKGTEST_TIMEOUT) -parallel $(PKGTEST_PARALLEL) ./... \
+		-args -distro='$(PKGTEST_DISTRO)' -action='$(PKGTEST_ACTION)'
+
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench ^* ./..."

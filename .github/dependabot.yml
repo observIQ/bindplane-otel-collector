@@ -76,3 +76,10 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/test/packaging"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
