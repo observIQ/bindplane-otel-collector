@@ -75,8 +75,8 @@ install() {
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Updater is owned by the runtime user, matching all other installed files.
-    # Privileged operations use sudo via the sudoers drop-in.
+    # Ensure updater is owned by root.
+    chown root:root "$stage_dir/updater"
 
     # Seed default configs only when absent so upgrades/reinstalls preserve
     # user edits. The stage dir is ephemeral, so pruning it here is safe.
@@ -87,7 +87,7 @@ install() {
     done
 
     # Remove each existing file before copying over it instead of writing
-    # into it. Earlier releases left the updater owned by root, which the
+    # into it. A root install leaves the updater owned by root, which the
     # runtime user can't write but can remove, since it owns
     # BDOT_CONFIG_HOME. A symbolic link in place of a file is replaced, not
     # followed.
