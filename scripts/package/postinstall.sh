@@ -82,8 +82,11 @@ install() {
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Updater is owned by the runtime user, matching all other installed files.
-    # Privileged operations use sudo via the sudoers drop-in.
+    # Ensure updater is owned by root. When unprivileged, the runtime user
+    # copies the files into BDOT_CONFIG_HOME, so it owns the updater anyway.
+    if [ "${BDOT_UNPRIVILEGED}" != "true" ]; then
+        chown root:root "$stage_dir/updater"
+    fi
 
     # Seed default configs only when absent so upgrades/reinstalls preserve
     # user edits. The stage dir is ephemeral, so pruning it here is safe.
