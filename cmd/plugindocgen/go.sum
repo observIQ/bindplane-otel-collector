@@ -157,6 +157,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dvsekhvalnov/jose2go v1.7.0 h1:bnQc8+GMnidJZA8zc6lLEAb4xNrIqHwO+9TzqvtQZPo=
 github.com/dvsekhvalnov/jose2go v1.7.0/go.mod h1:QsHjhyTlD/lAVqn/NSbVZmSCGeDehTB/mPZadG+mhXU=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.0.0 h1:7JS1X+6DXbtzHyiCsN2lGTZRL8OdSZo4v79OaEBH+Tg=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.0.0/go.mod h1:0CSUd7PLTRsS0PRh1zuOQ7REC3gYy/f9ZO5rXeoC5O4=
 github.com/ebitengine/purego v0.10.2 h1:W809HbnvzAxgdm+aOvlSekrM16wGCdT/e76+9tS7gzE=
 github.com/ebitengine/purego v0.10.2/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/edsrzf/mmap-go v1.2.1-0.20241212181136-fad1cd13edbd h1:I4PrRZuNMeDP3VbFrak4QsqwO5tWkQf0tqrrr1L2DsU=
@@ -447,8 +449,6 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f h1:KUppIJq7/+SVif2QVs3tOP0zanoHgBEVAwHxUSIzRqU=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
-github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver v1.15.0 h1:oCrSS4la8UPeAu/x5MoK+u4xxFJdV6JP7/Pol4i4NoY=
-github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver v1.15.0/go.mod h1:wdgn0CWcOBunDi4/xKah3sYJJLKDVQ0KVSfEF3ZG4dk=
 github.com/oklog/ulid/v2 v2.1.2 h1:IEclFb9JNvzYA6MW2SCxbLzcHTVsfqm3PrqGQJH5zec=
 github.com/oklog/ulid/v2 v2.1.2/go.mod h1:rcEKHmBBKfef9DhnvX7y1HZBYxjXb0cP5ExxNsTT1QQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.161.0 h1:+KDnW6hegGTZqJ5/5wiXsBF1Y8Zj7crylEZcQjjP1Cw=

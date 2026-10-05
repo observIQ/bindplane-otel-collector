@@ -20,8 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements"
 	"github.com/golang/snappy"
-	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
 	"github.com/open-telemetry/opamp-go/client"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"

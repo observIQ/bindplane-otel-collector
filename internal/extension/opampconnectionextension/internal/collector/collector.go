@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
-	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/service"

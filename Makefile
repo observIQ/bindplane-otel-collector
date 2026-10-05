@@ -44,11 +44,11 @@ GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # AGENT_LDFLAGS stamps version + git hash + build date into the v1 collector
-# binaries (both consume github.com/observiq/bindplane-otel-contrib/pkg/version).
+# binaries (both consume github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version).
 AGENT_LDFLAGS = -s -w \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION) \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION) \
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
 
 # AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
 # 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)

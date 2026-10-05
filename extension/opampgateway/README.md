@@ -1,3 +1,3 @@
 > [!WARNING]
-> **This component has been migrated to [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib/tree/main/extension/opampgateway).**
+> **This component has been migrated to [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/main/extension/opampgateway).**
 > This README is retained for reference and will be removed after September 2026.

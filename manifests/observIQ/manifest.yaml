@@ -32,10 +32,10 @@ extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.161.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/awss3eventextension v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/badgerextension v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/opampgateway v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.15.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/awss3eventextension v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/badgerextension v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/opampgateway v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.0.0
   # Bindplane OpAMP connection extension. Internal module under
   # internal/extension/opampconnectionextension/, kept internal because the
   # whole runtime cluster (collector lifecycle, OpAMP client, packagestate,
@@ -73,18 +73,18 @@ exporters:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.161.0
   - gomod: github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.29
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/awssecuritylakeexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/azureblobexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/chronicleexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/chronicleforwarderexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/googlecloudexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/opampexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/qradar v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/snowflakeexporter v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/exporter/webhookexporter v1.15.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/awssecuritylakeexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/azureblobexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/chronicleexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/chronicleforwarderexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/opampexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/qradar v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/snowflakeexporter v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/webhookexporter v1.0.0
 
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.161.0
@@ -114,22 +114,22 @@ processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.161.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/asimstandardizationprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/datapointcountprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/logcountprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/lookupprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/maskprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/metricextractprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/metricstatsprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/ocsfstandardizationprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/randomfailureprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/samplingprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/spancountprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/threatenrichmentprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.15.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/asimstandardizationprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/datapointcountprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/logcountprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/lookupprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/maskprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricextractprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricstatsprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/ocsfstandardizationprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/randomfailureprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/samplingprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/spancountprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/threatenrichmentprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.0.0
   # Bindplane snapshot processor — its own internal go.mod, local replace below.
   - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.109.0
 
@@ -214,25 +214,25 @@ receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsperfcountersreceiver v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.161.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver v0.161.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awsneuronreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3eventreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/awss3rehydrationreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/azureblobrehydrationreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/bindplaneauditlogs v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/gcspubsubeventreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/httpreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/m365receiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/oktareceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/pcapreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/restapireceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/routereceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/sapnetweaverreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/splunksearchapireceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.15.0
-  - gomod: github.com/observiq/bindplane-otel-contrib/receiver/windowseventtracereceiver v1.15.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/awsneuronreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/awss3eventreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/awss3rehydrationreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/azureblobpollingreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/azureblobrehydrationreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/bindplaneauditlogs v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/gcspubsubeventreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/httpreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/m365receiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/oktareceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pcapreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/restapireceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/routereceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/sapnetweaverreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/splunksearchapireceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/windowseventtracereceiver v1.0.0
 
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.161.0

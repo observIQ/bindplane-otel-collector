@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version"
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/collector"
 	colmocks "github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/collector/mocks"
@@ -32,7 +33,6 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp/mocks"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
-	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/stretchr/testify/assert"

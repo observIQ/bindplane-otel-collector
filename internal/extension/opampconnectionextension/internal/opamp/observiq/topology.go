@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor"
 	"github.com/golang/snappy"
-	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"

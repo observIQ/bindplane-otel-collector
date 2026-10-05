@@ -21,13 +21,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/observiq/bindplane-otel-contrib/pkg/measurements"
-	"github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp/observiq"
-	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )

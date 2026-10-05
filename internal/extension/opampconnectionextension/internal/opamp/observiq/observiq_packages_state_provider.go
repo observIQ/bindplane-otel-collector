@@ -22,8 +22,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
-	"github.com/observiq/bindplane-otel-contrib/pkg/version"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"

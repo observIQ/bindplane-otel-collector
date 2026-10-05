@@ -81,16 +81,16 @@ do
         "$doc"
     # Point bindplane contrib links to new version
     sed -i '' -Ee \
-        "s|https://github.com/observiq/bindplane-otel-contrib/blob/v[^/]*|https://github.com/observiq/bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
+        "s|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v[^/]*|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
         "$doc"
     sed -i '' -Ee \
-        "s|https://github.com/observiq/bindplane-otel-contrib/tree/v[^/]*|https://github.com/observiq/bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
+        "s|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/v[^/]*|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
         "$doc"
     # Normalize any bindplane contrib links pointing to main
     sed -i '' -Ee \
-        "s|https://github.com/observiq/bindplane-otel-contrib/blob/main|https://github.com/observiq/bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
+        "s|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/main|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/$BDOT_CONTRIB_VERSION|" \
         "$doc"
     sed -i '' -Ee \
-        "s|https://github.com/observiq/bindplane-otel-contrib/tree/main|https://github.com/observiq/bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
+        "s|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/main|https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/$BDOT_CONTRIB_VERSION|" \
         "$doc"
 done
