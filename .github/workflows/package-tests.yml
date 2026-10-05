@@ -1,0 +1,110 @@
+name: Package Tests
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Build snapshot deb and rpm packages the same way as `make release-test`.
+  build:
+    runs-on: ubuntu-latest-32-cores
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+        with:
+          # Tags are required to determine the snapshot version.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: internal/extension/opampconnectionextension/go.mod
+          cache: false # Caching handled by the actions/cache step below
+      - name: Set up Go cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          install-only: true
+
+      - name: Build snapshot packages
+        run: make release-test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-packages
+          path: |
+            dist/metadata.json
+            dist/artifacts.json
+            dist/*_linux_amd64.deb
+            dist/*_linux_amd64.rpm
+            dist/*_linux_arm64.deb
+            dist/*_linux_arm64.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  # Run each distro and action in its own job, natively on each architecture.
+  # distro must match a Name in test/packaging/distros_test.go. openSUSE runs
+  # on amd64 only.
+  test:
+    name: test (${{ matrix.distro }}, ${{ matrix.action }}, ${{ matrix.arch }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian-13, ubuntu-26.04, rocky-10, opensuse-leap-16.0]
+        action: [install, upgrade]
+        arch: [amd64, arm64]
+        exclude:
+          - distro: opensuse-leap-16.0
+            arch: arm64
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: test/packaging/go.mod
+          cache-dependency-path: test/packaging/go.sum
+
+      - name: Download Linux packages
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-packages
+          path: dist
+
+      - name: Run package tests
+        run: make test-packages
+        env:
+          PKGTEST_DISTRO: ${{ matrix.distro }}
+          PKGTEST_ACTION: ${{ matrix.action }}
