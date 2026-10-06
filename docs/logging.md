@@ -53,7 +53,7 @@ service:
 
 ## Using the Plugin Receiver
 
-To add logging using the Plugin receiver, add the receiver into your `config.yaml` similar to the example below. For more information on the Plugin receiver, see the [documentation page](/receiver/pluginreceiver/README.md). To see a full list of available plugins, see the [plugins folder](/plugins/).
+To add logging using the Plugin receiver, add the receiver into your `config.yaml` similar to the example below. For more information on the Plugin receiver, see the [documentation page](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.0.0/receiver/pluginreceiver/README.md). To see a full list of available plugins, see the [plugins folder](/plugins/).
 
 ```yaml
 receivers:

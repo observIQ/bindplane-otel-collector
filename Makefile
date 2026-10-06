@@ -411,11 +411,11 @@ update-modules:
 	./scripts/update-module-version.sh "$(NEW_VERSION)"
 	$(MAKE) tidy
 
-# update-contrib updates all bindplane-otel-contrib dependencies to the new version.
+# update-contrib updates all dynatrace-bindplane-otel-contrib dependencies to the new version.
 # Usage: make update-contrib BDOT_CONTRIB_VERSION=vx.x.x
 .PHONY: update-contrib
 update-contrib:
-	./scripts/update-bindplane-contrib.sh "$(BDOT_CONTRIB_VERSION)"
+	./scripts/update-dbdot-contrib.sh "$(BDOT_CONTRIB_VERSION)"
 	$(MAKE) tidy
 
 # Downloads and setups dependencies that are packaged with binary

@@ -48,7 +48,7 @@ for local_mod in $LOCAL_MODULES; do
             echo "Error: go list failed in $local_mod" >&2
             exit 1
         }
-        # Temporarily disable 'set -e' in case there are no bindplane-otel-contrib modules
+        # Temporarily disable 'set -e' in case there are no dynatrace-bindplane-otel-contrib modules
         set +e
         CONTRIB_MODULES=$(printf '%s\n' "$GO_LIST_OUT" | grep -E -e '^github.com/dynatrace/dynatrace-bindplane-otel-contrib')
         set -e
