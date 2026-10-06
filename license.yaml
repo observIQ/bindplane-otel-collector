@@ -41,17 +41,3 @@ exceptions:
     - path: "github.com/coralogix/opentelemetry-cx-protobuf-api/coralogixpb"
     # uses a custom license that says we can basically do whatever we want with it
     - path: "github.com/xi2/xz"
-    # Internal modules
-    - path: "./processor/resourceattributetransposerprocessor"
-    - path: "./receiver/m365receiver"
-    - path: "./receiver/pluginreceiver"
-    - path: "./receiver/routereceiver"
-    - path: "./exporter/googlecloudexporter"
-    - path: "./packagestate"
-    - path: "../packagestate"
-    - path: "./opamp/observiq/testdata/latest"
-    - path: "./processor/throughputmeasurementprocessor"
-    - path: "./processor/maskprocessor"
-    - path: "./processor/logcountprocessor"
-    - path: "./processor/metricextractprocessor"
-    - path: "./expr"
