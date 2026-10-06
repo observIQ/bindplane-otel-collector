@@ -293,6 +293,11 @@ check-dependabot:
 		echo "Check dependabot finished successfully"; \
 	fi
 
+# This target checks that every component in the AIX manifest is also in the main manifest
+.PHONY: check-aix-manifest
+check-aix-manifest:
+	./scripts/check-aix-manifest.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:
