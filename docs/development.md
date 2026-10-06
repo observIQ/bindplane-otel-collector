@@ -60,7 +60,7 @@ The steps are as follows:
     ```sh
     ./scripts/update-docs.sh {COLLECTOR_VERSION} {CONTRIB_VERSION} {BDOT_CONTRIB_VERSION} {CONTRIB_STABLE_VERSION}
     ```
-    The collector and contrib versions should be the same as in step 1. The `BDOT_CONTRIB_VERSION` is the latest release version of [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib). The `CONTRIB_STABLE_VERSION` is the same value passed in step 1.
+    The collector and contrib versions should be the same as in step 1. The `BDOT_CONTRIB_VERSION` is the latest release version of [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib). The `CONTRIB_STABLE_VERSION` is the same value passed in step 1.
 
 4. Run `make install-tools`
 
@@ -76,7 +76,7 @@ There is potential for tests to fail, deprecation issues, code changes, or a var
 
 ## Updating bindplane-otel-contrib dependencies
 
-When [bindplane-otel-contrib](https://github.com/observiq/bindplane-otel-contrib) publishes a new release, update the Go module dependencies in this repo:
+When [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib) publishes a new release, update the Go module dependencies in this repo:
 
 1. Run:
     ```sh

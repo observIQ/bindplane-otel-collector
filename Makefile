@@ -44,11 +44,11 @@ GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # AGENT_LDFLAGS stamps version + git hash + build date into the v1 collector
-# binaries (both consume github.com/observiq/bindplane-otel-contrib/pkg/version).
+# binaries (both consume github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version).
 AGENT_LDFLAGS = -s -w \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION) \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
-	-X github.com/observiq/bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION) \
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
 
 # AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
 # 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)
@@ -411,11 +411,11 @@ update-modules:
 	./scripts/update-module-version.sh "$(NEW_VERSION)"
 	$(MAKE) tidy
 
-# update-contrib updates all bindplane-otel-contrib dependencies to the new version.
+# update-contrib updates all dynatrace-bindplane-otel-contrib dependencies to the new version.
 # Usage: make update-contrib BDOT_CONTRIB_VERSION=vx.x.x
 .PHONY: update-contrib
 update-contrib:
-	./scripts/update-bindplane-contrib.sh "$(BDOT_CONTRIB_VERSION)"
+	./scripts/update-dbdot-contrib.sh "$(BDOT_CONTRIB_VERSION)"
 	$(MAKE) tidy
 
 # Downloads and setups dependencies that are packaged with binary

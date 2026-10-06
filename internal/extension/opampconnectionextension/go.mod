@@ -3,14 +3,14 @@ module github.com/observiq/bindplane-otel-collector/internal/extension/opampconn
 go 1.26.4
 
 require (
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.0.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.0.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.0.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.0.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.0.0
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.109.0
-	github.com/observiq/bindplane-otel-contrib/extension/pebbleextension v1.15.0
-	github.com/observiq/bindplane-otel-contrib/pkg/measurements v1.15.0
-	github.com/observiq/bindplane-otel-contrib/pkg/osinfo v1.15.0
-	github.com/observiq/bindplane-otel-contrib/pkg/version v1.15.0
-	github.com/observiq/bindplane-otel-contrib/processor/topologyprocessor v1.15.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.161.0
@@ -87,6 +87,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.0.0 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/elastic/lunes v0.2.2 // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
@@ -134,7 +135,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/observiq/bindplane-otel-contrib/pkg/snapshot v1.15.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.161.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.161.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.161.0 // indirect

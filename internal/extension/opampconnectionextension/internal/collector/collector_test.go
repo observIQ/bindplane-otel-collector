@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-contrib/extension/pebbleextension"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"

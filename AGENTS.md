@@ -83,11 +83,7 @@ The project is structured as an OpenTelemetry Collector distribution with custom
 
 ### Component Organization
 
-Custom components are organized by type:
-- **receiver/** - Custom receivers (AWS S3, M365, Okta, SAP NetWeaver, etc.)
-- **processor/** - Custom processors (metric extraction, sampling, masking, etc.)
-- **exporter/** - Custom exporters (Azure Blob, Chronicle, Google Cloud, Snowflake, etc.)
-- **extension/** - Custom extensions (AWS S3 event, Bindplane extension)
+Custom Bindplane components (receivers, processors, exporters, and extensions) live in [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib) and are consumed as Go modules via the manifest. This repo only carries the internal modules listed above.
 
 ### Key Architectural Patterns
 
