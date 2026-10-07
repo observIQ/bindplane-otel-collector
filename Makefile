@@ -367,6 +367,14 @@ check-dependabot:
 		echo "Check dependabot finished successfully"; \
 	fi
 
+# This target lints the unix install scripts and runs their tests
+# Runs in CI rather than ci-checks, since the tests need rpm, gpg, and the de_DE.UTF-8 locale
+# with gpg's German translations.
+.PHONY: check-install-scripts
+check-install-scripts:
+	shellcheck -S warning scripts/install/install_unix.sh scripts/install/install_macos.sh scripts/install/test/*.sh scripts/install/test/testdata/*.sh
+	sh scripts/install/test/run_tests.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:
