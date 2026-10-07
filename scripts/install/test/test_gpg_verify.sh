@@ -309,11 +309,74 @@ rpm_case nokey-ok   good.armor     "$S" ""                       "$(printf '%s\n
 rpm_case nokey-only good.armor     "$S" ""                       "$NOKEY" 1 "$S" fail "could not be checked against the BDOT key"
 rpm_case other-key-ok good.armor   "$S" ""                       "$OTHER_OK" 0 "$S" fail "could not be checked against the BDOT key"
 rpm_case not-in-rpmdb good.armor   "$S" ""                       "$OK" 0 o@x fail "is not in the rpm keyring"
+# Revoked rpm keys an earlier install left behind come out of the rpm keyring, and are never
+# imported again. The bundle still carries each revoked key, as revocations.md asks.
+R8=$(printf '%s' "$R" | cut -c33-40 | tr '[:upper:]' '[:lower:]')
+L8=$(printf '%s' "$L" | cut -c33-40 | tr '[:upper:]' '[:lower:]')
+S8=$(printf '%s' "$S" | cut -c33-40 | tr '[:upper:]' '[:lower:]')
 RREV="$WORK/revoked-cert.asc"
+PRESEED="gpg-pubkey-$R8-5f000000 $R" RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case removes-revoked good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed removes-revoked gpg-pubkey-$R8-5f000000; then report rpm-removes-revoked-state 1 ok "" "the revoked key is still installed"; else report rpm-removes-revoked-state 0 ok "" ""; fi
+# The listed release may differ from the host's; the fingerprint decides
+PRESEED="gpg-pubkey-$R8-6abd1642 $R" RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case removes-by-fingerprint good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed removes-by-fingerprint gpg-pubkey-$R8-6abd1642; then report removes-by-fingerprint-state 1 ok "" "the revoked key is still installed"; else report removes-by-fingerprint-state 0 ok "" ""; fi
+# rpm 6 names entries by fingerprint; the 8-hex list form still finds them
+RFPR=$(printf '%s' "$R" | tr '[:upper:]' '[:lower:]')
+PRESEED="gpg-pubkey-$RFPR-6abd1642 $R" RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case removes-rpm6-name good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed removes-rpm6-name gpg-pubkey-$RFPR-6abd1642; then report removes-rpm6-name-state 1 ok "" "the revoked key is still installed"; else report removes-rpm6-name-state 0 ok "" ""; fi
+# A host key that only shares the revoked key's 8-hex ID stays
+PRESEED="gpg-pubkey-$R8-11111111 $L" RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case keeps-id-collision good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed keeps-id-collision gpg-pubkey-$R8-11111111; then report keeps-id-collision-state 0 ok "" ""; else report keeps-id-collision-state 1 ok "" "a colliding host key was removed"; fi
+# rpm 4.11 would merge a multi-key file into one entry named after its last key, the revoked
+# one, so removing it would take the signing key along; each key is imported on its own
+RPM_REVOKE=gpg-pubkey-$R8-5f000000 rpm_case legacy-import-split good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok "" 4.11.3
+if installed legacy-import-split gpg-pubkey-$S8-5f000000 && ! installed legacy-import-split gpg-pubkey-$R8-5f000000; then report legacy-import-split-state 0 ok "" ""; else report legacy-import-split-state 1 ok "" "$(cat "$WORK/rpm-legacy-import-split/rpmdb.state")"; fi
+# rpm -e runs as root, so only rpm key names may reach it, and never as a glob
+RPM_REVOKE=sudo rpm_case remove-not-a-key good.armor "$S" "" "$OK" 0 "$S" hard "not an rpm key name"
+# A glob would expand to file names in the working directory that look like key names
+RPM_REVOKE='gpg-pubkey-*' TOUCH=gpg-pubkey-$R8-5f000000 rpm_case remove-glob good.armor "$S $R" "$RREV" "$OK" 0 "$S" hard "not an rpm key name"
+# Only keys the bundle carries may be removed, so a bad bundle cannot strip the host's own keys
+RPM_REVOKE=gpg-pubkey-8483c65d-5ccc5b19 rpm_case remove-host-key good.armor "$S" "" "$OK" 0 "$S" hard "not a key in the BDOT key bundle"
+if installed remove-host-key gpg-pubkey-8483c65d-5ccc5b19; then report remove-host-key-state 0 ok "" ""; else report remove-host-key-state 1 ok "" "the host key was removed"; fi
+# A revoked-key list saved with CRLF line endings still names the key
+PRESEED="gpg-pubkey-$R8-5f000000 $R" RPM_REVOKE="$(printf 'gpg-pubkey-%s-5f000000\r' "$R8")" rpm_case removes-revoked-crlf good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed removes-revoked-crlf gpg-pubkey-$R8-5f000000; then report removes-revoked-crlf-state 1 ok "" "the revoked key is still installed"; else report removes-revoked-crlf-state 0 ok "" ""; fi
+# A signing key revoked only through the rpm list never installs, on any rpm version
+SFPR=$(printf '%s' "$S" | tr '[:upper:]' '[:lower:]')
+RPM_REVOKE="gpg-pubkey-$S8-5f000000" rpm_case list-revoked-signer good.armor "$S" "" "$OK" 0 "$S" hard "RPM signing key $(printf '%s' "$SUBID" | tr '[:lower:]' '[:upper:]') is revoked"
+RPM_REVOKE="gpg-pubkey-$SFPR-5f000000" rpm_case list-revoked-signer-rpm6 good.armor "$S" "" "$OK" 0 "$S" hard "is revoked"
+# A hard failure leaves no revoked key behind and imports nothing, and a malformed list fails
+# before rpm is touched
+PRESEED="gpg-pubkey-$R8-5f000000 $R" RPM_REVOKE="gpg-pubkey-$S8-5f000000 gpg-pubkey-$R8-5f000000" rpm_case list-revoked-signer-cleans good.armor "$S $R" "$RREV" "$OK" 0 "$S" hard "is revoked"
+if installed list-revoked-signer-cleans gpg-pubkey-$R8-5f000000 || grep -q '^imported' "$WORK/rpm-list-revoked-signer-cleans/rpm.log" 2>/dev/null; then report list-revoked-signer-cleans-state 1 ok "" "$(cat "$WORK/rpm-list-revoked-signer-cleans/rpmdb.state")"; else report list-revoked-signer-cleans-state 0 ok "" ""; fi
+RPM_REVOKE="bogus gpg-pubkey-$R8-5f000000" rpm_case malformed-list-before-import good.armor "$S $R" "$RREV" "$OK" 0 "$S" hard "not an rpm key name"
+if grep -q '^imported' "$WORK/rpm-malformed-list-before-import/rpm.log" 2>/dev/null; then report malformed-list-before-import-state 1 ok "" "rpm --import ran"; else report malformed-list-before-import-state 0 ok "" ""; fi
+RPM_REVOKE="gpg-pubkey-$S8-5f000000" rpm_case list-revoked-signer-legacy good.armor "$S" "" "$NOKEY" 1 "$S" hard "is revoked" 4.11.3
 IMPORT_FAILS=1 rpm_case rpm-import-fails good.armor "$S" "" "$OK" 0 "$S" fail "Failed to import public key: import refused"
 rpm_case good-after-revocation good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+# A key the bundle itself revokes is neither imported nor left installed, even when the rpm
+# list omits it
+PRESEED="gpg-pubkey-$R8-5f000000 $R" rpm_case bundle-revoked-not-imported good.armor "$S $R" "$RREV" "$OK" 0 "$S" ok
+if installed bundle-revoked-not-imported gpg-pubkey-$R8-5f000000; then report bundle-revoked-not-imported-state 1 ok "" "the revoked key is installed"; else report bundle-revoked-not-imported-state 0 ok "" ""; fi
+# An installed copy of the signing primary without the current signing subkey, left by an
+# earlier install before a subkey rotation, is replaced
+gpg --homedir "$G" --armor --export "$S!" > "$WORK/s-primary-only.asc" 2>/dev/null
+PRESEED="gpg-pubkey-$S8-5f000000 @$WORK/s-primary-only.asc" rpm_case refreshes-stale-key good.armor "$S" "" "$OK" 0 "$S" ok
+if awk -v n="gpg-pubkey-$S8-5f000000" '$1 == n && $2 !~ /^@/ { f = 1 } END { exit !f }' "$WORK/rpm-refreshes-stale-key/rpmdb.state"; then report refreshes-stale-key-state 0 ok "" ""; else report refreshes-stale-key-state 1 ok "" "$(cat "$WORK/rpm-refreshes-stale-key/rpmdb.state")"; fi
+# A current copy is left alone
+PRESEED="gpg-pubkey-$S8-5f000000 $S" rpm_case keeps-current-key good.armor "$S" "" "$OK" 0 "$S" ok
+if grep -q '^erased' "$WORK/rpm-keeps-current-key/rpm.log" 2>/dev/null; then report keeps-current-key-state 1 ok "" "the current key was removed"; else report keeps-current-key-state 0 ok "" ""; fi
+# The old copy comes back when the refreshed import fails
+PRESEED="gpg-pubkey-$S8-5f000000 @$WORK/s-primary-only.asc" IMPORT_FAILS=1 rpm_case refresh-restores good.armor "$S" "" "$OK" 0 "$S" fail "Failed to import public key"
+if [ -s "$WORK/rpm-refresh-restores/restored" ]; then report refresh-restores-state 0 ok "" ""; else report refresh-restores-state 1 ok "" "the old key was not re-imported"; fi
+PRESEED="gpg-pubkey-$S8-5f000000 @$WORK/s-primary-only.asc" ERASE_FAILS=gpg-pubkey-$S8-5f000000 rpm_case refresh-erase-fails good.armor "$S" "" "$OK" 0 "$S" fail "Failed to remove outdated key"
+# rpm 6 updates an installed key on import
+PRESEED="gpg-pubkey-$S8-5f000000 @$WORK/s-primary-only.asc" rpm_case rpm6-import good.armor "$S" "" "$OK" 0 "$S" ok "" 6.0.2
 # An rpm version that cannot be parsed counts as modern, so NOKEY stays a failure
 rpm_case unparsable-version good.armor "$S" "" "$NOKEY" 1 "$S" fail "could not be checked against the BDOT key" "garbage"
+# One key that will not come out does not keep the rest in
+PRESEED="$(printf 'gpg-pubkey-%s-5f000000 %s\ngpg-pubkey-%s-5f000000 %s' "$R8" "$R" "$L8" "$L")" RPM_REVOKE="gpg-pubkey-$R8-5f000000 gpg-pubkey-$L8-5f000000" ERASE_FAILS=gpg-pubkey-$R8-5f000000 rpm_case remove-fails good.armor "$S $R $L" "$RREV" "$OK" 0 "$S" fail "Failed to remove revoked key gpg-pubkey-$R8-5f000000"
+if installed remove-fails gpg-pubkey-$L8-5f000000; then report remove-fails-continues 1 ok "" "gpg-pubkey-$L8-5f000000 is still installed"; else report remove-fails-continues 0 ok "" ""; fi
 # rpm before 4.12 cannot check subkey signatures: the accepted carve-out for older hosts
 rpm_case legacy-nokey     good.armor    "$S" ""                       "$NOKEY" 1 "$S" ok   "" 4.11.3
 case "$out" in *"Package signature is valid"*) report legacy-nokey-not-valid 1 ok "" "$out" ;; *"rpm could not verify"*) report legacy-nokey-not-valid 0 ok "" "" ;; *) report legacy-nokey-not-valid 1 ok "" "$out" ;; esac
@@ -410,12 +473,12 @@ once_case reason-once-continue y
 once_case reason-once-decline n
 
 # The bundle in signature/gpg, packed as release-prep-gpg does, must pass the checks that
-# stop every install when a certificate is wrong
+# stop every install when a certificate or revoked-key entry is wrong
 REPO=$(cd "$DATA/../../../.." && pwd)
 t="$WORK/shipped-bundle"; mkdir -p "$t/keys"
 cp -r "$REPO/signature/gpg/." "$t/keys/"; rm -f "$t/keys/revocations.md" "$t/keys/deb-revocations/.keep"
 (cd "$t/keys" && tar -czf "$t/gpg-keys.tar.gz" .)
-out=$(cd "$t" && sh -c ". '$WORK/lib.sh'; GPG_DIR=\$(mktemp -d '$t/gpg.XXXXXX'); tar -xzf '$t/gpg-keys.tar.gz' -C \"\$GPG_DIR\"; gpg_import_bundle; r=\$?; gpg_cleanup; exit \$r" 2>&1); rc=$?
+out=$(cd "$t" && sh -c ". '$WORK/lib.sh'; GPG_DIR=\$(mktemp -d '$t/gpg.XXXXXX'); tar -xzf '$t/gpg-keys.tar.gz' -C \"\$GPG_DIR\"; gpg_import_bundle && rpm_read_revoked_list; r=\$?; gpg_cleanup; exit \$r" 2>&1); rc=$?
 report shipped-bundle $rc ok "" "$out"
 
 echo "pass=$pass fail=$fail"; [ $fail -eq 0 ]
