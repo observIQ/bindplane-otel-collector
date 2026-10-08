@@ -224,6 +224,7 @@ receivers:
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/googlecloudstoragerehydrationreceiver v1.0.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/httpreceiver v1.0.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/m365receiver v1.0.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/networkcheckreceiver v1.1.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/oktareceiver v1.0.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pcapreceiver v1.0.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.0.0
