@@ -56,6 +56,8 @@ jobs:
             scripts:
               - '**/*.sh'
               - '**/*.ps1'
+              - 'scripts/install/test/testdata/**'
+              - 'signature/gpg/**'
             misspell:
               - '**/*.md'
               - '**/*.yaml'
@@ -301,7 +303,11 @@ jobs:
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
-      - name: Install shellcheck
-        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+      - name: Install test dependencies
+        # rpm reads the signed test fixture; de_DE.UTF-8 and language-pack-de-base make gpg translate its warnings
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck rpm gnupg binutils locales language-pack-de-base
+          sudo locale-gen de_DE.UTF-8
       - name: Check Install Scripts
         run: make check-install-scripts

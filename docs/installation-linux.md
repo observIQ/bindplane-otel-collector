@@ -28,6 +28,21 @@ sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/r
 
 To read more about OpAMP management, see the [supervisor docs](./supervisor.md).
 
+#### Package signature verification
+
+The script verifies the package's GPG signature before installing it. Verification needs `gpg`, `tar`, `gzip`, `awk`, `sed`, `grep`, `tr`, and `cut`, plus `ar` for deb packages. When the tools are present, a package that fails verification does not install.
+
+By default, verification is best effort. If the system lacks any of those tools, the script warns and installs the package without verifying it, so existing install commands keep working on minimal systems. Two flags change that default, in opposite directions:
+
+- `--require-gpg-check` makes verification mandatory. If the tools are missing, the script stops instead of installing. Use it when your organization requires every package to be verified.
+- `--no-gpg-check` skips verification entirely, even when the tools are present. Use it only where the package's authenticity is established some other way, or on systems where verification cannot run.
+
+The two flags cannot be used together.
+
+```sh
+sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)" install_unix.sh --require-gpg-check
+```
+
 ### Installation from local package
 
 To install the agent from a local package use the `-f` with the path to the package.
