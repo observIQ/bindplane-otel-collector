@@ -18,7 +18,7 @@ set -e
 # Cache OS type to avoid repeated subshell forks
 OS_TYPE=$(uname -s)
 
-# Allow configurable runtime user/group (used for permissions and manager.yaml)
+# Allow configurable runtime user/group (used for file ownership)
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
 
@@ -1733,10 +1733,6 @@ uninstall() {
     # rm -f /etc/init.d/bindplane-otel-collector
     succeeded
   fi
-
-  info "Removing any existing manager.yaml..."
-  rm -f "$MANAGEMENT_YML_PATH"
-  succeeded
 
   info "Removing package..."
   uninstall_package || error_exit "$LINENO" "Failed to remove package"
