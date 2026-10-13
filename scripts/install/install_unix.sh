@@ -51,8 +51,8 @@ remove_created_aix_user() {
 trap remove_created_aix_user EXIT
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo shasum|sha256sum"
-SUGGESTED_TOOLS="jq bash awk"
+PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo awk shasum|sha256sum"
+SUGGESTED_TOOLS="jq bash"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -62,7 +62,7 @@ skip_gpg_check=false
 
 # Set up AIX-specific constants and supervisor timeout values (AIX needs higher values due to slow I/O)
 if [ "$OS_TYPE" = "AIX" ]; then
-  PREREQS="$PREREQS iostat"
+  PREREQS="$PREREQS iostat gunzip"
   # AIX SRC (System Resource Controller) uses two identifiers:
   #   Group name: used with -g flag for stopsrc, lssrc, startsrc, and inittab entries
   #   Subsystem name: used with -s flag for mkssys, rmssys, lssrc status checks
@@ -100,7 +100,7 @@ RPM_GPG_KEYS_TO_REMOVE=""
 
 # Colors
 if [ "$non_interactive" = "false" ] && [ "$OS_TYPE" != AIX ]; then
-  num_colors=$(tput colors 2>/dev/null)
+  num_colors=$(tput colors 2>/dev/null || echo 0)
   if test -n "$num_colors" && test "$num_colors" -ge 8; then
     bold="$(tput bold)"
     underline="$(tput smul)"
