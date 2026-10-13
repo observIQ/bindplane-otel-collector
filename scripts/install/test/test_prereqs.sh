@@ -26,14 +26,13 @@ run_case() {
   name=$1 os=$2 omit=$3 expect=$4; shift 4
   if [ "$os" = Linux ] && [ "$(uname)" = AIX ]; then echo "SKIP $name (needs a Linux host: a faked uname can't swap AIX's own tools)"; return; fi
   bin="$WORK/bin-$name"; mkdir -p "$bin"
-  # Mirror PATH, minus the omitted tools; fake iostat so the AIX list resolves on Linux.
+  # Mirror PATH, minus the omitted tools.
   for p in $(IFS=:; for d in $PATH; do printf '%s\n' "$d"/*; done); do
     [ -e "$p" ] && [ ! -e "$bin/${p##*/}" ] || continue   # first match on PATH wins, like the shell
     t=${p##*/}
     case " $omit " in *" $t "*) continue ;; esac
     ln -s "$p" "$bin/$t"
   done
-  [ -e "$bin/iostat" ] || { printf '#!/bin/sh\n' > "$bin/iostat"; chmod +x "$bin/iostat"; }
   rm -f "$bin/uname"
   printf '#!/bin/sh\necho %s\n' "$os" > "$bin/uname"; chmod +x "$bin/uname"
   # No TERM, as under CI, cron, or a pipe, where tput fails
@@ -52,5 +51,6 @@ run_case linux-all-present Linux ""          ok
 run_case linux-no-awk      Linux "awk"       fail awk
 run_case aix-no-gunzip     AIX   "gunzip"    fail gunzip
 run_case aix-no-both       AIX   "gunzip awk" fail gunzip awk
+run_case aix-no-iostat      AIX   "iostat"    ok
 [ -n "$KEEP" ] || rm -rf "$WORK"
 echo "pass=$pass fail=$fail"; [ $fail -eq 0 ]
