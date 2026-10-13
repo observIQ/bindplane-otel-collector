@@ -34,6 +34,7 @@ jobs:
       plugin-docs: ${{ steps.filter.outputs.plugin-docs == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
       dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      manifests: ${{ steps.filter.outputs.manifests == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -66,6 +67,9 @@ jobs:
               - 'go.mod'
             dependabot:
               - '.github/dependabot.yml'
+            manifests:
+              - 'manifests/observIQ/**'
+              - 'scripts/check-aix-manifest.sh'
 
   setup-tools:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' }}
@@ -291,3 +295,15 @@ jobs:
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Check Dependabot
         run: make check-dependabot
+
+  check-aix-manifest:
+    if: ${{ needs.optimize_ci.outputs.skip != 'true' && needs.detect-changes.outputs.manifests == 'true' }}
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    needs:
+      - optimize_ci
+      - detect-changes
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Check AIX Manifest Is Subset of Main Manifest
+        run: make check-aix-manifest
