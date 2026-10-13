@@ -291,3 +291,17 @@ jobs:
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Check Dependabot
         run: make check-dependabot
+
+  check-install-scripts:
+    if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.scripts == 'true' }}
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    needs:
+      - optimize_ci
+      - detect-changes
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Install shellcheck
+        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+      - name: Check Install Scripts
+        run: make check-install-scripts

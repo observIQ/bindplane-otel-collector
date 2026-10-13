@@ -293,6 +293,12 @@ check-dependabot:
 		echo "Check dependabot finished successfully"; \
 	fi
 
+# This target lints the unix install scripts and runs their tests
+.PHONY: check-install-scripts
+check-install-scripts:
+	shellcheck -S warning scripts/install/install_unix.sh scripts/install/install_macos.sh scripts/install/test/*.sh
+	sh scripts/install/test/run_tests.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:

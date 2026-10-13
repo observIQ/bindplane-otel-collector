@@ -81,13 +81,13 @@ gpg_tar_out_file_path="unknown"
 
 offline_installation=false
 
-# RPM_GPG_KEYS_TO_REMOVE is a list of GPG keys to remove from the RPM package. This is used for revoked keys. Deb packages are handled differently.
+# RPM_GPG_KEYS_TO_REMOVE is a space-separated list of GPG keys to remove from the RPM package. This is used for revoked keys. Deb packages are handled differently.
 # The entries in this should be formatted similarly to gpg-pubkey-<version>-<release>
 # The entries can be found by importing the revoked public key and then exploring the RPM database for the key.
 # rpm --import <revoked_public_key>.asc
 # rpm -q gpg-pubkey, it's one of these
 # rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
-RPM_GPG_KEYS_TO_REMOVE=[]
+RPM_GPG_KEYS_TO_REMOVE=""
 
 # Colors
 if [ "$non_interactive" = "false" ] && [ "$OS_TYPE" != AIX ]; then
@@ -550,7 +550,7 @@ detect_distro_package_type()
         echo "deb"
         return 0
         ;;
-      *rhel*|*centos*|*fedora*|*rocky*|*almalinux*|*amzn*|*sles*|*suse*|*opensuse*)
+      *rhel*|*centos*|*fedora*|*rocky*|*almalinux*|*amzn*|*sles*|*suse*)
         echo "rpm"
         return 0
         ;;
@@ -1341,7 +1341,7 @@ verify_package_rpm() {
 
   # Fail if rpm --import itself fails
   if [ $IMPORT_EXIT_CODE -ne 0 ]; then
-      error "Failed to import public key"
+      error "Failed to import public key: $IMPORT_OUTPUT"
       return 1
   fi
 
@@ -1359,16 +1359,14 @@ verify_package_rpm() {
   SIGNING_KEYID=$(echo "$SIGNING_KEYID" | tr '[:upper:]' '[:lower:]')
 
   # Remove revoked keys (your existing logic)
-  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
-    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
-      if rpm -q "$key" > /dev/null 2>&1; then
-        if ! rpm -e "$key" > /dev/null 2>&1; then
-          error "Failed to remove revocation key"
-          return 1
-        fi
+  for key in $RPM_GPG_KEYS_TO_REMOVE; do
+    if rpm -q "$key" > /dev/null 2>&1; then
+      if ! rpm -e "$key" > /dev/null 2>&1; then
+        error "Failed to remove revocation key"
+        return 1
       fi
-    done
-  fi
+    fi
+  done
 
   if ! rpm -qa 'gpg-pubkey*' \
   | xargs -n1 rpm -qi \
