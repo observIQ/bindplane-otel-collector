@@ -26,13 +26,14 @@ OS_TYPE=$(uname -s)
 PACKAGE_NAME="bindplane-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
 
-# Determine if we need service or systemctl for prereqs
-if command -v systemctl >/dev/null 2>&1; then
+# Determine the service manager for prereqs. AIX always uses SRC, even when a
+# systemctl or service command is also on PATH.
+if [ "$OS_TYPE" = "AIX" ] && command -v mkssys > /dev/null 2>&1; then
+  SVC_PRE=mkssys
+elif command -v systemctl >/dev/null 2>&1; then
   SVC_PRE=systemctl
 elif command -v service >/dev/null 2>&1; then
   SVC_PRE=service
-elif command -v mkssys > /dev/null 2>&1; then
-  SVC_PRE=mkssys
 fi
 
 # Script Constants
