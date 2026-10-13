@@ -22,7 +22,9 @@ AIX=${2:-manifests/observIQ/manifest-aix.yaml}
 
 components() {
 	awk '/^[a-z_]+:/ { s = $1 }
-		s ~ /^(extensions|exporters|processors|receivers|connectors|providers):$/ && $1 == "-" && $2 == "gomod:" { print $3 }' "$1" | sort -u
+		s ~ /^(extensions|exporters|processors|receivers|connectors|providers):$/ && $1 == "-" && $2 == "gomod:" { print $3 }' "$1" |
+		# dynatrace-bindplane-otel-contrib replaces bindplane-otel-contrib, so a component on either path is the same one
+		sed 's#^github.com/observiq/bindplane-otel-contrib/#github.com/dynatrace/dynatrace-bindplane-otel-contrib/#' | sort -u
 }
 
 tmp=$(mktemp)
