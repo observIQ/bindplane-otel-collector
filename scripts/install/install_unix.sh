@@ -40,6 +40,15 @@ COLLECTOR_USER="${BDOT_USER}"
 COLLECTOR_GROUP="${BDOT_GROUP}"
 COLLECTOR_USER_LEGACY="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
+
+# Remove the user install_aix created if the install fails, so a re-run creates it again.
+# force_exit calls this too: AIX's ksh88 skips EXIT traps when a function kills or set -e ends the shell,
+# and runs a function's own EXIT trap when the function returns, so the trap lives here.
+created_aix_user=false
+remove_created_aix_user() {
+  if [ "$created_aix_user" = true ]; then rmuser -p "$COLLECTOR_USER" > /dev/null 2>&1; fi
+}
+trap remove_created_aix_user EXIT
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo shasum|sha256sum"
@@ -329,6 +338,7 @@ EOF
 }
 
 force_exit() {
+  remove_created_aix_user
   # Exit regardless of subshell level with no "Terminated" message
   kill -PIPE $$
   # Call exit to handle special circumstances (like running script during docker container build)
@@ -1014,7 +1024,8 @@ package_type_check()
     info "Checking for required AIX commands..."
     if command -v mkssys > /dev/null 2>&1 \
       && command -v mkgroup > /dev/null 2>&1 \
-      && command -v useradd > /dev/null 2>&1 \
+      && command -v mkuser > /dev/null 2>&1 \
+      && command -v rmuser > /dev/null 2>&1 \
       && command -v startsrc > /dev/null 2>&1 \
       && command -v stopsrc > /dev/null 2>&1 \
       && command -v lssrc > /dev/null 2>&1 \
@@ -1464,12 +1475,18 @@ install_aix()
   if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
     mkgroup "$COLLECTOR_GROUP" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
   fi
-  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
-    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_GROUP" -s /usr/bin/false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
-  fi
 
-  # Create the install & storage directories
+  # Create the install & storage directories. Before the user, so mkuser leaves the home's mode alone.
   mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
+
+  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
+    # No shell: AIX only accepts shells listed in /etc/security/login.cfg, and /usr/bin/false
+    # is not there by default. The mkuser.default shell always is, so keep it and create the account locked.
+    mkuser pgrp="$COLLECTOR_GROUP" home=/opt/bindplane-otel-collector account_locked=true login=false rlogin=false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+    # mkuser copies in a .profile, and the locked account never reads it
+    rm -f /opt/bindplane-otel-collector/.profile
+    created_aix_user=true
+  fi
 
   # Check if this is an upgrade (service already exists and is running)
   _aix_was_running=false
@@ -1515,10 +1532,8 @@ install_aix()
     rm -rf "$_aix_stage"
   else
     # Fresh install — no running binaries to worry about, extract directly
-    gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector
-    if [ $? -ne 0 ]; then
-      error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
-    fi
+    # || rather than a $? check, since set -e would exit first and skip error_exit
+    gunzip -c "$package_out_file_path" | tar -xvf - -C /opt/bindplane-otel-collector || error_exit "$LINENO" "Failed to extract package to /opt/bindplane-otel-collector"
   fi
 
   # Move files to appropriate locations
@@ -1907,6 +1922,8 @@ main() {
   offline_check
   setup_installation
   install_package
+  # The install succeeded, so keep any user install_aix created
+  created_aix_user=false
   display_results
 }
 
