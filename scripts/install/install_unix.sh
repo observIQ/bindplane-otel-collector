@@ -1075,6 +1075,12 @@ install_package() {
     fi
 
     eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
+
+    # AIX packages are verified against a detached signature published beside the package
+    if [ "$package_type" = "mkssys" ] && [ "$skip_gpg_check" != "true" ]; then
+      info "Downloading package signature from ${collector_download_url}.gpg.sig..."
+      eval curl -L "$proxy_args" "${collector_download_url}.gpg.sig" -o "${package_out_file_path}.gpg.sig" --progress-bar --fail || error_exit "$LINENO" "Failed to download package signature"
+    fi
     succeeded
   fi
 
