@@ -36,11 +36,12 @@ make agent          # v1
 
 ## v1 manifest internals
 
-Two components are internal modules under this repo:
+The managed-mode runtime is consumed from the Dynatrace distro:
 
-- `internal/extension/opampconnectionextension` — bindplane's OpAMP connection extension and the full v1 managed-mode runtime cluster (collector lifecycle, OpAMP client, package state, report manager, measurements, service dispatch).
-- `internal/processor/snapshotprocessor` — bindplane snapshot processor.
+- `github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension` — the OpAMP connection extension and the full v1 managed-mode runtime cluster (collector lifecycle, OpAMP client, package state, report manager, measurements, service dispatch). `cmd/collector/main.go` calls its `runtime.Run`; the Makefile stamps BDOT identity into it via `-X` ldflags.
 
-The v1 manifest references each by its own `gomod:` entry and a narrow local `replace:` pointing at the on-disk path. They stay under `internal/` until they're ready to be published.
+One component is an internal module under this repo:
+
+- `internal/processor/snapshotprocessor` — bindplane snapshot processor, kept here so Bindplane servers that request snapshots through the legacy `report.yaml` path keep working. It imports the Dynatrace `pkg/report` module. The manifest references it by its own `gomod:` entry and a narrow local `replace:` pointing at the on-disk path.
 
 See [`docs/specs/ocb-canonical-build.md`](../../docs/specs/ocb-canonical-build.md) for the broader design context.

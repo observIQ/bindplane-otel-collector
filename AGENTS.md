@@ -78,12 +78,12 @@ The project is structured as an OpenTelemetry Collector distribution with custom
 
 - **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make agent` build.
 - **cmd/collector/main.go** - Template `main.go` copied over ocb's generated `main.go`; calls into the Dynatrace `extension/opampconnectionextension/runtime` module for managed/standalone dispatch.
-- **internal/extension/opampconnectionextension/** - The OpAMP connection extension and its full managed-mode runtime cluster (collector lifecycle, OpAMP client, package state, report manager, measurements). Its own Go module; entry point `runtime.Run(Options)`.
-- **internal/processor/snapshotprocessor/** - Bindplane snapshot processor. Its own internal Go module.
+- **cmd/collector/** - Own Go module holding the `main.go` overlay and the AvailableComponents alias mutator. The managed-mode runtime itself (collector lifecycle, OpAMP client, package state, report manager, measurements) is consumed from `github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension`; BDOT identity is stamped into it at link time via the `-X` ldflags in the Makefile (`AGENT_NAME`, `AGENT_DESCRIPTION`, `PRODUCT_NAME`, `STDERR_LOG_NAME`).
+- **internal/processor/snapshotprocessor/** - Bindplane snapshot processor. Its own internal Go module; imports the Dynatrace `pkg/report` module so Bindplane servers that request snapshots through the legacy `report.yaml` path keep working.
 
 ### Component Organization
 
-Custom Bindplane components (receivers, processors, exporters, and extensions) live in [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib) and are consumed as Go modules via the manifest. This repo only carries the internal modules listed above.
+Custom Bindplane components (receivers, processors, exporters, and extensions) live in [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib) and are consumed as Go modules via the manifest. This repo carries only the modules listed above; the managed-mode runtime comes from the Dynatrace distro.
 
 ### Key Architectural Patterns
 

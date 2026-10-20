@@ -1,9 +1,0 @@
-snapshot:
-  endpoint:
-    url: "http://localhost:9001/v1/endpoint"
-    headers:
-      Authorization:
-        - one
-        - two
-      Content-Type:
-        - application/json

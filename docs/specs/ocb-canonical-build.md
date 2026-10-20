@@ -1,6 +1,6 @@
 d# ocb-Canonical Build — as built
 
-This describes the BDOT Collector build as it stands today. The OTel Collector Builder (ocb) compiles every binary from a manifest. The v1 runtime cluster (OpAMP client, collector lifecycle, package state, report manager, measurements) lives in a single internal Go module.
+This describes the BDOT Collector build as it stands today. The OTel Collector Builder (ocb) compiles every binary from a manifest. The v1 runtime cluster (OpAMP client, collector lifecycle, package state, report manager, measurements) is consumed from the Dynatrace distro's `github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension` module.
 
 ## What ocb owns
 
@@ -32,33 +32,13 @@ bindplane-otel-collector/
 │       ├── manifest-v2-aix.yaml
 │       └── README.md
 │
+├── cmd/
+│   └── collector/                       # own Go module; v1 entry point overlaid onto ocb's build/main.go
+│       ├── go.mod
+│       ├── main.go                      # the actual main; copied to build/main.go
+│       └── components_stub.go           # source-tree stub of components() (not copied)
+│
 ├── internal/
-│   ├── extension/
-│   │   └── opampconnectionextension/    # own Go module
-│   │       ├── go.mod
-│   │       ├── extension.go             # OTel extension factory
-│   │       ├── factory.go
-│   │       ├── config.go
-│   │       ├── registry.go              # Client interface + GetRegistry
-│   │       ├── available_components.go
-│   │       │
-│   │       ├── cmd/main/                # v1 entry point overlaid onto ocb's build/main.go
-│   │       │   ├── main.go              # the actual main; copied to build/main.go
-│   │       │   └── components_stub.go   # source-tree stub of components() (not copied)
-│   │       │
-│   │       ├── runtime/                 # entry point used by main.go
-│   │       │   ├── run.go               # Options + Run
-│   │       │   └── bootstrap.go         # TLS env, manager.yaml init, rollback
-│   │       │
-│   │       ├── collector/               # otelcol lifecycle wrapper
-│   │       ├── opamp/                   # OpAMP types + client interface
-│   │       │   └── observiq/            # default Bindplane client implementation
-│   │       ├── packagestate/            # package-install state machine
-│   │       ├── report/                  # snapshot/measurements/topology senders
-│   │       ├── measurements/            # throughput measurements registry
-│   │       ├── service/                 # managed/standalone runnable wrapper
-│   │       └── logging/                 # zap config loader
-│   │
 │   └── processor/
 │       └── snapshotprocessor/           # own Go module
 │           └── go.mod
@@ -71,11 +51,11 @@ bindplane-otel-collector/
 └── dist/                                # compiled binaries (gitignored)
 ```
 
-No top-level `go.mod`. No `factories/`. The legacy `opamp/`, `collector/`, `packagestate/`, `internal/{logging,service,report,measurements}/` directories are gone — that code now lives under `internal/extension/opampconnectionextension/`.
+No top-level `go.mod`. No `factories/`. The legacy `opamp/`, `collector/`, `packagestate/`, `internal/{logging,service,report,measurements}/` directories are gone — that code now lives in the Dynatrace distro's `github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension` module.
 
 ## v1 entry point
 
-`cmd/collector/main.go` is ~100 lines: parse flags, build factories from ocb's `components()`, call `runtime.Run(Options)`. Everything else lives in the extension module.
+`cmd/collector/main.go` is ~100 lines: parse flags, build factories from ocb's `components()`, call `runtime.Run(Options)`. Everything else lives in the Dynatrace extension module.
 
 ```go
 package runtime
@@ -108,7 +88,7 @@ The v1 build uses `-tags embed_library` (telemetry generator receiver). The `bin
 
 `manifest.yaml` carries:
 
-- Two narrow local replaces pointing at the on-disk paths of the internal modules: `internal/extension/opampconnectionextension` and `internal/processor/snapshotprocessor`.
+- One narrow local replace pointing at the on-disk path of the internal module `internal/processor/snapshotprocessor`.
 - Six pinning replaces inherited from the legacy `go.mod`: `mattn/go-ieproxy v0.0.1`, `cilium/ebpf v0.11.0`, `DataDog/datadog-agent/comp/core/delegatedauth v0.78.2`, plus three observIQ forks (`windowseventlogreceiver`, `pkg/stanza`, `azureblobreceiver`).
 
 `manifest-v2.yaml` and `manifest-v2-aix.yaml` are unmodified copies of v2.0.1-beta.3 and use a different replace set (notably `cockroachdb/errors v1.13.0` to fix a sentry-go API break).
