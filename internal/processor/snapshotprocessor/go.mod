@@ -6,8 +6,6 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../../extension/opampconnectionextension
-
 require (
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0
 	github.com/open-telemetry/opamp-go v0.25.0
@@ -31,6 +29,7 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.2.0
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -38,7 +37,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
-	github.com/observiq/bindplane-otel-collector/internal/report v1.111.0
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/collector/featuregate v1.69.0 // indirect
 	go.opentelemetry.io/collector/internal/componentalias v0.163.0 // indirect
@@ -52,5 +50,3 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
-
-replace github.com/observiq/bindplane-otel-collector/internal/report => ../../report

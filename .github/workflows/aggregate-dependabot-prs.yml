@@ -15,7 +15,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
       - name: Aggregate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

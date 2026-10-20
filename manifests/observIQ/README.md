@@ -22,7 +22,7 @@ From the repo root:
 make agent          # v1
 ```
 
-`make agent` runs `builder --skip-compilation` against `manifest.yaml`, overwrites the generated `build/main.go` with `internal/extension/opampconnectionextension/cmd/main/main.go` (so the managed/standalone runtime is wired in), then `go build`s into `./dist/`. `./build/` is gitignored ocb output; the final binary is `./dist/collector_<os>_<arch>`.
+`make agent` runs `builder --skip-compilation` against `manifest.yaml`, overwrites the generated `build/main.go` with `cmd/collector/main.go` (so the managed/standalone runtime is wired in), then `go build`s into `./dist/`. `./build/` is gitignored ocb output; the final binary is `./dist/collector_<os>_<arch>`.
 
 `make verify-manifest` regenerates sources from `manifest.yaml` and compiles to `/dev/null` — the CI gate.
 

@@ -19,7 +19,7 @@ package main
 import (
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/runtime"
+	"github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension/runtime"
 	"github.com/stretchr/testify/require"
 )
 

@@ -22,8 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report"
 	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot"
-	"github.com/observiq/bindplane-otel-collector/internal/report"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
