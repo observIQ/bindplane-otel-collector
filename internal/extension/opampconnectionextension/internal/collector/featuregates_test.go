@@ -52,3 +52,31 @@ func TestSetFeatureFlags(t *testing.T) {
 		require.True(t, testFG.IsEnabled())
 	})
 }
+
+func TestSetFeatureFlagsSkipsListedGates(t *testing.T) {
+	orig := skippedFeatureGates
+	t.Cleanup(func() { skippedFeatureGates = orig })
+
+	t.Run("unregistered gate fails when not listed", func(t *testing.T) {
+		skippedFeatureGates = nil
+		require.Error(t, SetFeatureFlags([]string{"test.unregistered"}, zap.NewNop()))
+	})
+
+	t.Run("listed gate is skipped", func(t *testing.T) {
+		skippedFeatureGates = []string{"test.unregistered"}
+		require.NoError(t, SetFeatureFlags([]string{"test.unregistered", "-test.unregistered"}, zap.NewNop()))
+	})
+
+	t.Run("listed gate is set when registered", func(t *testing.T) {
+		listedFG, err := featuregate.GlobalRegistry().Register("test.listed.registered", featuregate.StageAlpha)
+		require.NoError(t, err)
+		skippedFeatureGates = []string{"test.listed.registered"}
+		require.NoError(t, SetFeatureFlags([]string{"+test.listed.registered"}, zap.NewNop()))
+		require.True(t, listedFG.IsEnabled())
+	})
+
+	t.Run("unlisted unregistered gate still fails", func(t *testing.T) {
+		skippedFeatureGates = []string{"test.unregistered"}
+		require.Error(t, SetFeatureFlags([]string{"test.other"}, zap.NewNop()))
+	})
+}
