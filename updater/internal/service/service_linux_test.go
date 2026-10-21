@@ -30,16 +30,33 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func TestSudoCommandNonInteractive(t *testing.T) {
-	if os.Getuid() == 0 {
-		t.Skip("test requires a non-root user so needsSudo() returns true")
+func TestSudoCommand(t *testing.T) {
+	testCases := []struct {
+		name         string
+		unprivileged bool
+		expected     []string
+	}{
+		{
+			// sudo must be invoked non-interactively (-n) so a missing or
+			// non-NOPASSWD sudoers rule fails fast instead of blocking on a
+			// password prompt the updater has no TTY to answer.
+			name:         "Unprivileged runs sudo non-interactively",
+			unprivileged: true,
+			expected:     []string{"sudo", "-n", "systemctl", "start", "observiq-otel-collector.service"},
+		},
+		{
+			name:         "Root runs the command directly",
+			unprivileged: false,
+			expected:     []string{"systemctl", "start", "observiq-otel-collector.service"},
+		},
 	}
 
-	// When running as non-root, sudo must be invoked non-interactively (-n) so a
-	// missing or non-NOPASSWD sudoers rule fails fast instead of blocking on a
-	// password prompt the updater has no TTY to answer.
-	cmd := sudoCommand("systemctl", "start", "observiq-otel-collector")
-	require.Equal(t, []string{"sudo", "-n", "systemctl", "start", "observiq-otel-collector"}, cmd.Args)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := sudoCommand(tc.unprivileged, "systemctl", "start", "observiq-otel-collector.service")
+			require.Equal(t, tc.expected, cmd.Args)
+		})
+	}
 }
 
 func TestRunWithOutput(t *testing.T) {

@@ -35,9 +35,9 @@ func needsSudo() bool {
 	return os.Getuid() != 0
 }
 
-// sudoCommand creates an exec.Cmd, prepending "sudo -n" if the process is non-root.
-func sudoCommand(name string, args ...string) *exec.Cmd {
-	if needsSudo() {
+// sudoCommand creates an exec.Cmd, prepending "sudo -n" when unprivileged is true.
+func sudoCommand(unprivileged bool, name string, args ...string) *exec.Cmd {
+	if unprivileged {
 		// -n runs sudo non-interactively: if credentials are required it fails
 		// immediately rather than blocking on a password prompt the updater
 		// (running without a TTY) cannot answer.
@@ -131,7 +131,7 @@ type linuxSystemdService struct {
 // Start the service. When unprivileged, the arguments must exactly match the
 // sudoers entry written by install_sudoers in scripts/package/postinstall.sh.
 func (l linuxSystemdService) Start() error {
-	cmd := sudoCommand("systemctl", "start", l.serviceName)
+	cmd := sudoCommand(l.unprivileged, "systemctl", "start", l.serviceName)
 	if err := runWithOutput(cmd); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
@@ -141,7 +141,7 @@ func (l linuxSystemdService) Start() error {
 // Stop the service. When unprivileged, the arguments must exactly match the
 // sudoers entry written by install_sudoers in scripts/package/postinstall.sh.
 func (l linuxSystemdService) Stop() error {
-	cmd := sudoCommand("systemctl", "stop", l.serviceName)
+	cmd := sudoCommand(l.unprivileged, "systemctl", "stop", l.serviceName)
 	if err := runWithOutput(cmd); err != nil {
 		return fmt.Errorf("running systemctl failed: %w", err)
 	}
