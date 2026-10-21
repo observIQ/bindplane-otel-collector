@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         distro: [debian-13, ubuntu-26.04, rocky-10, opensuse-leap-16.0]
-        action: [install, upgrade]
+        action: [install, upgrade, install_unprivileged, refuse_privileged]
         arch: [amd64, arm64]
         exclude:
           - distro: opensuse-leap-16.0
