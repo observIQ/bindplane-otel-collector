@@ -407,6 +407,11 @@ check-install-scripts:
 	shellcheck -S warning scripts/install/install_unix.sh scripts/install/install_macos.sh scripts/install/test/*.sh scripts/install/test/testdata/*.sh
 	sh scripts/install/test/run_tests.sh
 
+.PHONY: check-support-scripts
+check-support-scripts:
+	shellcheck -s sh -S warning scripts/support/create-support-bundle.sh scripts/support/test/*.sh
+	sh scripts/support/test/run_tests.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:
