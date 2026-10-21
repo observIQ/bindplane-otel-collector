@@ -385,32 +385,25 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 		err := u.generateLinuxServiceFiles()
 		require.NoError(t, err)
 
-		// Verify the generated systemd service file contains expected directives
-		generatedPath := filepath.Join(installDir, "install", "observiq-otel-collector.service")
-		content, err := os.ReadFile(generatedPath)
-		require.NoError(t, err)
+		// Compare the generated files with golden files
+		compareFiles(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), u.installedSystemdUnitPath, installDir)
 
-		generated := string(content)
-		// Verify user/group from golden file
-		require.Contains(t, generated, "User=root")
-		require.Contains(t, generated, "Group=bdot")
-		// Verify install dir is templated correctly
-		require.Contains(t, generated, fmt.Sprintf("WorkingDirectory=%s", installDir))
-		require.Contains(t, generated, fmt.Sprintf("Environment=BINDPLANE_COLLECTOR_HOME=%s", installDir))
-		// Verify storage dir is under the install dir
-		require.Contains(t, generated, fmt.Sprintf("Environment=BINDPLANE_COLLECTOR_STORAGE=%s/storage", installDir))
 		// Check file permissions
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector"), 0755)
 	})
 }
 
-func compareFiles(t *testing.T, generatedFile, goldenFile string) {
+func compareFiles(t *testing.T, generatedFile, goldenFile, installDir string) {
 	generated, err := os.ReadFile(generatedFile)
 	require.NoError(t, err, fmt.Sprintf("file: %s", generatedFile))
 
 	golden, err := os.ReadFile(goldenFile)
 	require.NoError(t, err, fmt.Sprintf("file: %s", goldenFile))
+
+	// The golden file uses the default install directory, and the generated
+	// file uses the updater's install directory.
+	golden = bytes.ReplaceAll(golden, []byte("/opt/observiq-otel-collector"), []byte(installDir))
 
 	// Trim the contents to ignore trailing newlines or spaces
 	generated = bytes.TrimSpace(generated)
