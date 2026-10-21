@@ -80,3 +80,25 @@ func TestSetFeatureFlagsSkipsListedGates(t *testing.T) {
 		require.Error(t, SetFeatureFlags([]string{"test.other"}, zap.NewNop()))
 	})
 }
+
+func TestCheckFeatureGates(t *testing.T) {
+	origHardcoded := hardcodedFeatureGates
+	t.Cleanup(func() { hardcodedFeatureGates = origHardcoded })
+	_, err := featuregate.GlobalRegistry().Register("test.check.registered", featuregate.StageAlpha)
+	require.NoError(t, err)
+
+	t.Run("every hardcoded gate registered or skipped passes", func(t *testing.T) {
+		hardcodedFeatureGates = []string{"test.check.registered", "-test.check.missing"}
+		require.NoError(t, CheckFeatureGates([]string{"test.check.missing"}))
+	})
+
+	t.Run("a hardcoded gate neither registered nor skipped fails", func(t *testing.T) {
+		hardcodedFeatureGates = []string{"test.check.missing"}
+		require.ErrorContains(t, CheckFeatureGates(nil), "test.check.missing")
+	})
+
+	t.Run("a skipped gate that is registered fails", func(t *testing.T) {
+		hardcodedFeatureGates = []string{"test.check.registered"}
+		require.ErrorContains(t, CheckFeatureGates([]string{"test.check.registered"}), "test.check.registered")
+	})
+}

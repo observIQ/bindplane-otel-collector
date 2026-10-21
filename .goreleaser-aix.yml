@@ -1,0 +1,107 @@
+# AIX goreleaser configuration.
+# Separate from .goreleaser.yml because AIX builds from manifests/observIQ/manifest-aix.yaml,
+# a reduced component set. Artifacts are uploaded to GCS and appended to the main GitHub release.
+
+version: 2
+
+project_name: observiq-otel-collector
+
+before:
+  hooks:
+    - make release-prep-aix CURR_VERSION={{ .Version }}
+    - make build-aix OUTDIR="tmp"
+
+after:
+  hooks:
+    - cmd: rm -rf tmp
+
+# https://goreleaser.com/customization/builds/#import-pre-built-binaries
+builds:
+  - id: collector
+    builder: prebuilt
+    binary: observiq-otel-collector
+    goos:
+      - aix
+    goarch:
+      - ppc64
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  - id: updater
+    builder: prebuilt
+    binary: updater
+    goos:
+      - aix
+    goarch:
+      - ppc64
+    prebuilt:
+      path: tmp/updater_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+
+# https://goreleaser.com/customization/archive/
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - src: release_deps/config.yaml
+        dst: "."
+        strip_parent: true
+      - src: release_deps/logging.yaml
+        dst: "."
+        strip_parent: true
+      - src: release_deps/plugins/*
+        dst: plugins
+        strip_parent: true
+      - src: release_deps/VERSION.txt
+        dst: "."
+        strip_parent: true
+      - src: release_deps/gpg-keys.tar.gz
+        dst: "."
+        strip_parent: true
+      - src: release_deps/observiq-otel-collector.env
+        dst: install
+        strip_parent: true
+
+# https://goreleaser.com/customization/checksum/
+checksum:
+  name_template: "{{ .ProjectName }}-v{{ .Version }}-aix-SHA256SUMS"
+  algorithm: sha256
+
+# https://goreleaser.com/customization/sign/
+# The AIX install path verifies packages with GPG, so artifacts get a GPG signature
+# alongside the cosign one the other platforms use.
+signs:
+  - id: cosign
+    cmd: cosign
+    stdin: "{{ .Env.COSIGN_PWD }}"
+    args:
+      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+    artifacts: all
+  - id: gpg
+    cmd: gpg
+    args:
+      - "--batch"
+      - "-u"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+    signature: "${artifact}.gpg.sig"
+    artifacts: all
+
+# https://goreleaser.com/customization/release/
+# Appended to the GitHub release the main goreleaser run creates.
+release:
+  draft: false
+  prerelease: "true"
+  mode: append
+
+# https://console.cloud.google.com/storage/browser/bdot-release
+blobs:
+  - provider: gs
+    bucket: bdot-release
+    directory: "v{{ .Version }}"
+
+# The main goreleaser config writes the changelog
+changelog:
+  disable: true

@@ -159,3 +159,10 @@ func loadLoggingOptions(loggingConfigPath string) ([]zap.Option, error) {
 	}
 	return l.Options()
 }
+
+// CheckAIXFeatureGates reports where the AIX feature gate skip list and the
+// components registered in this build disagree. make check-aix-feature-gates runs
+// it inside the ocb build of the AIX manifest.
+func CheckAIXFeatureGates() error {
+	return collector.CheckFeatureGates(collector.AIXSkippedFeatureGates)
+}

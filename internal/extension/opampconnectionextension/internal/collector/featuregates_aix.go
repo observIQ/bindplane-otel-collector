@@ -16,10 +16,5 @@
 
 package collector
 
-// skippedFeatureGates are gates registered by components the AIX build leaves out.
-// A listed gate is skipped only while the registry doesn't know it, so adding the
-// component back to the AIX build puts the gate back in effect.
-var skippedFeatureGates = []string{
-	"exporter.prometheusremotewritexporter.enableSendingRW2", // prometheusremotewriteexporter
-	"exporter.prometheusexporter.DisableAddMetricSuffixes",   // prometheusexporter
-}
+// skippedFeatureGates is the AIX skip list on AIX builds.
+var skippedFeatureGates = AIXSkippedFeatureGates

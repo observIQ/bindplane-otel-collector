@@ -15,6 +15,7 @@
 package collector
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -87,4 +88,23 @@ func isRegistered(id string) bool {
 		found = found || g.ID() == id
 	})
 	return found
+}
+
+// CheckFeatureGates reports a hardcoded gate that is neither registered nor in
+// skipped, and a skipped gate that is registered. Run it against a platform
+// build to keep that platform's skip list in step with its components.
+func CheckFeatureGates(skipped []string) error {
+	var errs []error
+	for _, fg := range hardcodedFeatureGates {
+		fg = strings.TrimLeft(fg, "+-")
+		if !isRegistered(fg) && !slices.Contains(skipped, fg) {
+			errs = append(errs, fmt.Errorf("hardcoded feature gate %s isn't registered and isn't skipped", fg))
+		}
+	}
+	for _, fg := range skipped {
+		if isRegistered(fg) {
+			errs = append(errs, fmt.Errorf("skipped feature gate %s is registered, so remove it from the skip list", fg))
+		}
+	}
+	return errors.Join(errs...)
 }

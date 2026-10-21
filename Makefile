@@ -91,6 +91,7 @@ OCB ?= $(shell command -v $${OCB:-builder} 2>/dev/null || echo $${GOBIN:-$$HOME/
 install-ocb:
 	go install go.opentelemetry.io/collector/cmd/builder@$(OCB_VERSION)
 MANIFEST ?= manifests/observIQ/manifest.yaml
+MANIFEST_AIX ?= manifests/observIQ/manifest-aix.yaml
 BUILD_DIR ?= ./build
 AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
 
@@ -144,10 +145,41 @@ build-binaries: agent updater container-init
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
 
-# v1 doesn't ship AIX binaries today, so build-all and build-all-non-aix are equivalent.
-# Goreleaser's before-hook uses this target name to handle the release flow.
+# AIX builds from its own manifest and ships through .goreleaser-aix.yml, so the
+# main goreleaser before-hook builds every other platform with this target.
 .PHONY: build-all-non-aix
 build-all-non-aix: build-all
+
+.PHONY: build-aix
+build-aix: build-aix-ppc64
+
+# Builds the AIX collector from the AIX manifest, plus the updater. AIX has no container-init.
+.PHONY: build-aix-ppc64
+build-aix-ppc64:
+	CGO_ENABLED=0 GOOS=aix GOARCH=ppc64 $(MAKE) agent MANIFEST=$(MANIFEST_AIX)
+	CGO_ENABLED=0 GOOS=aix GOARCH=ppc64 $(MAKE) updater
+
+# Generates and compiles the AIX build the same way verify-manifest does for the main manifest.
+.PHONY: verify-manifest-aix
+verify-manifest-aix:
+	GOOS=aix GOARCH=ppc64 $(MAKE) verify-manifest MANIFEST=$(MANIFEST_AIX)
+
+# Checks that every component in the AIX manifest is in the main manifest at the same version
+.PHONY: check-aix-manifest
+check-aix-manifest:
+	./scripts/check-aix-manifest.sh
+
+# Checks the AIX feature gate skip list against the gates the AIX components register:
+# every hardcoded gate is registered or skipped, and no skipped gate is registered.
+.PHONY: check-aix-feature-gates
+check-aix-feature-gates:
+	rm -rf $(BUILD_DIR)
+	$(OCB) --config $(MANIFEST_AIX) --skip-compilation
+	cp $(AGENT_MAIN) $(BUILD_DIR)/main.go
+	cp $(dir $(AGENT_MAIN))aix_feature_gates_test.go $(BUILD_DIR)/
+	rm -f $(BUILD_DIR)/main_others.go $(BUILD_DIR)/main_windows.go
+	cd $(BUILD_DIR) && go mod tidy
+	cd $(BUILD_DIR) && CGO_ENABLED=0 go test -tags "aixgates $(AGENT_BUILD_TAGS)" -run TestAIXFeatureGates .
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
@@ -439,6 +471,22 @@ release-prep:
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 
+# Downloads and sets up the dependencies packaged with the AIX binaries
+.PHONY: release-prep-aix
+release-prep-aix:
+	@rm -rf release_deps
+	@mkdir release_deps
+	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
+	./buildscripts/download-dependencies.sh release_deps
+	@cp -r ./plugins release_deps/
+	@cp config/example.yaml release_deps/config.yaml
+	@cp config/logging.yaml release_deps/logging.yaml
+	@cp service/observiq-otel-collector.env release_deps/observiq-otel-collector.env
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
+
 .PHONY: release-prep-gpg
 release-prep-gpg:
 	$(MAKE) release-prep
@@ -454,6 +502,12 @@ release-test:
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
 	if [ ! -e "./observiq-otel-collector-arm64.msi" ]; then touch ./observiq-otel-collector-arm64.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
+	$(MAKE) release-test-aix
+
+# Build AIX, skip release and signing, and ignore a dirty git tree
+.PHONY: release-test-aix
+release-test-aix:
+	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 .PHONY: release-containers-test
 release-containers-test:
