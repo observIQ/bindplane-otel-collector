@@ -15,6 +15,9 @@
 
 set -e
 
+# Cache OS type to avoid repeated subshell forks
+OS_TYPE=$(uname -s)
+
 # Reads optional package overrides. Users should deploy the override
 # file before installing BDOT for the first time. The override should
 # not be modified unless uninstalling and re-installing.
@@ -32,8 +35,11 @@ set -e
 PACKAGE_NAME="observiq-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
 
-# Determine if we need service or systemctl for prereqs
-if command -v systemctl > /dev/null 2>&1; then
+# Determine the service manager for prereqs. AIX always uses SRC, even when a
+# systemctl or service command is also on PATH.
+if [ "$OS_TYPE" = "AIX" ] && command -v mkssys > /dev/null 2>&1; then
+  SVC_PRE=mkssys
+elif command -v systemctl > /dev/null 2>&1; then
   SVC_PRE=systemctl
 elif command -v service > /dev/null 2>&1; then
   SVC_PRE=service
@@ -44,8 +50,29 @@ COLLECTOR_USER="${BDOT_USER}"
 COLLECTOR_GROUP="${BDOT_GROUP}"
 COLLECTOR_USER_LEGACY="observiq-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
+
+# Remove the user install_aix created if the install fails, so a re-run creates it again.
+# force_exit calls this too: AIX's ksh88 skips EXIT traps when a function kills or set -e ends the shell,
+# and runs a function's own EXIT trap when the function returns, so the trap lives here.
+created_aix_user=false
+remove_created_aix_user() {
+  if [ "$created_aix_user" = true ]; then rmuser -p "$COLLECTOR_USER" > /dev/null 2>&1; fi
+}
+trap remove_created_aix_user EXIT
 MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
+if [ "$OS_TYPE" = "AIX" ]; then
+  # AIX has no curl without the Toolbox, so base Perl can download instead. It installs from a tar.gz.
+  PREREQS="curl|perl printf $SVC_PRE sed uname cut tr tar gunzip awk"
+  # AIX SRC (System Resource Controller) uses two identifiers, which must match the updater's:
+  #   Group name: used with -g for startsrc, stopsrc and the inittab entry
+  #   Subsystem name: used with -s for mkssys, rmssys and lssrc
+  AIX_SRC_GROUP="oiqcollector"
+  AIX_SRC_SUBSYSTEM="observiq-otel-collector"
+  # Stands in for the systemd unit's Environment lines. One line of space-separated
+  # KEY=value pairs, since startsrc -e splits only on spaces.
+  AIX_ENV_FILE="/etc/observiq-otel-collector.env"
+fi
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -68,7 +95,7 @@ offline_installation=false
 RPM_GPG_KEYS_TO_REMOVE=""
 
 # Colors
-if [ "$non_interactive" = "false" ]; then
+if [ "$non_interactive" = "false" ] && [ "$OS_TYPE" != AIX ]; then
   num_colors=$(tput colors 2>/dev/null || echo 0)
   if test -n "$num_colors" && test "$num_colors" -ge 8; then
     bold="$(tput bold)"
@@ -104,7 +131,7 @@ fi
 # Helper Functions
 printf() {
   if [ "$non_interactive" = "false" ] || [ "$error_mode" = "true" ]; then
-    if command -v sed >/dev/null; then
+    if [ "$OS_TYPE" != "AIX" ] && command -v sed >/dev/null; then
       command printf -- "$@" | sed -r "$sed_ignore s/^/$indent/g"  # Ignore sole reset characters if defined
     else
       # Ignore $* suggestion as this breaks the output
@@ -314,6 +341,7 @@ EOF
 
 force_exit()
 {
+  remove_created_aix_user
   # Exit regardless of subshell level with no "Terminated" message
   kill -PIPE $$
   # Call exit to handle special circumstances (like running script during docker container build)
@@ -423,7 +451,14 @@ setup_installation()
 }
 
 set_file_names() {
-  if [ -z "$version" ] ; then
+  # AIX ships the same tar.gz the updater uses
+  if [ "$OS_TYPE" = "AIX" ]; then
+    if [ -z "$version" ] ; then
+      package_file_name="${PACKAGE_NAME}-aix-ppc64.tar.gz"
+    else
+      package_file_name="${PACKAGE_NAME}-v${version}-aix-ppc64.tar.gz"
+    fi
+  elif [ -z "$version" ] ; then
     package_file_name="${PACKAGE_NAME}_linux_${arch}.${package_type}"
   else
     package_file_name="${PACKAGE_NAME}_v${version}_linux_${arch}.${package_type}"
@@ -464,7 +499,12 @@ set_proxy()
 
 set_os_arch()
 {
-  os_arch=$(uname -m)
+  # AIX's uname -m is a machine ID, so ask for the processor type there
+  if [ "$OS_TYPE" = "AIX" ]; then
+    os_arch=$(uname -p)
+  else
+    os_arch=$(uname -m)
+  fi
   case "$os_arch" in 
     # arm64 strings. These are from https://stackoverflow.com/questions/45125516/possible-values-for-uname-m
     aarch64|arm64|aarch64_be|armv8b|armv8l)
@@ -479,6 +519,14 @@ set_os_arch()
       ;;
     ppc64le)
       os_arch="ppc64le"
+      ;;
+    # Only 64-bit AIX is supported
+    powerpc)
+      if [ "$OS_TYPE" = "AIX" ] && [ "$(bootinfo -y)" = "64" ]; then
+        os_arch="ppc64"
+      else
+        error_exit "$LINENO" "Unsupported os arch: 32-bit powerpc"
+      fi
       ;;
     # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
     arm|armv6l|armv7l)
@@ -503,6 +551,12 @@ set_os_arch()
 # Prints nothing and returns 1 if detection fails.
 detect_distro_package_type()
 {
+  # AIX installs from a tar.gz and runs under SRC
+  if [ "$OS_TYPE" = "AIX" ]; then
+    echo "mkssys"
+    return 0
+  fi
+
   # 1. /etc/os-release — most reliable on modern systems
   if [ -f /etc/os-release ]; then
     # Source in a subshell to avoid polluting the current environment
@@ -569,8 +623,9 @@ detect_distro_package_type()
 # Set the package type before install
 set_package_type()
 {
-  # if package_path is set get the file extension otherwise look at what's available on the system
-  if [ -n "$package_path" ]; then
+  # if package_path is set get the file extension otherwise look at what's available on the system.
+  # AIX always installs a tar.gz.
+  if [ -n "$package_path" ] && [ "$OS_TYPE" != "AIX" ]; then
     case "$package_path" in
       *.deb)
         package_type="deb"
@@ -598,7 +653,11 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    if [ "$OS_TYPE" = "AIX" ]; then
+      collector_download_url="$base_url/v$version/${PACKAGE_NAME}-v${version}-aix-ppc64.tar.gz"
+    else
+      collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    fi
   else
     collector_download_url="$url"
   fi
@@ -654,10 +713,10 @@ connection_check()
 {
   if [ -n "$check_bp_url" ] ; then
     if [ -n "$opamp_endpoint" ]; then
-      HTTP_ENDPOINT="$(echo "${opamp_endpoint}" | sed -z 's#^ws#http#' | sed -z 's#/v1/opamp$##')"
+      HTTP_ENDPOINT="$(echo "${opamp_endpoint}" | sed -e 's#^ws#http#' -e 's#/v1/opamp$##')"
       info "Testing connection to Bindplane: $fg_magenta$HTTP_ENDPOINT$reset..."
 
-      if curl --max-time 20 -s "${HTTP_ENDPOINT}" > /dev/null; then
+      if http_check "${HTTP_ENDPOINT}"; then
         succeeded
       else
         failed
@@ -755,7 +814,7 @@ os_check()
   info "Checking that the operating system is supported..."
   os_type=$(uname -s)
   case "$os_type" in
-    Linux)
+    Linux|AIX)
       succeeded
       ;;
     *)
@@ -769,6 +828,16 @@ os_check()
 os_arch_check()
 {
   info "Checking for valid operating system architecture..."
+  if [ "$OS_TYPE" = "AIX" ]; then
+    # Only 64-bit AIX is supported, and its uname -m is a machine ID
+    if [ "$(uname -p)" = "powerpc" ] && [ "$(bootinfo -y)" = "64" ]; then
+      succeeded
+    else
+      failed
+      error_exit "$LINENO" "Only 64-bit AIX on powerpc is supported. 'uname -p': $(uname -p), 'bootinfo -y': $(bootinfo -y)"
+    fi
+    return
+  fi
   arch=$(uname -m)
   case "$arch" in 
     x86_64|aarch64|ppc64|ppc64le|arm64|aarch64_be|armv8b|armv8l|arm|armv6l|armv7l)
@@ -788,15 +857,63 @@ dependencies_check()
   info "Checking for script dependencies..."
   FAILED_PREREQS=''
   for prerequisite in $PREREQS; do
-    if command -v "$prerequisite" >/dev/null; then
-      continue
-    else
-      if [ -z "$FAILED_PREREQS" ]; then
-        FAILED_PREREQS="${fg_red}$prerequisite${reset}"
-      else
-        FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
-      fi
-    fi
+    # Support alternate tools with pipe syntax (e.g. "shasum|sha256sum").
+    # Checks each alternate in order via command -v. The first one found is
+    # resolved, and a command variable is created with the full invocation
+    # including any required flags (see resolve_alternate_cmd).
+    case "$prerequisite" in
+      *"|"*)
+        _found=false
+        # Temporarily change the field separator to pipe so we can iterate
+        # over each alternate tool in the "tool1|tool2|toolN" entry
+        _save_IFS="$IFS"; IFS="|"
+        for _alt in $prerequisite; do
+          IFS="$_save_IFS"
+          if command -v "$_alt" >/dev/null; then
+            _found=true
+            resolve_alternate_cmd "$prerequisite" "$_alt"
+            break
+          fi
+          IFS="|"
+        done
+        IFS="$_save_IFS"
+        if [ "$_found" = false ]; then
+          # Build a human-readable display string from the pipe-separated
+          # alternatives. "shasum|sha256sum" becomes "shasum or sha256sum".
+          # Uses only shell builtins — no tr/sed — because those tools may
+          # themselves be the missing prereqs we're reporting on.
+          _display=""
+          _tmp_IFS="$IFS"; IFS="|"
+          for _item in $prerequisite; do
+            if [ -z "$_display" ]; then
+              _display="$_item"
+            else
+              _display="$_display or $_item"
+            fi
+          done
+          IFS="$_tmp_IFS"
+          # Each missing prereq group is added to FAILED_PREREQS, separated
+          # by commas. The final error message lists all missing prereqs:
+          # e.g. "curl, shasum or sha256sum, gpg2 or gpg"
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}${_display}${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}${_display}${reset}"
+          fi
+        fi
+        ;;
+      *)
+        if command -v "$prerequisite" >/dev/null; then
+          continue
+        else
+          if [ -z "$FAILED_PREREQS" ]; then
+            FAILED_PREREQS="${fg_red}$prerequisite${reset}"
+          else
+            FAILED_PREREQS="$FAILED_PREREQS, ${fg_red}$prerequisite${reset}"
+          fi
+        fi
+        ;;
+    esac
   done
 
   if [ -n "$FAILED_PREREQS" ]; then
@@ -804,6 +921,16 @@ dependencies_check()
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+
+}
+
+resolve_alternate_cmd()
+{
+  case "$1" in
+    "curl|perl")
+      HTTP_CLIENT="$2"
+      ;;
+  esac
 }
 
 # This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
@@ -846,12 +973,98 @@ package_type_check()
       failed
       error_exit "$LINENO" "Could not detect a supported package manager (deb or rpm) on this system"
   fi
+
+  if [ "$OS_TYPE" = "AIX" ]; then
+    info "Checking for required AIX commands..."
+    if command -v mkssys > /dev/null 2>&1 \
+      && command -v rmssys > /dev/null 2>&1 \
+      && command -v mkgroup > /dev/null 2>&1 \
+      && command -v mkuser > /dev/null 2>&1 \
+      && command -v rmuser > /dev/null 2>&1 \
+      && command -v startsrc > /dev/null 2>&1 \
+      && command -v stopsrc > /dev/null 2>&1 \
+      && command -v lssrc > /dev/null 2>&1 \
+      && command -v mkitab > /dev/null 2>&1 \
+      && command -v rmitab > /dev/null 2>&1 \
+      && command -v lsitab > /dev/null 2>&1; then
+      succeeded
+    else
+      failed
+      error_exit "$LINENO" "Could not find required AIX commands on the system"
+    fi
+  fi
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -s https://bdot.bindplane.com/latest
+  http_get https://bdot.bindplane.com/latest
+}
+
+# HTTP helpers. They use curl when it is installed, and otherwise fall back to
+# HTTP::Tiny from the base AIX perl.rte fileset, so AIX installs need no AIX Toolbox.
+# Perl verifies TLS against Mozilla::CA (also in perl.rte) when it is available.
+PERL_HTTP='
+use strict; use HTTP::Tiny;
+my ($mode, $url, $out) = @ARGV;
+my %o = (verify_SSL => 1, timeout => ($mode eq "check" ? 20 : 300));
+$o{SSL_options} = { SSL_ca_file => Mozilla::CA::SSL_ca_file() } if eval { require Mozilla::CA; 1 };
+$o{proxy} = $ENV{BDOT_HTTP_PROXY} if $ENV{BDOT_HTTP_PROXY};
+my $h = HTTP::Tiny->new(%o);
+if ($mode eq "download") {
+  open(my $fh, ">", $out) or die "cannot write $out: $!\n";
+  binmode $fh;
+  my $r = $h->request("GET", $url, { data_callback => sub { print {$fh} $_[0] if $_[1]{status} =~ /^2/ } });
+  close $fh;
+  print STDERR "$r->{status} $r->{reason}\n" unless $r->{success};
+  exit($r->{success} ? 0 : 1);
+}
+my $r = $h->get($url);
+exit($r->{status} == 599 ? 1 : 0) if $mode eq "check";
+print $r->{content} if $r->{success};
+exit($r->{success} ? 0 : 1);
+'
+
+# http_proxy_url prints the --proxy value with any --proxy-user credentials embedded, for Perl.
+# ponytail: credentials are not URL-encoded; a password with @ or : needs curl.
+http_proxy_url() {
+  [ -n "$proxy" ] || return 0
+  case "$proxy" in
+    *://*) _scheme="${proxy%%://*}://"; _hostport="${proxy#*://}" ;;
+    *) _scheme="http://"; _hostport="$proxy" ;;
+  esac
+  if [ -n "$proxy_user" ]; then
+    command printf '%s%s:%s@%s' "$_scheme" "$proxy_user" "$proxy_password" "$_hostport"
+  else
+    command printf '%s%s' "$_scheme" "$_hostport"
+  fi
+}
+
+# http_get prints the body of a small text response.
+http_get() {
+  if [ "$HTTP_CLIENT" = "perl" ]; then
+    perl -e "$PERL_HTTP" get "$1"
+  else
+    curl -s "$1"
+  fi
+}
+
+# http_check succeeds when the server answers within 20 seconds.
+http_check() {
+  if [ "$HTTP_CLIENT" = "perl" ]; then
+    perl -e "$PERL_HTTP" check "$1"
+  else
+    curl --max-time 20 -s "$1" > /dev/null
+  fi
+}
+
+# http_download downloads $1 to $2 through any configured proxy, failing on HTTP errors.
+http_download() {
+  if [ "$HTTP_CLIENT" = "perl" ]; then
+    BDOT_HTTP_PROXY=$(http_proxy_url) perl -e "$PERL_HTTP" download "$1" "$2"
+  else
+    eval curl -L "$proxy_args" "\"\$1\"" -o "\"\$2\"" --progress-bar --fail
+  fi
 }
 
 # This will install the package by downloading the archived agent,
@@ -877,7 +1090,7 @@ install_package()
       info "Downloading package from $collector_download_url..."
     fi
 
-    eval curl -L "$proxy_args" "$collector_download_url" -o "$package_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+    http_download "$collector_download_url" "$package_out_file_path" || error_exit "$LINENO" "Failed to download package"
 
     if [ -n "$proxy" ]; then
       info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
@@ -885,7 +1098,13 @@ install_package()
       info "Downloading GPG key tar file from $gpg_tar_download_url..."
     fi
 
-    eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
+    http_download "$gpg_tar_download_url" "$gpg_tar_out_file_path" || error_exit "$LINENO" "Failed to download GPG tar file"
+
+    # AIX packages are verified against a detached signature published beside the package
+    if [ "$package_type" = "mkssys" ] && [ "$skip_gpg_check" != "true" ]; then
+      info "Downloading package signature from ${collector_download_url}.gpg.sig..."
+      http_download "${collector_download_url}.gpg.sig" "${package_out_file_path}.gpg.sig" || error_exit "$LINENO" "Failed to download package signature"
+    fi
     succeeded
   fi
 
@@ -963,6 +1182,35 @@ install_package()
       systemctl enable --now observiq-otel-collector > /dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
       succeeded
     fi
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    case "$(lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null)" in
+      *active*)
+        # install_aix stops and starts the service for an upgrade, so it's already running.
+        info "Service is running."
+        succeeded
+        ;;
+      *inoperative*)
+        info "Starting service..."
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat "$AIX_ENV_FILE")" > /dev/null || error_exit "$LINENO" "Failed to start service"
+        succeeded
+        ;;
+      *)
+        info "Creating, enabling and starting service..."
+        # The subsystem and inittab entry match what the updater writes, so an update
+        # replaces them in place. SRC has no working directory, so every path is absolute.
+        mkssys -s "$AIX_SRC_SUBSYSTEM" -G "$AIX_SRC_GROUP" -p "$BDOT_CONFIG_HOME/observiq-otel-collector" -u 0 -S -n 15 -f 9 -R \
+          -a "--config $BDOT_CONFIG_HOME/config.yaml --manager $BDOT_CONFIG_HOME/manager.yaml --logging $BDOT_CONFIG_HOME/logging.yaml" > /dev/null \
+          || error_exit "$LINENO" "Failed to create service"
+        if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+          rmitab "$AIX_SRC_GROUP"
+        fi
+        # shellcheck disable=SC2016
+        # init evaluates the $(cat) at boot, so it stays literal here.
+        mkitab "$AIX_SRC_GROUP"':23456789:once:startsrc -g '"$AIX_SRC_GROUP"' -e "$(cat '"$AIX_ENV_FILE"')"' || error_exit "$LINENO" "Failed to enable service"
+        startsrc -g "$AIX_SRC_GROUP" -e "$(cat "$AIX_ENV_FILE")" > /dev/null || error_exit "$LINENO" "Failed to start service"
+        succeeded
+        ;;
+    esac
   else
     case "$(service observiq-otel-collector status)" in
       *running*)
@@ -1006,20 +1254,31 @@ verify_package() {
     return 0
   fi
 
-  # A private keyring, so the host's own keys never take part
-  if ! GPG_DIR=$(mktemp -d "$TMP_DIR/bdot-gpg.XXXXXX"); then
+  # A private keyring, so the host's own keys never take part. Base AIX has no mktemp, and
+  # mkdir fails rather than reuse a directory that already exists.
+  if ! GPG_DIR=$(mktemp -d "$TMP_DIR/bdot-gpg.XXXXXX" 2> /dev/null || { mkdir -m 700 "$TMP_DIR/bdot-gpg.$$" && echo "$TMP_DIR/bdot-gpg.$$"; }); then
     error "Failed to create a temporary GPG directory"
     return 1
   fi
   trap 'gpg_cleanup; exit 1' HUP INT TERM
 
   _verify_rc=0
-  if ! tar -xzf "$gpg_tar_out_file_path" -C "$GPG_DIR" > /dev/null 2>&1; then
+  # AIX base tar has no -z, so decompress separately there
+  if [ "$OS_TYPE" = "AIX" ]; then
+    _gpg_extract_ok=true
+    gunzip -c "$gpg_tar_out_file_path" | (cd "$GPG_DIR" && tar -xf -) > /dev/null 2>&1 || _gpg_extract_ok=false
+  elif tar -xzf "$gpg_tar_out_file_path" -C "$GPG_DIR" > /dev/null 2>&1; then
+    _gpg_extract_ok=true
+  else
+    _gpg_extract_ok=false
+  fi
+  if [ "$_gpg_extract_ok" != "true" ]; then
     error "Failed to extract GPG key tar file"
     _verify_rc=1
   else
     case "$package_type" in
       deb) verify_package_deb || _verify_rc=$? ;;
+      mkssys) verify_package_aix || _verify_rc=$? ;;
       rpm) verify_package_rpm || _verify_rc=$? ;;
       *)
         error "Unrecognized package type"
@@ -1048,6 +1307,11 @@ verification_missing_tools() {
   [ "$package_type" = "deb" ] && _tools="$_tools ar"
   # od and tail feed the legacy rpm check
   if [ "$package_type" = "rpm" ] && rpm_lacks_subkey_support; then _tools="$_tools od tail"; fi
+  if [ "$package_type" = "mkssys" ]; then
+    # AIX verifies with base Perl and openssl when gpg is not installed
+    _tools="perl tar gunzip awk sed grep tr cut"
+    command -v gpg > /dev/null 2>&1 || command -v openssl > /dev/null 2>&1 || _missing="gpg or openssl"
+  fi
   for _tool in $_tools; do
     command -v "$_tool" > /dev/null 2>&1 || _missing="${_missing:+$_missing, }$_tool"
   done
@@ -1500,11 +1764,264 @@ verify_package_rpm() {
   return 0
 }
 
+# PERL_PGP_PREPARE lets base openssl check an OpenPGP detached signature on AIX hosts
+# without gpg. It reads the key bundle, any revocation certificates, and the signature,
+# rejects revoked keys and signatures made outside the key's validity, then writes the
+# signing key as PEM, the raw RSA signature, and the signed trailer for openssl to verify.
+# Args: <key.asc> <revocation dir> <signature> <output dir>. Prints the openssl digest name.
+PERL_PGP_PREPARE='
+use strict; use MIME::Base64; use Digest::SHA qw(sha1);
+my ($asc, $revdir, $sigfile, $out) = @ARGV;
+# reject exits 3, which never installs; a plain die exits 255 for an unverifiable package
+sub reject { print STDERR @_; exit 3 }
+sub slurp { my $f = shift; open(my $h, "<", $f) or die "cannot read $f\n"; binmode $h; local $/; my $d = <$h>; close $h; $d }
+sub dearmor {
+  my $d = shift;
+  return $d unless $d =~ /-----BEGIN PGP/;
+  my ($bin, $in, $body, $b64) = ("", 0, 0, "");
+  for my $l (split /\r?\n/, $d) {
+    if ($l =~ /^-----BEGIN PGP/) { ($in, $body, $b64) = (1, 0, ""); next }
+    next unless $in;
+    if ($l =~ /^-----END PGP/) { $bin .= decode_base64($b64); $in = 0; next }
+    if (!$body) { $body = 1 if $l eq ""; next }
+    next if $l =~ /^=/;
+    $b64 .= $l;
+  }
+  $bin
+}
+sub packets {
+  my $d = shift; my @p; my $i = 0;
+  while ($i < length $d) {
+    my $h = ord substr($d, $i++, 1); die "malformed OpenPGP data\n" unless $h & 0x80;
+    my ($tag, $len);
+    if ($h & 0x40) {
+      $tag = $h & 0x3f; my $o = ord substr($d, $i++, 1);
+      if ($o < 192) { $len = $o }
+      elsif ($o < 224) { $len = (($o - 192) << 8) + ord(substr($d, $i++, 1)) + 192 }
+      elsif ($o == 255) { $len = unpack("N", substr($d, $i, 4)); $i += 4 }
+      else { die "unsupported OpenPGP partial length\n" }
+    } else {
+      $tag = ($h >> 2) & 0x0f; my $lt = $h & 3;
+      if ($lt == 0) { $len = ord substr($d, $i, 1); $i += 1 }
+      elsif ($lt == 1) { $len = unpack("n", substr($d, $i, 2)); $i += 2 }
+      elsif ($lt == 2) { $len = unpack("N", substr($d, $i, 4)); $i += 4 }
+      else { die "unsupported OpenPGP indeterminate length\n" }
+    }
+    die "truncated OpenPGP packet\n" if $i + $len > length $d;
+    push @p, [$tag, substr($d, $i, $len)]; $i += $len;
+  }
+  @p
+}
+sub mpi { my ($b, $p) = @_; my $n = int((unpack("n", substr($b, $p, 2)) + 7) / 8); (substr($b, $p + 2, $n), $p + 2 + $n) }
+sub subpackets {
+  my ($s, $d, $hashed) = @_; my $i = 0;
+  while ($i < length $d) {
+    my $o = ord substr($d, $i++, 1); my $l;
+    if ($o < 192) { $l = $o } elsif ($o < 255) { $l = (($o - 192) << 8) + ord(substr($d, $i++, 1)) + 192 } else { $l = unpack("N", substr($d, $i, 4)); $i += 4 }
+    die "malformed signature subpacket\n" if $l < 1 || $i + $l > length $d;
+    my $t = ord(substr($d, $i, 1)) & 0x7f; my $v = substr($d, $i + 1, $l - 1); $i += $l;
+    if ($t == 16) { $s->{issuer} = uc unpack("H*", $v) }
+    elsif ($t == 33) { $s->{issuer} = uc substr(unpack("H*", substr($v, 1)), -16) }
+    next unless $hashed;
+    if ($t == 2) { $s->{created} = unpack("N", $v) }
+    elsif ($t == 9) { $s->{keyexp} = unpack("N", $v) }
+    elsif ($t == 27) { $s->{flags} = ord $v }
+  }
+}
+sub signature {
+  my $b = shift; die "unsupported OpenPGP signature version\n" unless ord(substr($b, 0, 1)) == 4;
+  my ($type, $pk, $ha) = map { ord substr($b, $_, 1) } 1 .. 3;
+  my $hl = unpack("n", substr($b, 4, 2)); my $ul = unpack("n", substr($b, 6 + $hl, 2));
+  my %s = (type => $type, pk => $pk, ha => $ha, created => 0,
+           trailer => substr($b, 0, 6 + $hl) . "\x04\xff" . pack("N", 6 + $hl));
+  subpackets(\%s, substr($b, 6, $hl), 1); subpackets(\%s, substr($b, 8 + $hl, $ul), 0);
+  ($s{sig}) = mpi($b, 8 + $hl + $ul + 2) if $pk == 1 || $pk == 3;
+  \%s
+}
+my (%keys, $primary, $current);
+sub key_packet {
+  my ($b, $is_primary) = @_;
+  return undef unless ord(substr($b, 0, 1)) == 4;
+  my %k = (created => unpack("N", substr($b, 1, 4)), algo => ord(substr($b, 5, 1)), primary => $is_primary, revoked => 0, keyexp => 0, selfsig => -1);
+  if ($k{algo} == 1 || $k{algo} == 3) { my $p; ($k{n}, $p) = mpi($b, 6); ($k{e}) = mpi($b, $p) }
+  $k{id} = uc substr(unpack("H*", sha1("\x99" . pack("n", length $b) . $b)), -16);
+  $keys{$k{id}} = \%k
+}
+for my $f ($asc, glob("$revdir/*")) {
+  next unless -f $f;
+  ($primary, $current) = (undef, undef);
+  for my $pk (packets(dearmor(slurp($f)))) {
+    my ($tag, $b) = @$pk;
+    if ($tag == 6) { $primary = $current = key_packet($b, 1) }
+    elsif ($tag == 14) { $current = key_packet($b, 0); $current->{parent} = $primary if $current }
+    elsif ($tag == 2) {
+      my $s = signature($b); my $t = $s->{type};
+      if ($t == 0x20) {
+        my $k = $primary || $keys{$s->{issuer} || ""};
+        # A certificate for a key outside the bundle means the bundle is wrong; gpg would ignore it
+        reject "Revocation certificate " . (split m{/}, $f)[-1] . " does not revoke a key in the BDOT key bundle\n" unless $k;
+        $k->{revoked} = 1;
+      }
+      elsif ($t == 0x28) { $current->{revoked} = 1 if $current && !$current->{primary} }
+      elsif (($t >= 0x10 && $t <= 0x13) || $t == 0x1f || $t == 0x18) {
+        my $k = $t == 0x18 ? $current : $primary;
+        next unless $k && $s->{created} >= $k->{selfsig};
+        $k->{selfsig} = $s->{created}; $k->{keyexp} = $s->{keyexp} || 0; $k->{flags} = $s->{flags};
+      }
+    }
+  }
+}
+my @sigs = grep { $_->[0] == 2 } packets(dearmor(slurp($sigfile)));
+die "expected exactly one signature\n" unless @sigs == 1;
+my $s = signature($sigs[0][1]);
+my %hash = (8 => "sha256", 9 => "sha384", 10 => "sha512", 11 => "sha224");
+die "unsupported signature type\n" unless $s->{type} == 0x00;
+die "unsupported signature algorithm\n" unless $s->{pk} == 1 || $s->{pk} == 3;
+die "unsupported signature digest\n" unless $hash{$s->{ha}};
+die "signature has no creation time\n" unless $s->{created};
+my $k = $keys{$s->{issuer} || ""} or die "signature was not made by a key in the bundle\n";
+die "signing key is not an RSA key\n" unless $k->{n};
+die "key is not allowed to sign\n" if defined $k->{flags} && !($k->{flags} & 0x02);
+for my $c ($k, $k->{parent} || ()) {
+  reject "signing key $c->{id} is revoked\n" if $c->{revoked};
+  reject "signature predates signing key $c->{id}\n" if $s->{created} < $c->{created};
+  reject "signing key $c->{id} had expired when the signature was made\n" if $c->{keyexp} && $s->{created} >= $c->{created} + $c->{keyexp};
+}
+sub der_len { my $l = shift; return chr $l if $l < 128; my $b = ""; while ($l) { $b = chr($l & 255) . $b; $l >>= 8 } chr(0x80 | length $b) . $b }
+sub der { my ($t, $c) = @_; chr($t) . der_len(length $c) . $c }
+sub der_int { my $x = shift; $x =~ s/^\x00+//; $x = "\x00$x" if ord($x) & 0x80; der(2, $x) }
+my $spki = der(0x30, der(0x30, der(6, "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01") . der(5, "")) . der(3, "\x00" . der(0x30, der_int($k->{n}) . der_int($k->{e}))));
+my $pem = encode_base64($spki, ""); $pem =~ s/(.{1,64})/$1\n/g;
+my $sig = ("\x00" x (length($k->{n}) - length($s->{sig}))) . $s->{sig};
+for (["key.pem", "-----BEGIN PUBLIC KEY-----\n$pem-----END PUBLIC KEY-----\n"], ["sig.raw", $sig], ["sig.trailer", $s->{trailer}]) {
+  open(my $h, ">", "$out/$_->[0]") or die "cannot write $out/$_->[0]\n"; binmode $h; print {$h} $_->[1]; close $h;
+}
+print "$hash{$s->{ha}}\n";
+'
+
+# verify_package_aix checks the package against its detached signature and the bundled
+# BDOT public key. It uses gpg when installed, and otherwise base Perl plus openssl, so
+# hosts without the AIX Toolbox still verify. Both paths reject revoked keys and
+# signatures made after the signing key expired; gpg --verify alone exits 0 for those.
+verify_package_aix() {
+  _sig_file="${package_out_file_path}.gpg.sig"
+  if [ ! -f "$_sig_file" ]; then
+    error "GPG signature file not found: $_sig_file"
+    return 1
+  fi
+
+  if command -v gpg > /dev/null 2>&1; then
+    gpg_import_bundle || return $?
+    gpg_verify_file "$_sig_file" "$package_out_file_path" "Package" || return $?
+    success "Package signature is valid, and its key was neither revoked nor expired when it signed"
+    return 0
+  fi
+
+  # Without gpg, base Perl checks the keys and openssl checks the signature
+  set +e
+  _digest=$(perl -e "$PERL_PGP_PREPARE" "$GPG_DIR/bdot-public-gpg-key.asc" "$GPG_DIR/deb-revocations" "$_sig_file" "$GPG_DIR" 2> "$GPG_DIR/verify.err")
+  _rc=$?
+  set -e
+  if [ $_rc -ne 0 ]; then
+    error "Package signature is invalid: $(literal "$(cat "$GPG_DIR/verify.err")")"
+    [ $_rc -eq 3 ] && return 3
+    return 1
+  fi
+  if ! cat "$package_out_file_path" "$GPG_DIR/sig.trailer" | openssl dgst "-$_digest" -verify "$GPG_DIR/key.pem" -signature "$GPG_DIR/sig.raw" > /dev/null 2>&1; then
+    error "Package was altered: its signature does not match its contents"
+    return 3
+  fi
+
+  success "Package signature is valid, and its key was neither revoked nor expired when it signed"
+  return 0
+}
+
+# install_aix installs the AIX tar.gz into $BDOT_CONFIG_HOME, with the same
+# ownership the deb and rpm postinstall script sets: everything bdot, the updater root.
+install_aix()
+{
+  # The updater manages the service at this fixed path, so the install has to match it
+  if [ "$BDOT_CONFIG_HOME" != "/opt/observiq-otel-collector" ]; then
+    error_exit "$LINENO" "BDOT_CONFIG_HOME can't be changed on AIX"
+  fi
+
+  # Create the user and group if they don't already exist. Group must be first.
+  if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
+    mkgroup "$COLLECTOR_GROUP" > /dev/null || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
+  fi
+
+  # Create the install & storage directories. Before the user, so mkuser leaves the home's mode alone.
+  mkdir -p "$BDOT_CONFIG_HOME/storage" "$BDOT_CONFIG_HOME/log"
+
+  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
+    # No shell: AIX only accepts shells listed in /etc/security/login.cfg, and /usr/bin/false
+    # is not there by default. The mkuser.default shell always is, so keep it and create the account locked.
+    mkuser pgrp="$COLLECTOR_GROUP" home="$BDOT_CONFIG_HOME" account_locked=true login=false rlogin=false "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+    # mkuser copies in a .profile, and the locked account never reads it
+    rm -f "$BDOT_CONFIG_HOME/.profile"
+    created_aix_user=true
+  fi
+
+  # Extract to a staging directory, so a running collector is stopped only after the package unpacks
+  _aix_stage="$BDOT_CONFIG_HOME/.staging"
+  rm -rf "$_aix_stage"
+  mkdir -p "$_aix_stage" || error_exit "$LINENO" "Failed to create staging directory"
+  if ! gunzip -c "$package_out_file_path" | tar -xf - -C "$_aix_stage"; then
+    rm -rf "$_aix_stage"
+    error_exit "$LINENO" "Failed to extract package"
+  fi
+
+  # Keep the user's configs on an upgrade, as the deb and rpm packages do
+  for _cfg in config.yaml logging.yaml; do
+    [ -f "$BDOT_CONFIG_HOME/$_cfg" ] && rm -f "$_aix_stage/$_cfg"
+  done
+
+  _aix_was_running=false
+  if lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q ' active'; then
+    _aix_was_running=true
+    # AIX has no restart, so stop, replace the files, then start
+    info "Stopping service for binary replacement..."
+    stopsrc -g "$AIX_SRC_GROUP" > /dev/null || error_exit "$LINENO" "Failed to request service stop"
+    _stop_wait=0
+    while ! lssrc -s "$AIX_SRC_SUBSYSTEM" | grep -q inoperative; do
+      _stop_wait=$((_stop_wait + 1))
+      if [ "$_stop_wait" -ge 30 ]; then
+        rm -rf "$_aix_stage"
+        error_exit "$LINENO" "Service did not stop within 30 seconds"
+      fi
+      sleep 1
+    done
+    # Release any cached shared libraries
+    slibclean > /dev/null 2>&1 || true
+  fi
+
+  if ! cp -Rf "$_aix_stage"/* "$BDOT_CONFIG_HOME/"; then
+    rm -rf "$_aix_stage"
+    error_exit "$LINENO" "Failed to copy the package into $BDOT_CONFIG_HOME"
+  fi
+  rm -rf "$_aix_stage"
+
+  # The service environment lives outside the install directory, like the systemd unit
+  mv "$BDOT_CONFIG_HOME/install/observiq-otel-collector.env" "$AIX_ENV_FILE" || error_exit "$LINENO" "Failed to install $AIX_ENV_FILE"
+  chmod 0644 "$AIX_ENV_FILE"
+
+  chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" "$BDOT_CONFIG_HOME"
+  chown root:system "$BDOT_CONFIG_HOME/updater"
+
+  if [ "$_aix_was_running" = true ]; then
+    info "Restarting service with new binaries..."
+    startsrc -g "$AIX_SRC_GROUP" -e "$(cat "$AIX_ENV_FILE")" > /dev/null || error_exit "$LINENO" "Failed to start service"
+  fi
+}
+
 unpack_package()
 {
   case "$package_type" in
     deb)
       dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      ;;
+    mkssys)
+      install_aix
       ;;
     rpm)
       rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
@@ -1548,6 +2065,10 @@ display_results()
       info "Start Command:      $(fg_cyan "sudo systemctl start observiq-otel-collector")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo systemctl stop observiq-otel-collector")$(reset)"
       info "Status Command:     $(fg_cyan "sudo systemctl status observiq-otel-collector")$(reset)"
+    elif [ "$SVC_PRE" = "mkssys" ]; then
+      info "Start Command:      $(fg_cyan "sudo startsrc -g $AIX_SRC_GROUP -e \"\$(cat $AIX_ENV_FILE)\"")$(reset)"
+      info "Stop Command:       $(fg_cyan "sudo stopsrc -g $AIX_SRC_GROUP")$(reset)"
+      info "Status Command:     $(fg_cyan "sudo lssrc -s $AIX_SRC_SUBSYSTEM")$(reset)"
     else
       info "Start Command:      $(fg_cyan "sudo service observiq-otel-collector start")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
@@ -1578,6 +2099,10 @@ uninstall_package()
     deb)
       dpkg -r "observiq-otel-collector" > /dev/null 2>&1
       ;;
+    mkssys)
+      rm -rf "$BDOT_CONFIG_HOME"
+      rm -f "$AIX_ENV_FILE"
+      ;;
     rpm)
       rpm -e "observiq-otel-collector" > /dev/null 2>&1
       ;;
@@ -1606,6 +2131,24 @@ uninstall()
 
     info "Disabling service..."
     systemctl disable observiq-otel-collector > /dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
+    succeeded
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    info "Stopping service..."
+    stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1 || true
+    _stop_wait=0
+    while lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q ' active' && [ "$_stop_wait" -lt 30 ]; do
+      _stop_wait=$((_stop_wait + 1))
+      sleep 1
+    done
+    succeeded
+
+    info "Removing service registration..."
+    if lssrc -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1; then
+      rmssys -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1
+    fi
+    if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+      rmitab "$AIX_SRC_GROUP" > /dev/null 2>&1
+    fi
     succeeded
   else
     info "Stopping service..."
@@ -1713,6 +2256,8 @@ main()
   setup_installation
   verification_check
   install_package
+  # The install succeeded, so keep any user install_aix created
+  created_aix_user=false
   display_results
 }
 
