@@ -117,9 +117,10 @@ var uninstallShared = uninstallExpect{
 		installDir + "/manager.yaml",
 		installDir + "/storage",
 		installDir + "/storage/marker",
-		dropInDir,
 	},
 	absent: []string{
+		// preremove.sh removes the drop-in directory when it is empty.
+		dropInDir,
 		installDir + "/observiq-otel-collector",
 		installDir + "/updater",
 		installDir + "/VERSION.txt",
