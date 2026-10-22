@@ -111,13 +111,19 @@ func (s *scenario) refusePrivileged(t *testing.T) {
 	b.assertPresent(userDropIn)
 	assert.Equal(t, "active", b.unitState("is-active"), "service should keep running")
 	assert.Equal(t, pid, b.unitProps("MainPID")["MainPID"], "the refused install should not restart the service")
+	// dpkg runs the installed package's postinst with abort-upgrade after
+	// the refusal. It must not fail too, or the package is left
+	// half-installed.
+	b.assertPackageVersion(s.ops, pkg)
 
-	// Restoring the overrides recovers the install. The link goes first,
-	// because postinstall still changes collector.log as root.
-	b.mustRun("rm " + logFile)
+	// Restoring the overrides recovers the install. An unprivileged install
+	// doesn't change files in installDir as root, so it leaves the link and
+	// the canary alone.
 	b.writeOverride(s.ops, unprivilegedOverride)
 	b.pkgCommand(s.ops.reinstall(pkg))
-	s.assertInstalled(b, pkg, unprivilegedInstall, nil, nil)
+	assert.Equal(t, before, b.mustRun(statCanary), "the unprivileged install should not change the canary")
+	link := map[string]fileEntry{"log/collector.log": {"l", runtimeUser, runtimeGrp, "777"}}
+	s.assertInstalled(b, pkg, unprivilegedInstall, link, nil)
 
 	s.uninstall(t, b)
 }
@@ -219,6 +225,10 @@ func (s *scenario) uninstall(t *testing.T, b *box) {
 func (s *scenario) assertInstalled(b *box, pkg string, e installExpect, extraTree map[string]fileEntry, allowExtra func(string) bool) {
 	b.t.Helper()
 	want := installTree(b.payloadPlugins(s.ops, pkg))
+	maps.Copy(want, e.tree)
+	for _, p := range e.omit {
+		delete(want, p)
+	}
 	maps.Copy(want, extraTree)
 	b.assertTree(installDir, want, allowExtra)
 	b.assertFiles(installSystemFiles)
