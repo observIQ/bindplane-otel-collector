@@ -420,7 +420,7 @@ release-test:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
 	$(MAKE) release-test-aix
 
-# Build and sign AIX, skip release and ignore dirty git tree
+# Build AIX, skip release and signing, and ignore a dirty git tree
 .PHONY: release-test-aix
 release-test-aix:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot

@@ -281,18 +281,30 @@ jobs:
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
       - name: Install Tools
         run: make install-tools
+      # Sign with the release keys like release-aix, so the package verifies end to end.
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Import GPG signing key
+        run: |
+          echo "$GPG_PRIVATE_SIGNING_KEY" | gpg --batch --import
+          echo "GPG_FINGERPRINT=$(gpg --list-keys --with-colons | grep fpr | head -1 | cut -d: -f10)" >> $GITHUB_ENV
+        env:
+          GPG_PRIVATE_SIGNING_KEY: ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
       - name: Run GoReleaser (AIX)
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --config .goreleaser-aix.yml --skip=publish --skip=validate --skip=sign
+          args: release --config .goreleaser-aix.yml --skip=publish --skip=validate
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          SIGNING_KEY_FILE: fake-file
-          COSIGN_PWD: fake-password
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
       - name: Debug list dist/
         run: |
           tree dist/ 2>/dev/null || echo "No dist directory"
