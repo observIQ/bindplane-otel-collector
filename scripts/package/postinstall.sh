@@ -16,6 +16,11 @@
 
 set -e
 
+# Never create a file that group or others can write, whatever umask the
+# package manager runs with. This keeps the systemd unit and the User=
+# drop-in root-only from the moment they are created.
+umask go-w
+
 # Read's optional package overrides. Users should deploy the override
 # file before installing BDOT for the first time. The override should
 # not be modified unless uninstalling and re-installing.
@@ -33,6 +38,19 @@ set -e
 : "${BDOT_GROUP:=bdot}"
 
 
+# run_as_home_owner runs a command that writes in BDOT_CONFIG_HOME. When
+# unprivileged, the runtime user owns BDOT_CONFIG_HOME and can replace any
+# entry in it with a symbolic link, which root would follow. So the command
+# runs as that user and can only reach files the user could already change.
+# Otherwise nothing runs as the runtime user, and the command runs as root.
+run_as_home_owner() {
+    if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+        runuser -u "$BDOT_USER" -g "$BDOT_GROUP" -- "$@"
+    else
+        "$@"
+    fi
+}
+
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
@@ -44,6 +62,13 @@ install() {
     # Rename binaries in staging directory to avoid Linux binary locking issues
     # during copy operation
     mv "${stage_dir}/observiq-otel-collector" "${stage_dir}/observiq-otel-collector.new"
+
+    # Goreleaser does not set plugin file permissions. When unprivileged,
+    # finish_permissions doesn't change files in BDOT_CONFIG_HOME, so set them
+    # here while root still owns the stage.
+    if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+        chmod 0640 "$stage_dir"/plugins/*
+    fi
 
     # Prepare staged files with runtime ownership so destination does not need
     # post-copy ownership changes. This helps to ensure permissions do not flap
@@ -61,12 +86,17 @@ install() {
         fi
     done
 
-    cp -r --preserve \
+    # Remove each existing file before copying over it instead of writing
+    # into it. A root install leaves the updater owned by root, which the
+    # runtime user can't write but can remove, since it owns
+    # BDOT_CONFIG_HOME. A symbolic link in place of a file is replaced, not
+    # followed.
+    run_as_home_owner cp -r --preserve --remove-destination \
       "$stage_dir"/* \
       "${BDOT_CONFIG_HOME}"
 
     # Perform atomic moves for binary files to replace running binaries
-    mv "${BDOT_CONFIG_HOME}/observiq-otel-collector.new" "${BDOT_CONFIG_HOME}/observiq-otel-collector"
+    run_as_home_owner mv "${BDOT_CONFIG_HOME}/observiq-otel-collector.new" "${BDOT_CONFIG_HOME}/observiq-otel-collector"
 
     rm -rf "$share_dir"
 }
@@ -125,15 +155,21 @@ EOF
     mkdir -p "$override_dir"
     echo "Created systemd override directory at $override_dir"
   fi
+  # systemd applies these drop-ins to the service, so only root may change them.
+  chown root:root "$override_dir"
+  chmod 0755 "$override_dir"
 
-  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
-  # unprivileged user.
+  # Write the User= drop-in when BDOT_UNPRIVILEGED is true. Otherwise there is
+  # none to remove: check_runtime_user_change refuses the install when one is
+  # present, and preremove.sh removes it on uninstall.
   override_user_path="${override_dir}/10-package-customizations-username.conf"
   if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
     cat << EOF > "${override_user_path}"
 [Service]
 User=${BDOT_USER}
 EOF
+    chown root:root "${override_user_path}"
+    chmod 0644 "${override_user_path}"
     echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
   fi
 }
@@ -483,6 +519,14 @@ manage_service() {
 }
 
 finish_permissions() {
+  # When unprivileged, root must not change files in BDOT_CONFIG_HOME, because
+  # the runtime user owns it and can replace any entry with a symbolic link.
+  # install already copied the files as that user and set the plugin modes in
+  # the stage, and the collector creates its own log file.
+  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+    return 0
+  fi
+
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
   chown -R "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
@@ -521,6 +565,18 @@ check_runtime_user_change() {
     echo "Restore the previous values, or uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
     exit 1
 }
+
+# dpkg runs the installed package's postinst with abort-upgrade, abort-remove
+# or abort-deconfigure when the new package's preinst or the prerm failed,
+# for example when check_runtime_user_change refused the upgrade. The
+# installed files are untouched and the stage directory is gone, so there is
+# nothing to do, and failing here would leave the package half-installed.
+# rpm passes a number instead.
+case "$1" in
+    abort-*)
+        exit 0
+        ;;
+esac
 
 check_runtime_user_change
 install

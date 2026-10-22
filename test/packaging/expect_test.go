@@ -96,6 +96,9 @@ var installAbsent = []string{
 type installExpect struct {
 	// user is the user the service runs as.
 	user string
+	// tree replaces entries of installTree, and omit removes them.
+	tree map[string]fileEntry
+	omit []string
 	// files are expected paths outside installDir, in addition to
 	// installSystemFiles.
 	files map[string]fileEntry
@@ -115,6 +118,14 @@ var privilegedInstall = installExpect{
 // unprivilegedInstall is the expected state with unprivilegedOverride.
 var unprivilegedInstall = installExpect{
 	user: runtimeUser,
+	tree: map[string]fileEntry{
+		// The runtime user copies the files into installDir, so it owns the
+		// updater too.
+		"updater": {"f", runtimeUser, runtimeGrp, "755"},
+	},
+	// postinstall doesn't change files in installDir as root. The collector
+	// creates its log when it starts.
+	omit: []string{"log/collector.log"},
 	files: map[string]fileEntry{
 		userDropIn: {"f", "root", "root", "644"},
 	},
