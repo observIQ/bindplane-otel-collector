@@ -149,8 +149,15 @@ func TestRedirectStderrToFile(t *testing.T) {
 }
 
 // keepStderr restores os.Stderr when the test ends and returns its current value.
+// It closes a file the test redirected stderr to, since Windows can't remove
+// the test's temp dir while that file is open.
 func keepStderr(t *testing.T) *os.File {
 	old := os.Stderr
-	t.Cleanup(func() { os.Stderr = old })
+	t.Cleanup(func() {
+		if os.Stderr != old {
+			_ = os.Stderr.Close()
+		}
+		os.Stderr = old
+	})
 	return old
 }
