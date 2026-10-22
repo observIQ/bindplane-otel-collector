@@ -26,6 +26,10 @@ import (
 
 // RunService runs the given service, calling its start and stop functions.
 func RunService(logger *zap.Logger, rSvc RunnableService) error {
+	if err := redirectServiceStderr(); err != nil {
+		logger.Warn("Failed to redirect stderr to the error log", zap.Error(err))
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 

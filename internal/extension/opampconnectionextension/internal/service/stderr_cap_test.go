@@ -16,6 +16,7 @@ package service
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -102,4 +103,54 @@ func TestCapStderrFile(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "after truncate", string(content))
 	})
+}
+
+func TestRedirectStderrToFile(t *testing.T) {
+	t.Run("rolls the previous run and points stderr at an appending file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "observiq_collector.err")
+		require.NoError(t, os.WriteFile(path, []byte("last run"), 0660))
+		keepStderr(t)
+
+		oldfd, newfd := -1, -1
+		require.NoError(t, redirectStderrToFile(path, func(o, n int) error {
+			oldfd, newfd = o, n
+			return nil
+		}))
+
+		backup, err := os.ReadFile(path + ".1")
+		require.NoError(t, err)
+		require.Equal(t, "last run", string(backup))
+		// fd 2 gets the file, so runtime panics written straight to fd 2 land there too.
+		require.Equal(t, 2, newfd)
+		require.Equal(t, int(os.Stderr.Fd()), oldfd)
+
+		_, err = os.Stderr.WriteString("this run")
+		require.NoError(t, err)
+		content, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.Equal(t, "this run", string(content))
+
+		// O_APPEND keeps writes at EOF after the cap truncates the file.
+		require.NoError(t, os.Truncate(path, 0))
+		_, err = os.Stderr.WriteString("after cap")
+		require.NoError(t, err)
+		content, err = os.ReadFile(path)
+		require.NoError(t, err)
+		require.Equal(t, "after cap", string(content))
+	})
+
+	t.Run("failed dup2 leaves stderr alone", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "observiq_collector.err")
+		before := keepStderr(t)
+
+		require.Error(t, redirectStderrToFile(path, func(int, int) error { return errors.New("boom") }))
+		require.Same(t, before, os.Stderr)
+	})
+}
+
+// keepStderr restores os.Stderr when the test ends and returns its current value.
+func keepStderr(t *testing.T) *os.File {
+	old := os.Stderr
+	t.Cleanup(func() { os.Stderr = old })
+	return old
 }
