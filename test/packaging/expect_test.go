@@ -28,10 +28,15 @@ const (
 	unitPath    = "/usr/lib/systemd/system/observiq-otel-collector.service"
 	dropInDir   = "/etc/systemd/system/observiq-otel-collector.service.d"
 	userDropIn  = dropInDir + "/10-package-customizations-username.conf"
+	sudoersPath = "/etc/sudoers.d/bindplane-otel-collector"
 	wantsPath   = "/etc/systemd/system/multi-user.target.wants/observiq-otel-collector.service"
 	initdPath   = "/etc/init.d/observiq-otel-collector"
 	runtimeUser = "bdot"
 	runtimeGrp  = "bdot"
+
+	// servicePath is the PATH the unit gives the collector, and the updater
+	// it starts.
+	servicePath = "/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 
 	// unprivilegedOverride is the package override line that runs the
 	// service as runtimeUser.
@@ -112,6 +117,7 @@ var privilegedInstall = installExpect{
 	absent: []string{
 		// Only written when BDOT_UNPRIVILEGED=true.
 		userDropIn,
+		sudoersPath,
 	},
 }
 
@@ -127,7 +133,8 @@ var unprivilegedInstall = installExpect{
 	// creates its log when it starts.
 	omit: []string{"log/collector.log"},
 	files: map[string]fileEntry{
-		userDropIn: {"f", "root", "root", "644"},
+		userDropIn:  {"f", "root", "root", "644"},
+		sudoersPath: {"f", "root", "root", "440"},
 	},
 }
 
@@ -165,6 +172,7 @@ var uninstallShared = uninstallExpect{
 	absent: []string{
 		// preremove.sh removes the drop-in directory when it is empty.
 		dropInDir,
+		sudoersPath,
 		installDir + "/observiq-otel-collector",
 		installDir + "/updater",
 		installDir + "/VERSION.txt",
