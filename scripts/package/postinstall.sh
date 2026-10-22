@@ -185,9 +185,6 @@ EOF
     chown root:root "${override_user_path}"
     chmod 0644 "${override_user_path}"
     echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
-  elif [ -f "${override_user_path}" ]; then
-    echo "Removing systemd drop-in: ${override_user_path}"
-    rm -f "${override_user_path}"
   fi
 }
 
