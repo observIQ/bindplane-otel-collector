@@ -17,7 +17,7 @@ jobs:
 
   release-test:
     runs-on: ubuntu-latest-32-cores
-    needs: [build-msi]
+    needs: [build-msi, release-test-aix]
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
@@ -58,6 +58,11 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: bindplane-otel-collector-arm64.msi
+      - name: Retrieve AIX Packages
+        uses: actions/download-artifact@v8
+        with:
+          name: aix-dist
+          path: aix-dist
 
       - name: Install cosign
         uses: nick-fields/retry@v4
@@ -156,6 +161,7 @@ jobs:
           cp ./bindplane-otel-collector.msi ./artifacts
           cp ./bindplane-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
+          cp ./aix-dist/* ./artifacts
           cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
@@ -255,7 +261,8 @@ jobs:
             --location us-central1 \
             --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
 
-  # AIX release test job — runs in parallel with the main release-test job.
+  # AIX builds first. The release-test job lists the packages in the main
+  # SHA256SUMS and the artifact bundle.
   release-test-aix:
     runs-on: ubuntu-latest-32-cores
     steps:
@@ -281,7 +288,7 @@ jobs:
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
       - name: Install Tools
         run: make install-tools
-      # Sign with the release keys like release-aix, so the package verifies end to end.
+      # Sign with the release keys like build-aix, so the package verifies end to end.
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
@@ -309,13 +316,12 @@ jobs:
         run: |
           tree dist/ 2>/dev/null || echo "No dist directory"
           du -sh dist/ 2>/dev/null || true
-      - name: Create AIX artifact archive
-        run: tar -czvf bindplane-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz -C dist/ .
-      - name: Upload AIX build artifacts
+      - name: Upload AIX Packages
         uses: actions/upload-artifact@v7
         with:
-          name: bindplane-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz
-          path: bindplane-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz
+          name: aix-dist
+          path: dist/*.tar.gz*
+          if-no-files-found: error
           retention-days: 1
 
   # The rehearsal runs goreleaser with --skip=publish, so there is no GitHub
