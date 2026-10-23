@@ -1,6 +1,7 @@
 # AIX goreleaser configuration.
 # Separate from .goreleaser.yml because AIX builds from manifests/observIQ/manifest-aix.yaml,
-# a reduced component set. Artifacts are uploaded to GCS and appended to the main GitHub release.
+# a reduced component set. The main release publishes the AIX package and lists its
+# hash in the main SHA256SUMS, so this config only builds, archives and signs.
 
 version: 2
 
@@ -61,10 +62,8 @@ archives:
         dst: install
         strip_parent: true
 
-# https://goreleaser.com/customization/checksum/
 checksum:
-  name_template: "{{ .ProjectName }}-v{{ .Version }}-aix-SHA256SUMS"
-  algorithm: sha256
+  disable: true
 
 # https://goreleaser.com/customization/sign/
 # The AIX install path verifies packages with GPG, so artifacts get a GPG signature
@@ -88,19 +87,6 @@ signs:
       - "${artifact}"
     signature: "${artifact}.gpg.sig"
     artifacts: all
-
-# https://goreleaser.com/customization/release/
-# Appended to the GitHub release the main goreleaser run creates.
-release:
-  draft: false
-  prerelease: "true"
-  mode: append
-
-# https://console.cloud.google.com/storage/browser/bdot-release
-blobs:
-  - provider: gs
-    bucket: bdot-release
-    directory: "v{{ .Version }}"
 
 # The main goreleaser config writes the changelog
 changelog:

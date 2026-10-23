@@ -29,8 +29,8 @@
 #
 # Usage: create-artifact-bundles.sh <version>
 #
-# Run from the repository root after goreleaser has populated ./dist and the
-# MSIs have been downloaded to the root.
+# Run from the repository root after goreleaser has populated ./dist, the
+# MSIs have been downloaded to the root, and the AIX packages to ./aix-dist.
 
 set -euo pipefail
 
@@ -69,6 +69,7 @@ bundle artifacts \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*tar.gz \
+  ./aix-dist/* \
   ./dist/*.zip \
   ./dist/*.rpm \
   ./dist/*.deb

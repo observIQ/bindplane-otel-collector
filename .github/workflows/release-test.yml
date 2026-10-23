@@ -17,7 +17,7 @@ jobs:
 
   release-test:
     runs-on: ubuntu-latest-32-cores
-    needs: [build-msi]
+    needs: [build-msi, release-test-aix]
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
@@ -55,6 +55,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: observiq-otel-collector-arm64.msi
+
+      - name: Retrieve AIX Packages
+        uses: actions/download-artifact@v8
+        with:
+          name: aix-dist
+          path: aix-dist
 
       - name: Install cosign
         uses: nick-fields/retry@v4
@@ -274,8 +280,9 @@ jobs:
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
 
-  # AIX builds from its own goreleaser config. It signs with the release keys
-  # like the release-aix job, so the uploaded package verifies end to end.
+  # AIX builds from its own goreleaser config and signs with the release keys
+  # like the build-aix job. The release-test job lists the packages in the main
+  # SHA256SUMS and the artifact bundle.
   release-test-aix:
     runs-on: ubuntu-latest-32-cores
     steps:
@@ -336,16 +343,12 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
-      - name: Create AIX artifact archive
-        run: |
-          mkdir aix-artifacts
-          cp ./dist/*.tar.gz ./dist/*.sig ./dist/*SHA256SUMS ./aix-artifacts
-          tar -czvf observiq-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz -C ./aix-artifacts .
-      - name: Upload AIX build artifacts
+      - name: Upload AIX Packages
         uses: actions/upload-artifact@v7
         with:
-          name: observiq-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz
-          path: observiq-otel-collector-${{ env.VERSION }}-aix-artifacts.tar.gz
+          name: aix-dist
+          path: dist/*.tar.gz*
+          if-no-files-found: error
           retention-days: 1
 
   # The rehearsal runs goreleaser with --skip=publish, so there is no GitHub

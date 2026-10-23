@@ -57,6 +57,10 @@ signed-windows/
 # Same reason as above.
 signed-install-script/
 
+# Ignore the AIX packages the build-aix job hands to the release job.
+# Same reason as above.
+aix-dist/
+
 # Local performance testing and images
 ImagesAzure/
 perf-test/
