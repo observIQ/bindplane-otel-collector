@@ -10,6 +10,8 @@ cosign.*
 *.msi.sig
 gpg.*
 *.msi
+# AIX packages the build-aix job hands to the release job
+aix-dist/
 *.exe
 windows/*.zip
 windows/**/wix.dynamic.json
