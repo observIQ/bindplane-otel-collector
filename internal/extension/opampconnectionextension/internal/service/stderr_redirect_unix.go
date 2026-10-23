@@ -24,11 +24,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// redirectServiceStderr sends stderr to $BINDPLANE_COLLECTOR_HOME/log/observiq_collector.err
+// RedirectDiscardedStderr sends stderr to $BINDPLANE_COLLECTOR_HOME/log/observiq_collector.err
 // when the service manager discards it. AIX SRC leaves stderr on /dev/console
 // and FreeBSD's daemon(8) on /dev/null. SRC's own mkssys -e is no substitute:
 // SRC truncates that file on every start, including the restart after a crash.
-func redirectServiceStderr() error {
+func RedirectDiscardedStderr() error {
 	home, ok := os.LookupEnv("BINDPLANE_COLLECTOR_HOME")
 	if !ok || !stderrDiscarded() {
 		return nil

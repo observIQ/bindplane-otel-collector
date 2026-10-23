@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !aix && !freebsd && !windows && !darwin
+//go:build !aix && !freebsd
 
 package service
 
-// redirectServiceStderr does nothing: systemd sends stderr to the journal.
-func redirectServiceStderr() error { return nil }
+// RedirectDiscardedStderr does nothing: systemd sends stderr to the journal,
+// and the Windows and macOS services handle stderr themselves.
+func RedirectDiscardedStderr() error { return nil }

@@ -84,6 +84,9 @@ type Options struct {
 func Run(opts Options) {
 	setLegacyEnvVars()
 
+	// Redirect before anything else can panic, so the panic lands in the error log.
+	redirectErr := service.RedirectDiscardedStderr()
+
 	logOpts, err := loadLoggingOptions(opts.LoggingConfigPath)
 	if err != nil {
 		log.Fatalf("Failed to get log options: %v", err)
@@ -92,6 +95,10 @@ func Run(opts Options) {
 	logger, err := zap.NewProduction(logOpts...)
 	if err != nil {
 		log.Fatalf("Failed to set up logger: %v", err)
+	}
+
+	if redirectErr != nil {
+		logger.Warn("Failed to redirect stderr to the error log", zap.Error(redirectErr))
 	}
 
 	if err := collector.SetFeatureFlags(opts.FeatureGates, logger); err != nil {
