@@ -176,11 +176,24 @@ function Get-MsiName {
     }
 }
 
+# ---- TLS ---------------------------------------------------------------------
+
+function Set-SecurityProtocol {
+    # Enable TLS 1.2, plus TLS 1.3 where the installed .NET supports it, so hosts whose
+    # policy requires TLS 1.3 can still download. Older .NET (e.g. 4.7.2 on Server 2019)
+    # has no Tls13 member, and referencing it directly throws under Set-StrictMode.
+    $protocols = [Net.SecurityProtocolType]::Tls12
+    if ([enum]::IsDefined([Net.SecurityProtocolType], 'Tls13')) {
+        $protocols = $protocols -bor [Net.SecurityProtocolType]::Tls13
+    }
+    [Net.ServicePointManager]::SecurityProtocol = $protocols
+}
+
 # ---- Version resolution ------------------------------------------------------
 
 function Get-LatestVersion {
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Set-SecurityProtocol
         $wc = New-Object System.Net.WebClient
         $version = $wc.DownloadString("https://bdot.bindplane.com/latest")
         return $version.Trim()
@@ -200,7 +213,7 @@ function Get-Msi {
 
     Write-Info "Downloading MSI from $Url"
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Set-SecurityProtocol
         $wc = New-Object System.Net.WebClient
         $wc.DownloadFile($Url, $Destination)
     }
