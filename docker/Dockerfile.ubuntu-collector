@@ -54,8 +54,6 @@ COPY $TARGETPLATFORM/bindplane-otel-collector /collector/bindplane-otel-collecto
 COPY $TARGETPLATFORM/container-init /collector/container-init
 COPY release_deps/plugins /etc/otel/plugins
 
-COPY config/logging.stdout.yaml /etc/otel/logging.yaml
-
 # Default config allows the agent to run without an injected config, which is required
 # when connecting to an OpAMP platform. It is a nop pipeline plus the health_check
 # extension on 0.0.0.0:13133, so Kubernetes probes pass before Bindplane pushes a config
@@ -85,12 +83,10 @@ service:
 EOF
 
 RUN chown otel:otel \
-    /etc/otel/config.yaml \
-    /etc/otel/logging.yaml
+    /etc/otel/config.yaml
 
 RUN chmod 0600 \
-    /etc/otel/config.yaml \
-    /etc/otel/logging.yaml
+    /etc/otel/config.yaml
 
 USER otel
 WORKDIR /etc/otel
