@@ -86,8 +86,12 @@ func TestUpdaterUpdate(t *testing.T) {
 		installer.On("Install", rollbacker).Times(1).Return(nil)
 		monitor.On("MonitorForSuccess", mock.Anything, packagestate.CollectorPackageName).Times(1).Return(nil)
 
+		packageStatusPath := filepath.Join(installDir, packagestate.DefaultFileName)
+		require.NoError(t, os.WriteFile(packageStatusPath, []byte("{}"), 0600))
+
 		err := updater.Update()
 		require.NoError(t, err)
+		require.NoFileExists(t, packageStatusPath)
 	})
 
 	t.Run("Service stop fails", func(t *testing.T) {

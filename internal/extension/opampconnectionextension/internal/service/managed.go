@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp"
 	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/internal/opamp/observiq"
+	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
@@ -64,6 +65,7 @@ func NewManagedCollectorService(col collector.Collector, logger *zap.Logger, man
 		Collector:                  col,
 		Version:                    version.Version(),
 		TmpPath:                    filepath.Join(installDir, "tmp"),
+		PackageStatusPath:          filepath.Join(installDir, packagestate.DefaultFileName),
 		ManagerConfigPath:          managerConfigPath,
 		CollectorConfigPath:        collectorConfigPath,
 		LoggerConfigPath:           loggerConfigPath,

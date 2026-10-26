@@ -99,6 +99,7 @@ type Client struct {
 
 	currentConfig     opamp.Config
 	managerConfigPath string
+	packageStatusPath string
 
 	availableComponentsMutator func(*protobufs.AvailableComponents)
 }
@@ -111,6 +112,7 @@ type NewClientArgs struct {
 	Version       string
 
 	TmpPath              string
+	PackageStatusPath    string
 	ManagerConfigPath    string
 	CollectorConfigPath  string
 	LoggerConfigPath     string
@@ -151,10 +153,11 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		downloadableFileManager:    newDownloadableFileManager(clientLogger, args.TmpPath),
 		collector:                  args.Collector,
 		currentConfig:              args.Config,
-		packagesStateProvider:      newPackagesStateProvider(clientLogger, packagestate.DefaultFileName),
+		packagesStateProvider:      newPackagesStateProvider(clientLogger, args.PackageStatusPath),
 		updaterManager:             updaterManger,
 		reportManager:              reportManager,
 		managerConfigPath:          args.ManagerConfigPath,
+		packageStatusPath:          args.PackageStatusPath,
 		sendGate:                   newSendGate(),
 		availableComponentsMutator: args.AvailableComponentsMutator,
 	}
@@ -439,7 +442,7 @@ func (c *Client) onConnectHandler(_ context.Context) {
 	// state is reported as part of the connection process, future queries of this file for package state will return a default "installed" status.
 	// This is good because after reporting the initial error, we don't want to persist an upgrade failure.
 	if collectorPkgStatus.Status == protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed {
-		if err := os.Remove(packagestate.DefaultFileName); err != nil {
+		if err := os.Remove(c.packageStatusPath); err != nil {
 			c.logger.Warn("Failed to remove package status artifact", zap.Error(err))
 		}
 		c.logger.Info("Removed package status artifact after upgrade attempt")
