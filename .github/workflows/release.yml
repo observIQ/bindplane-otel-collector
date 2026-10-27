@@ -6,88 +6,15 @@ on:
 
 jobs:
   build-msi:
-    runs-on: windows-2022
-    strategy:
-      matrix:
-        include:
-          - arch: amd64
-            msi_name: bindplane-otel-collector.msi
-            msi_arch: x64
-          - arch: arm64
-            msi_name: bindplane-otel-collector-arm64.msi
-            msi_arch: arm64
-    steps:
-      - name: Checkout Sources
-        uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.26.4
-      - name: Install Tools
-        run: make install-tools
-      # Needed until supervisor binary is released
-      - name: Build Supervisor Binary
-        run: make release-prep CURR_VERSION=${{ github.ref_name }}
-      - name: Build Windows Collector Binary
-        run: make build-windows-${{ matrix.arch }}
-      - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_${{ matrix.arch }}.exe windows/bindplane-otel-collector.exe
-      - name: Copy Supervisor Binary
-        run: cp release_deps/supervisor_bin/opampsupervisor_windows_${{ matrix.arch }}.exe windows/opampsupervisor.exe
-      - name: Copy Plugins to MSI Build Directory
-        run: cp -r release_deps/plugins windows/
-      - name: Copy Example Config
-        run: cp config/example.yaml windows/config.yaml
-      - name: Copy LICENSE
-        run: cp LICENSE windows/LICENSE
-      - name: Copy VERSION file
-        run: cp release_deps/VERSION.txt windows/VERSION.txt
-      # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
-      # for the MSI to build properly
-      - name: Copy Build Dir
-        run: |
-          cp -r windows C:/build
-          echo "C:/build" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      # Installs go-msi and wix.
-      - name: Install Build Tools
-        run: |
-          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
-          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
-          unzip wix314-binaries.zip
-        working-directory: C:/build
-      - name: Build MSI
-        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.ref_name }} --arch ${{ matrix.msi_arch }}
-        working-directory: C:/build
-      - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate
-        run: |
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
-        shell: bash
-      - name: Set variables for signing
-        id: variables
-        run: |
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
-        shell: bash
-      - name: Sign MSI
-        run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
-        shell: cmd
-      - name: Upload MSI
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.msi_name }}
-          path: C:/build/${{ matrix.msi_name }}
-          # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
-          retention-days: 1
+    uses: ./.github/workflows/build-signed-windows.yml
+    with:
+      version: ${{ github.ref_name }}
+      sign_install_script: true
+    secrets: inherit
 
   release:
     needs: [build-msi]
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     steps:
       - name: Redirect temp directories
         run: |
@@ -96,7 +23,7 @@ jobs:
           echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
         with:
           # For goreleaser
           fetch-depth: 0
@@ -110,12 +37,24 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26.4
-          cache: false # Use Namespace caching instead
+          go-version: 1.26.10
+          cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-tools
       - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
@@ -124,17 +63,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bindplane-otel-collector-arm64.msi
-      - name: Install Tools
-        run: make install-tools
+      - name: Install cosign
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
       - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: ~/.cache/goreleaser
+          key: ${{ runner.os }}-goreleaser-${{ hashFiles('.goreleaser.yml', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-goreleaser-
       - name: Sign AMD64 MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi
         shell: bash
@@ -145,6 +92,23 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      # Staged into place by goreleaser's overlay before-hook, not here:
+      # goreleaser validates git state before running its hooks, so touching
+      # the tracked script from a workflow step fails the release with
+      # "git is in a dirty state". The download directory is gitignored.
+      - name: Retrieve Signed Windows Install Script
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-install-script
+          path: signed-install-script
+      # The Windows binaries goreleaser packages must be the signed ones from
+      # the build-msi job, not the unsigned copies its before-hook builds here.
+      - name: Retrieve Signed Windows Binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: signed-windows-*
+          merge-multiple: true
+          path: signed-windows
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -162,6 +126,8 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNED_WINDOWS_DIR: signed-windows
+          SIGNED_INSTALL_SCRIPT: signed-install-script/install_windows.ps1
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
       - name: Sign Windows 64-bit ZIP Archive
@@ -288,10 +254,10 @@ jobs:
   # AIX release job — runs in parallel with the main release job.
   # Artifacts are uploaded to GCS and appended to the main GitHub release.
   release-aix:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     steps:
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Authenticate to GCP
@@ -304,12 +270,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.26.10
           cache: false
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Install Tools
         run: make install-tools
       - name: Build cosign key file
@@ -339,3 +310,29 @@ jobs:
         run: gh release upload ${{ github.ref_name }} ./dist/*tar.gz ./dist/*SHA256SUMS --clobber
         env:
           GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+
+  # Gate the prerelease on the executables actually being signed, not just the
+  # MSI. Releases publish as a prerelease first, so a failure here blocks
+  # promotion instead of arriving after customers have the artifacts.
+  verify-windows-release:
+    needs: [release]
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v7
+      - name: Download Windows Release Artifacts
+        run: |
+          mkdir artifacts
+          gh release download "$env:TAG" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --dir artifacts `
+            --pattern "*-windows-*.zip" `
+            --pattern "*.msi" `
+            --pattern "install_windows.ps1"
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+      - name: Verify Windows Signatures
+        run: ./scripts/ci/verify-windows-signatures.ps1 -Root ./artifacts
+        shell: pwsh

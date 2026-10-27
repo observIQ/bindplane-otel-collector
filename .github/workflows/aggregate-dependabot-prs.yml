@@ -1,0 +1,34 @@
+name: Aggregate Dependabot PRs
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest-8-cores
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.10
+      - name: Aggregate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="deps/aggregate-dependabot-$(date -u +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          ./scripts/aggregate-dependabot-prs.sh
+          if git diff --quiet "origin/${{ github.ref_name }}" HEAD; then
+            echo "Nothing to aggregate."
+            exit 0
+          fi
+          git push --force origin "$BRANCH"
+          # Open the PR manually; one opened with GITHUB_TOKEN would not trigger CI.
+          echo "Pushed $BRANCH. Open a PR: https://github.com/${{ github.repository }}/compare/${{ github.ref_name }}...$BRANCH" >> "$GITHUB_STEP_SUMMARY"

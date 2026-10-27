@@ -11,6 +11,17 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/cmd/container-init"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
   ### INTERNAL ###
   - package-ecosystem: "gomod"
     directory: "/internal/tools"
@@ -25,6 +36,13 @@ updates:
       # ignore patch updates
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/test/packaging"
+    schedule:
+      interval: "weekly"
     commit-message:
       prefix: "deps"
       include: "scope"

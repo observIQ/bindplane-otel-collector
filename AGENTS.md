@@ -1,0 +1,116 @@
+# AGENTS.md
+
+This file provides guidance to LLM agents when working with this repository.
+
+## Repository Overview
+
+The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane's distribution of the upstream OpenTelemetry Collector. This is a Go-based project that implements the Open Agent Management Protocol (OpAMP) and supports both standalone and managed modes.
+
+## Pull Request Content
+
+The most important rule is not to post AI-generated comments on PRs or open PRs with summaries that are AI-generated. Discussions on the pull requests are for Users/Humans only.
+
+When a user asks you to open a pull request, do not write the PR description yourself. Instead,
+before creating the PR, prompt the user for the content of each section in the PR template
+(Proposed Change, Documentation, Testing, Describe How The Reviewer Can Validate The Changes) and use their answers verbatim. Do not paraphrase, expand, or "improve" what the user writes. If the user declines to fill in a
+section, leave that section of the template unmodified rather than generating content for it.
+
+## Commit formatting
+
+We appreciate it if users disclose the use of AI tools when the significant part of a commit is
+taken from a tool without changes. When making a commit this should be disclosed through an
+Assisted-by: commit message trailer.
+
+Examples:
+
+```
+Assisted-by: ChatGPT 5.2
+Assisted-by: Claude Opus 4.5
+```
+
+Do NOT use a `Co-authored-by:` trailer to disclose AI assistance. Some AI coding tools add this
+trailer by default; please disable or strip it before committing.
+
+## Development Commands
+
+### Build Commands
+- `make build-all` - Build for all supported platforms (Linux, Darwin, Windows)
+- `make build-linux`, `make build-darwin`, `make build-windows` - Build for specific platforms
+
+### Testing Commands
+- `make test` - Run all tests with race detection
+- `make test-no-race` - Run all tests without race detection
+- `make test-with-cover` - Run tests with coverage reports
+- `make bench` - Run benchmarks
+
+### Code Quality Commands
+- `make ci-checks` - Run all CI checks (format, license, misspell, lint, gosec, test)
+- `make lint` - Run revive linter
+- `make fmt` - Format code with goimports
+- `make check-fmt` - Check code formatting
+- `make gosec` - Run security scanner
+- `make misspell` - Check for misspellings in documentation
+- `make misspell-fix` - Fix misspellings automatically
+
+### Setup Commands
+- `make install-tools` - Install all required development tools
+- `make tidy` - Tidy go modules across all submodules
+- `make generate` - Run go generate across all modules
+- `make add-license` - Add license headers to source files
+- `make check-license` - Check license headers
+
+### Release Commands
+- `make release version=vX.X.X` - Create and push release tags
+- `make release-test` - Test release process locally
+- `make release-prep` - Prepare release dependencies
+
+## Project Architecture
+
+### Core Components
+
+The project is structured as an OpenTelemetry Collector distribution with custom components:
+
+- **manifests/observIQ/manifest.yaml** - Canonical source of truth for components and their versions. Drives the `make collector` build.
+- **internal/extension/opampconnectionextension/cmd/main/main.go** - Template `main.go` copied over ocb's generated `main.go`; calls into `internal/extension/opampconnectionextension/runtime` for managed/standalone dispatch.
+- **internal/extension/opampconnectionextension/** - The OpAMP connection extension and its full managed-mode runtime cluster (collector lifecycle, OpAMP client, package state, report manager, measurements). Its own Go module; entry point `runtime.Run(Options)`.
+- **internal/processor/snapshotprocessor/** - Bindplane snapshot processor. Its own internal Go module.
+
+### Component Organization
+
+Custom Bindplane components (receivers, processors, exporters, and extensions) live in [dynatrace-bindplane-otel-contrib](https://github.com/dynatrace/dynatrace-bindplane-otel-contrib) and are consumed as Go modules via the manifest. This repo only carries the internal modules listed above.
+
+### Key Architectural Patterns
+
+1. **Dual Mode Operation**: The collector can run in standalone mode (using local config) or managed mode (via OpAMP)
+2. **Manifest-Driven Assembly**: Components are assembled by ocb from `manifests/observIQ/manifest.yaml`, which generates the factory wiring (`components.go`) in `./builder/`; there is no hand-maintained factories package
+3. **Module Structure**: Each component is a separate Go module with its own go.mod
+4. **Interface Abstraction**: Core collector functionality is abstracted behind interfaces for testability
+
+### Configuration Management
+
+- **Standalone Mode**: Uses local `config.yaml` file
+- **Managed Mode**: Configuration delivered via OpAMP from Bindplane server
+- **Environment Variables**: Support for OpAMP configuration via environment variables
+- **Rollback Support**: Automatic rollback of configurations on startup failures
+
+### Build System
+
+The project uses a Makefile-based build system with:
+- **`make collector` runs ocb** against `manifests/observIQ/manifest.yaml` and compiles, copying the result to `./dist/collector_<os>_<arch>`. `make collector` is the default goal, so bare `make` builds it too.
+- There's no top-level `go.mod`. ocb generates a per-build `go.mod` inside `./builder/`.
+- Multi-platform cross-compilation support
+- Separate binaries for collector and OpAMP supervisor
+- Goreleaser for automated releases
+- License scanning and security checks
+
+## Testing Strategy
+
+- Unit tests for all components with race detection
+- Integration tests for complex components
+- Mocking using mockery for interface testing
+- Coverage reporting available
+- Security scanning with gosec
+
+## Module Management
+
+The project uses a multi-module structure where each custom component is its own Go module. The `make tidy` command operates across all modules. When updating dependencies, use the provided scripts for OTEL version updates.

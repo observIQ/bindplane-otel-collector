@@ -288,9 +288,9 @@ function Invoke-Uninstall {
     }
 
     # Report the name actually registered for the resolved product. The UpgradeCode
-    # also matches older (pre-rename) installs, so the installed name may differ
-    # from $PRODUCT_DISPLAY_NAME; show what is really there rather than claiming to
-    # act on a name the user may not have installed.
+    # also matches rebranded installs (e.g. the BDOT rename), so the installed name
+    # may differ from $PRODUCT_DISPLAY_NAME; show what is really there rather than
+    # claiming to act on a name the user may not have installed.
     $installedName = Get-InstalledProductName -ProductCode $productCode
     if ($installedName) {
         Write-Info "Found '$installedName' ($productCode)"

@@ -629,7 +629,6 @@ create_supervisor_config() {
   command printf '    insecure_skip_verify: true\n' >>"$supervisor_yml_path"
   command printf 'capabilities:\n' >>"$supervisor_yml_path"
   command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
-  command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
   command printf '  reports_available_components: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"

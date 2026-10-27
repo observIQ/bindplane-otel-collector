@@ -31,11 +31,6 @@ for arg in "$@"; do
 done
 BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PROJECT_BASE="$BASEDIR/.."
-JAVA_CONTRIB_VERSION="$(cat "$PROJECT_BASE/JAVA_CONTRIB_VERSION")"
-
-echo "Retrieving java contrib at $JAVA_CONTRIB_VERSION"
-curl -fL -o "$DOWNLOAD_DIR/opentelemetry-java-contrib-jmx-metrics.jar" \
-    "https://github.com/open-telemetry/opentelemetry-java-contrib/releases/download/$JAVA_CONTRIB_VERSION/opentelemetry-jmx-metrics.jar" > /dev/null 2>&1
 
 # HACK(dakota): workaround for getting supervisor binaries until releases are supported
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/24293
@@ -69,7 +64,7 @@ else
     # Build supervisor for all non-AIX platforms from upstream, pinned to a
     # release tag so upstream main churn can't break our release prep. Bump this
     # to match the collector version when updating OTel.
-    SUPERVISOR_VERSION="v0.154.0"
+    SUPERVISOR_VERSION="v0.162.0"
     echo "Cloning upstream supervisor repo at $SUPERVISOR_VERSION"
     SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contrib.git"
     PLATFORMS=("linux/amd64" "linux/arm64" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64" "windows/arm64")
@@ -87,7 +82,7 @@ else
     echo "extension/bearertokenauthextension" >> .git/info/sparse-checkout
     echo "extension/oauth2clientauthextension" >> .git/info/sparse-checkout
     echo "extension/internal" >> .git/info/sparse-checkout
-    # v0.154.0 is an annotated tag, so fetch + checkout rather than pull (which
+    # v0.162.0 is an annotated tag, so fetch + checkout rather than pull (which
     # would try to fast-forward a branch ref to the tag object and fail).
     git fetch origin --depth 1 tag "$SUPERVISOR_VERSION"
     git checkout "$SUPERVISOR_VERSION"

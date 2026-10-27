@@ -3,35 +3,46 @@ on:
   pull_request:
 
 jobs:
-  # Graphite CI optimization: skip redundant CI runs for stacked PRs.
-  # See https://graphite.com/docs/stacking-and-ci
+  # CI optimization: skip redundant CI runs for stacked PRs.
+  # Graphite stacks: https://graphite.com/docs/stacking-and-ci
+  # GitHub native stacks: https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests
   optimize_ci:
     runs-on: ubuntu-latest
     continue-on-error: true
     outputs:
-      skip: ${{ steps.check_skip.outputs.skip }}
+      skip: ${{ steps.graphite_check.outputs.skip == 'true' || steps.github_check.outputs.skip == 'true' }}
     steps:
-      - name: Optimize CI
-        id: check_skip
+      - name: Graphite CI optimization
+        id: graphite_check
+        continue-on-error: true
         uses: withgraphite/graphite-ci-action@26bc0dcdeaba101794931d67a464ecbb21a76a8b # v0.0.9 tag (no formal releases)
         with:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+      - name: GitHub stacked PR optimization
+        id: github_check
+        if: github.event_name == 'pull_request'
+        env:
+          STACK_BASE: ${{ github.event.pull_request.stack.base.ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [[ -n "$STACK_BASE" && "$BASE_REF" != "$STACK_BASE" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
   # Detect which files changed to skip irrelevant jobs on PRs.
   detect-changes:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' }}
     needs: optimize_ci
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    runs-on: ubuntu-latest-8-cores
     permissions:
       contents: read
       pull-requests: read
     outputs:
       # if this file changed, run all tests. if the makefile changed, run all tests.
       go: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
-      updater: ${{ steps.filter.outputs.updater == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
     steps:
       - name: Checkout Sources
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
       - name: Detect changed files
         uses: dorny/paths-filter@v3
         id: filter
@@ -44,10 +55,8 @@ jobs:
               - 'Makefile'
             go:
               - '**/*.go'
-              - 'go.mod'
-              - 'go.sum'
-            updater:
-              - 'updater/**'
+              - '**/go.mod'
+              - '**/go.sum'
 
   unit-tests:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true' }}
@@ -61,50 +70,68 @@ jobs:
         include:
           # Ubuntu - All tests
           - os: ubuntu
-            runner: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+            runner: ubuntu-latest-32-cores
           # macOS - All tests
           - os: macos
-            runner: namespace-profile-bindplane-default-macos-15
+            runner: macos-15-xlarge
           # Windows - All tests
           - os: windows
-            runner: namespace-profile-bindplane-default-windows-2022-16x32
+            runner: windows-2022-16-cores
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Checkout Sources (Namespace)
+      - name: Checkout Sources (non-Windows)
         if: matrix.os != 'windows'
-        uses: namespacelabs/nscloud-checkout-action@v7
+        uses: actions/checkout@v7
 
       - name: Checkout Sources (Windows)
         if: matrix.os == 'windows'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26.4
+          go-version: 1.26.10
           cache: false
-
-      - name: Cache Go (Namespace)
-        if: matrix.os != 'windows'
-        uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          cache: go
 
       - name: Cache Go modules (Ubuntu)
         if: matrix.os == 'ubuntu'
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Cache Go build cache (Ubuntu)
+        if: matrix.os == 'ubuntu'
+        uses: actions/cache@v6
+        with:
+          path: /home/runner/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
 
       - name: Cache Go modules (macOS)
         if: matrix.os == 'macos'
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: /Users/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Cache Go build cache (macOS)
+        if: matrix.os == 'macos'
+        uses: actions/cache@v6
+        with:
+          path: /Users/runner/Library/Caches/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
 
       - name: Cache Go modules (Windows)
         if: matrix.os == 'windows'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: C:\Users\runneradmin\go\pkg\mod
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
@@ -113,7 +140,7 @@ jobs:
 
       - name: Cache Go build cache (Windows)
         if: matrix.os == 'windows'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: C:\Users\runneradmin\AppData\Local\go-build
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
@@ -122,27 +149,33 @@ jobs:
 
       - name: Cache Tools (Ubuntu)
         if: matrix.os == 'ubuntu'
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: /home/runner/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum', '**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
 
       - name: Cache Tools (macOS)
         if: matrix.os == 'macos'
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: /Users/runner/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum', '**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
 
       - name: Cache Tools (Windows)
         if: matrix.os == 'windows'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: C:\Users\runneradmin\go\bin
-          key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.sum') }}
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum', '**/Makefile') }}
           restore-keys: |
             ${{ runner.os }}-go-tools-
 
       - name: Install Tools
-        run: make install-tools-ci
+        run: bash .github/scripts/retry.sh make install-tools-ci
 
       - name: Run All Tests
         run: make test

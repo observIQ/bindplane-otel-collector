@@ -41,11 +41,29 @@ go.opentelemetry.io/collector/processor
 go.opentelemetry.io/collector/receiver
 EOF
 
+# This is the list of contrib modules that have reached v1.0.0+ and are versioned
+# independently of the main contrib release (CONTRIB_TARGET_VERSION). They are
+# pinned to CONTRIB_STABLE_TARGET_VERSION instead. Keep this in sync with the same
+# list in update-docs.sh. When a new contrib module goes stable, add its full
+# module path here.
+read -d '' STABLE_CONTRIB_MODULES <<EOF
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor
+EOF
+
 # Exit on any error (set after read command which returns non-zero at EOF)
 set -e
 
 is_stable_module() {
     for stable_mod in $STABLE_MODULES; do
+        if [ "$stable_mod" = "$1" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+is_stable_contrib_module() {
+    for stable_mod in $STABLE_CONTRIB_MODULES; do
         if [ "$stable_mod" = "$1" ]; then
             return 0
         fi
@@ -80,8 +98,20 @@ if [ -z "$PDATA_TARGET_VERSION" ]; then
     exit 1
 fi
 
+CONTRIB_STABLE_TARGET_VERSION=$4
+if [ -z "$CONTRIB_STABLE_TARGET_VERSION" ]; then
+    echo "Must specify a target stable contrib version"
+    exit 1
+fi
+
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
 for local_mod in $LOCAL_MODULES; do
+    # Skip gitignored modules (e.g. the generated ./build and ./builder trees);
+    # they are local artifacts, not source, and must not be rewritten here.
+    if git check-ignore -q "$local_mod" 2>/dev/null; then
+        echo "Skipping gitignored module $local_mod"
+        continue
+    fi
     # Run in a subshell so that the CD doesn't change this shell's current directory
     # Temporarily disable 'set -e' for this command so we can check its exit status
     set +e
@@ -92,7 +122,7 @@ for local_mod in $LOCAL_MODULES; do
         echo "Updating deps in $local_mod"
         cd "$local_mod"
         # go list will not work if module is not tidy, so we tidy first
-        go mod tidy -compat=1.26.4
+        go mod tidy -compat=1.26.10
 
         echo "  Tidied $local_mod"
 
@@ -108,6 +138,9 @@ for local_mod in $LOCAL_MODULES; do
             if is_stable_module "$mod"; then
                 echo "  Updating $local_mod: $mod@$PDATA_TARGET_VERSION"
                 go mod edit -require "$mod@$PDATA_TARGET_VERSION"
+            elif is_stable_contrib_module "$mod"; then
+                echo "  Updating $local_mod: $mod@$CONTRIB_STABLE_TARGET_VERSION"
+                go mod edit -require "$mod@$CONTRIB_STABLE_TARGET_VERSION"
             elif is_contrib_module "$mod"; then
                 echo "  Updating $local_mod: $mod@$CONTRIB_TARGET_VERSION"
                 go mod edit -require "$mod@$CONTRIB_TARGET_VERSION"

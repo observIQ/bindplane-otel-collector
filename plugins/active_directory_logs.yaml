@@ -1,4 +1,4 @@
-version: 0.0.2
+version: 0.0.3
 title: Active Directory Logs
 description: Log parser for Active Directory
 parameters:
@@ -59,6 +59,7 @@ template: |
           type: regex_parser
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
+          on_error: send_quiet
         {{ end }}
     windows_event_log/web_services:
       channel: "Active Directory Web Services"
@@ -79,6 +80,7 @@ template: |
           type: regex_parser
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
+          on_error: send_quiet
         {{ end }}
     {{ if .enable_dns_server }}
     windows_event_log/dns:
@@ -100,6 +102,7 @@ template: |
           type: regex_parser
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
+          on_error: send_quiet
         {{ end }}
     {{ end }}
     {{ if .enable_dfs_replication }}
@@ -122,6 +125,7 @@ template: |
           type: regex_parser
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
+          on_error: send_quiet
         {{ end }}
     {{ end }}
     {{ if .enable_file_replication }}
@@ -144,6 +148,7 @@ template: |
           type: regex_parser
           regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
           parse_from: body
+          on_error: send_quiet
         {{ end }}
     {{ end }}
 

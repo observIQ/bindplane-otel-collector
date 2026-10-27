@@ -20,6 +20,7 @@ ARG TARGETPLATFORM
 WORKDIR /
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y \
         systemd tzdata ca-certificates && \
     apt-get clean && \
@@ -41,6 +42,8 @@ RUN mkdir \
     && chmod 0750 /etc/otel/storage
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
+ENV BINDPLANE_COLLECTOR_HOME=/etc/otel
+ENV BINDPLANE_COLLECTOR_STORAGE=/etc/otel/storage
 
 RUN mkdir /licenses
 COPY LICENSE /licenses/bindplane-otel-collector.license
@@ -48,6 +51,42 @@ COPY LICENSE /licenses/bindplane-otel-collector.license
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY $TARGETPLATFORM/bindplane-otel-collector /collector/bindplane-otel-collector
+COPY $TARGETPLATFORM/container-init /collector/container-init
+COPY release_deps/plugins /etc/otel/plugins
+
+# Default config allows the agent to run without an injected config, which is required
+# when connecting to an OpAMP platform. It is a nop pipeline plus the health_check
+# extension on 0.0.0.0:13133, so Kubernetes probes pass before Bindplane pushes a config
+# over OpAMP. It must stay byte-identical to defaultCollectorConfig in
+# cmd/container-init/main.go, which its tests enforce. The quoted delimiter disables
+# build-time variable expansion.
+COPY <<"EOF" /etc/otel/config.yaml
+receivers:
+  nop:
+processors:
+  batch:
+exporters:
+  nop:
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [nop]
+      processors: [batch]
+      exporters: [nop]
+  telemetry:
+    metrics:
+      level: none
+EOF
+
+RUN chown otel:otel \
+    /etc/otel/config.yaml
+
+RUN chmod 0600 \
+    /etc/otel/config.yaml
 
 USER otel
 WORKDIR /etc/otel

@@ -7,21 +7,29 @@ on:
 jobs:
   vulncheck:
     name: Go Vulnerability Scan
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-large
+    runs-on: ubuntu-latest-16-cores
     timeout-minutes: 20
     steps:
       - name: Check out source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26.4
+          go-version: 1.26.10
           cache-dependency-path: |
             **/go.sum
 
-      - name: Get official govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-        shell: bash
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v6
+        with:
+          path: /home/runner/go/bin
+          key: ${{ runner.os }}-gotools-${{ hashFiles('**/go.sum', '**/Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-gotools-
+
+      - name: Install tools (govulncheck)
+        run: bash .github/scripts/retry.sh make install-tools
 
       - name: Configure memory limits
         run: |
@@ -30,24 +38,24 @@ jobs:
           echo "GOGC=50" >> $GITHUB_ENV
         shell: bash
 
-      - name: Run govulncheck with memory optimization
+
+      # There is no root Go module (the collector is assembled by ocb from
+      # the manifest), so scan each module in the repo, skipping the ones
+      # migrated to the contrib repo. A scan error fails the job rather
+      # than silently reporting a clean result.
+      - name: Run govulncheck across all modules
         timeout-minutes: 30
         run: |
-          govulncheck -format json ./... | tee govulncheck-results.json || {
-            echo "Full scan failed, trying module-by-module scan..."
-            echo '[]' > govulncheck-results.json
-            temp_file=$(mktemp)
-            for module in $(go list -m all | head -100); do
-              echo "Scanning module: $module"
-              if govulncheck -format json "$module" > "$temp_file" 2>/dev/null; then
-                cat "$temp_file" >> govulncheck-results.json
-                echo "" >> govulncheck-results.json
-              else
-                echo "Module $module scan failed"
-              fi
-            done
-            rm -f "$temp_file"
-          }
+          : > govulncheck-results.json
+          failed=0
+          for dir in $(find . -type f -name go.mod -not -path "./build/*" -exec dirname {} \; | sort); do
+            echo "Scanning module: ${dir}"
+            if ! (cd "${dir}" && govulncheck -format json ./...) >> govulncheck-results.json; then
+              echo "::error::govulncheck failed for ${dir}"
+              failed=1
+            fi
+          done
+          exit "${failed}"
         shell: bash
 
       - name: Parse govulncheck results

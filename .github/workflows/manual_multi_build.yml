@@ -8,18 +8,18 @@ on:
 jobs:
   setup-tools:
     if: github.actor != 'dependabot[bot]'
-    runs-on: nscloud-ubuntu-20.04-systemd-amd64-4x8
+    runs-on: ubuntu-latest-4-cores
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.26.10"
           check-latest: true
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: /home/runner/go/bin
           key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
@@ -29,91 +29,71 @@ jobs:
 
   build_linux:
     if: github.actor != 'dependabot[bot]'
-    runs-on: nscloud-ubuntu-24.04-systemd-amd64-4x8
-    needs:
-      - setup-tools
+    runs-on: ubuntu-latest-4-cores
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          check-latest: true
+          go-version: 1.26.10
           cache-dependency-path: |
             **/go.sum
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v3
+      - name: Install ocb
+        uses: nick-fields/retry@v4
         with:
-          path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
-      - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
-        run: make install-tools
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-tools
       - name: Build
         run: make build-linux
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
-
+        run: lichen --config=./license.yaml $(find dist/collector_* release_deps/supervisor_bin/opampsupervisor_*)
   build_darwin:
     if: github.actor != 'dependabot[bot]'
     runs-on: macos-14
-    needs:
-      - setup-tools
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          check-latest: true
+          go-version: 1.26.10
           cache-dependency-path: |
             **/go.sum
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v3
+      - name: Install ocb
+        uses: nick-fields/retry@v4
         with:
-          path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
-      - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
-        run: make install-tools
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-tools
       - name: Build
         run: make build-darwin
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
-
+        run: lichen --config=./license.yaml $(find dist/collector_* release_deps/supervisor_bin/opampsupervisor_*)
   build_windows:
     if: github.actor != 'dependabot[bot]'
-    runs-on: nscloud-ubuntu-24.04-systemd-amd64-4x8
+    runs-on: ubuntu-latest-4-cores
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.26.10"
           check-latest: true
           cache-dependency-path: |
             **/go.sum
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v3
+      - name: Install ocb
+        uses: nick-fields/retry@v4
         with:
-          path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
-      - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
-        run: make install-tools
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-tools
       - name: Build
         run: make build-windows
       - name: Scan Third Party Dependency Licenses
-        run: |
-          go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml dist/collector_windows_amd64.exe dist/collector_windows_arm64.exe
+        run: lichen --config=./license.yaml dist/collector_windows_amd64.exe release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe dist/collector_windows_arm64.exe release_deps/supervisor_bin/opampsupervisor_windows_arm64.exe

@@ -29,6 +29,11 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHO
 # Tag passed to goreleaser in --snapshot mode. Must be the bare tag; goreleaser's snapshot
 # template appends its own -SNAPSHOT-<sha> suffix, so passing VERSION here would double it.
 SNAPSHOT_TAG := $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
+# Timeout for the local snapshot goreleaser targets. goreleaser defaults to 1h, which a
+# full cross-compile can exceed on a slower workstation, so the run gets killed partway
+# through. CI uses 120m on larger runners; local gets more headroom. Override on the
+# command line if your machine needs a different budget.
+GORELEASER_TIMEOUT ?= 180m
 
 .PHONY: version
 version:
@@ -40,13 +45,13 @@ version:
 # Builds the collector for current GOOS/GOARCH pair
 .PHONY: collector
 collector:
-	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-contrib/pkg/version.version=$(VERSION)"
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds the agent for current GOOS/GOARCH pair (aix)
 .PHONY: collector-aix
 collector-aix:
-	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest-aix.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)"
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest-aix.yaml" --ldflags "-s -w -X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector$(EXT) $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
@@ -71,6 +76,11 @@ kill:
 .PHONY: reset
 reset: kill
 	rm -rf agent.log effective.yaml local/supervisor_storage/ builder/
+
+# Builds the container-init binary for current GOOS/GOARCH pair
+.PHONY: container-init
+container-init:
+	cd ./cmd/container-init/; CGO_ENABLED=0 go build -ldflags "-s -w" -o ../../$(OUTDIR)/container-init_$(GOOS)_$(GOARCH)$(EXT) .
 
 .PHONY: build-all
 build-all: build-linux build-unix build-windows
@@ -152,12 +162,6 @@ install-tools:
 	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
 	cd $(TOOLS_MOD_DIR) && go install gotest.tools/gotestsum
 
-
-# install builder cmd for better CI
-.PHONY: install-builder
-install-builder:
-	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
-
 # Fast install that checks if tools exist (for CI with cache)
 .PHONY: install-tools-ci
 install-tools-ci:
@@ -171,6 +175,7 @@ install-tools-ci:
 	@command -v mockery > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/v2)
 	@command -v goimports > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports)
 	@command -v gotestsum > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install gotest.tools/gotestsum)
+	@command -v builder > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder)
 
 .PHONY: lint
 lint:
@@ -206,6 +211,21 @@ test-with-cover:
 	$(MAKE) for-all CMD="go test -coverprofile=cover.out ./..."
 	$(MAKE) for-all CMD="go tool cover -html=cover.out -o cover.html"
 
+# Linux package (deb/rpm) install, upgrade, and uninstall tests. Requires Docker
+# (cgroup v2) and the packages built by `make release-test` in ./dist.
+# Select distros and actions, e.g. `make test-packages PKGTEST_DISTRO=debian-13 PKGTEST_ACTION=install`.
+# See test/packaging/README.md.
+PKGTEST_TIMEOUT ?= 45m
+PKGTEST_PARALLEL ?= 4
+# Comma separated distros and actions to test. Empty runs all of them.
+PKGTEST_DISTRO ?=
+PKGTEST_ACTION ?=
+.PHONY: test-packages
+test-packages:
+	cd test/packaging && BDOT_PKGTEST_DIST="$(CURDIR)/dist" go test -tags packaging -v -count=1 \
+		-timeout $(PKGTEST_TIMEOUT) -parallel $(PKGTEST_PARALLEL) ./... \
+		-args -distro='$(PKGTEST_DISTRO)' -action='$(PKGTEST_ACTION)'
+
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench=. ./..."
@@ -220,18 +240,18 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.26.4"
+	$(MAKE) for-all-modules CMD="go mod tidy -compat=1.26.10"
 
 .PHONY: gosec
 gosec:
-	@if [ -z "$$(go list ./... 2>/dev/null | grep -v 'internal/tools' | grep -v 'cmd/plugindocgen')" ]; then \
-		echo "gosec: no packages to scan, skipping"; \
-	else \
-		gosec \
-		  -exclude-dir=internal/tools \
-		  -exclude-dir=cmd/plugindocgen \
-		  ./...; \
-	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+		case "$${dir}" in \
+			"."|"./internal/tools"|"./cmd/plugindocgen") continue;; \
+		esac; \
+		(cd "$${dir}" && \
+			echo "running gosec in $${dir}" && \
+			gosec ./...) || exit 1; \
+	done
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -333,11 +353,11 @@ add-license:
 
 # update-otel attempts to update otel dependencies in go.mods,
 # and update the otel versions in the docs.
-# Usage: make update-otel OTEL_VERSION=vx.x.x CONTRIB_VERSION=vx.x.x PDATA_VERSION=vx.x.x-rcx BDOT_CONTRIB_VERSION=vx.x.x
+# Usage: make update-otel OTEL_VERSION=vx.x.x CONTRIB_VERSION=vx.x.x PDATA_VERSION=vx.x.x-rcx BDOT_CONTRIB_VERSION=vx.x.x CONTRIB_STABLE_VERSION=vx.x.x
 .PHONY: update-otel
 update-otel:
-	./scripts/update-otel.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(PDATA_VERSION)"
-	./scripts/update-docs.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(BDOT_CONTRIB_VERSION)"
+	./scripts/update-otel.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(PDATA_VERSION)" "$(CONTRIB_STABLE_VERSION)"
+	./scripts/update-docs.sh "$(OTEL_VERSION)" "$(CONTRIB_VERSION)" "$(BDOT_CONTRIB_VERSION)" "$(CONTRIB_STABLE_VERSION)"
 	$(MAKE) tidy
 # Double make tidy - this unfortunately is needed due to the order in which modules are tidied.
 # The modules this seems to effect are plugindocgen and bindplaneextension
@@ -350,11 +370,11 @@ update-modules:
 	./scripts/update-module-version.sh "$(NEW_VERSION)"
 	$(MAKE) tidy
 
-# update-contrib updates all bindplane-otel-contrib dependencies to the new version.
+# update-contrib updates all dynatrace-bindplane-otel-contrib dependencies to the new version.
 # Usage: make update-contrib BDOT_CONTRIB_VERSION=vx.x.x
 .PHONY: update-contrib
 update-contrib:
-	./scripts/update-bindplane-contrib.sh "$(BDOT_CONTRIB_VERSION)"
+	./scripts/update-dbdot-contrib.sh "$(BDOT_CONTRIB_VERSION)"
 	$(MAKE) tidy
 
 # Downloads and setups dependencies that are packaged with binary
@@ -397,13 +417,13 @@ release-test:
 # If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	if [ ! -e "./bindplane-otel-collector-arm64.msi" ]; then touch ./bindplane-otel-collector-arm64.msi; fi
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
 	$(MAKE) release-test-aix
 
 # Build and sign AIX, skip release and ignore dirty git tree
 .PHONY: release-test-aix
 release-test-aix:
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 # Local dry-run of the container release. Builds linux binaries, stages them at
 # the paths .goreleaser-docker.yml expects, then runs goreleaser in snapshot mode.
@@ -414,26 +434,27 @@ release-containers-test:
 	$(MAKE) release-prep CURR_VERSION=$(VERSION)
 	$(MAKE) build-linux-amd64 OUTDIR=tmp
 	$(MAKE) build-linux-arm64 OUTDIR=tmp
-	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
-
-.PHONY: agent-linux-amd64 agent-linux-arm64 agent-linux-ppc64le
-agent-linux-amd64:
-	GOARCH=amd64 GOOS=linux $(MAKE) agent
-agent-linux-arm64:
-	GOARCH=arm64 GOOS=linux $(MAKE) agent
-agent-linux-ppc64le:
-	GOARCH=ppc64le GOOS=linux $(MAKE) agent
+	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot --config .goreleaser-docker.yml
 
 build-single:
 	$(MAKE)
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
-
-.PHONY: release-test-single
-release-test-single:
-	GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
 .PHONY: for-all
 for-all:
+	@if [ -n "$$(go list ./... 2>/dev/null)" ]; then \
+		echo "running $${CMD} in root"; \
+		$${CMD}; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+	  if [ "$${dir}" = "." ]; then continue; fi; \
+	  (cd "$${dir}" && \
+	    echo "running $${CMD} in $${dir}" && \
+	    $${CMD} ); \
+	done
+
+.PHONY: for-all-modules
+for-all-modules:
 	@set -e; for dir in $(ALL_MODULES); do \
 	  if [ "$${dir}" = "." ]; then continue; fi; \
 	  (cd "$${dir}" && \

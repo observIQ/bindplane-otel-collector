@@ -26,7 +26,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/observiq/bindplane-otel-contrib/receiver/pluginreceiver"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver"
 	"gopkg.in/yaml.v3"
 )
 

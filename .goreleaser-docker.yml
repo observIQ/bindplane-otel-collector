@@ -2,11 +2,27 @@ version: 2
 
 project_name: bindplane-otel-collector
 
+before:
+  hooks:
+    - make release-prep CURR_VERSION={{ .Version }}
+
 # Container-only release. The main release (.goreleaser.yml) already publishes
 # the GitHub release and uploads linux tarballs to gs://bdot-release/v{version}/.
 # This config consumes those tarballs to build and push container images.
 
 changelog:
+  disable: true
+
+# Container images and manifests are the only intended output of this config.
+# Without the three stanzas below, goreleaser applies its defaults: a tar.gz per
+# linux arch, a checksums file over them, and an upload of all of it to the GitHub
+# release for the tag. Those archives hold just the binaries and goreleaser's default
+# doc files, so they duplicate (less completely) the archives .goreleaser.yml already
+# publishes, and they ship unsigned.
+archives:
+  - formats: [binary]
+
+checksum:
   disable: true
 
 release:
@@ -36,10 +52,21 @@ builds:
       - arm64
     prebuilt:
       path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}
-
-# Skip over building default archives
-archives:
-  - format: binary
+  # Unlike the collector (built by ocb/make and imported prebuilt),
+  # container-init is a plain Go module goreleaser can build itself.
+  - id: container-init
+    dir: cmd/container-init
+    binary: container-init
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - ppc64le
 
 # https://goreleaser.com/customization/dockers_v2/
 # dockers_v2 produces a multi-arch manifest natively, so no separate
@@ -51,6 +78,7 @@ dockers_v2:
     ids:
       - collector
       - supervisor
+      - container-init
     dockerfile: ./docker/Dockerfile.ubuntu
     images:
       - "ghcr.io/observiq/bindplane-otel-collector"

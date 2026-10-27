@@ -6,6 +6,13 @@ before:
   hooks:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
     - make build-all-non-aix OUTDIR="tmp"
+    # Replace the Windows binaries just built here with the Authenticode-signed
+    # copies from the build-signed-windows workflow. This runner has no DigiCert
+    # access, so without the overlay the Windows zip would ship unsigned
+    # executables (BPOP-5780). No-op when SIGNED_WINDOWS_DIR is unset, which is
+    # how local snapshot builds work; fails the release when it is set but the
+    # signed binaries are missing.
+    - ./scripts/ci/overlay-signed-windows.sh tmp
 
 after:
   hooks:
@@ -33,6 +40,8 @@ builds:
       - goos: darwin
         goarch: ppc64le
       - goos: windows
+        goarch: arm
+      - goos: windows
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
@@ -55,6 +64,8 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
+      - goos: windows
+        goarch: arm
       - goos: windows
         goarch: ppc64
       - goos: windows
@@ -142,7 +153,7 @@ nfpms:
       # nfpm failed: cannot write header of release_deps/plugins/amazon_eks.yaml to data.tar.gz: archive/tar: missed writing 1736 bytes
       - src: release_deps/plugins/*
         dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/plugins
-      # Storage dir is used by stateful receivers, such as filelog receiver. It allows
+      # Storage dir is used by stateful receivers, such as file_log receiver. It allows
       # receivers to track their progress and buffer data.
       - src: config/supervisor-default.yaml
         dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/supervisor.yaml

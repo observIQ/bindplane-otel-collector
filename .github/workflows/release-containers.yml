@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   release-containers:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    runs-on: ubuntu-latest-32-cores
     # Uncomment the following when switching to workflow_run trigger,
     # to ensure the job only runs if the release workflow succeeded.
     # if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -38,9 +38,7 @@ jobs:
           echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
-        uses: namespacelabs/nscloud-checkout-action@v7
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v7
       - name: Normalize and validate version input
         run: |
           set -euo pipefail
@@ -63,12 +61,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26.4
+          go-version: 1.26.10
           cache: false
       - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
-          cache: go
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Download Linux Binaries from GCS
         run: |
           set -euo pipefail
@@ -98,16 +101,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
       - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+        uses: actions/cache@v6
         with:
           path: ~/.cache/goreleaser
+          key: ${{ runner.os }}-goreleaser-${{ hashFiles('.goreleaser-docker.yml', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-goreleaser-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.15.4"
-          args: release --clean --timeout 60m --config .goreleaser-docker.yml
+          version: "v2.12.5"
+          args: release --clean --timeout 120m --config .goreleaser-docker.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}

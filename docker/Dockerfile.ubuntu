@@ -42,6 +42,8 @@ RUN mkdir \
     && chmod 0750 /etc/otel/storage
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
+ENV BINDPLANE_COLLECTOR_HOME=/etc/otel
+ENV BINDPLANE_COLLECTOR_STORAGE=/etc/otel/storage
 
 RUN mkdir /licenses
 COPY LICENSE /licenses/bindplane-otel-collector.license
@@ -50,6 +52,8 @@ COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY $TARGETPLATFORM/bindplane-otel-collector /collector/bindplane-otel-collector
 COPY $TARGETPLATFORM/opampsupervisor /collector/opampsupervisor
+COPY $TARGETPLATFORM/container-init /collector/container-init
+COPY release_deps/plugins /etc/otel/plugins
 
 USER otel
 WORKDIR /etc/otel

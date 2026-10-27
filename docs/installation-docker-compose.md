@@ -52,7 +52,6 @@ server:
 
 capabilities:
   accepts_remote_config: true
-  reports_remote_config: true
   reports_available_components: true
 
 agent:

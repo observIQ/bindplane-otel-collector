@@ -85,7 +85,6 @@ create_supervisor_config() {
     command printf '    insecure_skip_verify: true\n' >>"$SUPERVISOR_YML_PATH"
     command printf 'capabilities:\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  accepts_remote_config: true\n' >>"$SUPERVISOR_YML_PATH"
-    command printf '  reports_remote_config: true\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  reports_available_components: true\n' >> "$SUPERVISOR_YML_PATH"
     command printf 'agent:\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  executable: "%s"\n' "$INSTALL_DIR/$DISTRIBUTION" >>"$SUPERVISOR_YML_PATH"

@@ -28,6 +28,8 @@ Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
+Environment=BINDPLANE_COLLECTOR_HOME={{.InstallDir}}
+Environment=BINDPLANE_COLLECTOR_STORAGE={{.InstallDir}}/storage
 WorkingDirectory={{.InstallDir}}
 ExecStart={{.InstallDir}}/bindplane-otel-collector --config config.yaml
 LimitNOFILE=65000
@@ -112,9 +114,11 @@ PIDFILE=/var/run/"$BINARY".pid
 # Set to true to enable service file debugging (Not currently available)
 DEBUG=false
 
-# These are exported
+# Exported variables are used by the collector process.
 export OIQ_OTEL_COLLECTOR_HOME=/opt/bindplane-otel-collector
 export OIQ_OTEL_COLLECTOR_STORAGE=/opt/bindplane-otel-collector/storage
+export BINDPLANE_COLLECTOR_HOME=/opt/bindplane-otel-collector
+export BINDPLANE_COLLECTOR_STORAGE=/opt/bindplane-otel-collector/storage
 
 RETVAL=0
 start() {
@@ -249,7 +253,7 @@ otel_status() {
   echo
 }
 
-cd "$OIQ_OTEL_COLLECTOR_HOME" || exit 1
+cd "$BINDPLANE_COLLECTOR_HOME" || exit 1
 case "$1" in
 # Start the service
 start)

@@ -2,7 +2,7 @@
 
 ## Installing
 
-To install the agent on Windows, run the PowerShell command below as an administrator. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
+To install the agent on Windows, run the PowerShell command below from an **elevated (Administrator)** PowerShell prompt. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI. By default it shows the installer UI.
 
 > **Note:** The install script is available as of release v2.0.1-beta.2. For earlier versions, see the [manual installation](#manual-installation) instructions below.
 
@@ -16,11 +16,34 @@ To install a specific version, pass the `-Version` parameter:
 & ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Version "v1.96.0"
 ```
 
-By default the script launches the installation wizard UI. To install silently (unattended), add `-Quiet`:
+For an unattended (silent) installation without the installer UI, add `-Quiet`:
 
 ```pwsh
 & ([scriptblock]::Create((New-Object System.Net.WebClient).DownloadString("https://bdot.bindplane.com/<version>/install_windows.ps1"))) -Quiet
 ```
+
+### Additional Options
+
+The script accepts the following parameters:
+
+| Parameter | Description |
+| --- | --- |
+| `-Version` | The version to install (e.g. `v1.96.0`). Omit or pass `latest` to install the latest release. |
+| `-Quiet` | Run the installer silently instead of showing the installer UI. |
+| `-InstallDir` | Custom installation directory. Defaults to the MSI default. |
+| `-Clean` | Set to `"1"` to remove existing configuration on install. Default is `"0"`. |
+| `-EnableManagement` | Set to `"1"` to enable managed mode via OpAMP. Default is `"0"`. See [Managed Mode](#managed-mode). |
+| `-OpAMPEndpoint` | OpAMP server endpoint URL (e.g. `wss://app.bindplane.com/v1/opamp`). |
+| `-OpAMPSecretKey` | Secret key for OpAMP authentication. |
+| `-OpAMPLabels` | Comma-separated `key=value` labels for OpAMP (e.g. `configuration=windows,env=prod`). |
+| `-MsiUrl` | Override the full MSI download URL. When set, `-Version` and architecture detection are ignored. |
+| `-MsiFile` | Path to a local MSI file to install. Skips all download and version resolution steps. |
+| `-SkipSignatureCheck` | Skip MSI Authenticode signature verification. |
+| `-Uninstall` | Uninstall the agent instead of installing it. See [Uninstalling](#uninstalling). |
+
+### Signature Verification
+
+Installation artifacts are signed, and the script verifies the MSI's Authenticode signature before installing. If verification fails during an interactive install, the script warns and prompts before continuing; during a `-Quiet` install it aborts. To bypass verification entirely, pass `-SkipSignatureCheck` (not recommended). More information on verifying signatures can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
 ### Manual Installation
 
@@ -91,7 +114,7 @@ Locate the "BDOT" service, right click the entry, and click "Restart" to restart
 
 ![The services dialog](./screenshots/windows/stop-restart-service.png)
 
-Alternatively, the Powershell command below may be run to restart the agent service.
+Alternatively, the PowerShell command below may be run to restart the agent service.
 
 ```pwsh
 Restart-Service -Name "bindplane-otel-collector"
@@ -108,8 +131,7 @@ Locate the "BDOT" service, right click the entry, and click "Stop" to stop the a
 
 ![The services dialog](./screenshots/windows/stop-restart-service.png)
 
-Alternatively, the Powershell command below may be run to stop the agent service.
-
+Alternatively, the PowerShell command below may be run to stop the agent service.
 ```pwsh
 Stop-Service -Name "bindplane-otel-collector"
 ```
@@ -125,8 +147,7 @@ Locate the "BDOT" service, right click the entry, and click "Start" to start the
 
 ![The services dialog](./screenshots/windows/start-service.png)
 
-Alternatively, the Powershell command below may be run to start the agent service.
-
+Alternatively, the PowerShell command below may be run to start the agent service.
 ```pwsh
 Start-Service -Name "bindplane-otel-collector"
 ```
@@ -148,11 +169,3 @@ Locate the `"BindPlane Distro for OpenTelemetry Collector (BDOT)"` entry, and se
 ![The uninstall or change a program dialog](./screenshots/windows/uninstall-collector.png)
 
 Follow the wizard to complete removal of the agent.
-
-Alternatively, the Powershell command below may be run to uninstall the agent. It resolves the installed product via the collector's stable upgrade code (defined in `windows/wix.json`), which keeps working across product renames, and then removes it with `msiexec`.
-
-```pwsh
-$installer = New-Object -ComObject WindowsInstaller.Installer
-$productCode = $installer.RelatedProducts("{D67CCA1A-6708-4096-8BDE-5069739FB861}") | Select-Object -First 1
-Start-Process msiexec.exe -ArgumentList "/x", $productCode -Wait
-```
