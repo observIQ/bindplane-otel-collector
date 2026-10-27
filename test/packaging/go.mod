@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/test/packaging
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/moby/moby/api v1.56.1

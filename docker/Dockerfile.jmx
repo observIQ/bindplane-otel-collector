@@ -27,7 +27,7 @@ WORKDIR /
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
-        systemd tzdata ca-certificates && \
+        systemd tzdata 'ca-certificates>=20261020-r0' && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

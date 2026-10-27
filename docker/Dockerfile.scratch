@@ -6,7 +6,7 @@ FROM alpine as stage
 
 RUN addgroup -S -g 10005 otel && adduser -S -u 10005 -G otel otel
 
-RUN apk update && apk add --no-cache ca-certificates
+RUN apk update && apk add --no-cache 'ca-certificates>=20261020-r0'
 
 RUN mkdir \
     /etc/otel \

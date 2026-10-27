@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor
 
-go 1.26.9
+go 1.26.10
 
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
