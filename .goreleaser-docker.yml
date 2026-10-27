@@ -104,6 +104,7 @@ dockers_v2:
   - id: ubuntu
     ids:
       - collector
+      - container-init
     dockerfile: ./docker/Dockerfile.ubuntu-collector
     images:
       - "ghcr.io/observiq/bindplane-otel-collector"
