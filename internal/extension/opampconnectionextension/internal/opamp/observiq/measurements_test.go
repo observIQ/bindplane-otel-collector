@@ -79,7 +79,7 @@ func TestMeasurementsSender(t *testing.T) {
 			expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
 			require.NoError(t, err)
 
-			require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp()))
+			require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp(), pmetrictest.IgnoreMetricAttributeValue(measurements.InstanceIDAttribute)))
 		}
 
 		ms.Stop()
@@ -138,7 +138,7 @@ func TestMeasurementsSender(t *testing.T) {
 			expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
 			require.NoError(t, err)
 
-			require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp()))
+			require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp(), pmetrictest.IgnoreMetricAttributeValue(measurements.InstanceIDAttribute)))
 		}
 
 		ms.Stop()
@@ -166,7 +166,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		metrics := reg.OTLPMeasurements(nil)
 		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
 		require.NoError(t, err)
-		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp(), pmetrictest.IgnoreMetricAttributeValue(measurements.InstanceIDAttribute)))
 
 		// Second call with no new metrics should return empty metrics
 		metrics = reg.OTLPMeasurements(nil)
@@ -179,7 +179,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		metrics = reg.OTLPMeasurements(nil)
 		expectedMetrics, err = golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput-doubled.yaml"))
 		require.NoError(t, err)
-		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp(), pmetrictest.IgnoreMetricAttributeValue(measurements.InstanceIDAttribute)))
 
 		// Fourth call with no new metrics should return empty metrics
 		metrics = reg.OTLPMeasurements(nil)

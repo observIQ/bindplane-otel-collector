@@ -285,3 +285,6 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.0.0-20260708173836-48836fd1d949
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ../../../internal/report
+
+// TEMP: local replace until contrib pkg/measurements with InstanceID is released; swap for the version bump before merge.
+replace github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements => /Users/dakota.paasman/Source/dynatrace-bindplane-otel-contrib/instance-id/pkg/measurements

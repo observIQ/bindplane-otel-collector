@@ -134,8 +134,6 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.1.0 h1:Ck45SnYhXtL+33HTD8g9hyLc1TkRwPQ6MUKmypY9tiY=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.1.0/go.mod h1:Ydt6IqQ4ekDEPkS3gMw+VupumTrGs6BZuu2hpuZenAk=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.1.0 h1:GzIDhdTO6FTpqzc3i2RSjoejy1hfqm9bGKhTWCl0lvE=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.1.0/go.mod h1:WbTYLFgp5Dh3u5YoUpFa8RjjFRtLrttBehzVG7RzH78=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.1.0 h1:jQoRpX/krbzmCGxprgCnFj0bmhT+jYUybnNB5dIqq2M=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.1.0/go.mod h1:iVTG2lFHwLAy8g5TT0fSPbPDPK+9cTKmZdTb0Z0LcrY=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.1.0 h1:iikyQRfBbD+sxUV0jcfv+rNbW93IYw/J5HZplLZjCwU=
