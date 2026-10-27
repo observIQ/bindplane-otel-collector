@@ -129,23 +129,14 @@ jobs:
           SIGNED_INSTALL_SCRIPT: signed-install-script/install_windows.ps1
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
-      # Create artifact bundle and upload to release
-      - name: Create artifact archive
+      # Create artifact bundles (all-platform plus one per OS) and upload to release
+      - name: Create artifact archives
+        run: ./scripts/ci/create-artifact-bundles.sh ${{ github.ref_name }}
+      - name: Sign artifact archives
         run: |
-          mkdir artifacts
-          cp ./scripts/install/*.sh ./artifacts
-          cp ./scripts/install/*.ps1 ./artifacts
-          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
-          cp ./observiq-otel-collector.msi ./artifacts
-          cp ./observiq-otel-collector-arm64.msi ./artifacts
-          cp ./dist/*tar.gz ./artifacts
-          cp ./dist/*.zip ./artifacts
-          cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.deb ./artifacts
-          cp ./dist/*SHA256SUMS ./artifacts
-          tar -czvf observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
-      - name: Sign artifact archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz
+          for bundle in ./observiq-otel-collector-${{ github.ref_name }}-artifacts*.tar.gz; do
+            cosign sign-blob --key=cosign.key --output-signature "$bundle.sig" "$bundle"
+          done
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -155,11 +146,11 @@ jobs:
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
           gsutil cp ./scripts/install/install_windows.ps1 gs://bdot-release/latest/install_windows.ps1
           gsutil cp ./release_deps/gpg-keys.tar.gz gs://bdot-release/latest/gpg-keys.tar.gz
-      - name: Upload artifact bundle to release
+      - name: Upload artifact bundles to release
         uses: AButler/upload-release-assets@v2.0
         with:
           repo-token: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
-          files: "observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz*"
+          files: "observiq-otel-collector-${{ github.ref_name }}-artifacts*.tar.gz*"
           release-tag: ${{ github.ref_name }}
       # Trigger installation tests in otel-collector-installer-testing
       - name: Trigger Installation Testing

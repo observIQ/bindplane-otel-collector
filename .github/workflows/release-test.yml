@@ -134,37 +134,53 @@ jobs:
         run: |
           ls -laR dist/
 
-      - name: Create artifact archive
-        run: |
-          mkdir artifacts
-          cp ./scripts/install/*.sh ./artifacts
-          cp ./scripts/install/*.ps1 ./artifacts
-          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
-          cp ./observiq-otel-collector.msi ./artifacts
-          cp ./observiq-otel-collector-arm64.msi ./artifacts
-          cp ./dist/*tar.gz ./artifacts
-          cp ./dist/*.zip ./artifacts
-          cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.deb ./artifacts
-          cp ./dist/*SHA256SUMS ./artifacts
-          tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
+      - name: Create artifact archives
+        run: ./scripts/ci/create-artifact-bundles.sh ${{ github.event.inputs.version }}
 
-      - name: Sign artifact archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+      - name: Sign artifact archives
+        run: |
+          for bundle in ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts*.tar.gz; do
+            cosign sign-blob --key=cosign.key --output-signature "$bundle.sig" "$bundle"
+          done
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
-      - name: Check Artifacts Directory
+      - name: Check Artifact Bundles
         run: |
-          ls -la artifacts
-          du -sh artifacts
+          ls -la observiq-otel-collector-${{ github.event.inputs.version }}-artifacts*.tar.gz*
+          for dir in bundle-*; do
+            echo "== $dir"
+            ls -la "$dir"
+            du -sh "$dir"
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
           path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+          retention-days: 1
+
+      - name: Upload Linux build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-linux.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-linux.tar.gz
+          retention-days: 1
+
+      - name: Upload macOS build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-darwin.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-darwin.tar.gz
+          retention-days: 1
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-windows.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-windows.tar.gz
           retention-days: 1
 
       # Linux package uploads to Google Artifact Registry
