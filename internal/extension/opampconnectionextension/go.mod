@@ -3,11 +3,11 @@ module github.com/observiq/bindplane-otel-collector/internal/extension/opampconn
 go 1.26.10
 
 require (
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.1.0
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.1.0
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.1.0
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.1.0
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.1.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/extension/pebbleextension v1.2.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.2.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.2.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.2.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.2.0
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.110.1
@@ -87,7 +87,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.1.0 // indirect
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/elastic/lunes v0.2.2 // indirect
 	github.com/elastic/proxy-connect-dialer-go v0.1.1 // indirect
@@ -209,7 +209,7 @@ require (
 	go.opentelemetry.io/collector/pipeline v1.69.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.163.0 // indirect
 	go.opentelemetry.io/collector/processor v1.69.0 // indirect
-	go.opentelemetry.io/collector/processor/processorhelper v0.162.0 // indirect
+	go.opentelemetry.io/collector/processor/processorhelper v0.163.0 // indirect
 	go.opentelemetry.io/collector/processor/processortest v0.163.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.163.0 // indirect
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.163.0 // indirect

@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/internal/report
 go 1.26.10
 
 require (
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.1.0
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/collector/pdata v1.69.0
 	gopkg.in/yaml.v3 v3.0.1

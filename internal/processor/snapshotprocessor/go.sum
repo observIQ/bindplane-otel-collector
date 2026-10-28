@@ -2,8 +2,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.1.0 h1:iikyQRfBbD+sxUV0jcfv+rNbW93IYw/J5HZplLZjCwU=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.1.0/go.mod h1:PQBmMZWZyfKzAHRFQ7QWp8NIQyoFoHUeRlpADnabt00=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0 h1:JdqyUGs31ouwPlltPQ69jpK/Bp9mlplL74VsF8cGl38=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0/go.mod h1:Vk+HqfZdoyHCNtpNFNZa7B9fNB/hIXuOZExVcjNCZOU=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.4 h1:tG4xh9yMsRCAiodLVTxyrkzSZ9+o0L1Kg/+cPVcbP/8=
 github.com/go-logr/logr v1.4.4/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
@@ -32,10 +32,10 @@ github.com/open-telemetry/opamp-go v0.25.0 h1:UXXSQBtXWxa1ClY85caMrsdiry9dnCZn+L
 github.com/open-telemetry/opamp-go v0.25.0/go.mod h1:xgYySBY286Bei9/0gFH0X+l6h51fQnvZcLvglDQf9DI=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.163.0 h1:EvnjPDs69WNUmnWW9rvBa2OtHUbbKyE5CyQfHY+vuSc=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.163.0/go.mod h1:WKwisFwtqU85MhQH6hGYmVBdKZqnX0f4O8gSJ9K+cZI=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.162.0 h1:oG82viE5Q8LpVOy12gD0uxEiK28ayVyfSKIA05KSD24=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.162.0/go.mod h1:Z8sNzsWLjB2HeCgKfphmYLpXIFZzLr3dVcLboZ2jnVA=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.162.0 h1:Is4v2LutLm9LEC+FgTZ/p6AjJvd0d86j2y0q5WphVBk=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.162.0/go.mod h1:Hc1mqfHFJuCdKgECoNTnIeyfZBVccz39w+J+E2/6bL8=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.163.0 h1:pmctDHS+Pywav22H6ZZAzrD7gdH777bSAw7eWhPa8Tg=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.163.0/go.mod h1:+VcuFZIYQEe4AU9WDBoNffnf/vsppt9ZpsN+DUPBFWQ=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.163.0 h1:B0sgu42OgHaZBZZhBE/eV252LLX0ZD1xr89+e7ffnyU=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.163.0/go.mod h1:1S7E1cwt+SD4tfcMJY+Irhc7T5GqMJl1EKhvLYXvJiU=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
@@ -73,8 +73,8 @@ go.opentelemetry.io/collector/pdata/pprofile v0.163.0 h1:+JzjYkCizAR00yyCV6HFPm7
 go.opentelemetry.io/collector/pdata/pprofile v0.163.0/go.mod h1:aXV1wYxl0VXf8NfrrfBaqYoOqkkIgQJ2N/KdgtBxLl8=
 go.opentelemetry.io/collector/pdata/testdata v0.163.0 h1:Rv/uY6N2cNhLSnldAFGsSpAyf+xvQGx27x837q6+kwk=
 go.opentelemetry.io/collector/pdata/testdata v0.163.0/go.mod h1:ERljDOnKN4633p/Vpbr3XhNHm1f6lrwD6vuSJSRi+04=
-go.opentelemetry.io/collector/pdata/xpdata v0.162.0 h1:Rvojx0v5KnEv5bZMdw02z0R+gTdMlYl1idvVnUx4W9Y=
-go.opentelemetry.io/collector/pdata/xpdata v0.162.0/go.mod h1:WIvy4sI7e6nyH49Xf4mafs9QUyjLiw5TO52CrKcOVYk=
+go.opentelemetry.io/collector/pdata/xpdata v0.163.0 h1:4CvvCCNkGSbhrmwUtpn1JcFsaOFDQn8BearBpD8skbc=
+go.opentelemetry.io/collector/pdata/xpdata v0.163.0/go.mod h1:acCF/biwBrWt/6r3t9y/lRJ5tMvUOdQv411UPbyptVo=
 go.opentelemetry.io/collector/pipeline v1.69.0 h1:zUimUSVCh+ects/w9gOdUZaIHTKd4dFvmSbzzuVTpA4=
 go.opentelemetry.io/collector/pipeline v1.69.0/go.mod h1:4S7iD/7hGDNXg4yPi+5es5WTvwo/Uie2OoHio79xokI=
 go.opentelemetry.io/collector/processor v1.69.0 h1:eYsi/RL67cfThLgjq8Tc4veEPMAcVUxSa+8ddo1Df5A=
