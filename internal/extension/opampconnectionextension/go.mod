@@ -10,7 +10,7 @@ require (
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.2.0
 	github.com/golang/snappy v1.0.0
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.110.1
+	github.com/observiq/bindplane-otel-collector/internal/report v1.111.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/open-telemetry/opamp-go v0.25.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.163.0
