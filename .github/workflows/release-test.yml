@@ -189,6 +189,13 @@ jobs:
           path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-windows.tar.gz
           retention-days: 1
 
+      - name: Upload AIX build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-aix.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-aix.tar.gz
+          retention-days: 1
+
       # Linux package uploads to Google Artifact Registry
 
       # google-github-actions/auth@v2 was used above to install

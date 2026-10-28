@@ -20,6 +20,7 @@
 #   observiq-otel-collector-<version>-artifacts-linux.tar.gz    Linux only
 #   observiq-otel-collector-<version>-artifacts-darwin.tar.gz   macOS only
 #   observiq-otel-collector-<version>-artifacts-windows.tar.gz  Windows only
+#   observiq-otel-collector-<version>-artifacts-aix.tar.gz      AIX only
 #
 # The all-platform bundle is kept until consumers have moved to the
 # per-platform bundles. Bindplane merges per-platform bundles uploaded for the
@@ -92,3 +93,8 @@ bundle artifacts-windows \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*-windows-*.zip
+
+bundle artifacts-aix \
+  "${common[@]}" \
+  ./scripts/install/install_unix.sh \
+  ./aix-dist/*
