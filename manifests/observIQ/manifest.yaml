@@ -264,6 +264,12 @@ replaces:
   # that must persist in release builds too.
   - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
+  # Pin this Brotli library dependency to latest version.
+  # This patch resolves the Brotli write out of bounds vulnerability:
+  # https://www.cisecurity.org/advisory/a-vulnerability-in-brotli-library-could-allow-for-remote-code-execution_2026-120
+  # The clickhouse exporter in opentelemetry-contrib is the only consumer of this library.
+  # Remove after the dependency is updated in the exporter and released (likely v0.165.0)
+  - github.com/andybalholm/brotli => github.com/andybalholm/brotli v1.2.7
   # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
   # Remove once the above PR is merged, released, and the relevant components are updated to that version.
   # The commits being replaced to are built on the OTel v0.162.0 tag. 
