@@ -273,15 +273,15 @@ replaces:
   # Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
   # Remove once the above PR is merged, released, and the relevant components are updated to that version.
   # The commits being replaced to are built on the OTel v0.163.0 tag. 
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/deps/bdot-1.110.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20261012213710-1241a17dc65e
-  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20261012213710-1241a17dc65e
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.111.0
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20261027141406-ac80a8c6388b
+  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20261027141406-ac80a8c6388b
   # The JMX receiver was removed in OTel v0.157.0. Pinned to a fork that we must maintain until we can migrate users to a new solution.
   # The commit being replaced to is built on the OTel v0.163.0 tag. 
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/deps/bdot-1.110.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261012213710-1241a17dc65e
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.111.0
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261027141406-ac80a8c6388b
   # Replace statement to pull in changes from this PR: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50638
   # Remove onve the above PR is merged, released, and the relevant components are updated to that version.
   # The commits being replaced to is built on the OTel v0.163.0 tag.
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/deps/bdot-1.110.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.0.0-20261013202215-38b38d900d9d
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.111.0
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.0.0-20261027141406-ac80a8c6388b

@@ -279,10 +279,12 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20260701212116-67bea8600013
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20260701212116-67bea8600013
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.0.0-20260708173836-48836fd1d949
-
 replace github.com/observiq/bindplane-otel-collector/internal/report => ../../../internal/report
+
+// Replace statements to pull in changes from this PR: https://github.com/observIQ/opentelemetry-collector-contrib/pull/4729
+// Remove once the above PR is merged, released, and the relevant components are updated to that version.
+// The commits being replaced to are built on the OTel v0.163.0 tag.
+// https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.111.0
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.0.0-20261027141406-ac80a8c6388b
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20261027141406-ac80a8c6388b
