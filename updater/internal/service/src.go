@@ -20,6 +20,14 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
+)
+
+const (
+	// srcWaitTimeout bounds the wait for startsrc and stopsrc to finish. AIX
+	// can be slow to start or stop a subsystem.
+	srcWaitTimeout  = 120 * time.Second
+	srcPollInterval = time.Second
 )
 
 // srcService holds what the AIX System Resource Controller needs to run the collector.
@@ -62,15 +70,54 @@ func (s srcService) inittabEntry() string {
 	return fmt.Sprintf(`%s:23456789:once:startsrc -g %s -e "$(cat %s)"`, s.group, s.group, s.envFile)
 }
 
-// srcActive reports whether lssrc output shows the subsystem as active.
-func srcActive(lssrcOut []byte) bool {
+// srcStatus returns the subsystem's status from lssrc output, or "" when lssrc lists none.
+func srcStatus(lssrcOut []byte) string {
 	sc := bufio.NewScanner(bytes.NewReader(lssrcOut))
 	sc.Scan() // header
 	for sc.Scan() {
-		f := strings.Fields(sc.Text())
-		if len(f) > 0 && f[len(f)-1] == "active" {
-			return true
+		if f := strings.Fields(sc.Text()); len(f) > 0 {
+			return f[len(f)-1]
 		}
 	}
-	return false
+	return ""
+}
+
+// srcActive reports whether lssrc output shows the subsystem running. A
+// subsystem that is still stopping counts as running.
+func srcActive(lssrcOut []byte) bool {
+	status := srcStatus(lssrcOut)
+	return status == "active" || status == "stopping"
+}
+
+// srcPoller waits for the subsystem to reach a status. startsrc and stopsrc
+// return before SRC finishes, so their exit codes don't show the outcome.
+type srcPoller struct {
+	lssrc func() ([]byte, error)
+	now   func() time.Time
+	sleep func(time.Duration)
+}
+
+// waitFor polls lssrc until the subsystem reports want, or returns an error
+// once timeout passes.
+func (p srcPoller) waitFor(want string, timeout time.Duration) error {
+	deadline := p.now().Add(timeout)
+	var last string
+	var lastErr error
+	for {
+		out, err := p.lssrc()
+		if err == nil {
+			last = srcStatus(out)
+			if last == want {
+				return nil
+			}
+		}
+		lastErr = err
+		if !p.now().Before(deadline) {
+			if lastErr != nil {
+				return fmt.Errorf("subsystem did not become %s within %s (last status %q): %w", want, timeout, last, lastErr)
+			}
+			return fmt.Errorf("subsystem did not become %s within %s (last status %q)", want, timeout, last)
+		}
+		p.sleep(srcPollInterval)
+	}
 }

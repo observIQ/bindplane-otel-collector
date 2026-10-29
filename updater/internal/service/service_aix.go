@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -39,7 +40,8 @@ func WithServiceFile(_ string) Option {
 // NewService returns an instance of the Service interface for managing the observiq-otel-collector service on the current OS.
 func NewService(logger *zap.Logger, installDir string, opts ...Option) Service {
 	aixSvc := &aixService{
-		src:    srcService{subsystem: aixSubsystem, group: aixGroup, installDir: installDir, envFile: aixEnvFile},
+		src: srcService{subsystem: aixSubsystem, group: aixGroup, installDir: installDir, envFile: aixEnvFile},
+		poller: newSRCPoller(aixSubsystem),
 		logger: logger.Named("aix-service"),
 	}
 
@@ -50,8 +52,21 @@ func NewService(logger *zap.Logger, installDir string, opts ...Option) Service {
 	return aixSvc
 }
 
+// newSRCPoller polls the named subsystem with lssrc on the real clock.
+func newSRCPoller(subsystem string) srcPoller {
+	return srcPoller{
+		lssrc: func() ([]byte, error) {
+			//#nosec G204 -- subsystem is a constant
+			return exec.Command("lssrc", "-s", subsystem).Output()
+		},
+		now:   time.Now,
+		sleep: time.Sleep,
+	}
+}
+
 type aixService struct {
 	src    srcService
+	poller srcPoller
 	logger *zap.Logger
 }
 
@@ -71,12 +86,18 @@ func (a aixService) Start() error {
 	if err != nil {
 		a.logger.Warn("Starting without the env file", zap.String("path", a.src.envFile), zap.Error(err))
 	}
-	return a.run("startsrc", a.src.startsrcArgs(env)...)
+	if err := a.run("startsrc", a.src.startsrcArgs(env)...); err != nil {
+		return err
+	}
+	return a.poller.waitFor("active", srcWaitTimeout)
 }
 
 // Stop the service
 func (a aixService) Stop() error {
-	return a.run("stopsrc", "-g", a.src.group)
+	if err := a.run("stopsrc", "-g", a.src.group); err != nil {
+		return err
+	}
+	return a.poller.waitFor("inoperative", srcWaitTimeout)
 }
 
 // install defines the subsystem and the inittab entry that starts it at boot
@@ -89,8 +110,7 @@ func (a aixService) install() error {
 
 // uninstall stops the subsystem if it's running, then removes it and its inittab entry
 func (a aixService) uninstall() error {
-	//#nosec G204 -- subsystem is a constant
-	out, _ := exec.Command("lssrc", "-s", a.src.subsystem).Output()
+	out, _ := a.poller.lssrc()
 	if srcActive(out) {
 		if err := a.Stop(); err != nil {
 			return err

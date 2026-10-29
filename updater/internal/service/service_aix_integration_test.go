@@ -41,6 +41,7 @@ func TestAIXServiceLifecycle(t *testing.T) {
 
 	a := aixService{
 		src:    srcService{subsystem: "bp1177test", group: "bp1177tg", installDir: installDir, envFile: envFile},
+		poller: newSRCPoller("bp1177test"),
 		logger: zaptest.NewLogger(t),
 	}
 	t.Cleanup(func() {
@@ -61,7 +62,7 @@ func TestAIXServiceLifecycle(t *testing.T) {
 	require.False(t, active())
 
 	require.NoError(t, a.Start())
-	require.Eventually(t, active, 10*time.Second, 200*time.Millisecond)
+	require.True(t, active(), "Start returns once the subsystem is active")
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(filepath.Join(installDir, "env.out"))
 		return err == nil
@@ -74,7 +75,7 @@ func TestAIXServiceLifecycle(t *testing.T) {
 	require.Contains(t, string(env), "BINDPLANE_COLLECTOR_STORAGE="+filepath.Join(installDir, "storage"))
 
 	require.NoError(t, a.Stop())
-	require.Eventually(t, func() bool { return !active() }, 20*time.Second, 200*time.Millisecond)
+	require.False(t, active(), "Stop returns once the subsystem is inoperative")
 
 	// Run the inittab command the way init does at boot, through a shell.
 	require.NoError(t, os.Remove(filepath.Join(installDir, "env.out")))
@@ -87,14 +88,14 @@ func TestAIXServiceLifecycle(t *testing.T) {
 		return err == nil && strings.Contains(string(env), "BINDPLANE_COLLECTOR_HOME="+installDir)
 	}, 10*time.Second, 200*time.Millisecond)
 	require.NoError(t, a.Stop())
-	require.Eventually(t, func() bool { return !active() }, 20*time.Second, 200*time.Millisecond)
+	require.False(t, active(), "Stop returns once the subsystem is inoperative")
 
 	// The updater stops the collector before Update, and rollback runs Update again.
 	require.NoError(t, a.Update())
 	require.NoError(t, a.Update())
 
 	require.NoError(t, a.Start())
-	require.Eventually(t, active, 10*time.Second, 200*time.Millisecond)
+	require.True(t, active(), "Start returns once the subsystem is active")
 	require.NoError(t, a.uninstall())
 	require.Error(t, exec.Command("lssrc", "-s", "bp1177test").Run())
 	require.Error(t, exec.Command("lsitab", "bp1177tg").Run())
