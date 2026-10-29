@@ -26,7 +26,7 @@ import (
 // through the zap logger (runtime panics, high-volume component error spew).
 // It historically had no size cap and has filled OS drives (10+ GB observed).
 // These constants bound it to cap + 1 backup.
-// ponytail: hardcoded cap/backups; expose via config if a customer ever needs to tune it.
+// The cap and backup count are hardcoded; expose them via config if a customer ever needs to tune it.
 const (
 	stderrMaxBytes      = 10 * 1024 * 1024
 	stderrCheckInterval = 10 * time.Second
