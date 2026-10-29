@@ -230,6 +230,14 @@ banner()
 usage()
 {
   increase_indent
+  # Show the package name format for the OS the script runs on
+  if [ "$OS_TYPE" = "AIX" ]; then
+    _usage_package_format='{PACKAGE_NAME}-v{version}-aix-ppc64.tar.gz'
+    _usage_package_example='observiq-otel-collector-v1.2.12-aix-ppc64.tar.gz'
+  else
+    _usage_package_format='{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
+    _usage_package_example='observiq-otel-collector_v1.2.12_linux_amd64.deb'
+  fi
   USAGE=$(cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
@@ -254,7 +262,7 @@ Usage:
 
   $(fg_yellow '-b, --base-url')
       Defines the base of the download URL used in conjunction with the version to download the package and GPG tar file.
-      '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
+      '{base_url}/v{version}/$_usage_package_format'
       and
       '{base_url}/v{version}/gpg-keys.tar.gz'
       If not provided, this will default to '$DOWNLOAD_BASE'.
@@ -262,7 +270,7 @@ Usage:
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
-      Example: '-f /path/to/observiq-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
+      Example: '-f /path/to/$_usage_package_example' will install from the local file.
       Required if '--gpg-tar-file' is specified.
 
   $(fg_yellow '-gf, --gpg-tar-file')
@@ -2001,9 +2009,7 @@ install_aix()
   fi
   rm -rf "$_aix_stage"
 
-  # The service environment lives outside the install directory, like the systemd unit
-  mv "$BDOT_CONFIG_HOME/install/observiq-otel-collector.env" "$AIX_ENV_FILE" || error_exit "$LINENO" "Failed to install $AIX_ENV_FILE"
-  chmod 0644 "$AIX_ENV_FILE"
+  install_aix_env_file "$BDOT_CONFIG_HOME/install/observiq-otel-collector.env"
 
   chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" "$BDOT_CONFIG_HOME"
   chown root:system "$BDOT_CONFIG_HOME/updater"
@@ -2012,6 +2018,20 @@ install_aix()
     info "Restarting service with new binaries..."
     startsrc -g "$AIX_SRC_GROUP" -e "$(cat "$AIX_ENV_FILE")" > /dev/null || error_exit "$LINENO" "Failed to start service"
   fi
+}
+
+# install_aix_env_file moves the packaged service environment to $AIX_ENV_FILE.
+# The file lives outside the install directory, like the systemd unit. An
+# existing file is kept as a timestamped backup, since it may hold local edits.
+install_aix_env_file()
+{
+  if [ -f "$AIX_ENV_FILE" ]; then
+    _env_backup="$AIX_ENV_FILE.$(date +%Y%m%d%H%M%S).bak"
+    cp -p "$AIX_ENV_FILE" "$_env_backup" || error_exit "$LINENO" "Failed to back up $AIX_ENV_FILE"
+    info "Backed up $AIX_ENV_FILE to $_env_backup"
+  fi
+  mv "$1" "$AIX_ENV_FILE" || error_exit "$LINENO" "Failed to install $AIX_ENV_FILE"
+  chmod 0644 "$AIX_ENV_FILE"
 }
 
 unpack_package()
