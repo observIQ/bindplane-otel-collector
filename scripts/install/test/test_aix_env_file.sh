@@ -49,5 +49,18 @@ done
 [ "$backups" = 1 ] || ok=false
 check upgrade_backs_up_existing_file $ok
 
+# uninstall: removes the env file and every backup, and nothing else in its directory
+dir="$WORK/uninstall"; mkdir -p "$dir/home"
+echo "A=new" > "$dir/collector.env"
+echo "A=old" > "$dir/collector.env.20261028120000.bak"
+echo "A=older" > "$dir/collector.env.20261027120000.bak"
+echo "keep" > "$dir/other.env"
+sh -c ". '$WORK/lib.sh'; AIX_ENV_FILE='$dir/collector.env'; BDOT_CONFIG_HOME='$dir/home'; package_type=mkssys; uninstall_package" > /dev/null 2>&1
+ok=true
+for f in "$dir"/collector.env*; do [ -e "$f" ] && ok=false; done
+[ -f "$dir/other.env" ] || ok=false
+[ -e "$dir/home" ] && ok=false
+check uninstall_removes_env_file_and_backups $ok
+
 rm -rf "$WORK"
 echo "pass=$pass fail=$fail"; [ $fail -eq 0 ]

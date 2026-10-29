@@ -72,6 +72,8 @@ if [ "$OS_TYPE" = "AIX" ]; then
   # Stands in for the systemd unit's Environment lines. One line of space-separated
   # KEY=value pairs, since startsrc -e splits only on spaces.
   AIX_ENV_FILE="/etc/observiq-otel-collector.env"
+  # stopsrc returns before the subsystem stops, and AIX can be slow to stop it
+  AIX_SRC_WAIT_SECONDS=120
 fi
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
@@ -1993,9 +1995,9 @@ install_aix()
     _stop_wait=0
     while ! lssrc -s "$AIX_SRC_SUBSYSTEM" | grep -q inoperative; do
       _stop_wait=$((_stop_wait + 1))
-      if [ "$_stop_wait" -ge 30 ]; then
+      if [ "$_stop_wait" -ge "$AIX_SRC_WAIT_SECONDS" ]; then
         rm -rf "$_aix_stage"
-        error_exit "$LINENO" "Service did not stop within 30 seconds"
+        error_exit "$LINENO" "Service did not stop within $AIX_SRC_WAIT_SECONDS seconds"
       fi
       sleep 1
     done
@@ -2121,7 +2123,8 @@ uninstall_package()
       ;;
     mkssys)
       rm -rf "$BDOT_CONFIG_HOME"
-      rm -f "$AIX_ENV_FILE"
+      # Also remove the backups install_aix_env_file keeps
+      rm -f "$AIX_ENV_FILE" "$AIX_ENV_FILE".*.bak
       ;;
     rpm)
       rpm -e "observiq-otel-collector" > /dev/null 2>&1
@@ -2156,7 +2159,7 @@ uninstall()
     info "Stopping service..."
     stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1 || true
     _stop_wait=0
-    while lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q ' active' && [ "$_stop_wait" -lt 30 ]; do
+    while lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q -E ' (active|stopping)' && [ "$_stop_wait" -lt "$AIX_SRC_WAIT_SECONDS" ]; do
       _stop_wait=$((_stop_wait + 1))
       sleep 1
     done
