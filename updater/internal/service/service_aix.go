@@ -40,7 +40,7 @@ func WithServiceFile(_ string) Option {
 // NewService returns an instance of the Service interface for managing the observiq-otel-collector service on the current OS.
 func NewService(logger *zap.Logger, installDir string, opts ...Option) Service {
 	aixSvc := &aixService{
-		src: srcService{subsystem: aixSubsystem, group: aixGroup, installDir: installDir, envFile: aixEnvFile},
+		src:    srcService{subsystem: aixSubsystem, group: aixGroup, installDir: installDir, envFile: aixEnvFile},
 		poller: newSRCPoller(aixSubsystem),
 		logger: logger.Named("aix-service"),
 	}

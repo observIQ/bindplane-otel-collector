@@ -80,7 +80,7 @@ func (f *fakeLssrc) lssrc() ([]byte, error) {
 // fakeClock only moves when sleep is called, so waits finish instantly.
 type fakeClock struct{ t time.Time }
 
-func (c *fakeClock) now() time.Time          { return c.t }
+func (c *fakeClock) now() time.Time        { return c.t }
 func (c *fakeClock) sleep(d time.Duration) { c.t = c.t.Add(d) }
 
 func TestSRCPollerWaitFor(t *testing.T) {
