@@ -1036,7 +1036,7 @@ exit($r->{success} ? 0 : 1);
 '
 
 # http_proxy_url prints the --proxy value with any --proxy-user credentials embedded, for Perl.
-# ponytail: credentials are not URL-encoded; a password with @ or : needs curl.
+# Credentials are not URL-encoded; a password with @ or : needs curl.
 http_proxy_url() {
   [ -n "$proxy" ] || return 0
   case "$proxy" in
