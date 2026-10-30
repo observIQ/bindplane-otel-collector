@@ -19,6 +19,7 @@ package observiq
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -138,5 +139,25 @@ func TestStartAndMonitorUpdater(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
+	}
+}
+
+func TestCopyExecutableKeepsMode(t *testing.T) {
+	// A restrictive umask must not narrow the copied mode.
+	oldUmask := syscall.Umask(0o077)
+	defer syscall.Umask(oldUmask)
+
+	for _, mode := range []os.FileMode{0o755, 0o750} {
+		srcDir, dstDir := t.TempDir(), t.TempDir()
+		src := filepath.Join(srcDir, "updater")
+		require.NoError(t, os.WriteFile(src, []byte("binary"), mode))
+		require.NoError(t, os.Chmod(src, mode))
+
+		dst, err := copyExecutable(zap.NewNop(), src, dstDir)
+		require.NoError(t, err)
+
+		info, err := os.Stat(dst)
+		require.NoError(t, err)
+		assert.Equal(t, mode, info.Mode().Perm())
 	}
 }

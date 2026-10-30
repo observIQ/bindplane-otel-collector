@@ -50,7 +50,13 @@ func CopyFileOverwrite(logger *zap.Logger, pathIn, pathOut string) error {
 		logger.Debug("Failed to remove output file", zap.Error(err))
 	}
 
-	return copyFileInternal(logger, pathIn, pathOut, os.O_CREATE|os.O_WRONLY, fileMode)
+	if err := copyFileInternal(logger, pathIn, pathOut, os.O_CREATE|os.O_WRONLY, fileMode); err != nil {
+		return err
+	}
+	if outFileInfo != nil {
+		keepOwner(logger, pathOutClean, outFileInfo)
+	}
+	return nil
 }
 
 // CopyFileNoOverwrite copies the file from pathIn to pathOut, preserving the input file's mode.
@@ -65,7 +71,11 @@ func CopyFileNoOverwrite(logger *zap.Logger, pathIn, pathOut string) error {
 	}
 
 	// the os.O_EXCL flag will make OpenFile error if the file already exists
-	return copyFileInternal(logger, pathIn, pathOut, os.O_EXCL|os.O_CREATE|os.O_WRONLY, inFileInfo.Mode())
+	if err := copyFileInternal(logger, pathIn, pathOut, os.O_EXCL|os.O_CREATE|os.O_WRONLY, inFileInfo.Mode()); err != nil {
+		return err
+	}
+	keepOwner(logger, filepath.Clean(pathOut), inFileInfo)
+	return nil
 }
 
 // CopyFileRollback copies the file to the file from pathIn to pathOut, preserving the input file's mode if possible
@@ -93,7 +103,13 @@ func CopyFileRollback(logger *zap.Logger, pathIn, pathOut string) error {
 		logger.Debug("Failed to remove output file", zap.Error(err))
 	}
 
-	return copyFileInternal(logger, pathIn, pathOut, os.O_CREATE|os.O_WRONLY, fileMode)
+	if err := copyFileInternal(logger, pathIn, pathOut, os.O_CREATE|os.O_WRONLY, fileMode); err != nil {
+		return err
+	}
+	if inFileInfo != nil {
+		keepOwner(logger, pathOutClean, inFileInfo)
+	}
+	return nil
 }
 
 // copyFileInternal copies the file at pathIn to pathOut, using the provided flags and file mode

@@ -65,8 +65,14 @@ func copyExecutable(logger *zap.Logger, inputPath, cwd string) (string, error) {
 		return "", fmt.Errorf("failed to remove any existing executable: %w", err)
 	}
 
-	//#nosec G302 - 0700 instead of 0600 since the executable bit needs to be flipped
-	outputFile, err := os.OpenFile(outputPathClean, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0700)
+	inputInfo, err := inputFile.Stat()
+	if err != nil {
+		return "", fmt.Errorf("failed to stat updater binary: %w", err)
+	}
+
+	// Keep the packaged mode, so updating doesn't change the updater's permissions
+	//#nosec G302 - the updater must stay executable
+	outputFile, err := os.OpenFile(outputPathClean, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, inputInfo.Mode().Perm())
 	if err != nil {
 		return "", fmt.Errorf("failed to open output file: %w", err)
 	}
@@ -75,6 +81,11 @@ func copyExecutable(logger *zap.Logger, inputPath, cwd string) (string, error) {
 			logger.Error("Failed to close output file", zap.Error(err))
 		}
 	}()
+
+	// OpenFile's mode is narrowed by the umask
+	if err := outputFile.Chmod(inputInfo.Mode().Perm()); err != nil {
+		return "", fmt.Errorf("failed to set output file mode: %w", err)
+	}
 
 	if _, err := io.Copy(outputFile, inputFile); err != nil {
 		return "", fmt.Errorf("failed to copy executable to output: %w", err)
