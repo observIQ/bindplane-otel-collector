@@ -16,6 +16,7 @@ package collector
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"go.opentelemetry.io/collector/featuregate"
@@ -23,11 +24,9 @@ import (
 )
 
 // hardcodedFeatureGates is the set of upstream OTel feature gates we enable by
-// default before user-supplied gates are applied. Gates that the loaded OTel
-// build has dropped (or that belong to a component the binary isn't compiled
-// with — e.g. the contrib spanmetrics connector when unit-testing the
-// collector package alone) are skipped with a log entry instead of failing
-// SetFeatureFlags, so the runtime survives OTel version churn.
+// default before user-supplied gates are applied. A gate the registry doesn't
+// know fails SetFeatureFlags, except the ones in skippedFeatureGates, which
+// belong to components a platform build intentionally leaves out.
 var hardcodedFeatureGates = []string{
 	"filelog.allowFileDeletion",
 	"filelog.allowHeaderMetadataParsing",
@@ -40,12 +39,12 @@ var hardcodedFeatureGates = []string{
 // SetFeatureFlags sets hardcoded collector feature flags
 func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 	// set hardcoded feature flags first to allow for user overrides
-	if err := setFeatureFlags(hardcodedFeatureGates); err != nil {
+	if err := setFeatureFlags(hardcodedFeatureGates, logger); err != nil {
 		return fmt.Errorf("set hardcoded feature flags: %w", err)
 	}
 
 	// set user feature flags
-	if err := setFeatureFlags(featureGates); err != nil {
+	if err := setFeatureFlags(featureGates, logger); err != nil {
 		return fmt.Errorf("set user feature flags: %w", err)
 	}
 
@@ -58,7 +57,7 @@ func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 
 // setFeatureFlags sets user feature flags
 // checks for - and + prefixes to indicate negation and enablement of the feature gate
-func setFeatureFlags(featureGates []string) error {
+func setFeatureFlags(featureGates []string, logger *zap.Logger) error {
 	for _, fg := range featureGates {
 		val := true
 		switch fg[0] {
@@ -69,9 +68,23 @@ func setFeatureFlags(featureGates []string) error {
 			fg = fg[1:]
 		}
 
+		if slices.Contains(skippedFeatureGates, fg) && !isRegistered(fg) {
+			logger.Info("Skipping feature gate this build doesn't include", zap.String("featureGate", fg))
+			continue
+		}
+
 		if err := featuregate.GlobalRegistry().Set(fg, val); err != nil {
 			return fmt.Errorf("set feature gate %s: %w", fg, err)
 		}
 	}
 	return nil
+}
+
+// isRegistered reports whether the global registry knows the gate.
+func isRegistered(id string) bool {
+	found := false
+	featuregate.GlobalRegistry().VisitAll(func(g *featuregate.Gate) {
+		found = found || g.ID() == id
+	})
+	return found
 }
