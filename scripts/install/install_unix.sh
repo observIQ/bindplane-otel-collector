@@ -248,12 +248,12 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      If not provided, this will default to Bindplane Agent's GitHub releases.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
   $(fg_yellow '-gl, --gpg-tar-url')
       Defines the URL that the GPG tar file will be downloaded from.
-      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      If not provided, this will default to Bindplane Agent's GitHub releases.
       Example: '-gl http://my.domain.org/bdot-gpg-keys.tar.gz' will download from there.
 
   $(fg_yellow '-b, --base-url')
