@@ -105,3 +105,29 @@ func watchStderrFile(path string) {
 		_ = capStderrFile(path, stderrMaxBytes)
 	}
 }
+
+// redirectStderrToFile sends the process's stderr to path, for service managers
+// that leave it nowhere useful. The previous run's output is rolled to
+// "<path>.1" first, so a crash survives the service manager's restart. dup2
+// points fd 2 at the file, so runtime panics written straight to fd 2 land in
+// it too. O_APPEND keeps writes at EOF after the watchdog truncates the file.
+func redirectStderrToFile(path string, dup2 func(oldfd, newfd int) error) error {
+	if err := rollStderrFile(path); err != nil {
+		return fmt.Errorf("failed to roll stderr file: %w", err)
+	}
+
+	f, err := os.OpenFile(filepath.Clean(path), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to open stderr file: %w", err)
+	}
+
+	if err := dup2(int(f.Fd()), 2); err != nil {
+		return fmt.Errorf("failed to redirect stderr: %w (close err: %v)", err, f.Close())
+	}
+	os.Stderr = f
+
+	// Bound the file in-flight so a runaway error stream can't fill the disk.
+	go watchStderrFile(path)
+
+	return nil
+}
