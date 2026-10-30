@@ -317,6 +317,11 @@ rpm_case nokey-ok   good.armor     "$S" ""                       "$(printf '%s\n
 rpm_case nokey-only good.armor     "$S" ""                       "$NOKEY" 1 "$S" fail "could not be checked against the BDOT key"
 rpm_case other-key-ok good.armor   "$S" ""                       "$OTHER_OK" 0 "$S" fail "could not be checked against the BDOT key"
 rpm_case not-in-rpmdb good.armor   "$S" ""                       "$OK" 0 o@x fail "is not in the rpm keyring"
+# Another vendor's OpenPGP v6 key ahead of the BDOT key, as Rocky Linux 10 ships, does not hide
+# the BDOT key: gpg 2.4 stops an import at the first v6 packet
+printf '\306\052\006\150\000\000\000\033\000\000\000\040%032d' 0 | gpg --enarmor 2>/dev/null | \
+  sed 's/ARMORED FILE/PUBLIC KEY BLOCK/; /^Comment:/d' > "$WORK/v6-key.asc"
+PRESEED="gpg-pubkey-2ebba43f-5f000000 @$WORK/v6-key.asc" rpm_case v6-host-key good.armor "$S" "" "$OK" 0 "$S" ok
 # Revoked rpm keys an earlier install left behind come out of the rpm keyring, and are never
 # imported again. The bundle still carries each revoked key, as revocations.md asks.
 R8=$(printf '%s' "$R" | cut -c33-40 | tr '[:upper:]' '[:lower:]')
