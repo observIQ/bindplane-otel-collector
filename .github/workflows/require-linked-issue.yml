@@ -1,0 +1,54 @@
+name: Require Linked Issue
+
+# Fails unless the PR links an issue (a closing keyword like "Closes #123" in the
+# body, or an issue attached via the Development sidebar). Add the
+# "no-issue-needed" label to bypass. Intended to be a required status check.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  linked-issue:
+    name: Linked issue
+    runs-on: ubuntu-latest
+    env:
+      BYPASS_LABEL: no-issue-needed
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const bypassLabel = process.env.BYPASS_LABEL;
+            const pr = context.payload.pull_request;
+
+            if (pr.labels.some(l => l.name === bypassLabel)) {
+              core.notice(`'${bypassLabel}' label present; skipping linked-issue check.`);
+              return;
+            }
+
+            // closingIssuesReferences reflects what GitHub treats as "linked":
+            // closing keywords in the body and issues attached via the sidebar.
+            const { repository } = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 1) { totalCount }
+                  }
+                }
+              }`,
+              { owner: context.repo.owner, repo: context.repo.repo, number: pr.number }
+            );
+
+            if (repository.pullRequest.closingIssuesReferences.totalCount > 0) {
+              core.notice('PR has a linked issue.');
+              return;
+            }
+
+            core.setFailed(
+              `No linked issue found. Add a closing keyword to the PR body (e.g. "Closes #123"), ` +
+              `link an issue via the Development sidebar, or apply the '${bypassLabel}' label to bypass.`
+            );
