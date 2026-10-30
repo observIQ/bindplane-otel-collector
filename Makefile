@@ -331,6 +331,11 @@ check-aix-manifest:
 check-aix-supervisor-version:
 	./scripts/check-aix-supervisor-version.sh
 
+.PHONY: check-support-scripts
+check-support-scripts:
+	shellcheck -s sh -S warning scripts/support/create-support-bundle.sh scripts/support/test/*.sh
+	sh scripts/support/test/run_tests.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:

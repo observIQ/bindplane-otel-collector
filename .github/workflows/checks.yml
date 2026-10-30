@@ -70,6 +70,7 @@ jobs:
               - '**/*.sh'
               - '**/*.ps1'
               - 'scripts/install/test/testdata/**'
+              - 'scripts/support/test/testdata/**'
               - 'signature/gpg/**'
             misspell:
               - '**/*.md'
@@ -380,6 +381,8 @@ jobs:
           sudo locale-gen de_DE.UTF-8
       - name: Check Install Scripts
         run: make check-install-scripts
+      - name: Check Support Bundle Script
+        run: make check-support-scripts
 
   check-aix-manifest:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' && needs.detect-changes.outputs.manifests == 'true' }}
