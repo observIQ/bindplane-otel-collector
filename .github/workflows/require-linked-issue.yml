@@ -5,6 +5,9 @@ name: Require Linked Issue
 # "no-issue-needed" label to bypass. Intended to be a required status check.
 on:
   pull_request:
+    branches:
+      - main
+      - release/v2.0.0
     types: [opened, edited, reopened, synchronize, labeled, unlabeled]
 
 permissions:
