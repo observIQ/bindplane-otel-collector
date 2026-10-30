@@ -1456,11 +1456,18 @@ verify_package_rpm() {
   done
 
   # rpm must hold the signing key, except before 4.12, where rpm cannot use it and gpg's
-  # SIGPGP check decides. Read its keyring through gpg (--show-keys needs 2.1).
+  # SIGPGP check decides. Read its keyring through gpg (--show-keys needs 2.1), taking only
+  # the bundle's entries: gpg stops an import at a key it cannot parse, such as the OpenPGP v6
+  # key EL10 ships, and skips every key after it.
   if ! rpm_lacks_subkey_support; then
     mkdir -m 700 "$GPG_DIR/rpmdb"
-    for _rpm_key in $(rpm -qa 'gpg-pubkey*'); do
-      rpm -qi "$_rpm_key" 2> /dev/null
+    for _fpr in $(awk -F: '$1 == "pub" { p = 1; next } $1 == "fpr" && p { print $10; p = 0 }' "$GPG_DIR/bundle-keys"); do
+      for _rpm_key in $(rpm -qa 'gpg-pubkey*' 2> /dev/null); do
+        _version=${_rpm_key#gpg-pubkey-}
+        rpm_version_matches "${_version%-*}" "$_fpr" || continue
+        rpm_entry_has_key "$_rpm_key" "$_fpr" || continue
+        rpm -qi "$_rpm_key" 2> /dev/null
+      done
     done | GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --import > /dev/null 2>&1 || true
     if ! GNUPGHOME="$GPG_DIR/rpmdb" gpg --batch --with-colons --list-keys 2> /dev/null | \
         awk -F: -v id="$SIGNING_KEYID" '($1 == "pub" || $1 == "sub") && $5 == id { found = 1 } END { exit !found }'; then
