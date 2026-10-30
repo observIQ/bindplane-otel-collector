@@ -9,7 +9,7 @@ There are three support bundle scripts that are used to collect information abou
 
 ## Specific scripts:
 
-1. `create-support-bundle.sh` - This script is used for linux systems to collect information about the system and the agent. It will package the information into a tar.gz file. It must be run with `sudo` or as root.
+1. `create-support-bundle.sh` - This script is used for Linux and AIX systems to collect information about the system and the agent, for both v1 and v2 collectors. It will package the information into a tar.gz file. It must be run with `sudo` or as root. It is a POSIX `sh` script, so run it with `sh create-support-bundle.sh` where bash is not installed.
 
 2. `create-support-bundle.bat` - This batch script is used for Windows systems without Powershell to collect information about the system and the agent. It will package the information into a directory.
 

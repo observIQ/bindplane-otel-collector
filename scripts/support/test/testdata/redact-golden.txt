@@ -1,0 +1,41 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  otlphttp:
+    endpoint: https://admin:[REDACTED]@example.com:4318/v1
+    headers:
+      Authorization: "[REDACTED]"
+      X-Api-Key: "[REDACTED]"
+  splunk_hec:
+    token: "[REDACTED]"
+    PASSWORD: "[REDACTED]"
+    Secret_Key: "[REDACTED]"
+    client_id: "[REDACTED]"
+    api_key:
+  awss3:
+    access_key_id: "[REDACTED]"
+  tls:
+    key_file: "[REDACTED]"
+    cert_pem: |
+      -----BEGIN CERTIFICATE-----
+      MIIBcert
+      -----END CERTIFICATE-----
+    key_pem: "[REDACTED]"
+    other: kept
+    passphrase: "[REDACTED]"
+    after: kept
+  - password: "[REDACTED]"
+  - name: keep
+inline: [REDACTED-PRIVATE-KEY]tail
+multi start [REDACTED-PRIVATE-KEY] after
+2026-10-21T12:00:00Z info connecting with password=[REDACTED];token="quoted" user=bob
+2026-10-21T12:00:01Z jwt [REDACTED-JWT] done
+postgres://u:[REDACTED]@db:5432/x and mysql://root:[REDACTED]@h/db
+authorization: "[REDACTED]"
+secret_key: "[REDACTED]"
+Bearer [REDACTED] trailing
+crlf_password: "[REDACTED]"
+crlf_token: "[REDACTED]"
