@@ -22,6 +22,7 @@ pass=0; fail=0
 
 # run_case <os> <expected> <unexpected>
 run_case() {
+  if [ "$1" = Linux ] && [ "$(uname)" = AIX ]; then echo "SKIP $1 (needs a Linux host: a faked uname can't swap AIX's own tools)"; return; fi
   out=$(sh -c ". '$WORK/lib.sh'; OS_TYPE=$1; usage" 2>&1)
   if printf '%s' "$out" | grep -q -- "$2" && ! printf '%s' "$out" | grep -q -- "$3"; then
     pass=$((pass+1)); echo "PASS $1"
