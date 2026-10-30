@@ -337,6 +337,7 @@ checksum:
   algorithm: sha256
   extra_files:
     - glob: "./observiq-otel-collector*.msi"
+    - glob: "./aix-dist/*.tar.gz"
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -355,6 +356,7 @@ release:
   extra_files:
     - glob: "./observiq-otel-collector*.msi"
     - glob: "./observiq-otel-collector*.msi.sig"
+    - glob: "./aix-dist/*"
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
     - glob: "./scripts/install/install_windows.ps1"
@@ -368,6 +370,7 @@ blobs:
     extra_files:
       - glob: "./observiq-otel-collector*.msi"
       - glob: "./observiq-otel-collector*.msi.sig"
+      - glob: "./aix-dist/*"
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
       - glob: "./scripts/install/install_windows.ps1"

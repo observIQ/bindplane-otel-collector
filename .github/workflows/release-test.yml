@@ -17,7 +17,7 @@ jobs:
 
   release-test:
     runs-on: ubuntu-latest-32-cores
-    needs: [build-msi]
+    needs: [build-msi, release-test-aix]
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
@@ -55,6 +55,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: observiq-otel-collector-arm64.msi
+
+      - name: Retrieve AIX Packages
+        uses: actions/download-artifact@v8
+        with:
+          name: aix-dist
+          path: aix-dist
 
       - name: Install cosign
         uses: nick-fields/retry@v4
@@ -183,6 +189,13 @@ jobs:
           path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-windows.tar.gz
           retention-days: 1
 
+      - name: Upload AIX build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-aix.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts-aix.tar.gz
+          retention-days: 1
+
       # Linux package uploads to Google Artifact Registry
 
       # google-github-actions/auth@v2 was used above to install
@@ -273,6 +286,77 @@ jobs:
             artifacts yum upload devel-rpm \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
+
+  # AIX builds from its own goreleaser config and signs with the release keys
+  # like the build-aix job. The release-test job lists the packages in the main
+  # SHA256SUMS and the artifact bundle.
+  release-test-aix:
+    runs-on: ubuntu-latest-32-cores
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: internal/extension/opampconnectionextension/go.mod
+          cache: false # Caching handled by the actions/cache step below
+      - name: Set up Go cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install ocb
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: make install-ocb
+      - name: Install cosign
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          retry_wait_seconds: 30
+          timeout_minutes: 10
+          command: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Import GPG signing key
+        run: |
+          echo "$GPG_PRIVATE_SIGNING_KEY" | gpg --batch --import
+          echo "GPG_FINGERPRINT=$(gpg --list-keys --with-colons | grep fpr | head -1 | cut -d: -f10)" >> $GITHUB_ENV
+        env:
+          GPG_PRIVATE_SIGNING_KEY: ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+      - name: Set VERSION
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+      - name: Run GoReleaser (AIX)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --config .goreleaser-aix.yml --skip=publish --skip=validate --clean --timeout 120m
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
+      - name: Upload AIX Packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: aix-dist
+          path: dist/*.tar.gz*
+          if-no-files-found: error
+          retention-days: 1
 
   # The rehearsal runs goreleaser with --skip=publish, so there is no GitHub
   # release to read. Verify the artifact bundle the release-test job uploads.

@@ -20,6 +20,7 @@
 #   observiq-otel-collector-<version>-artifacts-linux.tar.gz    Linux only
 #   observiq-otel-collector-<version>-artifacts-darwin.tar.gz   macOS only
 #   observiq-otel-collector-<version>-artifacts-windows.tar.gz  Windows only
+#   observiq-otel-collector-<version>-artifacts-aix.tar.gz      AIX only
 #
 # The all-platform bundle is kept until consumers have moved to the
 # per-platform bundles. Bindplane merges per-platform bundles uploaded for the
@@ -29,8 +30,8 @@
 #
 # Usage: create-artifact-bundles.sh <version>
 #
-# Run from the repository root after goreleaser has populated ./dist and the
-# MSIs have been downloaded to the root.
+# Run from the repository root after goreleaser has populated ./dist, the
+# MSIs have been downloaded to the root, and the AIX packages to ./aix-dist.
 
 set -euo pipefail
 
@@ -69,6 +70,7 @@ bundle artifacts \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*tar.gz \
+  ./aix-dist/* \
   ./dist/*.zip \
   ./dist/*.rpm \
   ./dist/*.deb
@@ -91,3 +93,8 @@ bundle artifacts-windows \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*-windows-*.zip
+
+bundle artifacts-aix \
+  "${common[@]}" \
+  ./scripts/install/install_unix.sh \
+  ./aix-dist/*
