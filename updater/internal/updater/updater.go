@@ -230,7 +230,7 @@ func (u *Updater) Update() error {
 	}
 
 	// Remove package status artifact
-	if err := os.Remove(packagestate.DefaultFileName); err != nil {
+	if err := os.Remove(filepath.Join(u.installDir, packagestate.DefaultFileName)); err != nil {
 		u.logger.Error("Failed to remove package status artifact", zap.Error(err))
 	} else {
 		u.logger.Debug("Package status artifact removed")
