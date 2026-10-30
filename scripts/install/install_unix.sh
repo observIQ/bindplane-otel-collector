@@ -229,18 +229,12 @@ banner()
   separator
 }
 
-usage()
+# usage_text prints the help text. AIX's /bin/sh (ksh88) leaves a variable inside
+# single quotes unexpanded when a here-document sits directly in $(...), so
+# usage() calls this function instead.
+usage_text()
 {
-  increase_indent
-  # Show the package name format for the OS the script runs on
-  if [ "$OS_TYPE" = "AIX" ]; then
-    _usage_package_format='{PACKAGE_NAME}-v{version}-aix-ppc64.tar.gz'
-    _usage_package_example='observiq-otel-collector-v1.2.12-aix-ppc64.tar.gz'
-  else
-    _usage_package_format='{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
-    _usage_package_example='observiq-otel-collector_v1.2.12_linux_amd64.deb'
-  fi
-  USAGE=$(cat <<EOF
+  cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
       Defines the version of the Bindplane Agent.
@@ -343,7 +337,20 @@ Usage:
     failures, do not use the '--quiet' flag.
 
 EOF
-  )
+}
+
+usage()
+{
+  increase_indent
+  # Show the package name format for the OS the script runs on
+  if [ "$OS_TYPE" = "AIX" ]; then
+    _usage_package_format='{PACKAGE_NAME}-v{version}-aix-ppc64.tar.gz'
+    _usage_package_example='observiq-otel-collector-v1.2.12-aix-ppc64.tar.gz'
+  else
+    _usage_package_format='{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
+    _usage_package_example='observiq-otel-collector_v1.2.12_linux_amd64.deb'
+  fi
+  USAGE=$(usage_text)
   info "$USAGE"
   decrease_indent
   return 0
