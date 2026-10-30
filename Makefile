@@ -417,10 +417,12 @@ release-test:
 # If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	if [ ! -e "./bindplane-otel-collector-arm64.msi" ]; then touch ./bindplane-otel-collector-arm64.msi; fi
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
+# The main release lists the AIX package in its SHA256SUMS, so AIX builds first
 	$(MAKE) release-test-aix
+	rm -rf aix-dist && mkdir aix-dist && cp dist/*.tar.gz aix-dist/
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(SNAPSHOT_TAG) goreleaser release --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
 
-# Build and sign AIX, skip release and ignore dirty git tree
+# Build AIX, skip release and signing, and ignore a dirty git tree
 .PHONY: release-test-aix
 release-test-aix:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --timeout $(GORELEASER_TIMEOUT) --skip=publish --skip=validate --skip=sign --clean --snapshot
