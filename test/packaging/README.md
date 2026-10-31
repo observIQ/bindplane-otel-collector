@@ -11,8 +11,8 @@ and ends with an `uninstall` step:
 |---|---|---|
 | `install` | `TestPackages/<distro>/install` | Installs the package, checks files, ownership, modes, the `bdot` user, the systemd unit, and versions. Then it runs `systemctl enable --now`, the same as `install_unix.sh`, and checks that the collector runs. |
 | `upgrade` | `TestPackages/<distro>/upgrade_from_<version>` | Installs a released package and starts it. It edits `config.yaml` and `logging.yaml`, and creates `manager.yaml`, a storage file, and the package override file. Then it upgrades to the package under test, checks that those files are preserved, restarts the service, and checks that it runs. |
-| `install_unprivileged` | `TestPackages/<distro>/install_unprivileged` | Writes `BDOT_UNPRIVILEGED=true` to the package override file, then installs the package and runs the same checks as `install`. It also checks the systemd `User=` drop-in, and that the collector runs as `bdot`. |
-| `refuse_privileged` | `TestPackages/<distro>/refuse_privileged` | Installs the package with `BDOT_UNPRIVILEGED=true` and starts it. It replaces `log/collector.log` with a symbolic link to a file owned by root, removes the override, and installs the package again. Checks that the package refuses to install, leaves the linked file and the running service alone, and installs again once the override is restored. |
+| `install_unprivileged` | `TestPackages/<distro>/install_unprivileged` | Writes `BDOT_UNPRIVILEGED=true` to the package override file, then installs the package and runs the same checks as `install`. It also checks the systemd `User=` drop-in, the sudoers drop-in, and that the collector runs as `bdot`. As `bdot`, without a TTY, it stops and starts the service with `sudo -n systemctl`, the way the updater does, and checks that sudo denies other commands. |
+| `refuse_privileged` | `TestPackages/<distro>/refuse_privileged` | Installs the package with `BDOT_UNPRIVILEGED=true` and starts it. It replaces `log/collector.log` with a symbolic link to a file owned by root, removes the override, and installs the package again. Checks that the package refuses to install, leaves the linked file and the running service alone, and installs again once the override is restored, still without changing the linked file. |
 
 The `uninstall` step is a subtest of each action, for example
 `TestPackages/debian-13/install/uninstall`. It creates `manager.yaml`, a storage
@@ -104,7 +104,8 @@ architecture.
 `Dockerfile` selects the image recipe in [images](images) by package manager.
 `Format` selects the package and the `dpkg`/`rpm` commands. A distro with a new
 package manager needs a new `images/Dockerfile.<manager>`. It should install
-systemd and the tools the package scripts use, following the existing files.
+systemd and the tools the package scripts use, including `sudo`, `runuser`, and
+`setsid`, following the existing files.
 
 ## Checks
 
@@ -152,6 +153,13 @@ The types of checks the scenarios perform.
 - `multi-user.target.wants` symlink exists or not
 - Service restart count is zero
 - Service stays active over a period of time
+
+### sudo
+
+- Sudoers drop-in passes `visudo -c`
+- Install output has no warning about the sudo grant
+- The runtime user can stop and start the service with `sudo -n`
+- The runtime user can't run other commands with `sudo -n`
 
 ### Process
 

@@ -28,10 +28,15 @@ const (
 	unitPath    = "/usr/lib/systemd/system/observiq-otel-collector.service"
 	dropInDir   = "/etc/systemd/system/observiq-otel-collector.service.d"
 	userDropIn  = dropInDir + "/10-package-customizations-username.conf"
+	sudoersPath = "/etc/sudoers.d/bindplane-otel-collector"
 	wantsPath   = "/etc/systemd/system/multi-user.target.wants/observiq-otel-collector.service"
 	initdPath   = "/etc/init.d/observiq-otel-collector"
 	runtimeUser = "bdot"
 	runtimeGrp  = "bdot"
+
+	// servicePath is the PATH the unit gives the collector, and the updater
+	// it starts.
+	servicePath = "/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 
 	// unprivilegedOverride is the package override line that runs the
 	// service as runtimeUser.
@@ -96,6 +101,9 @@ var installAbsent = []string{
 type installExpect struct {
 	// user is the user the service runs as.
 	user string
+	// tree replaces entries of installTree, and omit removes them.
+	tree map[string]fileEntry
+	omit []string
 	// files are expected paths outside installDir, in addition to
 	// installSystemFiles.
 	files map[string]fileEntry
@@ -109,14 +117,24 @@ var privilegedInstall = installExpect{
 	absent: []string{
 		// Only written when BDOT_UNPRIVILEGED=true.
 		userDropIn,
+		sudoersPath,
 	},
 }
 
 // unprivilegedInstall is the expected state with unprivilegedOverride.
 var unprivilegedInstall = installExpect{
 	user: runtimeUser,
+	tree: map[string]fileEntry{
+		// The runtime user copies the files into installDir, so it owns the
+		// updater too.
+		"updater": {"f", runtimeUser, runtimeGrp, "755"},
+	},
+	// postinstall doesn't change files in installDir as root. The collector
+	// creates its log when it starts.
+	omit: []string{"log/collector.log"},
 	files: map[string]fileEntry{
-		userDropIn: {"f", "root", "root", "644"},
+		userDropIn:  {"f", "root", "root", "644"},
+		sudoersPath: {"f", "root", "root", "440"},
 	},
 }
 
@@ -154,6 +172,7 @@ var uninstallShared = uninstallExpect{
 	absent: []string{
 		// preremove.sh removes the drop-in directory when it is empty.
 		dropInDir,
+		sudoersPath,
 		installDir + "/observiq-otel-collector",
 		installDir + "/updater",
 		installDir + "/VERSION.txt",

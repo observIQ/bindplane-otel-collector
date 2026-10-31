@@ -27,6 +27,7 @@ RUN apt-get update \
         systemd-sysv \
         dbus \
         procps \
+        sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Mask units that do not work, or are not useful, inside a container. The
@@ -46,7 +47,11 @@ RUN systemctl mask \
     && mkdir -p /pkgtest \
     && test -x /sbin/nologin \
     && command -v useradd \
-    && command -v getent
+    && command -v getent \
+    && command -v runuser \
+    && command -v setsid \
+    && command -v sudo \
+    && command -v visudo
 
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
