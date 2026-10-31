@@ -68,6 +68,9 @@ type formatOps struct {
 	// scripts/install/install_unix.sh. downgrade is set when the package
 	// is older than the installed one.
 	install func(pkg string, downgrade bool) string
+	// reinstall installs a package file of the version that is already
+	// installed.
+	reinstall func(pkg string) string
 	// remove uninstalls the package, matching install_unix.sh --uninstall.
 	remove string
 	// fileVersion prints the version recorded in a package file.
@@ -98,6 +101,9 @@ var ops = map[pkgFormat]formatOps{
 			// dpkg allows downgrades, it only prints a warning.
 			return "dpkg --force-confold -i " + shellQuote(pkg)
 		},
+		reinstall: func(pkg string) string {
+			return "dpkg --force-confold -i " + shellQuote(pkg)
+		},
 		remove: "dpkg -r " + packageName,
 		fileVersion: func(pkg string) string {
 			return "dpkg-deb -f " + shellQuote(pkg) + " Version"
@@ -120,6 +126,10 @@ var ops = map[pkgFormat]formatOps{
 				return "rpm -U --oldpackage " + shellQuote(pkg)
 			}
 			return "rpm -U " + shellQuote(pkg)
+		},
+		reinstall: func(pkg string) string {
+			// rpm -U skips a package that is already installed.
+			return "rpm -U --replacepkgs " + shellQuote(pkg)
 		},
 		remove: "rpm -e " + packageName,
 		fileVersion: func(pkg string) string {

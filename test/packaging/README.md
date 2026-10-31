@@ -11,6 +11,8 @@ and ends with an `uninstall` step:
 |---|---|---|
 | `install` | `TestPackages/<distro>/install` | Installs the package, checks files, ownership, modes, the `bdot` user, the systemd unit, and versions. Then it runs `systemctl enable --now`, the same as `install_unix.sh`, and checks that the collector runs. |
 | `upgrade` | `TestPackages/<distro>/upgrade_from_<version>` | Installs a released package and starts it. It edits `config.yaml` and `logging.yaml`, and creates `manager.yaml`, a storage file, and the package override file. Then it upgrades to the package under test, checks that those files are preserved, restarts the service, and checks that it runs. |
+| `install_unprivileged` | `TestPackages/<distro>/install_unprivileged` | Writes `BDOT_UNPRIVILEGED=true` to the package override file, then installs the package and runs the same checks as `install`. It also checks the systemd `User=` drop-in, and that the collector runs as `bdot`. |
+| `refuse_privileged` | `TestPackages/<distro>/refuse_privileged` | Installs the package with `BDOT_UNPRIVILEGED=true` and starts it. It replaces `log/collector.log` with a symbolic link to a file owned by root, removes the override, and installs the package again. Checks that the package refuses to install, leaves the linked file and the running service alone, and installs again once the override is restored. |
 
 The `uninstall` step is a subtest of each action, for example
 `TestPackages/debian-13/install/uninstall`. It creates `manager.yaml`, a storage
@@ -115,6 +117,7 @@ The types of checks the scenarios perform.
 - Only one instance of the package is installed
 - Package state after removal (dpkg status or rpm query)
 - Package payload contents (plugin list)
+- Install is refused, with the expected error
 
 ### Files and directories
 
@@ -126,6 +129,7 @@ The types of checks the scenarios perform.
 - Directory tree matches exactly (no missing or unexpected entries)
 - File contents match an expected value
 - File contents unchanged across upgrade (sha256)
+- File owner, mode, and modification time unchanged by a refused install
 - File contains a log line (and how many times)
 
 ### Users and groups

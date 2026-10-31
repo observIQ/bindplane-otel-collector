@@ -36,11 +36,13 @@ import (
 // Actions are the scenarios the suite can run. Each one ends with the
 // package being removed, see scenario.uninstall.
 const (
-	actionInstall = "install"
-	actionUpgrade = "upgrade"
+	actionInstall             = "install"
+	actionUpgrade             = "upgrade"
+	actionInstallUnprivileged = "install_unprivileged"
+	actionRefusePrivileged    = "refuse_privileged"
 )
 
-var actions = []string{actionInstall, actionUpgrade}
+var actions = []string{actionInstall, actionUpgrade, actionInstallUnprivileged, actionRefusePrivileged}
 
 var (
 	distroFlag = flag.String("distro", "", "comma separated distros to test, from distros_test.go (default all)")
@@ -103,6 +105,18 @@ func TestPackages(t *testing.T) {
 						s.upgrade(t, from)
 					})
 				}
+			}
+			if runActions[actionInstallUnprivileged] {
+				t.Run(actionInstallUnprivileged, func(t *testing.T) {
+					t.Parallel()
+					s.installUnprivileged(t)
+				})
+			}
+			if runActions[actionRefusePrivileged] {
+				t.Run(actionRefusePrivileged, func(t *testing.T) {
+					t.Parallel()
+					s.refusePrivileged(t)
+				})
 			}
 		})
 	}

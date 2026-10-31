@@ -45,7 +45,7 @@ func (s *scenario) install(t *testing.T) {
 	pkg := b.copyPackage(s.pkg)
 
 	b.installPackage(s.ops, pkg, false)
-	s.assertInstalled(b, pkg, nil, nil)
+	s.assertInstalled(b, pkg, privilegedInstall, nil, nil)
 
 	// The package configures the service but does not enable or start it.
 	assert.Equal(t, "disabled", b.unitState("is-enabled"), "service should not be enabled by the package")
@@ -53,7 +53,71 @@ func (s *scenario) install(t *testing.T) {
 	b.assertAbsent(wantsPath)
 
 	b.mustRun("systemctl enable --now " + packageName)
-	b.assertServiceRunning(1)
+	b.assertServiceRunning(1, "root")
+
+	s.uninstall(t, b)
+}
+
+// installUnprivileged installs the package with BDOT_UNPRIVILEGED=true,
+// starts the service, checks that it runs as the runtime user, and then
+// removes the package.
+func (s *scenario) installUnprivileged(t *testing.T) {
+	b := startBox(t, s.env, s.image)
+	pkg := b.copyPackage(s.pkg)
+
+	b.writeOverride(s.ops, unprivilegedOverride)
+	b.installPackage(s.ops, pkg, false)
+	s.assertInstalled(b, pkg, unprivilegedInstall, nil, nil)
+	assert.Equal(t, "[Service]\nUser="+runtimeUser, b.mustRun("cat "+userDropIn), "User= drop-in contents")
+
+	b.mustRun("systemctl enable --now " + packageName)
+	b.assertServiceRunning(1, runtimeUser)
+
+	s.uninstall(t, b)
+}
+
+// refusePrivileged installs the package with BDOT_UNPRIVILEGED=true and
+// starts it, then installs it again with the default overrides, which would
+// run the service as root. The runtime user owns installDir and can replace
+// any entry in it with a symbolic link, which a root install would follow,
+// so the package must refuse the install before it changes anything.
+func (s *scenario) refusePrivileged(t *testing.T) {
+	b := startBox(t, s.env, s.image)
+	pkg := b.copyPackage(s.pkg)
+
+	b.writeOverride(s.ops, unprivilegedOverride)
+	b.installPackage(s.ops, pkg, false)
+	b.mustRun("systemctl enable --now " + packageName)
+	pid := b.assertServiceRunning(1, runtimeUser)
+
+	// A link the runtime user could plant. A root install would touch and
+	// chown the canary through it.
+	const canary = "/etc/pkgtest-canary"
+	logFile := installDir + "/log/collector.log"
+	b.mustRun("install -o root -g root -m 0600 /dev/null " + canary +
+		" && ln -sfn " + canary + " " + logFile +
+		" && chown -h " + runtimeUser + ":" + runtimeGrp + " " + logFile)
+	statCanary := "stat -c '%U:%G %a %y' " + canary
+	before := b.mustRun(statCanary)
+
+	b.writeOverride(s.ops)
+	cmd := s.ops.reinstall(pkg)
+	res := b.run(cmd)
+	t.Logf("$ %s\n%s", cmd, res)
+	require.NotZero(t, res.code, "the install should be refused")
+	assert.Contains(t, res.stdout+res.stderr, "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported", "refusal message")
+
+	assert.Equal(t, before, b.mustRun(statCanary), "the refused install should not change the canary")
+	b.assertPresent(userDropIn)
+	assert.Equal(t, "active", b.unitState("is-active"), "service should keep running")
+	assert.Equal(t, pid, b.unitProps("MainPID")["MainPID"], "the refused install should not restart the service")
+
+	// Restoring the overrides recovers the install. The link goes first,
+	// because postinstall still changes collector.log as root.
+	b.mustRun("rm " + logFile)
+	b.writeOverride(s.ops, unprivilegedOverride)
+	b.pkgCommand(s.ops.reinstall(pkg))
+	s.assertInstalled(b, pkg, unprivilegedInstall, nil, nil)
 
 	s.uninstall(t, b)
 }
@@ -100,7 +164,7 @@ func (s *scenario) upgrade(t *testing.T, from string) {
 	}
 	// Plugins removed from the new release are not cleaned up on upgrade.
 	oldPlugins := func(p string) bool { return strings.HasPrefix(p, "plugins/") }
-	s.assertInstalled(b, newPkg, userFiles, oldPlugins)
+	s.assertInstalled(b, newPkg, privilegedInstall, userFiles, oldPlugins)
 
 	// The package does not restart the service; the old binary keeps
 	// running until it is restarted.
@@ -113,7 +177,7 @@ func (s *scenario) upgrade(t *testing.T, from string) {
 	b.mustRun("rm " + installDir + "/manager.yaml")
 	starts := b.startupCount()
 	b.mustRun("systemctl restart " + packageName)
-	pid := b.assertServiceRunning(starts + 1)
+	pid := b.assertServiceRunning(starts+1, "root")
 	assert.NotEqual(t, oldPID, pid, "service should have a new process after restart")
 
 	s.uninstall(t, b)
@@ -148,20 +212,23 @@ func (s *scenario) uninstall(t *testing.T, b *box) {
 	})
 }
 
-// assertInstalled checks the state of a system with pkg installed.
+// assertInstalled checks the state of a system with pkg installed, using the
+// expectations in e for the parts that depend on BDOT_UNPRIVILEGED.
 // extraTree adds expected entries under installDir, and allowExtra permits
 // unexpected ones, see assertTree.
-func (s *scenario) assertInstalled(b *box, pkg string, extraTree map[string]fileEntry, allowExtra func(string) bool) {
+func (s *scenario) assertInstalled(b *box, pkg string, e installExpect, extraTree map[string]fileEntry, allowExtra func(string) bool) {
 	b.t.Helper()
 	want := installTree(b.payloadPlugins(s.ops, pkg))
 	maps.Copy(want, extraTree)
 	b.assertTree(installDir, want, allowExtra)
 	b.assertFiles(installSystemFiles)
+	b.assertFiles(e.files)
 	b.assertAbsent(installAbsent...)
+	b.assertAbsent(e.absent...)
 	b.assertPackageVersion(s.ops, pkg)
 	b.assertVersionFiles(s.env.dist.metadata)
 	b.assertRuntimeUser()
-	b.assertUnit()
+	b.assertUnit(e.user)
 }
 
 func (b *box) installPackage(o formatOps, pkg string, downgrade bool) {
@@ -183,11 +250,16 @@ func (b *box) pkgCommand(cmd string) {
 	require.Zero(b.t, res.code, "%s failed", cmd)
 }
 
-// writeOverride writes a package override file that keeps the defaults. The
-// install scripts only source it when it is written before the install.
-func (b *box) writeOverride(o formatOps) {
+// writeOverride writes a package override file holding lines. With no lines
+// it keeps the defaults. The install scripts only source it when it is
+// written before the install.
+func (b *box) writeOverride(o formatOps, lines ...string) {
 	b.t.Helper()
-	b.mustRun("mkdir -p \"$(dirname " + o.overridePath + ")\" && echo '# written by the packaging test suite' > " + o.overridePath)
+	script := "mkdir -p \"$(dirname " + o.overridePath + ")\" && printf '%s\\n' '# written by the packaging test suite'"
+	for _, line := range lines {
+		script += " " + shellQuote(line)
+	}
+	b.mustRun(script + " > " + o.overridePath)
 }
 
 // writeUserFiles creates files a user or install_unix.sh would create after

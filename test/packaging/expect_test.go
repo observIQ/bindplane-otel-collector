@@ -18,18 +18,24 @@ package packaging
 
 // Expected state of a system with the package installed using the default
 // package overrides (BDOT_USER=bdot, BDOT_GROUP=bdot, BDOT_UNPRIVILEGED=false,
-// BDOT_CONFIG_HOME=/opt/observiq-otel-collector). The values are derived from
-// the nfpm contents in .goreleaser.yml and scripts/package/*.sh.
+// BDOT_CONFIG_HOME=/opt/observiq-otel-collector). installExpect holds what
+// changes with BDOT_UNPRIVILEGED=true. The values are derived from the nfpm
+// contents in .goreleaser.yml and scripts/package/*.sh.
 
 const (
 	installDir  = "/opt/observiq-otel-collector"
 	stageRoot   = "/usr/share/observiq-otel-collector"
 	unitPath    = "/usr/lib/systemd/system/observiq-otel-collector.service"
 	dropInDir   = "/etc/systemd/system/observiq-otel-collector.service.d"
+	userDropIn  = dropInDir + "/10-package-customizations-username.conf"
 	wantsPath   = "/etc/systemd/system/multi-user.target.wants/observiq-otel-collector.service"
 	initdPath   = "/etc/init.d/observiq-otel-collector"
 	runtimeUser = "bdot"
 	runtimeGrp  = "bdot"
+
+	// unprivilegedOverride is the package override line that runs the
+	// service as runtimeUser.
+	unprivilegedOverride = "BDOT_UNPRIVILEGED=true"
 
 	// standaloneLogLine is logged by the collector at startup when no
 	// manager.yaml is present.
@@ -79,19 +85,46 @@ var installSystemFiles = map[string]fileEntry{
 
 // installAbsent are paths that must not exist after install.
 var installAbsent = []string{
-	// Only written when BDOT_UNPRIVILEGED=true.
-	dropInDir + "/10-package-customizations-username.conf",
 	// The stage directory is removed by postinstall.
 	stageRoot,
 	// systemd hosts get a unit file, not an init script.
 	initdPath,
 }
 
+// installExpect is the expected state after install that depends on
+// BDOT_UNPRIVILEGED.
+type installExpect struct {
+	// user is the user the service runs as.
+	user string
+	// files are expected paths outside installDir, in addition to
+	// installSystemFiles.
+	files map[string]fileEntry
+	// absent are paths that must not exist, in addition to installAbsent.
+	absent []string
+}
+
+// privilegedInstall is the expected state with the default overrides.
+var privilegedInstall = installExpect{
+	user: "root",
+	absent: []string{
+		// Only written when BDOT_UNPRIVILEGED=true.
+		userDropIn,
+	},
+}
+
+// unprivilegedInstall is the expected state with unprivilegedOverride.
+var unprivilegedInstall = installExpect{
+	user: runtimeUser,
+	files: map[string]fileEntry{
+		userDropIn: {"f", "root", "root", "644"},
+	},
+}
+
 // installUnitProps are the expected `systemctl show` properties of the unit.
-// ExecStart and Environment are checked separately because they contain
-// more than a single value.
+// User is checked separately because it depends on installExpect. ExecStart
+// and Environment are checked separately because they contain more than a
+// single value.
 var installUnitProps = map[string]string{
-	"User":             "root",
 	"Group":            runtimeGrp,
 	"WorkingDirectory": installDir,
 	"Restart":          "on-failure",
@@ -117,9 +150,10 @@ var uninstallShared = uninstallExpect{
 		installDir + "/manager.yaml",
 		installDir + "/storage",
 		installDir + "/storage/marker",
-		dropInDir,
 	},
 	absent: []string{
+		// preremove.sh removes the drop-in directory when it is empty.
+		dropInDir,
 		installDir + "/observiq-otel-collector",
 		installDir + "/updater",
 		installDir + "/VERSION.txt",

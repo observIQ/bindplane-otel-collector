@@ -57,6 +57,16 @@ if is_uninstall "$1"; then
             systemctl disable "$service_name" || true
         fi
         
+        # Remove the package's User= drop-in. Leave any other drop-ins; the
+        # admin wrote them.
+        dropin_dir="/etc/systemd/system/${service_name}.service.d"
+        user_dropin="${dropin_dir}/10-package-customizations-username.conf"
+        if [ -f "$user_dropin" ]; then
+            echo "Removing systemd drop-in: $user_dropin"
+            rm -f "$user_dropin"
+        fi
+        rmdir "$dropin_dir" 2>/dev/null || true
+
         echo "Reloading systemd daemon"
         systemctl daemon-reload || true
     fi

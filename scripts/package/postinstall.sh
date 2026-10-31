@@ -496,6 +496,33 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+# check_runtime_user_change fails the install before anything is changed when
+# the package overrides would change the user that an unprivileged install
+# runs as. That user owns BDOT_CONFIG_HOME and can replace any entry in it
+# with a symbolic link, and an install for root or for another user would
+# follow those links as root. The package writes the User= drop-in and root
+# owns it, so the runtime user can't change it. preinstall.sh runs the same
+# check, so keep the two the same. This script runs it too because dpkg can
+# run it again, for example with "dpkg --configure", after the overrides
+# changed.
+check_runtime_user_change() {
+    user_dropin="/etc/systemd/system/observiq-otel-collector.service.d/10-package-customizations-username.conf"
+    if [ ! -f "$user_dropin" ]; then
+        return
+    fi
+
+    current_user="$(sed -n 's/^User=//p' "$user_dropin")"
+    if [ "$BDOT_UNPRIVILEGED" = "true" ] && [ "$BDOT_USER" = "$current_user" ]; then
+        return
+    fi
+
+    echo "ERROR: The collector service runs as \"${current_user}\", set by ${user_dropin}." >&2
+    echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported." >&2
+    echo "Restore the previous values, or uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    exit 1
+}
+
+check_runtime_user_change
 install
 install_service
 finish_permissions
