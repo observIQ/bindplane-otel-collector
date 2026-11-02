@@ -577,7 +577,7 @@ check_runtime_user_change() {
         current_user="root"
         set_by="since there is no ${user_dropin}"
     else
-        return
+        return 0
     fi
 
     # Name the override file to set the values in. Both are sourced, and
