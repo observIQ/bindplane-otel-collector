@@ -228,10 +228,11 @@ banner() {
   separator
 }
 
-usage() {
-  increase_indent
-  USAGE=$(
-    cat <<EOF
+# usage_text prints the help text. AIX's /bin/sh (ksh88) leaves a variable inside
+# single quotes unexpanded when a here-document sits directly in $(...), so
+# usage() calls this function instead.
+usage_text() {
+  cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
       Defines the version of the BDOT.
@@ -245,12 +246,12 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to BDOT\'s GitHub releases.
+      If not provided, this will default to BDOT's GitHub releases.
       Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
   $(fg_yellow '-gl, --gpg-tar-url')
       Defines the URL that the GPG tar file will be downloaded from.
-      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      If not provided, this will default to Bindplane Agent's GitHub releases.
       Example: '-gl http://my.domain.org/bdot-gpg-keys.tar.gz' will download from there.
 
   $(fg_yellow '-b, --base-url')
@@ -341,7 +342,11 @@ Usage:
     Do a dirty install by not generating a supervisor.yaml. Useful when one already exists and treats the install as an update.
 
 EOF
-  )
+}
+
+usage() {
+  increase_indent
+  USAGE=$(usage_text)
   info "$USAGE"
   decrease_indent
   return 0
