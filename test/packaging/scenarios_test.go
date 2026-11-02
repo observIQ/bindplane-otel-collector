@@ -39,7 +39,8 @@ type scenario struct {
 }
 
 // install installs the package on a clean system, starts the service the
-// way install_unix.sh does, and then removes the package.
+// way install_unix.sh does, checks that making it unprivileged is refused,
+// and then removes the package.
 func (s *scenario) install(t *testing.T) {
 	b := startBox(t, s.env, s.image)
 	pkg := b.copyPackage(s.pkg)
@@ -53,7 +54,20 @@ func (s *scenario) install(t *testing.T) {
 	b.assertAbsent(wantsPath)
 
 	b.mustRun("systemctl enable --now " + packageName)
-	b.assertServiceRunning(1, "root")
+	pid := b.assertServiceRunning(1, "root")
+
+	// Making the existing root install unprivileged is refused. The
+	// collector would run as the runtime user against files root created.
+	b.writeOverride(s.ops, unprivilegedOverride)
+	cmd := s.ops.reinstall(pkg)
+	res := b.run(cmd)
+	t.Logf("$ %s\n%s", cmd, res)
+	require.NotZero(t, res.code, "the install should be refused")
+	assert.Contains(t, res.stdout+res.stderr, "set these values in "+s.ops.overridePath, "refusal message names the override file")
+	assert.Contains(t, res.stdout+res.stderr, "BDOT_UNPRIVILEGED=false", "refusal message names the value to restore")
+	b.assertAbsent(userDropIn)
+	assert.Equal(t, pid, b.unitProps("MainPID")["MainPID"], "the refused install should not restart the service")
+	b.assertPackageVersion(s.ops, pkg)
 
 	s.uninstall(t, b)
 }
