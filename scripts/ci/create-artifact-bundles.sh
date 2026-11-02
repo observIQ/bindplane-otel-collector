@@ -63,6 +63,9 @@ common=(
   ./dist/*SHA256SUMS
 )
 
+# This generic tarball is deprecated. It has been replaced with the 
+# per-platform tarballs bellow. Remove this once the size has grown
+# to exceed 2GB - the GitHub limit for a single release artifact.
 bundle artifacts \
   "${common[@]}" \
   ./scripts/install/*.sh \
@@ -70,7 +73,6 @@ bundle artifacts \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*tar.gz \
-  ./aix-dist/* \
   ./dist/*.zip \
   ./dist/*.rpm \
   ./dist/*.deb
