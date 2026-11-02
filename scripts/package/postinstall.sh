@@ -560,9 +560,23 @@ check_runtime_user_change() {
         return
     fi
 
+    # Name the override file to set the values in. Both are sourced, and
+    # /etc/sysconfig last, so it wins. rpm passes a number as $1, dpkg a word.
+    override_file="/etc/default/observiq-otel-collector"
+    if [ -f /etc/sysconfig/observiq-otel-collector ]; then
+        override_file="/etc/sysconfig/observiq-otel-collector"
+    elif [ ! -f "$override_file" ]; then
+        case "$1" in
+            [0-9]*) override_file="/etc/sysconfig/observiq-otel-collector" ;;
+        esac
+    fi
+
     echo "ERROR: The collector service runs as \"${current_user}\", set by ${user_dropin}." >&2
-    echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported." >&2
-    echo "Restore the previous values, or uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported. To change them, uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    echo "To keep the existing install, set these values in ${override_file}, as described at https://docs.bindplane.com/configuration/bindplane-otel-collector/linux-package-configuration:" >&2
+    echo "    BDOT_UNPRIVILEGED=true" >&2
+    echo "    BDOT_USER=${current_user}" >&2
+    echo "Then install the package again." >&2
     exit 1
 }
 
@@ -578,7 +592,7 @@ case "$1" in
         ;;
 esac
 
-check_runtime_user_change
+check_runtime_user_change "$@"
 install
 install_service
 finish_permissions

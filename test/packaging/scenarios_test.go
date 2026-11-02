@@ -106,6 +106,8 @@ func (s *scenario) refusePrivileged(t *testing.T) {
 	t.Logf("$ %s\n%s", cmd, res)
 	require.NotZero(t, res.code, "the install should be refused")
 	assert.Contains(t, res.stdout+res.stderr, "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported", "refusal message")
+	assert.Contains(t, res.stdout+res.stderr, "set these values in "+s.ops.overridePath, "refusal message names the override file")
+	assert.Contains(t, res.stdout+res.stderr, "BDOT_USER="+runtimeUser, "refusal message names the runtime user")
 
 	assert.Equal(t, before, b.mustRun(statCanary), "the refused install should not change the canary")
 	b.assertPresent(userDropIn)
