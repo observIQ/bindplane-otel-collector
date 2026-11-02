@@ -63,6 +63,9 @@ common=(
   ./dist/*SHA256SUMS
 )
 
+# This generic tarball is deprecated. It has been replaced with the 
+# per-platform tarballs bellow. Remove this once the size has grown
+# to exceed 2GB - the GitHub limit for a single release artifact.
 bundle artifacts \
   "${common[@]}" \
   ./scripts/install/*.sh \
