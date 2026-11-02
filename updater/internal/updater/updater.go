@@ -27,7 +27,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension/packagestate"
+	"github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension/packagestate"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/action"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/install"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/path"
@@ -180,7 +180,7 @@ func (u *Updater) Update() error {
 		u.logger.Error("Failed to backup", zap.Error(err))
 
 		// Set the state to failed before rollback so collector knows it failed
-		if setErr := u.monitor.SetState(packagestate.CollectorPackageName, protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
+		if setErr := u.monitor.SetState(packagestate.CollectorPackageName(), protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
 			u.logger.Error("Failed to set state on backup failure", zap.Error(setErr))
 		}
 
@@ -195,7 +195,7 @@ func (u *Updater) Update() error {
 		u.logger.Error("Failed to install", zap.Error(err))
 
 		// Set the state to failed before rollback so collector knows it failed
-		if setErr := u.monitor.SetState(packagestate.CollectorPackageName, protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
+		if setErr := u.monitor.SetState(packagestate.CollectorPackageName(), protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
 			u.logger.Error("Failed to set state on install failure", zap.Error(setErr))
 		}
 
@@ -212,13 +212,13 @@ func (u *Updater) Update() error {
 	u.logger.Debug("Installation successful, begin monitor for success")
 
 	// Monitor the install state
-	if err := u.monitor.MonitorForSuccess(checkCtx, packagestate.CollectorPackageName); err != nil {
+	if err := u.monitor.MonitorForSuccess(checkCtx, packagestate.CollectorPackageName()); err != nil {
 		u.logger.Error("Failed to install", zap.Error(err))
 
 		// If this is not an error due to the collector setting a failed status we need to set a failed status
 		if !errors.Is(err, state.ErrFailedStatus) {
 			// Set the state to failed before rollback so collector knows it failed
-			if setErr := u.monitor.SetState(packagestate.CollectorPackageName, protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
+			if setErr := u.monitor.SetState(packagestate.CollectorPackageName(), protobufs.PackageStatusEnum_PackageStatusEnum_InstallFailed, err); setErr != nil {
 				u.logger.Error("Failed to set state on install failure", zap.Error(setErr))
 			}
 		}

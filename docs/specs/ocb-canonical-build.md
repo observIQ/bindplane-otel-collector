@@ -6,7 +6,7 @@ This describes the BDOT Collector build as it stands today. The OTel Collector B
 
 1. Reads `manifests/observIQ/manifest.yaml` (or one of the v2 variants).
 2. Generates `./build/components.go` and `./build/go.mod` (v1) or `./builder/...` (v2).
-3. For v1: a Make step copies `internal/extension/opampconnectionextension/cmd/main/main.go` over ocb's generated `main.go`, runs `go mod tidy`, then `go build`.
+3. For v1: a Make step copies `cmd/collector/main.go` over ocb's generated `main.go`, runs `go mod tidy`, then `go build`.
 4. For v2: ocb's generated `main.go` is used as-is; ocb runs `go build` itself.
 
 `./build/` and `./builder/` are gitignored; the compiled binary lands in `./dist/`.
@@ -15,7 +15,7 @@ This describes the BDOT Collector build as it stands today. The OTel Collector B
 
 | File | Build target | Output binary | Shape |
 |---|---|---|---|
-| `manifest.yaml` | `make agent` | `dist/collector_<os>_<arch>` | v1 — in-process managed runtime; `internal/extension/opampconnectionextension/cmd/main/main.go` overlay. |
+| `manifest.yaml` | `make agent` | `dist/collector_<os>_<arch>` | v1 — in-process managed runtime; `cmd/collector/main.go` overlay. |
 
 `make verify-manifest` regenerates from `manifest.yaml` and compiles to `/dev/null` — the CI gate against manifest breakage.
 
@@ -71,11 +71,11 @@ bindplane-otel-collector/
 └── dist/                                # compiled binaries (gitignored)
 ```
 
-No top-level `go.mod`. No `cmd/collector/`. No `factories/`. The legacy `opamp/`, `collector/`, `packagestate/`, `internal/{logging,service,report,measurements}/` directories are gone — that code now lives under `internal/extension/opampconnectionextension/`.
+No top-level `go.mod`. No `factories/`. The legacy `opamp/`, `collector/`, `packagestate/`, `internal/{logging,service,report,measurements}/` directories are gone — that code now lives under `internal/extension/opampconnectionextension/`.
 
 ## v1 entry point
 
-`internal/extension/opampconnectionextension/cmd/main/main.go` is ~100 lines: parse flags, build factories from ocb's `components()`, call `runtime.Run(Options)`. Everything else lives in the extension module.
+`cmd/collector/main.go` is ~100 lines: parse flags, build factories from ocb's `components()`, call `runtime.Run(Options)`. Everything else lives in the extension module.
 
 ```go
 package runtime

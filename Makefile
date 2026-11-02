@@ -43,22 +43,45 @@ GORELEASER_TIMEOUT ?= 180m
 GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# AGENT_NAME / AGENT_DESCRIPTION populate component.BuildInfo. AGENT_NAME is
+# also the OpAMP agent type (service.name) Bindplane uses to identify BDOT.
+AGENT_NAME = com.observiq.collector
+# AGENT_DESCRIPTION contains an apostrophe, so its -X stamp below is wrapped in
+# escaped double quotes rather than single quotes.
+AGENT_DESCRIPTION = observIQ's opentelemetry-collector distribution
+# PRODUCT_NAME is the product slug: the OpAMP package key the collector and
+# updater agree on, the User-Agent prefix, and (underscored) the stderr log
+# file name that the installers and support scripts reference.
+PRODUCT_NAME = observiq-otel-collector
+STDERR_LOG_NAME = observiq_collector.err
+OPAMP_EXT_MODULE = github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension
+OPAMP_EXT_COLLECTOR_PKG = $(OPAMP_EXT_MODULE)/internal/collector
+OPAMP_EXT_SERVICE_PKG = $(OPAMP_EXT_MODULE)/internal/service
+OPAMP_EXT_PACKAGESTATE_PKG = $(OPAMP_EXT_MODULE)/packagestate
+
 # AGENT_LDFLAGS stamps version + git hash + build date into the v1 collector
-# binaries (both consume github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version).
+# binaries (both consume github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version),
+# plus the BDOT identity values into the opamp connection extension.
 AGENT_LDFLAGS = -s -w \
 	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION) \
 	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
-	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE)
+	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE) \
+	-X $(OPAMP_EXT_COLLECTOR_PKG).buildName=$(AGENT_NAME) \
+	-X \"$(OPAMP_EXT_COLLECTOR_PKG).buildDescription=$(AGENT_DESCRIPTION)\" \
+	-X $(OPAMP_EXT_PACKAGESTATE_PKG).collectorPackageName=$(PRODUCT_NAME) \
+	-X $(OPAMP_EXT_SERVICE_PKG).stderrLogName=$(STDERR_LOG_NAME)
 
 # AGENT_BUILD_TAGS are the build tags that should be used when building BDOT
 # 'embed_library' used by the telemetry generator receiver to use blitz (PR#3525)
 AGENT_BUILD_TAGS = embed_library
 
-# UPDATER_LDFLAGS stamps the same values into the updater binary.
+# UPDATER_LDFLAGS stamps the same values into the updater binary. The package
+# name must match the collector's or the updater never sees the install finish.
 UPDATER_LDFLAGS = -s -w \
 	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION) \
 	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash=$(GIT_HASH) \
-	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.date=$(BUILD_DATE)
+	-X github.com/observiq/bindplane-otel-collector/updater/internal/version.date=$(BUILD_DATE) \
+	-X $(OPAMP_EXT_PACKAGESTATE_PKG).collectorPackageName=$(PRODUCT_NAME)
 
 .PHONY: version
 version:
@@ -70,8 +93,8 @@ version:
 # ocb-driven build:
 #   1. Run the OTel collector builder against manifests/observIQ/manifest.yaml
 #      to generate ./build/ (components.go, go.mod, etc).
-#   2. Overwrite the generated main.go with the v1 entry point shipped by
-#      the opampconnectionextension at cmd/main/main.go. That entry point
+#   2. Overwrite the generated main.go with the v1 entry point at
+#      cmd/collector/main.go. That entry point
 #      wires ocb's factories into the managed/standalone runtime via
 #      runtime.Run.
 #   3. go mod tidy + go build inside ./build/.
@@ -93,7 +116,7 @@ install-ocb:
 MANIFEST ?= manifests/observIQ/manifest.yaml
 MANIFEST_AIX ?= manifests/observIQ/manifest-aix.yaml
 BUILD_DIR ?= ./build
-AGENT_MAIN ?= internal/extension/opampconnectionextension/cmd/main/main.go
+AGENT_MAIN ?= cmd/collector/main.go
 
 # verify-manifest is the CI gate: regenerate sources from the manifest and
 # compile them. Fails on any unresolvable component, missing replace, or

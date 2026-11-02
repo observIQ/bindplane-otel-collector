@@ -14,12 +14,8 @@ require (
 require go.yaml.in/yaml/v3 v3.0.5 // indirect
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension v1.111.0
+	github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension v1.2.1
 	github.com/stretchr/objx v0.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
-
-replace github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension => ../internal/extension/opampconnectionextension
-
-replace github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report

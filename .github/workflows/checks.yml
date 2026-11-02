@@ -88,7 +88,7 @@ jobs:
               - '**/go.mod'
               - '**/go.sum'
               - 'Makefile'
-              - 'internal/extension/opampconnectionextension/cmd/main/**'
+              - 'cmd/collector/**'
 
   setup-tools:
     if: ${{ needs.optimize_ci.outputs.skip != 'true' && github.actor != 'dependabot[bot]' }}
@@ -100,7 +100,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -135,7 +135,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -172,7 +172,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -207,7 +207,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -244,7 +244,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -281,7 +281,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -318,7 +318,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6
@@ -355,7 +355,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: internal/extension/opampconnectionextension/go.mod
+          go-version-file: cmd/collector/go.mod
           cache: false # Caching handled by the actions/cache step below
       - name: Set up Go cache
         uses: actions/cache@v6

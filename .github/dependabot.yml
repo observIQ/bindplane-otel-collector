@@ -5,6 +5,20 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "gomod"
+    directory: "/cmd/collector"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opamp-go"
+      # Dynatrace collector modules are bumped by hand together with the manifest
+      - dependency-name: "github.com/dynatrace/dynatrace-bindplane-otel-collector/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/cmd/plugindocgen"
     schedule:
       interval: "weekly"
@@ -22,6 +36,8 @@ updates:
     ignore:
       # Opentelemetry updates will be done manually
       - dependency-name: "github.com/open-telemetry/opamp-go"
+      # Dynatrace collector modules are bumped by hand together with the manifest
+      - dependency-name: "github.com/dynatrace/dynatrace-bindplane-otel-collector/*"
     commit-message:
       prefix: "deps"
       include: "scope"
@@ -57,6 +73,8 @@ updates:
       - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
       - dependency-name: "go.opentelemetry.io/*"
       - dependency-name: "github.com/open-telemetry/opamp-go"
+      # Dynatrace collector modules are bumped by hand together with the manifest
+      - dependency-name: "github.com/dynatrace/dynatrace-bindplane-otel-collector/*"
     commit-message:
       prefix: "deps"
       include: "scope"
