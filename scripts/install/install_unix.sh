@@ -60,7 +60,7 @@ remove_created_aix_user() {
 }
 trap remove_created_aix_user EXIT
 MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut"
+PREREQS="curl printf $SVC_PRE sed uname cut runuser"
 if [ "$OS_TYPE" = "AIX" ]; then
   # AIX has no curl without the Toolbox, so base Perl can download instead. It installs from a tar.gz.
   PREREQS="curl|perl printf $SVC_PRE sed uname cut tr tar gunzip awk"
@@ -2068,6 +2068,23 @@ create_manager_yml()
 {
   manager_yml_path="$1"
   if [ ! -f "$manager_yml_path" ]; then
+    # AIX has no runuser. SRC runs the collector as root there, and the
+    # collector user is a locked account nothing runs as, so no unprivileged
+    # user can plant a link. Root creates the file and limits it to the agent
+    # & root before writing to it, since it may contain a secret key.
+    if [ "$OS_TYPE" = "AIX" ]; then
+      command printf '' >> "$manager_yml_path"
+
+      chgrp "$COLLECTOR_GROUP" "$manager_yml_path"
+      chown "$COLLECTOR_USER" "$manager_yml_path"
+      chmod 0640 "$manager_yml_path"
+
+      command printf 'endpoint: "%s"\n' "$OPAMP_ENDPOINT" > "$manager_yml_path"
+      [ -n "$OPAMP_LABELS" ] && command printf 'labels: "%s"\n' "$OPAMP_LABELS" >> "$manager_yml_path"
+      [ -n "$OPAMP_SECRET_KEY" ] && command printf 'secret_key: "%s"\n' "$OPAMP_SECRET_KEY" >> "$manager_yml_path"
+      return 0
+    fi
+
     # The collector user owns the install directory and can replace
     # manager.yaml with a symbolic link, which root would follow. So the file
     # is written as that user, and a link only reaches files the user could
