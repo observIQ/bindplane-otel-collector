@@ -185,6 +185,7 @@ check_runtime_user_change() {
     echo "ERROR: The collector service runs as \"${current_user}\", set by ${user_dropin}." >&2
     echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported." >&2
     echo "Restore the previous values, or uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    echo "On a deb upgrade from a version without this check, dpkg leaves the package unpacked; restore the previous values and install this package again to finish the upgrade." >&2
     exit 1
 }
 
