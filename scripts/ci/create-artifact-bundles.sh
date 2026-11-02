@@ -70,7 +70,6 @@ bundle artifacts \
   ./observiq-otel-collector.msi \
   ./observiq-otel-collector-arm64.msi \
   ./dist/*tar.gz \
-  ./aix-dist/* \
   ./dist/*.zip \
   ./dist/*.rpm \
   ./dist/*.deb
