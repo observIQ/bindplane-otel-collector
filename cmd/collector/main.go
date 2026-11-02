@@ -126,6 +126,18 @@ var legacyContribComponents = map[string]bool{
 	"receiver/windowseventtracereceiver":             true,
 }
 
+// The opamp_connection extension moved from this repo's internal/ tree to the
+// Dynatrace distro. Bindplane servers from before that move look for it under
+// the legacy path, so the report also claims it.
+const (
+	dbdotExtensionRef  = "github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension"
+	legacyExtensionRef = "github.com/observiq/bindplane-otel-collector/internal/extension/opampconnectionextension"
+
+	// legacyExtensionAliasVersion is the last collector release that shipped
+	// the extension under the legacy path. Do not bump.
+	legacyExtensionAliasVersion = "v1.111.0"
+)
+
 func main() {
 	collectorConfigPaths := pflag.StringSlice("config", defaultCollectorPaths(), "the collector config path")
 	managerConfigPath := pflag.String("manager", defaultManagerPath(), "The configuration for remote management")
@@ -156,14 +168,14 @@ func main() {
 		LoggingConfigPath:    *loggingConfigPath,
 		FeatureGates:         *featureGates,
 
-		AvailableComponentsMutator: addLegacyContribAliases,
+		AvailableComponentsMutator: addLegacyAliases,
 	})
 }
 
-// addLegacyContribAliases prepends a bindplane-otel-contrib code.namespace
-// entry to every dbdot-contrib component and extends the report hash so an
-// aliased report never collides with a cached un-aliased one on the server.
-func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
+// addLegacyAliases prepends a legacy code.namespace entry to every component
+// that has one (see legacyAlias) and extends the report hash so an aliased
+// report never collides with a cached un-aliased one on the server.
+func addLegacyAliases(ac *protobufs.AvailableComponents) {
 	var aliases []string
 	for _, group := range ac.GetComponents() {
 		for _, comp := range group.GetSubComponentMap() {
@@ -171,11 +183,10 @@ func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
 				continue
 			}
 			ref, _, _ := strings.Cut(comp.Metadata[0].GetValue().GetStringValue(), " ")
-			subpath, ok := strings.CutPrefix(ref, dbdotContribPrefix)
-			if !ok || !legacyContribComponents[subpath] {
+			alias, ok := legacyAlias(ref)
+			if !ok {
 				continue
 			}
-			alias := legacyContribPrefix + subpath + " " + legacyContribAliasVersion
 			comp.Metadata = append([]*protobufs.KeyValue{{
 				Key:   "code.namespace",
 				Value: &protobufs.AnyValue{Value: &protobufs.AnyValue_StringValue{StringValue: alias}},
@@ -191,6 +202,19 @@ func addLegacyContribAliases(ac *protobufs.AvailableComponents) {
 	h.Write(ac.Hash)
 	h.Write([]byte(strings.Join(aliases, ";")))
 	ac.Hash = h.Sum(nil)
+}
+
+// legacyAlias returns the legacy "module version" code.namespace for a
+// component's current module path, if it ever shipped under one.
+func legacyAlias(ref string) (string, bool) {
+	if ref == dbdotExtensionRef {
+		return legacyExtensionRef + " " + legacyExtensionAliasVersion, true
+	}
+	subpath, ok := strings.CutPrefix(ref, dbdotContribPrefix)
+	if !ok || !legacyContribComponents[subpath] {
+		return "", false
+	}
+	return legacyContribPrefix + subpath + " " + legacyContribAliasVersion, true
 }
 
 func defaultCollectorPaths() []string {
