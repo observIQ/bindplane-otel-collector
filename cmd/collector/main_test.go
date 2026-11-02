@@ -36,21 +36,23 @@ func values(md []*protobufs.KeyValue) []string {
 	return out
 }
 
-func TestAddLegacyContribAliases(t *testing.T) {
+func TestAddLegacyAliases(t *testing.T) {
 	const (
 		dbdotRef    = dbdotContribPrefix + "extension/awss3eventextension v0.0.1"
 		contribRef  = legacyContribPrefix + "extension/pebbleextension v1.14.0"
 		newDbdotRef = dbdotContribPrefix + "receiver/brandnewreceiver v0.0.1"
 		upstreamRef = "go.opentelemetry.io/collector/exporter/otlpexporter v0.160.0"
+		extRef      = dbdotExtensionRef + " v1.2.1"
 	)
 	build := func() *protobufs.AvailableComponents {
 		return &protobufs.AvailableComponents{
 			Hash: []byte("base"),
 			Components: map[string]*protobufs.ComponentDetails{
 				"extensions": {SubComponentMap: map[string]*protobufs.ComponentDetails{
-					"s3event": {Metadata: []*protobufs.KeyValue{codeNamespace(dbdotRef)}},
-					"pebble":  {Metadata: []*protobufs.KeyValue{codeNamespace(contribRef)}},
-					"newrecv": {Metadata: []*protobufs.KeyValue{codeNamespace(newDbdotRef)}},
+					"s3event":          {Metadata: []*protobufs.KeyValue{codeNamespace(dbdotRef)}},
+					"pebble":           {Metadata: []*protobufs.KeyValue{codeNamespace(contribRef)}},
+					"newrecv":          {Metadata: []*protobufs.KeyValue{codeNamespace(newDbdotRef)}},
+					"opamp_connection": {Metadata: []*protobufs.KeyValue{codeNamespace(extRef)}},
 				}},
 				"exporters": {SubComponentMap: map[string]*protobufs.ComponentDetails{
 					"otlp": {Metadata: []*protobufs.KeyValue{codeNamespace(upstreamRef)}},
@@ -60,7 +62,7 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	}
 
 	ac := build()
-	addLegacyContribAliases(ac)
+	addLegacyAliases(ac)
 
 	ext := ac.Components["extensions"].SubComponentMap
 	// dbdot component: legacy alias first, real ref second, alias uses the pinned version.
@@ -71,6 +73,11 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	for _, kv := range ext["s3event"].Metadata {
 		require.Equal(t, "code.namespace", kv.Key)
 	}
+	// the extension claims its pre-move path at the pinned version
+	require.Equal(t, []string{
+		legacyExtensionRef + " " + legacyExtensionAliasVersion,
+		extRef,
+	}, values(ext["opamp_connection"].Metadata))
 	// non-dbdot components are untouched
 	require.Equal(t, []string{contribRef}, values(ext["pebble"].Metadata))
 	// dbdot component that never shipped under the contrib path gets no alias
@@ -79,13 +86,14 @@ func TestAddLegacyContribAliases(t *testing.T) {
 	// hash changes when an alias was added, and is deterministic
 	require.NotEqual(t, []byte("base"), ac.Hash)
 	again := build()
-	addLegacyContribAliases(again)
+	addLegacyAliases(again)
 	require.Equal(t, ac.Hash, again.Hash)
 
 	// no aliasable components: report and hash pass through unchanged
 	plain := build()
 	delete(plain.Components["extensions"].SubComponentMap, "s3event")
-	addLegacyContribAliases(plain)
+	delete(plain.Components["extensions"].SubComponentMap, "opamp_connection")
+	addLegacyAliases(plain)
 	require.Equal(t, []byte("base"), plain.Hash)
 	require.Equal(t, []string{contribRef}, values(plain.Components["extensions"].SubComponentMap["pebble"].Metadata))
 }
