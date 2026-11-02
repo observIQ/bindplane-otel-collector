@@ -111,8 +111,8 @@ func (i *identity) ToAgentDescription() *protobufs.AgentDescription {
 		opamp.StringKeyValue("os.family", i.oSFamily),
 		opamp.StringKeyValue("host.name", i.hostname),
 		opamp.StringKeyValue("host.mac_address", i.mac),
-		// Maps to the bindplane_instance_id metric label on the server, the same way host.mac_address maps to mac_address.
-		opamp.StringKeyValue("bindplane.instance_id", measurements.InstanceID),
+		// Maps to the session_id metric label on the server, the same way host.mac_address maps to mac_address.
+		opamp.StringKeyValue("bindplane.session_id", measurements.SessionID),
 	}
 
 	if i.labels != nil {
