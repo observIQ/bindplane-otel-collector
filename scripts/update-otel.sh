@@ -48,6 +48,7 @@ EOF
 # module path here.
 read -d '' STABLE_CONTRIB_MODULES <<EOF
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl
 EOF
 
 # Exit on any error (set after read command which returns non-zero at EOF)
