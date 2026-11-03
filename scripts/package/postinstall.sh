@@ -59,15 +59,22 @@ install() {
     share_dir="/usr/share/observiq-otel-collector"
     stage_dir="${share_dir}/stage/observiq-otel-collector"
 
+    # The package manager unpacks the stage owned by root, and this function
+    # gives it to the runtime user below. If this script failed after that and
+    # runs again, for example with "dpkg --configure", the runtime user may
+    # have replaced entries in the stage with symbolic links. Take the stage
+    # back first. chown -R changes links themselves and doesn't follow them.
+    chown -R root:root "$stage_dir"
+
     # Rename binaries in staging directory to avoid Linux binary locking issues
     # during copy operation
     mv "${stage_dir}/observiq-otel-collector" "${stage_dir}/observiq-otel-collector.new"
 
     # Goreleaser does not set plugin file permissions. When unprivileged,
     # finish_permissions doesn't change files in BDOT_CONFIG_HOME, so set them
-    # here while root still owns the stage.
+    # here while root still owns the stage. find doesn't follow links.
     if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
-        chmod 0640 "$stage_dir"/plugins/*
+        find "$stage_dir/plugins" -type f -exec chmod 0640 {} +
     fi
 
     # Prepare staged files with runtime ownership so destination does not need
