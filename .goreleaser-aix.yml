@@ -2,7 +2,8 @@
 # This is separate from the main .goreleaser.yml because AIX uses a different
 # OCB manifest (manifest-aix.yaml) with a reduced component set.
 #
-# Artifacts are uploaded to GCS and appended to the main GitHub release.
+# The main release publishes the AIX package and lists its hash in the main
+# SHA256SUMS, so this config only builds, archives and signs.
 
 version: 2
 
@@ -58,8 +59,7 @@ archives:
 
 # https://goreleaser.com/customization/checksum/
 checksum:
-  name_template: "{{ .ProjectName }}-v{{ .Version }}-aix-SHA256SUMS"
-  algorithm: sha256
+  disable: true
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -81,20 +81,6 @@ signs:
       - "${artifact}"
     signature: "${artifact}.gpg.sig"
     artifacts: all
-
-# https://goreleaser.com/customization/release/
-# AIX artifacts are appended to the main GitHub release created by the
-# primary goreleaser run.
-release:
-  draft: false
-  prerelease: "true"
-  mode: append
-
-# https://console.cloud.google.com/storage/browser/bdot-release
-blobs:
-  - provider: gs
-    bucket: bdot-release
-    directory: "v{{ .Version }}"
 
 # Changelog is handled by the main goreleaser config
 changelog:
