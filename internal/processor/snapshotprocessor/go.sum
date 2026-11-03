@@ -4,8 +4,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.2.0 h1:kwi1XQIEy/sawxrjRzEEWPzFaOK7bAuuHN6tGGFXSPA=
 github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.2.0/go.mod h1:k5y3vhLLV0m1QYNsQh5Bqd/s2om3/3O45+hmTtmn5ps=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0 h1:JdqyUGs31ouwPlltPQ69jpK/Bp9mlplL74VsF8cGl38=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.2.0/go.mod h1:Vk+HqfZdoyHCNtpNFNZa7B9fNB/hIXuOZExVcjNCZOU=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0 h1:O2Le93xgQ6XIr+QiEtTtG4S3HlrplQtd1lrX+K3Kn6c=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0/go.mod h1:0+yVGVxLvwmyJG4Ym7Ldcx4xUv317dzjtjRwGGRWeAY=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.4 h1:tG4xh9yMsRCAiodLVTxyrkzSZ9+o0L1Kg/+cPVcbP/8=
 github.com/go-logr/logr v1.4.4/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
@@ -34,10 +34,10 @@ github.com/open-telemetry/opamp-go v0.25.0 h1:UXXSQBtXWxa1ClY85caMrsdiry9dnCZn+L
 github.com/open-telemetry/opamp-go v0.25.0/go.mod h1:xgYySBY286Bei9/0gFH0X+l6h51fQnvZcLvglDQf9DI=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.164.1 h1:0F/xQlLOj8U96u57W0y3WbCsO954MGE43d1dtt489nw=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.164.1/go.mod h1:WKwisFwtqU85MhQH6hGYmVBdKZqnX0f4O8gSJ9K+cZI=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.163.0 h1:pmctDHS+Pywav22H6ZZAzrD7gdH777bSAw7eWhPa8Tg=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.163.0/go.mod h1:+VcuFZIYQEe4AU9WDBoNffnf/vsppt9ZpsN+DUPBFWQ=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.163.0 h1:B0sgu42OgHaZBZZhBE/eV252LLX0ZD1xr89+e7ffnyU=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.163.0/go.mod h1:1S7E1cwt+SD4tfcMJY+Irhc7T5GqMJl1EKhvLYXvJiU=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.164.1 h1:Nf1r5btI0tFLAofjSMbI51qwUDHDzxB3VQvKAoDkfTI=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.164.1/go.mod h1:11XcOuV36UyWWNUogbeLulQ86MkmzAEo3u0v7Fo9AAY=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.164.1 h1:Xmj/ptkrKnMGPaaWcLplVw0czXI1txV0VQW4LvIP+z0=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.164.1/go.mod h1:m35oPRTuzmdit0lfy0EzfAUlvnqpIZIyLBqm4rGQMPY=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
@@ -75,8 +75,8 @@ go.opentelemetry.io/collector/pdata/pprofile v0.164.0 h1:ZUhW1jNHZiujUXu42MW4ph/
 go.opentelemetry.io/collector/pdata/pprofile v0.164.0/go.mod h1:B5ubqU/p2EdV1IwT2BLCFbzHXnjZ742GnFVMhEtIM50=
 go.opentelemetry.io/collector/pdata/testdata v0.164.0 h1:CrffOdngyD3s2JeRv14xa1rgvwa5uGifIsbM00ZOZxY=
 go.opentelemetry.io/collector/pdata/testdata v0.164.0/go.mod h1:asfXFk8FX00QQ3PVqQ/JJFjTX2pemSbM9jYGvgAGPaM=
-go.opentelemetry.io/collector/pdata/xpdata v0.163.0 h1:4CvvCCNkGSbhrmwUtpn1JcFsaOFDQn8BearBpD8skbc=
-go.opentelemetry.io/collector/pdata/xpdata v0.163.0/go.mod h1:acCF/biwBrWt/6r3t9y/lRJ5tMvUOdQv411UPbyptVo=
+go.opentelemetry.io/collector/pdata/xpdata v0.164.0 h1:L+IRe9bH0fBkd+s56yf6oMurDWTkeWAkwxOkJz+4ndI=
+go.opentelemetry.io/collector/pdata/xpdata v0.164.0/go.mod h1:i9DyMV7TNRSktkuM9wYp6dFQvrylSnUGthlCrrMjZVs=
 go.opentelemetry.io/collector/pipeline v1.70.0 h1:jo9xgCZCUtLkiWhMm6pkNCalWUZNwuD+Olxak7K2wFw=
 go.opentelemetry.io/collector/pipeline v1.70.0/go.mod h1:4S7iD/7hGDNXg4yPi+5es5WTvwo/Uie2OoHio79xokI=
 go.opentelemetry.io/collector/processor v1.70.0 h1:WXEBPSNiB0zDqP0JL0WNJ5S/hBhfxnW5LwtrYjrNR3k=
