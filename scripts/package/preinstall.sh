@@ -178,13 +178,19 @@ check_runtime_user_change() {
 
     # Whether this replaces an installed package: dpkg passes "upgrade" to
     # preinst and the previous version to "configure", and rpm counts more
-    # than one installed instance.
+    # than one installed instance. dpkg also passes the previous version to
+    # "configure" when it installs a package that was removed but not
+    # purged. Removing the package deletes the collector binary, so without
+    # it there is no install to replace.
     upgrade=false
     case "$1" in
         upgrade) upgrade=true ;;
         configure) [ -z "$2" ] || upgrade=true ;;
         [0-9]*) [ "$1" -lt 2 ] || upgrade=true ;;
     esac
+    if [ ! -e "${BDOT_CONFIG_HOME}/observiq-otel-collector" ]; then
+        upgrade=false
+    fi
 
     if [ -f "$user_dropin" ]; then
         current_user="$(sed -n 's/^User=//p' "$user_dropin")"
