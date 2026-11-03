@@ -42,7 +42,7 @@ if [ "$AIX_MODE" = true ]; then
     # Build supervisor for AIX from custom fork with AIX compatibility patches
     echo "Cloning AIX supervisor repo (custom fork)"
     AIX_SUPERVISOR_REPO="https://github.com/observIQ/opentelemetry-collector-contrib.git"
-    AIX_SUPERVISOR_BRANCH="patch/aix_config-v0.145.x"
+    AIX_SUPERVISOR_BRANCH="patch/aix_config-v0.162.x"
     AIX_PLATFORMS=("aix/ppc64")
 
     mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib-aix"
