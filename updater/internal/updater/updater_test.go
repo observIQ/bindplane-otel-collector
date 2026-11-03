@@ -117,7 +117,7 @@ func TestUpdaterUpdate(t *testing.T) {
 		rollbacker.On("AppendAction", action.NewServiceStopAction(svc)).Times(1).Return()
 		rollbacker.On("Backup").Times(1).Return(nil)
 		installer.On("Install", rollbacker).Times(1).Return(nil)
-		monitor.On("MonitorForSuccess", mock.Anything, packagestate.CollectorPackageName).Times(1).Return(nil)
+		monitor.On("MonitorForSuccess", mock.Anything, packagestate.CollectorPackageName()).Times(1).Return(nil)
 
 		err := updater.Update()
 		require.NoError(t, err)
