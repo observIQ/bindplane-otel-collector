@@ -46,11 +46,22 @@ is_uninstall() {
 
 # Only stop and disable service on uninstall, not on upgrade
 if is_uninstall "$1"; then
+    # Revoke the runtime user's sudo grant first. Until the service is
+    # stopped and the User= drop-in is removed, the runtime user could
+    # otherwise start the service through sudo, and after the drop-in is
+    # removed the service starts as root. The stop below cancels any start
+    # the runtime user queued before the grant was removed.
+    sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+    if [ -f "$sudoers_file" ]; then
+        echo "Removing sudoers drop-in: $sudoers_file"
+        rm -f "$sudoers_file"
+    fi
+
     if command -v systemctl > /dev/null 2>&1; then
-        if systemctl is-active --quiet "$service_name" 2>/dev/null; then
-            echo "Stopping service: $service_name"
-            systemctl stop "$service_name" || true
-        fi
+        # Stop even when the service isn't active. It may be stopping with a
+        # start queued behind it, and the stop cancels that start.
+        echo "Stopping service: $service_name"
+        systemctl stop "$service_name" || true
         
         if systemctl is-enabled --quiet "$service_name" 2>/dev/null; then
             echo "Disabling service: $service_name"
@@ -69,12 +80,6 @@ if is_uninstall "$1"; then
 
         echo "Reloading systemd daemon"
         systemctl daemon-reload || true
-    fi
-    # Remove sudoers drop-in on uninstall
-    sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
-    if [ -f "$sudoers_file" ]; then
-        echo "Removing sudoers drop-in: $sudoers_file"
-        rm -f "$sudoers_file"
     fi
 else
     echo "Upgrade detected, skipping service stop and disable"
