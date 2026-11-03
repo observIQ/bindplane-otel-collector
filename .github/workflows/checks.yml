@@ -392,3 +392,14 @@ jobs:
         uses: actions/checkout@v7
       - name: Check AIX Manifest Is Subset of Main Manifest
         run: make check-aix-manifest
+
+  check-aix-supervisor-version:
+    if: ${{ needs.optimize_ci.outputs.skip != 'true' }}
+    runs-on: ubuntu-latest
+    needs:
+      - optimize_ci
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v7
+      - name: Check AIX Supervisor Fork Matches the Supervisor Version
+        run: make check-aix-supervisor-version
