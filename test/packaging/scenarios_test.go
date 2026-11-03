@@ -144,6 +144,35 @@ func (s *scenario) refusePrivileged(t *testing.T) {
 	s.uninstall(t, b)
 }
 
+// reinstallUnprivileged installs the package as root and starts it, then
+// follows the steps the refusal message gives to make an install
+// unprivileged: it removes the package and BDOT_CONFIG_HOME, writes
+// BDOT_UNPRIVILEGED=true, and installs the package again. The install is new,
+// so it must not be refused. dpkg keeps a removed package in the "rc" state
+// and passes the old version to postinst "configure", the same as on an
+// upgrade.
+func (s *scenario) reinstallUnprivileged(t *testing.T) {
+	b := startBox(t, s.env, s.image)
+	pkg := b.copyPackage(s.pkg)
+
+	b.installPackage(s.ops, pkg, false)
+	b.mustRun("systemctl enable --now " + packageName)
+	b.assertServiceRunning(1, "root")
+
+	b.removePackage(s.ops)
+	b.mustRun("rm -rf " + installDir)
+
+	b.writeOverride(s.ops, unprivilegedOverride)
+	b.installPackage(s.ops, pkg, false)
+	s.assertInstalled(b, pkg, unprivilegedInstall, nil, nil)
+
+	starts := b.startupCount()
+	b.mustRun("systemctl enable --now " + packageName)
+	b.assertServiceRunning(starts+1, runtimeUser)
+
+	s.uninstall(t, b)
+}
+
 // upgrade installs a released package, starts it, modifies the files a user
 // would, upgrades to the package under test, and then removes the package.
 func (s *scenario) upgrade(t *testing.T, from string) {

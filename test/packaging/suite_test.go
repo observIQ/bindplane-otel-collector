@@ -40,9 +40,10 @@ const (
 	actionUpgrade             = "upgrade"
 	actionInstallUnprivileged = "install_unprivileged"
 	actionRefusePrivileged    = "refuse_privileged"
+	actionReinstall           = "reinstall_unprivileged"
 )
 
-var actions = []string{actionInstall, actionUpgrade, actionInstallUnprivileged, actionRefusePrivileged}
+var actions = []string{actionInstall, actionUpgrade, actionInstallUnprivileged, actionRefusePrivileged, actionReinstall}
 
 var (
 	distroFlag = flag.String("distro", "", "comma separated distros to test, from distros_test.go (default all)")
@@ -116,6 +117,12 @@ func TestPackages(t *testing.T) {
 				t.Run(actionRefusePrivileged, func(t *testing.T) {
 					t.Parallel()
 					s.refusePrivileged(t)
+				})
+			}
+			if runActions[actionReinstall] {
+				t.Run(actionReinstall, func(t *testing.T) {
+					t.Parallel()
+					s.reinstallUnprivileged(t)
 				})
 			}
 		})
