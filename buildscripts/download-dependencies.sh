@@ -51,6 +51,11 @@ if [ "$AIX_MODE" = true ]; then
     git remote add origin "$AIX_SUPERVISOR_REPO"
     git config core.sparseCheckout true
     echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
+    # Same local replace directives as the upstream path below.
+    echo "extension/basicauthextension" >> .git/info/sparse-checkout
+    echo "extension/bearertokenauthextension" >> .git/info/sparse-checkout
+    echo "extension/oauth2clientauthextension" >> .git/info/sparse-checkout
+    echo "extension/internal" >> .git/info/sparse-checkout
     git pull origin "$AIX_SUPERVISOR_BRANCH" --depth 1
 
     cd "cmd/opampsupervisor"
