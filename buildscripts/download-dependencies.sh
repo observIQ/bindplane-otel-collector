@@ -42,7 +42,9 @@ if [ "$AIX_MODE" = true ]; then
     # Build supervisor for AIX from custom fork with AIX compatibility patches
     echo "Cloning AIX supervisor repo (custom fork)"
     AIX_SUPERVISOR_REPO="https://github.com/observIQ/opentelemetry-collector-contrib.git"
-    AIX_SUPERVISOR_BRANCH="patch/aix_config-v0.162.x"
+    # Tag on the patch/aix_config-<version>.x branch: the upstream supervisor
+    # version plus our AIX patches. Bump it with SUPERVISOR_VERSION below.
+    AIX_SUPERVISOR_TAG="v0.162.0-aix.1"
     AIX_PLATFORMS=("aix/ppc64")
 
     mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib-aix"
@@ -56,7 +58,8 @@ if [ "$AIX_MODE" = true ]; then
     echo "extension/bearertokenauthextension" >> .git/info/sparse-checkout
     echo "extension/oauth2clientauthextension" >> .git/info/sparse-checkout
     echo "extension/internal" >> .git/info/sparse-checkout
-    git pull origin "$AIX_SUPERVISOR_BRANCH" --depth 1
+    git fetch origin --depth 1 tag "$AIX_SUPERVISOR_TAG"
+    git checkout "$AIX_SUPERVISOR_TAG"
 
     cd "cmd/opampsupervisor"
     for PLATFORM in "${AIX_PLATFORMS[@]}"; do
