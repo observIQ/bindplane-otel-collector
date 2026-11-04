@@ -51,6 +51,13 @@ jobs:
               return;
             }
 
+            // GitHub only links closing keywords on PRs into the default branch,
+            // so check the body directly for PRs into release branches.
+            if (/\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\s+([\w.-]+\/[\w.-]+)?#\d+/i.test(pr.body || '')) {
+              core.notice('PR body references an issue with a closing keyword.');
+              return;
+            }
+
             core.setFailed(
               `No linked issue found. Add a closing keyword to the PR body (e.g. "Closes #123"), ` +
               `link an issue via the Development sidebar, or apply the '${bypassLabel}' label to bypass.`
