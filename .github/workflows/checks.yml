@@ -401,5 +401,11 @@ jobs:
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.10
       - name: Check AIX Supervisor Fork Matches the Supervisor Version
         run: make check-aix-supervisor-version
+      - name: Build the AIX Supervisor
+        run: bash ./buildscripts/download-dependencies.sh aix_supervisor_check --aix
