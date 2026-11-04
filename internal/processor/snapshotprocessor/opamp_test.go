@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"github.com/stretchr/testify/assert"
@@ -502,38 +503,24 @@ func TestHandleSnapshotRequest_ReportDecodesWithoutMetadataField(t *testing.T) {
 	require.NotEmpty(t, legacy.TelemetryPayload)
 }
 
-func TestHandleSnapshotRequest_OnDemandFillWaitExpires(t *testing.T) {
-	if testing.Short() {
-		t.Skip("runs several seconds of real time")
-	}
-	sp, handler, processorID := newStartedProcessor(t)
+// TestReportMetadata checks the metadata for a request that waited the whole
+// fill wait and was served the last known records, and that sub-millisecond
+// timings are kept rather than truncated.
+func TestReportMetadata(t *testing.T) {
+	m := newReportMetadata(snapshot.RequestStats{
+		Mode:     snapshot.ModeOnDemand,
+		Filled:   false,
+		FillWait: 1002 * time.Millisecond,
+		Duration: 1002*time.Millisecond + 312*time.Microsecond,
+		Records:  100,
+	})
+	assert.Equal(t, "on_demand", m.Mode)
+	assert.False(t, m.Filled)
+	assert.InDelta(t, 1002, m.FillWaitMs, 1e-9)
+	assert.InDelta(t, 1002.312, m.DurationMs, 1e-9)
+	assert.Equal(t, 100, m.Records)
 
-	// The reporter's buffers hold 100 records. 100-record batches at 50
-	// batches/s is 50 buffers/s, well over the on-demand threshold; three
-	// consecutive fast one-second windows switch the mode, the fourth is
-	// margin for a slow machine.
-	logs := plog.NewLogs()
-	lrs := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-	for i := 0; i < 100; i++ {
-		lrs.AppendEmpty().Body().SetStr("backlog")
-	}
-	ticker := time.NewTicker(20 * time.Millisecond)
-	defer ticker.Stop()
-	for deadline := time.Now().Add(4200 * time.Millisecond); time.Now().Before(deadline); {
-		<-ticker.C
-		_, err := sp.processLogs(context.Background(), logs)
-		require.NoError(t, err)
-	}
-
-	// Nothing flows any more, so the request waits out the full fill wait
-	// and is answered with the last known records.
-	var got snapshotReport
-	require.NoError(t, json.Unmarshal(requestRawReport(t, handler, processorID, "logs", "s1", 1), &got))
-	require.NotNil(t, got.Metadata)
-	assert.Equal(t, "on_demand", got.Metadata.Mode)
-	assert.False(t, got.Metadata.Filled)
-	assert.GreaterOrEqual(t, got.Metadata.FillWaitMs, int64(900))
-	assert.LessOrEqual(t, got.Metadata.FillWaitMs, int64(1500))
-	assert.GreaterOrEqual(t, got.Metadata.DurationMs, got.Metadata.FillWaitMs)
-	assert.Positive(t, got.Metadata.Records)
+	m = newReportMetadata(snapshot.RequestStats{Mode: snapshot.ModeContinuous, Filled: true, Duration: 312 * time.Microsecond, Records: 7})
+	assert.Zero(t, m.FillWaitMs)
+	assert.InDelta(t, 0.312, m.DurationMs, 1e-9)
 }

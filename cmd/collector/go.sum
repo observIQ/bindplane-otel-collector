@@ -91,8 +91,8 @@ github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.3.0 h1
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.3.0/go.mod h1:qeJbbze+64WqkIbGKSHU/lLW6KDWiA7M314xfNvluEQ=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.3.0 h1:0QpdNZYZjzyl1kbRtjscSbRrSCO4978OS1SPBykIbYU=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.3.0/go.mod h1:psAs5oq8jsG5BzlnIJ1Pux67E3adPFZMdo9UJ4E9Jgo=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0 h1:O2Le93xgQ6XIr+QiEtTtG4S3HlrplQtd1lrX+K3Kn6c=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0/go.mod h1:0+yVGVxLvwmyJG4Ym7Ldcx4xUv317dzjtjRwGGRWeAY=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261104205216-24061cc41d21 h1:Bm8hPYHV7FPSgEfXAdtGIKxQsCg9ce8LoyzAH9qc9MY=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261104205216-24061cc41d21/go.mod h1:0+yVGVxLvwmyJG4Ym7Ldcx4xUv317dzjtjRwGGRWeAY=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.3.0 h1:mpTEvEZBG10iggB9cgpmpnHmJWl9dKHyIG0tFWuIJAM=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.3.0/go.mod h1:hoOL+DGkGsNVd1BSTfepV+wFhjMUgZLdR8tNbNbRl/s=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.3.0 h1:LjRed4MPf567MaRmXKX4wMVq/ERPQ/NG17ig6Uqxxj0=

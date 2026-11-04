@@ -169,7 +169,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		}
 		payload, stats, err := buf.ConstructPayloadWithStats(&plog.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct logs payload", zap.Error(err))
+			sp.logger.Error("construct logs payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = logsReport(req.SessionID, payload)
@@ -183,7 +183,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		}
 		payload, stats, err := buf.ConstructPayloadWithStats(&pmetric.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct metrics payload", zap.Error(err))
+			sp.logger.Error("construct metrics payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = metricsReport(req.SessionID, payload)
@@ -197,7 +197,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 		}
 		payload, stats, err := buf.ConstructPayloadWithStats(&ptrace.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct traces payload", zap.Error(err))
+			sp.logger.Error("construct traces payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = tracesReport(req.SessionID, payload)
@@ -209,13 +209,7 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 	}
 
 	if m := report.Metadata; m != nil {
-		sp.logger.Debug("snapshot request served",
-			zap.String("pipeline_type", req.PipelineType),
-			zap.String("mode", m.Mode),
-			zap.Bool("filled", m.Filled),
-			zap.Int64("fill_wait_ms", m.FillWaitMs),
-			zap.Int64("duration_ms", m.DurationMs),
-			zap.Int("records", m.Records))
+		sp.logger.Debug("snapshot request served", append([]zap.Field{zap.String("pipeline_type", req.PipelineType)}, m.logFields()...)...)
 	}
 	body, err := json.Marshal(report)
 	if err != nil {
