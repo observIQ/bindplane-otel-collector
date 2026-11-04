@@ -278,11 +278,14 @@ replaces:
   # The commit being replaced to is built on the OTel v0.164.1 tag. 
   # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261102211310-a87cc5aaaf37
-  # Replace statement to pull in changes from this PR: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50638
-  # Remove onve the above PR is merged, released, and the relevant components are updated to that version.
-  # The commits being replaced to is built on the OTel v0.164.1 tag.
-  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.0.0-20261102211310-a87cc5aaaf37
+  # Snapshot: splunkhec receiver/exporter, internal/splunk, translator/splunk, and googlecloudpubsub receiver
+  # from the combined fork branch (bdot-v1.112.0 + open PRs, on v0.164.1 deps).
+  # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0-splunkhec-pubsub
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkhecreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/splunkhecreceiver v0.0.0-20261104185622-6a4a04044901
+  - github.com/open-telemetry/opentelemetry-collector-contrib/exporter/splunkhecexporter => github.com/observiq/opentelemetry-collector-contrib/exporter/splunkhecexporter v0.0.0-20261104185622-6a4a04044901
+  - github.com/open-telemetry/opentelemetry-collector-contrib/internal/splunk => github.com/observiq/opentelemetry-collector-contrib/internal/splunk v0.0.0-20261104185622-6a4a04044901
+  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/splunk => github.com/observiq/opentelemetry-collector-contrib/pkg/translator/splunk v0.0.0-20261104185622-6a4a04044901
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.0.0-20261104185622-6a4a04044901
   # Remove in release v1.113.0. Pinned for one release to give time for mitigating breaking changes.
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.163.0
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver v0.163.0
