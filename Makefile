@@ -326,6 +326,11 @@ check-install-scripts:
 check-aix-manifest:
 	./scripts/check-aix-manifest.sh
 
+# Checks that the AIX supervisor fork is at the supervisor version the other platforms build
+.PHONY: check-aix-supervisor-version
+check-aix-supervisor-version:
+	./scripts/check-aix-supervisor-version.sh
+
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
 check-license:
