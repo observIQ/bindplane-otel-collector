@@ -19,7 +19,7 @@ require (
 	github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.3.0 // indirect
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/measurements v1.3.0 // indirect
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.3.0 // indirect
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261105151200-050fe8510cdc // indirect
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.4.0 // indirect
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.3.0 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/elastic/proxy-connect-dialer-go v0.1.1 // indirect
