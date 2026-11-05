@@ -1,0 +1,85 @@
+name: Mirror Issue Summary
+
+# Weekly Slack summary of open issues labeled "dbdot-mirror-issue", grouped by
+# the author named in the issue body's "dbdot-mirror-author" comment.
+on:
+  schedule:
+    # Mondays at 9:00 AM Eastern (DST-aware)
+    - cron: '0 9 * * 1'
+      timezone: 'America/New_York'
+  workflow_dispatch:
+
+permissions:
+  issues: read
+
+jobs:
+  summary:
+    name: Post summary
+    runs-on: ubuntu-latest
+    env:
+      LABEL: dbdot-mirror-issue
+    steps:
+      - name: Build summary
+        id: summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = process.env.LABEL;
+            const issues = (await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+              per_page: 100,
+            })).filter(i => !i.pull_request);
+
+            const repoUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`;
+            const listUrl = `${repoUrl}/issues?q=${encodeURIComponent(`is:issue is:open label:${label}`)}`;
+            const header = `*Open \`${label}\` issues in <${repoUrl}|${context.repo.repo}>*`;
+
+            if (issues.length === 0) {
+              core.setOutput('text', `${header}\n:white_check_mark: None open. Nice work!`);
+              return;
+            }
+
+            // Slack mrkdwn requires escaping these characters.
+            const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const now = Date.now();
+
+            const byAuthor = new Map();
+            for (const issue of issues) {
+              const match = (issue.body || '').match(/<!--\s*dbdot-mirror-author:\s*([\w-]+)\s*-->/);
+              const author = match ? match[1] : null;
+              if (!byAuthor.has(author)) byAuthor.set(author, []);
+              byAuthor.get(author).push(issue);
+            }
+
+            // Named authors alphabetically, unattributed issues last.
+            const authors = [...byAuthor.keys()].sort((a, b) =>
+              a === null ? 1 : b === null ? -1 : a.localeCompare(b));
+
+            const lines = [header, `${issues.length} open — <${listUrl}|view all>`, ''];
+            for (const author of authors) {
+              const list = byAuthor.get(author).sort((a, b) => a.number - b.number);
+              lines.push(author ? `*${author}* (${list.length})` : `*Unattributed* (${list.length})`);
+              for (const issue of list) {
+                const days = Math.floor((now - new Date(issue.created_at)) / 86400000);
+                lines.push(`• <${issue.html_url}|#${issue.number}> ${esc(issue.title)} _(${days}d old)_`);
+              }
+              lines.push('');
+            }
+
+            core.setOutput('text', lines.join('\n').trim());
+
+      - name: Post to Slack
+        uses: slackapi/slack-github-action@v2
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+          # team-developers
+          payload: |
+            {
+              "channel": "C09TSTBJEKZ",
+              "text": ${{ toJSON(steps.summary.outputs.text) }},
+              "unfurl_links": false
+            }
