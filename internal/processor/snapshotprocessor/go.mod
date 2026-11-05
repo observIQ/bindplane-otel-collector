@@ -7,7 +7,7 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 require (
-	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261104205216-24061cc41d21
+	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261105151200-050fe8510cdc
 	github.com/open-telemetry/opamp-go v0.25.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.164.1
 	github.com/stretchr/testify v1.12.1
@@ -23,6 +23,7 @@ require (
 )
 
 require (
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )

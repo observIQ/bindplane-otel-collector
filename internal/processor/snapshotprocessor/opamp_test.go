@@ -38,6 +38,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"gopkg.in/yaml.v3"
 )
 
@@ -501,6 +502,47 @@ func TestHandleSnapshotRequest_ReportDecodesWithoutMetadataField(t *testing.T) {
 	assert.Equal(t, "s1", legacy.SessionID)
 	assert.Equal(t, "logs", legacy.TelemetryType)
 	require.NotEmpty(t, legacy.TelemetryPayload)
+}
+
+// TestHandleSnapshotRequest_PayloadCannotFit covers the failure path: a
+// payload that cannot be made to fit even at the lowest retention is logged
+// with the request's stats, and no report is sent.
+func TestHandleSnapshotRequest_PayloadCannotFit(t *testing.T) {
+	reporter := report.NewSnapshotReporter(nil)
+	t.Cleanup(overwriteSnapshotSet(t, reporter))
+	handler := newFakeHandler()
+	extID := component.MustNewID("opamp_connection")
+	host := newHost(&fakeRegistry{handler: handler}, extID)
+	processorID := component.MustNewIDWithName("snapshotprocessor", "x")
+	core, logs := observer.New(zap.ErrorLevel)
+	sp := newSnapshotProcessor(zap.New(core), &Config{Enabled: true, OpAMP: extID}, processorID)
+	require.NoError(t, sp.start(context.Background(), host))
+	t.Cleanup(func() { require.NoError(t, sp.stop(context.Background())) })
+
+	ld := plog.NewLogs()
+	lrs := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+	for i := 0; i < 3; i++ {
+		lrs.AppendEmpty().Body().SetStr("hello")
+	}
+	_, err := sp.processLogs(context.Background(), ld)
+	require.NoError(t, err)
+
+	// One byte cannot hold even an empty gzip stream, so every retention fails.
+	body, err := yaml.Marshal(snapshotRequest{Processor: processorID, PipelineType: "logs", SessionID: "too-small", MaximumPayloadSizeBytes: 1})
+	require.NoError(t, err)
+	handler.inbound <- &protobufs.CustomMessage{Type: snapshotRequestType, Data: body}
+
+	const msg = "construct logs payload"
+	require.Eventually(t, func() bool {
+		return logs.FilterMessage(msg).Len() == 1
+	}, 5*time.Second, 10*time.Millisecond)
+	fields := logs.FilterMessage(msg).All()[0].ContextMap()
+	assert.Equal(t, "continuous", fields["mode"])
+	assert.Equal(t, true, fields["filled"])
+	assert.Contains(t, fields, "fill_wait_ms")
+	assert.Contains(t, fields, "duration_ms")
+	assert.Contains(t, fields["error"], "too large")
+	assert.Empty(t, handler.sentMessages(), "no report is sent for a request that failed")
 }
 
 // TestReportMetadata checks the metadata for a request that waited the whole
