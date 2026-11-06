@@ -94,6 +94,36 @@ func TestUpdaterUpdate(t *testing.T) {
 		require.NoFileExists(t, packageStatusPath)
 	})
 
+	t.Run("Unprivileged update skips unit generation", func(t *testing.T) {
+		installDir := t.TempDir()
+
+		installer := install_mocks.NewMockInstaller(t)
+		svc := service_mocks.NewMockService(t)
+		rollbacker := rollback_mocks.NewMockRollbacker(t)
+		monitor := state_mocks.NewMockMonitor(t)
+
+		updater := &Updater{
+			installDir:               installDir,
+			installer:                installer,
+			svc:                      svc,
+			rollbacker:               rollbacker,
+			monitor:                  monitor,
+			logger:                   zaptest.NewLogger(t),
+			installedSystemdUnitPath: filepath.Join(t.TempDir(), "missing.service"),
+			unprivileged:             true,
+		}
+
+		svc.On("Stop").Times(1).Return(nil)
+		rollbacker.On("AppendAction", action.NewServiceStopAction(svc)).Times(1).Return()
+		rollbacker.On("Backup").Times(1).Return(nil)
+		installer.On("Install", rollbacker).Times(1).Return(nil)
+		monitor.On("MonitorForSuccess", mock.Anything, packagestate.CollectorPackageName).Times(1).Return(nil)
+
+		err := updater.Update()
+		require.NoError(t, err)
+		require.NoFileExists(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"))
+	})
+
 	t.Run("Service stop fails", func(t *testing.T) {
 		installDir := t.TempDir()
 
@@ -350,14 +380,13 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 			installedSystemdUnitPath: filepath.Join("testdata", "observiq-otel-collector.service.golden"),
 		}
 
-		// Cleanup the directory after test
 		defer os.RemoveAll(installDir)
 
 		err := u.generateLinuxServiceFiles()
 		require.NoError(t, err)
 
 		// Compare the generated files with golden files
-		compareFiles(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), u.installedSystemdUnitPath)
+		compareFiles(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), u.installedSystemdUnitPath, installDir)
 
 		// Check file permissions
 		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
@@ -365,12 +394,16 @@ func TestGenerateLinuxServiceFiles(t *testing.T) {
 	})
 }
 
-func compareFiles(t *testing.T, generatedFile, goldenFile string) {
+func compareFiles(t *testing.T, generatedFile, goldenFile, installDir string) {
 	generated, err := os.ReadFile(generatedFile)
 	require.NoError(t, err, fmt.Sprintf("file: %s", generatedFile))
 
 	golden, err := os.ReadFile(goldenFile)
 	require.NoError(t, err, fmt.Sprintf("file: %s", goldenFile))
+
+	// The golden file uses the default install directory, and the generated
+	// file uses the updater's install directory.
+	golden = bytes.ReplaceAll(golden, []byte("/opt/observiq-otel-collector"), []byte(installDir))
 
 	// Trim the contents to ignore trailing newlines or spaces
 	generated = bytes.TrimSpace(generated)

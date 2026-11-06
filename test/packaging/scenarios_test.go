@@ -80,12 +80,30 @@ func (s *scenario) installUnprivileged(t *testing.T) {
 	pkg := b.copyPackage(s.pkg)
 
 	b.writeOverride(s.ops, unprivilegedOverride)
-	b.installPackage(s.ops, pkg, false)
+	out := b.installPackage(s.ops, pkg, false)
 	s.assertInstalled(b, pkg, unprivilegedInstall, nil, nil)
 	assert.Equal(t, "[Service]\nUser="+runtimeUser, b.mustRun("cat "+userDropIn), "User= drop-in contents")
+	b.mustRun("visudo -cf " + sudoersPath)
+	// postinstall warns when sudo won't let the runtime user run the
+	// commands in the sudoers drop-in.
+	assert.NotContains(t, out, "WARNING:", "install output")
 
 	b.mustRun("systemctl enable --now " + packageName)
-	b.assertServiceRunning(1, runtimeUser)
+	pid := b.assertServiceRunning(1, runtimeUser)
+
+	// The updater stops and starts the service through sudo as the runtime
+	// user. Nothing else is allowed.
+	unit := packageName + ".service"
+	for _, cmd := range []string{"sudo -n systemctl restart " + unit, "sudo -n true"} {
+		assert.NotZero(t, b.run(asRuntimeUser(cmd)).code, "%s should be denied", cmd)
+	}
+	assert.Equal(t, pid, b.unitProps("MainPID")["MainPID"], "denied commands should not restart the service")
+
+	b.mustRun(asRuntimeUser("sudo -n systemctl stop " + unit))
+	assert.Equal(t, "inactive", b.unitState("is-active"), "service should be stopped")
+	starts := b.startupCount()
+	b.mustRun(asRuntimeUser("sudo -n systemctl start " + unit))
+	b.assertServiceRunning(starts+1, runtimeUser)
 
 	s.uninstall(t, b)
 }
@@ -124,7 +142,7 @@ func (s *scenario) refusePrivileged(t *testing.T) {
 	assert.Contains(t, res.stdout+res.stderr, "BDOT_USER="+runtimeUser, "refusal message names the runtime user")
 
 	assert.Equal(t, before, b.mustRun(statCanary), "the refused install should not change the canary")
-	b.assertPresent(userDropIn)
+	b.assertPresent(userDropIn, sudoersPath)
 	assert.Equal(t, "active", b.unitState("is-active"), "service should keep running")
 	assert.Equal(t, pid, b.unitProps("MainPID")["MainPID"], "the refused install should not restart the service")
 	// dpkg runs the installed package's postinst with abort-upgrade after
@@ -257,9 +275,10 @@ func (s *scenario) assertInstalled(b *box, pkg string, e installExpect, extraTre
 	b.assertUnit(e.user)
 }
 
-func (b *box) installPackage(o formatOps, pkg string, downgrade bool) {
+// installPackage installs pkg and returns the output of the package scripts.
+func (b *box) installPackage(o formatOps, pkg string, downgrade bool) string {
 	b.t.Helper()
-	b.pkgCommand(o.install(pkg, downgrade))
+	return b.pkgCommand(o.install(pkg, downgrade))
 }
 
 func (b *box) removePackage(o formatOps) {
@@ -268,12 +287,21 @@ func (b *box) removePackage(o formatOps) {
 }
 
 // pkgCommand runs a package manager command and logs its output, which
-// includes the output of the package scripts.
-func (b *box) pkgCommand(cmd string) {
+// includes the output of the package scripts. It returns stdout and stderr.
+func (b *box) pkgCommand(cmd string) string {
 	b.t.Helper()
 	res := b.run(cmd)
 	b.t.Logf("$ %s\n%s", cmd, res)
 	require.Zero(b.t, res.code, "%s failed", cmd)
+	return res.stdout + res.stderr
+}
+
+// asRuntimeUser returns cmd run as runtimeUser in a new session without a
+// TTY and with the service's PATH, the way the updater runs inside the
+// service. -w makes setsid wait for cmd and return its exit status, also
+// when setsid has to fork because the caller already leads a process group.
+func asRuntimeUser(cmd string) string {
+	return "setsid -w runuser -u " + runtimeUser + " -- env PATH=" + servicePath + " " + cmd
 }
 
 // writeOverride writes a package override file holding lines. With no lines
