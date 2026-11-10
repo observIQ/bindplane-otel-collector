@@ -6,7 +6,7 @@ require (
 	github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension v1.3.0
 	github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.3.0
 	github.com/open-telemetry/opamp-go v0.25.0
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/collector/otelcol v0.164.0
 )
