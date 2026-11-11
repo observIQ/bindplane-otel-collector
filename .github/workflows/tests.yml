@@ -58,6 +58,8 @@ jobs:
               - '**/*.go'
               - '**/go.mod'
               - '**/go.sum'
+              # The updater's TestSudoersMatchesUpdaterCommands checks the sudoers drop-in in this script.
+              - 'scripts/package/postinstall.sh'
             updater:
               - 'updater/**'
 

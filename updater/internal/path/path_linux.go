@@ -67,36 +67,20 @@ func InstallDir(logger *zap.Logger, configOverrides []string) (string, error) {
 // return an error if the file does not exist.
 // If a custom install dir is not found in the config file, it returns an empty string.
 func customInstallDir(logger *zap.Logger, config string) (string, error) {
-	_, err := os.Stat(config)
+	// #nosec G304 -- config is a file path from const DefaultConfigOverrides
+	// Test cases will override configOverrides to test this code path.
+	content, err := os.ReadFile(config)
 	if err != nil {
 		if os.IsNotExist(err) {
+			logger.Debug("config override file does not exist, skipping", zap.String("file", config))
 			return "", nil
 		}
 		return "", fmt.Errorf("read package override file %s: %w", config, err)
 	}
 
-	// Buffer is larger enough to read the entire
-	// user defined config override file.
-	buff := make([]byte, 4000)
+	logger.Debug("reading config override file", zap.String("file", config), zap.Int("bytes", len(content)))
 
-	// #nosec G304 -- config is a file path from const DefaultConfigOverrides
-	// Test cases will override configOverrides to test this code path.
-	file, err := os.Open(config)
-	if err != nil {
-		return "", fmt.Errorf("open package override file %s: %w", config, err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logger.Error("close package override file", zap.String("file", config), zap.Error(err))
-		}
-	}()
-
-	_, err = file.Read(buff)
-	if err != nil {
-		return "", fmt.Errorf("read package override file %s: %w", config, err)
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(string(buff)))
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		// Skip empty lines or comments
@@ -109,6 +93,7 @@ func customInstallDir(logger *zap.Logger, config string) (string, error) {
 			if len(parts) == 2 {
 				value := strings.TrimSpace(parts[1])
 				if value != "" {
+					logger.Debug("found custom install dir", zap.String("file", config), zap.String("dir", value))
 					return value, nil
 				}
 				// If the value is empty, continue to the next line
@@ -120,6 +105,7 @@ func customInstallDir(logger *zap.Logger, config string) (string, error) {
 		return "", fmt.Errorf("error scanning config file %s: %w", config, err)
 	}
 
+	logger.Debug("no custom install dir found in config override file", zap.String("file", config))
 	return "", nil
 }
 
