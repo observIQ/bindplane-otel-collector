@@ -23,6 +23,9 @@ set -e
 
 : "${BDOT_SKIP_RUNTIME_USER_CREATION:=false}"
 
+# Whether or not to run the collector as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
+
 # Configurable runtime user/group
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
@@ -161,6 +164,72 @@ cleanup_package_statuses() {
     fi
 }
 
+# check_runtime_user_change fails the install before anything is changed when
+# the package overrides would change the user that an unprivileged install
+# runs as. That user owns BDOT_CONFIG_HOME and can replace any entry in it
+# with a symbolic link, and an install for root or for another user would
+# follow those links as root. It also refuses to make an existing root
+# install unprivileged, which would start the collector as the runtime user
+# against files root created, such as those in storage/. The package writes
+# the User= drop-in and root owns it, so the runtime user can't change it.
+# postinstall.sh runs the same check, so keep the two the same.
+check_runtime_user_change() {
+    user_dropin="/etc/systemd/system/observiq-otel-collector.service.d/10-package-customizations-username.conf"
+
+    # Whether this replaces an installed package: dpkg passes "upgrade" to
+    # preinst and the previous version to "configure", and rpm counts more
+    # than one installed instance. dpkg also passes the previous version to
+    # "configure" when it installs a package that was removed but not
+    # purged. Removing the package deletes the collector binary, so without
+    # it there is no install to replace.
+    upgrade=false
+    case "$1" in
+        upgrade) upgrade=true ;;
+        configure) [ -z "$2" ] || upgrade=true ;;
+        [0-9]*) [ "$1" -lt 2 ] || upgrade=true ;;
+    esac
+    if [ ! -e "${BDOT_CONFIG_HOME}/observiq-otel-collector" ]; then
+        upgrade=false
+    fi
+
+    if [ -f "$user_dropin" ]; then
+        current_user="$(sed -n 's/^User=//p' "$user_dropin")"
+        if [ "$BDOT_UNPRIVILEGED" = "true" ] && [ "$BDOT_USER" = "$current_user" ]; then
+            return
+        fi
+        set_by="set by ${user_dropin}"
+    elif [ "$BDOT_UNPRIVILEGED" = "true" ] && [ "$upgrade" = "true" ]; then
+        current_user="root"
+        set_by="since there is no ${user_dropin}"
+    else
+        return 0
+    fi
+
+    # Name the override file to set the values in. Both are sourced, and
+    # /etc/sysconfig last, so it wins. rpm passes a number as $1, dpkg a word.
+    override_file="/etc/default/observiq-otel-collector"
+    if [ -f /etc/sysconfig/observiq-otel-collector ]; then
+        override_file="/etc/sysconfig/observiq-otel-collector"
+    elif [ ! -f "$override_file" ]; then
+        case "$1" in
+            [0-9]*) override_file="/etc/sysconfig/observiq-otel-collector" ;;
+        esac
+    fi
+
+    echo "ERROR: The collector service runs as \"${current_user}\", ${set_by}." >&2
+    echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported. To change them, uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    echo "To keep the existing install, set these values in ${override_file}, as described at https://docs.bindplane.com/configuration/bindplane-otel-collector/linux-package-configuration:" >&2
+    if [ -f "$user_dropin" ]; then
+        echo "    BDOT_UNPRIVILEGED=true" >&2
+        echo "    BDOT_USER=${current_user}" >&2
+    else
+        echo "    BDOT_UNPRIVILEGED=false" >&2
+    fi
+    echo "Then install the package again." >&2
+    exit 1
+}
+
+check_runtime_user_change "$@"
 cleanup_package_statuses
 migrate_user
 install
