@@ -59,10 +59,19 @@ OPAMP_EXT_COLLECTOR_PKG = $(OPAMP_EXT_MODULE)/internal/collector
 OPAMP_EXT_SERVICE_PKG = $(OPAMP_EXT_MODULE)/internal/service
 OPAMP_EXT_PACKAGESTATE_PKG = $(OPAMP_EXT_MODULE)/packagestate
 
-# AGENT_LDFLAGS stamps version + git hash + build date into the v1 collector
-# binaries (both consume github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version),
-# plus the BDOT identity values into the opamp connection extension.
+# AGENT_LDFLAGS stamps version + git hash + build date into the collector's
+# main package (cmd/collector/main.go), plus the BDOT identity values into the
+# opamp connection extension. Components read the version from
+# component.BuildInfo.Version, which main.go passes through.
+#
+# TODO(BP-1667): drop the contrib pkg/version stamps once the manifest pins a
+# dynatrace-bindplane-otel-contrib release whose googlecloud and
+# googlemanagedprometheus exporters take the version from BuildInfo. Until then
+# they still read it from pkg/version for their User-Agent.
 AGENT_LDFLAGS = -s -w \
+	-X main.version=$(VERSION) \
+	-X main.gitHash=$(GIT_HASH) \
+	-X main.date=$(BUILD_DATE) \
 	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.version=$(VERSION) \
 	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.gitHash=$(GIT_HASH) \
 	-X github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version.date=$(BUILD_DATE) \
