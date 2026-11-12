@@ -2119,6 +2119,16 @@ create_manager_yml()
   fi
 }
 
+# tail_follow_flag prints the tail flag that follows a log across rotation where this
+# OS's tail supports it (-F), and plain follow (-f) where it does not.
+tail_follow_flag()
+{
+  case "$OS_TYPE" in
+    AIX) command printf '%s' '-f' ;;
+    *) command printf '%s' '-F' ;;
+  esac
+}
+
 # This will display the results of an installation
 display_results()
 {
@@ -2139,7 +2149,7 @@ display_results()
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
-    info "Logs Command:       $(fg_cyan "sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
+    info "Logs Command:       $(fg_cyan "sudo tail $(tail_follow_flag) ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
     info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 
