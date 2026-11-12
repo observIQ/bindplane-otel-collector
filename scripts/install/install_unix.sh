@@ -1976,10 +1976,7 @@ verify_package_aix() {
 # ownership the deb and rpm postinstall script sets: everything bdot, the updater root.
 install_aix()
 {
-  # The updater manages the service at this fixed path, so the install has to match it
-  if [ "$BDOT_CONFIG_HOME" != "/opt/observiq-otel-collector" ]; then
-    error_exit "$LINENO" "BDOT_CONFIG_HOME can't be changed on AIX"
-  fi
+  check_aix_config_home
 
   # Create the user and group if they don't already exist. Group must be first.
   if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
@@ -2048,9 +2045,22 @@ install_aix()
   fi
 }
 
-# install_aix_env_file moves the packaged service environment to $AIX_ENV_FILE.
-# The file lives outside the install directory, like the systemd unit. An
-# existing file is kept as a timestamped backup, since it may hold local edits.
+# check_aix_config_home rejects an install directory AIX can't use. mkuser refuses a
+# home with whitespace, and startsrc -e splits the env file on spaces, where a double
+# quote would swallow the rest of it.
+check_aix_config_home()
+{
+  case "$BDOT_CONFIG_HOME" in
+    *[[:space:]]* | *'"'*)
+      error_exit "$LINENO" "BDOT_CONFIG_HOME can't contain whitespace or a double quote on AIX"
+      ;;
+  esac
+}
+
+# install_aix_env_file moves the packaged service environment to $AIX_ENV_FILE,
+# pointing it at $BDOT_CONFIG_HOME. The file lives outside the install directory,
+# like the systemd unit. An existing file is kept as a timestamped backup, since
+# it may hold local edits.
 install_aix_env_file()
 {
   if [ -f "$AIX_ENV_FILE" ]; then
@@ -2058,8 +2068,30 @@ install_aix_env_file()
     cp -p "$AIX_ENV_FILE" "$_env_backup" || error_exit "$LINENO" "Failed to back up $AIX_ENV_FILE"
     info "Backed up $AIX_ENV_FILE to $_env_backup"
   fi
+  if [ "$BDOT_CONFIG_HOME" != "/opt/observiq-otel-collector" ]; then
+    aix_env_set_home "$1"
+  fi
   mv "$1" "$AIX_ENV_FILE" || error_exit "$LINENO" "Failed to install $AIX_ENV_FILE"
   chmod 0644 "$AIX_ENV_FILE"
+}
+
+# aix_env_set_home rewrites the packaged env file in place, moving the values under
+# the default install directory to $BDOT_CONFIG_HOME. Neither has spaces, so the
+# pairs split cleanly.
+aix_env_set_home()
+{
+  _env_pairs=$(cat "$1") || error_exit "$LINENO" "Failed to read $1"
+  _env=""
+  for _pair in $_env_pairs; do
+    _val=${_pair#*=}
+    case "$_val" in
+      /opt/observiq-otel-collector | /opt/observiq-otel-collector/*)
+        _pair="${_pair%%=*}=$BDOT_CONFIG_HOME${_val#/opt/observiq-otel-collector}"
+        ;;
+    esac
+    _env="${_env:+$_env }$_pair"
+  done
+  command printf '%s\n' "$_env" > "$1" || error_exit "$LINENO" "Failed to write $1"
 }
 
 unpack_package()
