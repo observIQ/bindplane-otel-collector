@@ -93,8 +93,6 @@ github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.3.0 h1:0QpdN
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/osinfo v1.3.0/go.mod h1:psAs5oq8jsG5BzlnIJ1Pux67E3adPFZMdo9UJ4E9Jgo=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0 h1:O2Le93xgQ6XIr+QiEtTtG4S3HlrplQtd1lrX+K3Kn6c=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.0/go.mod h1:0+yVGVxLvwmyJG4Ym7Ldcx4xUv317dzjtjRwGGRWeAY=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.3.0 h1:mpTEvEZBG10iggB9cgpmpnHmJWl9dKHyIG0tFWuIJAM=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/version v1.3.0/go.mod h1:hoOL+DGkGsNVd1BSTfepV+wFhjMUgZLdR8tNbNbRl/s=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.3.0 h1:LjRed4MPf567MaRmXKX4wMVq/ERPQ/NG17ig6Uqxxj0=
 github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.3.0/go.mod h1:9ve5unVRQc56FlaYDQDZzUF8KyGhJ+Y31xT0nMIl3GM=
 github.com/ebitengine/purego v0.11.1 h1:2zpWRSQNVKN4eKsKO9eM1ILDgWfYMY9GwqRmK6XeQ/0=
