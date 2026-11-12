@@ -44,7 +44,7 @@ if [ "$AIX_MODE" = true ]; then
     AIX_SUPERVISOR_REPO="https://github.com/observIQ/opentelemetry-collector-contrib.git"
     # Tag on the patch/aix_config-<version>.x branch: the upstream supervisor
     # version plus our AIX patches. Bump it with SUPERVISOR_VERSION below.
-    AIX_SUPERVISOR_TAG="v0.162.0-aix.2"
+    AIX_SUPERVISOR_TAG="v0.162.0-aix.3"
     AIX_PLATFORMS=("aix/ppc64")
 
     mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib-aix"
