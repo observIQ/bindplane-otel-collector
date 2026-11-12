@@ -130,4 +130,4 @@ replaces:
   # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261102211310-a87cc5aaaf37
   # AIX host metrics come from the Bindplane gopsutil fork, which is maintained permanently.
-  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 d1842df9a81a02f760157eb891e40ad7f2c03d64
+  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 e2df4e3a6834128af75def2c9b66737e59c4b974
