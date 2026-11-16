@@ -51,6 +51,34 @@ is_uninstall() {
     return 1  # upgrade
 }
 
+# install_dir_rejection prints why $BDOT_CONFIG_HOME isn't safe to install into or
+# delete under, or nothing when it is. It matches check_install_path in
+# install_unix.sh: an absolute path with no whitespace, double quote, ':', '.' or
+# '..', and not a core system directory.
+install_dir_rejection() {
+    dir="$BDOT_CONFIG_HOME"
+    while :; do
+        case "$dir" in
+            ?*/) dir=${dir%/} ;;
+            *) break ;;
+        esac
+    done
+    case "$dir" in
+        /*) ;;
+        *) echo "BDOT_CONFIG_HOME must be an absolute path"; return ;;
+    esac
+    case "$dir" in
+        *[[:space:]]* | *'"'* | *:* | *//* | */./* | */. | */../* | */..)
+            echo "BDOT_CONFIG_HOME can't contain whitespace, a double quote, ':', '.' or '..'"; return ;;
+    esac
+    case "$dir" in
+        / | /bin | /boot | /dev | /etc | /home | /lib | /lib32 | /lib64 | /libx32 | /media | /mnt | /opt | /proc | /root | /run | /sbin | /snap | /srv | /sys | /tmp | \
+        /usr | /usr/bin | /usr/include | /usr/lib | /usr/lib32 | /usr/lib64 | /usr/libexec | /usr/local | /usr/local/bin | /usr/local/lib | /usr/sbin | /usr/share | \
+        /var | /var/cache | /var/lib | /var/log | /var/opt | /var/run | /var/spool | /var/tmp)
+            echo "BDOT_CONFIG_HOME can't be the system directory $dir" ;;
+    esac
+}
+
 remove_file_or_dir() {
     path="$1"
     if [ -f "$path" ]; then
@@ -66,13 +94,19 @@ remove_file_or_dir() {
 
 # Only perform cleanup on uninstall, not on upgrade
 if is_uninstall "$1"; then
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/package_statuses.json"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/plugins"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/log"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/VERSION.txt"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/updater"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/observiq-otel-collector"
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/install"
+    rejection=$(install_dir_rejection)
+    if [ -n "$rejection" ]; then
+        # Removal still finishes, but nothing under the directory is deleted
+        echo "WARNING: $rejection. Skipping cleanup of ${BDOT_CONFIG_HOME}."
+    else
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/package_statuses.json"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/plugins"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/log"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/VERSION.txt"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/updater"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/observiq-otel-collector"
+        remove_file_or_dir "${BDOT_CONFIG_HOME}/install"
+    fi
 else
     echo "Upgrade detected, skipping cleanup"
 fi

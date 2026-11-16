@@ -65,6 +65,44 @@ check_user_name() {
     esac
 }
 
+# install_dir_rejection prints why $BDOT_CONFIG_HOME isn't safe to install into or
+# delete under, or nothing when it is. It matches check_install_path in
+# install_unix.sh: an absolute path with no whitespace, double quote, ':', '.' or
+# '..', and not a core system directory.
+install_dir_rejection() {
+    dir="$BDOT_CONFIG_HOME"
+    while :; do
+        case "$dir" in
+            ?*/) dir=${dir%/} ;;
+            *) break ;;
+        esac
+    done
+    case "$dir" in
+        /*) ;;
+        *) echo "BDOT_CONFIG_HOME must be an absolute path"; return ;;
+    esac
+    case "$dir" in
+        *[[:space:]]* | *'"'* | *:* | *//* | */./* | */. | */../* | */..)
+            echo "BDOT_CONFIG_HOME can't contain whitespace, a double quote, ':', '.' or '..'"; return ;;
+    esac
+    case "$dir" in
+        / | /bin | /boot | /dev | /etc | /home | /lib | /lib32 | /lib64 | /libx32 | /media | /mnt | /opt | /proc | /root | /run | /sbin | /snap | /srv | /sys | /tmp | \
+        /usr | /usr/bin | /usr/include | /usr/lib | /usr/lib32 | /usr/lib64 | /usr/libexec | /usr/local | /usr/local/bin | /usr/local/lib | /usr/sbin | /usr/share | \
+        /var | /var/cache | /var/lib | /var/log | /var/opt | /var/run | /var/spool | /var/tmp)
+            echo "BDOT_CONFIG_HOME can't be the system directory $dir" ;;
+    esac
+}
+
+# check_install_dir fails the install before anything is changed when
+# BDOT_CONFIG_HOME isn't safe to install into.
+check_install_dir() {
+    rejection=$(install_dir_rejection)
+    if [ -n "$rejection" ]; then
+        echo "ERROR: $rejection" >&2
+        exit 1
+    fi
+}
+
 # Install creates the user and group for the collector
 # service. This function is idempotent and safe to call
 # multiple times.
@@ -258,6 +296,7 @@ check_runtime_user_change() {
     exit 1
 }
 
+check_install_dir
 check_user_name
 check_runtime_user_change "$@"
 cleanup_package_statuses

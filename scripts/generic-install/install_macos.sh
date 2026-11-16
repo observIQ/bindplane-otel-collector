@@ -136,6 +136,43 @@ verify_version() {
     fi
 }
 
+# install_tarball extracts a distribution tarball into $INSTALL_DIR and records its
+# files, so uninstall removes exactly those.
+install_tarball() {
+    tar tzf "$1" >"$INSTALL_DIR/.install-files" || return 1
+    tar xzf "$1" -C "$INSTALL_DIR"
+}
+
+# remove_install_dir removes the files install_tarball recorded and the files this
+# script writes, then the directory once it's empty. It never deletes the whole
+# directory, since that may hold files this script didn't install.
+remove_install_dir() {
+    [ -d "$INSTALL_DIR" ] || return 0
+    if [ -f "$INSTALL_DIR/.install-files" ]; then
+        # Deepest paths first, so each directory is empty when it's reached
+        LC_ALL=C sort -r "$INSTALL_DIR/.install-files" | while IFS= read -r _path; do
+            _path=${_path#./}
+            _path=${_path%/}
+            case "$_path" in
+                /*) continue ;;
+            esac
+            case "/$_path/" in
+                // | */../* | */./*) continue ;;
+            esac
+            if [ -d "$INSTALL_DIR/$_path" ] && [ ! -L "$INSTALL_DIR/$_path" ]; then
+                rmdir "$INSTALL_DIR/$_path" 2>/dev/null || true
+            else
+                rm -f "$INSTALL_DIR/$_path"
+            fi
+        done
+    fi
+    rm -f "$INSTALL_DIR/.install-files" "$INSTALL_DIR/supervisor_config.yaml" "$INSTALL_DIR/supervisor.log"
+    rm -rf "$INSTALL_DIR/supervisor_storage"
+    if ! rmdir "$INSTALL_DIR" 2>/dev/null; then
+        echo "Left $INSTALL_DIR in place, since it holds files this script didn't install"
+    fi
+}
+
 download_and_install() {
     if ! mkdir -p "$INSTALL_DIR" 2>/dev/null; then
         echo "Error: Failed to create installation directory: $INSTALL_DIR"
@@ -143,13 +180,16 @@ download_and_install() {
     fi
     if [ -n "$local_file" ]; then
         echo "Installing from local file: $local_file"
-        tar xzf "$local_file" -C "$INSTALL_DIR"
+        install_tarball "$local_file"
     else
         verify_version
         set_os_arch
         download_and_install_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_darwin_${os_arch}.tar.gz"
         echo "Downloading: $download_and_install_url"
-        curl -L "$download_and_install_url" | tar xz -C "$INSTALL_DIR"
+        tar_tmp_file="/tmp/${DISTRIBUTION}_${version}.tar.gz"
+        curl -L "$download_and_install_url" -o "$tar_tmp_file"
+        install_tarball "$tar_tmp_file"
+        rm -f "$tar_tmp_file"
     fi
 }
 
@@ -191,7 +231,7 @@ uninstall() {
     rm -f "/Library/LaunchDaemons/$DISTRIBUTION.plist"
 
     # Remove installation directory
-    rm -rf "$INSTALL_DIR"
+    remove_install_dir
     echo "Uninstallation complete"
 }
 
@@ -217,6 +257,15 @@ verify_distribution() {
         echo "   2. Set the DISTRIBUTION constant in the script"
         usage
     fi
+
+    case "$DISTRIBUTION" in
+        # The characters are listed explicitly because bracket ranges such as A-Z
+        # depend on the locale.
+        . | .. | -* | *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]*)
+            echo "Error: Distribution name can only contain letters, digits, '.', '_' and '-'"
+            exit 1
+            ;;
+    esac
 
     # Set constants dependent on distribution name
     INSTALL_DIR="/opt/$DISTRIBUTION"
