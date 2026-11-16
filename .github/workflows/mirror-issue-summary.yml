@@ -1,0 +1,132 @@
+name: Mirror Issue Summary
+
+# Weekly Slack summary of open issues labeled "dbdot-mirror-issue", grouped by
+# the author named in the issue body's "dbdot-mirror-author" comment.
+on:
+  schedule:
+    # Mondays at 9:00 AM Eastern (DST-aware)
+    - cron: '0 9 * * 1'
+      timezone: 'America/New_York'
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  pull-requests: read
+
+jobs:
+  summary:
+    name: Post summary
+    runs-on: ubuntu-latest
+    env:
+      LABEL: dbdot-mirror-issue
+    steps:
+      - name: Build summary
+        id: summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = process.env.LABEL;
+            const { owner, repo } = context.repo;
+            const nameWithOwner = `${owner}/${repo}`;
+
+            // Open labeled issues, with any open PRs that link or reference them.
+            const query = `query($owner: String!, $repo: String!, $label: String!, $cursor: String) {
+              repository(owner: $owner, name: $repo) {
+                issues(first: 50, after: $cursor, states: OPEN, labels: [$label]) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    number title url createdAt body
+                    closedByPullRequestsReferences(first: 10, includeClosedPrs: false) {
+                      nodes { state }
+                    }
+                    timelineItems(first: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {
+                      nodes {
+                        ... on CrossReferencedEvent {
+                          source { ... on PullRequest { state body repository { nameWithOwner } } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }`;
+            const all = [];
+            let cursor = null;
+            do {
+              const { repository } = await github.graphql(query, { owner, repo, label, cursor });
+              all.push(...repository.issues.nodes);
+              cursor = repository.issues.pageInfo.hasNextPage ? repository.issues.pageInfo.endCursor : null;
+            } while (cursor);
+
+            // True if an open PR is linked (sidebar or closing keyword into main), or an
+            // open PR in this repo uses a closing keyword for it (e.g. PRs into release branches).
+            const repoPrefix = nameWithOwner.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const hasOpenPR = issue => {
+              if (issue.closedByPullRequestsReferences.nodes.some(pr => pr.state === 'OPEN')) return true;
+              const keyword = new RegExp(
+                `\\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\\s+(${repoPrefix})?#${issue.number}\\b`, 'i');
+              return issue.timelineItems.nodes.some(({ source }) =>
+                source && source.state === 'OPEN' &&
+                source.repository?.nameWithOwner === nameWithOwner &&
+                keyword.test(source.body || ''));
+            };
+            const issues = all.filter(i => !hasOpenPR(i));
+            const inProgress = all.length - issues.length;
+
+            const repoUrl = `${context.serverUrl}/${nameWithOwner}`;
+            const listUrl = `${repoUrl}/issues?q=${encodeURIComponent(`is:issue is:open label:${label}`)}`;
+            const header = `*Open \`${label}\` issues in <${repoUrl}|${repo}> without an open PR*`;
+            const inProgressNote = inProgress ? ` (${inProgress} more have an open PR)` : '';
+
+            if (issues.length === 0) {
+              core.setOutput('text', `${header}\n:white_check_mark: None outstanding${inProgressNote}. Nice work!`);
+              return;
+            }
+
+            // Slack mrkdwn requires escaping these characters.
+            const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const now = Date.now();
+
+            const byAuthor = new Map();
+            for (const issue of issues) {
+              const match = (issue.body || '').match(/<!--\s*dbdot-mirror-author:\s*([\w-]+)\s*-->/);
+              const author = match ? match[1] : null;
+              if (!byAuthor.has(author)) byAuthor.set(author, []);
+              byAuthor.get(author).push(issue);
+            }
+
+            // Named authors alphabetically, unattributed issues last.
+            const authors = [...byAuthor.keys()].sort((a, b) =>
+              a === null ? 1 : b === null ? -1 : a.localeCompare(b));
+
+            const lines = [
+              header,
+              'For any issues under your handle, please either follow the instructions in the issue ' +
+                'or close the issue if it does not apply to BDOT v1/v2.',
+              `${issues.length} outstanding${inProgressNote} — <${listUrl}|view all>`,
+              '',
+            ];
+            for (const author of authors) {
+              const list = byAuthor.get(author).sort((a, b) => a.number - b.number);
+              lines.push(author ? `*${author}* (${list.length})` : `*Unattributed* (${list.length})`);
+              for (const issue of list) {
+                const days = Math.floor((now - new Date(issue.createdAt)) / 86400000);
+                lines.push(`• <${issue.url}|#${issue.number}> ${esc(issue.title)} _(${days}d old)_`);
+              }
+              lines.push('');
+            }
+
+            core.setOutput('text', lines.join('\n').trim());
+
+      - name: Post to Slack
+        uses: slackapi/slack-github-action@v2
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.ORG_IRIS_SLACK_BOT_TOKEN }}
+          # team-developers
+          payload: |
+            {
+              "channel": "C09TSTBJEKZ",
+              "text": ${{ toJSON(steps.summary.outputs.text) }},
+              "unfurl_links": false
+            }

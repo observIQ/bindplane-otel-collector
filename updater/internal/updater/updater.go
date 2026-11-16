@@ -53,6 +53,9 @@ type Updater struct {
 	monitor                  state.Monitor
 	logger                   *zap.Logger
 	installedSystemdUnitPath string
+	// unprivileged is true when the updater runs as a non-root user. Only read
+	// on Linux, where the non-root updater never renders or installs the unit.
+	unprivileged bool
 }
 
 // NewUpdater creates a new updater which can be used to update the installation based at
@@ -72,6 +75,8 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 		monitor:                  monitor,
 		logger:                   logger,
 		installedSystemdUnitPath: DefaultSystemdUnitFilePath,
+		// Only read on Linux. On Windows, os.Getuid returns -1.
+		unprivileged: os.Getuid() != 0,
 	}, nil
 }
 
@@ -112,14 +117,9 @@ func (u *Updater) generateLinuxServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
-	// Get the install directory from path package. This will default
-	// to /opt/observiq-otel-collector unless BDOT_CONFIG_HOME is set
-	// in a package config file such as /etc/default/observiq-otel-collector
-	// or /etc/sysconfig/observiq-otel-collector.
-	installDir, err := path.InstallDir(u.logger, path.DefaultConfigOverrides)
-	if err != nil {
-		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
-	}
+	// Use the updater's install directory directly. This was already resolved
+	// from the config override files when the updater was created.
+	installDir := u.installDir
 
 	params := map[string]string{
 		"Group":      group,
@@ -154,8 +154,12 @@ func (u *Updater) generateLinuxServiceFiles() error {
 func (u *Updater) Update() error {
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
+	// When unprivileged, the rendered unit is never installed (svc.Update()
+	// does nothing), so skip rendering it and reading the installed unit.
 	if runtime.GOOS == "linux" {
-		if err := u.generateLinuxServiceFiles(); err != nil {
+		if u.unprivileged {
+			u.logger.Info("Skipping service file generation: the updater is not running as root and the package manages the unit file")
+		} else if err := u.generateLinuxServiceFiles(); err != nil {
 			return fmt.Errorf("failed to generate service files: %w", err)
 		}
 	}

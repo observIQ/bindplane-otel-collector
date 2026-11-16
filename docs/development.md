@@ -20,7 +20,7 @@ Tests can be run with `make test`.
 
 ## Testing Linux packages
 
-The deb and rpm packages can be tested in systemd-enabled distro containers. The suite covers fresh install, upgrade from a previous release, and uninstall. It requires Docker.
+The deb and rpm packages can be tested in systemd-enabled distro containers. The suite covers fresh install, unprivileged install, upgrade from a previous release, and uninstall. It requires Docker.
 
 ```sh
 make release-test   # builds the packages into ./dist

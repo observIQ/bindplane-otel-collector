@@ -220,14 +220,16 @@ func (b *box) unitProps(props ...string) map[string]string {
 	return m
 }
 
-// assertUnit checks the systemd unit written by postinstall.
-func (b *box) assertUnit() {
+// assertUnit checks the systemd unit written by postinstall, and that it
+// runs as user.
+func (b *box) assertUnit(user string) {
 	b.t.Helper()
-	props := []string{"ExecStart", "Environment"}
+	props := []string{"User", "ExecStart", "Environment"}
 	for p := range installUnitProps {
 		props = append(props, p)
 	}
 	got := b.unitProps(props...)
+	assert.Equal(b.t, user, got["User"], "unit property User")
 	for p, want := range installUnitProps {
 		assert.Equal(b.t, want, got[p], "unit property %s", p)
 	}
@@ -263,9 +265,9 @@ func (b *box) startupCount() int {
 }
 
 // assertServiceRunning checks that the service is enabled and running the
-// installed binary with the expected identity, that it logged startup n
-// times in total, and that it stays up. It returns the service's main PID.
-func (b *box) assertServiceRunning(n int) string {
+// installed binary as user, that it logged startup n times in total, and
+// that it stays up. It returns the service's main PID.
+func (b *box) assertServiceRunning(n int, user string) string {
 	b.t.Helper()
 	require.Equal(b.t, "enabled", b.unitState("is-enabled"), "service should be enabled")
 	require.Equal(b.t, "active", b.unitState("is-active"), "service should be active")
@@ -273,7 +275,7 @@ func (b *box) assertServiceRunning(n int) string {
 
 	pid := b.unitProps("MainPID")["MainPID"]
 	require.NotContains(b.t, []string{"", "0"}, pid, "service main PID")
-	assert.Equal(b.t, []string{"root", runtimeGrp}, strings.Fields(b.mustRun("ps -o euser=,egroup= -p "+pid)), "service process user and group")
+	assert.Equal(b.t, []string{user, runtimeGrp}, strings.Fields(b.mustRun("ps -o euser=,egroup= -p "+pid)), "service process user and group")
 	assert.Equal(b.t, installDir+"/observiq-otel-collector", b.mustRun("readlink /proc/"+pid+"/exe"), "service process executable")
 
 	require.True(b.t, poll(time.Minute, func() bool { return b.startupCount() >= n }),

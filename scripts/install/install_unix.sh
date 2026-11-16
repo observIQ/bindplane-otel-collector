@@ -31,6 +31,9 @@ OS_TYPE=$(uname -s)
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
 
+# Whether or not the collector runs as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
+
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
@@ -60,7 +63,7 @@ remove_created_aix_user() {
 }
 trap remove_created_aix_user EXIT
 MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut"
+PREREQS="curl printf $SVC_PRE sed uname cut runuser"
 if [ "$OS_TYPE" = "AIX" ]; then
   # AIX has no curl without the Toolbox, so base Perl can download instead. It installs from a tar.gz.
   PREREQS="curl|perl printf $SVC_PRE sed uname cut tr tar gunzip awk"
@@ -764,6 +767,7 @@ check_prereqs()
   os_arch_check
   package_type_check
   dependencies_check
+  unprivileged_check
   user_check
   success "Prerequisite check complete!"
   decrease_indent
@@ -948,6 +952,21 @@ resolve_alternate_cmd()
       HTTP_CLIENT="$2"
       ;;
   esac
+}
+
+# This warns when BDOT_UNPRIVILEGED is true but sudo is missing. The updater
+# needs sudo to stop and start the service, so remote updates would fail.
+unprivileged_check()
+{
+  if [ "$BDOT_UNPRIVILEGED" != "true" ] || [ "$SVC_PRE" != "systemctl" ]; then
+    return 0
+  fi
+
+  info "BDOT_UNPRIVILEGED is set to true, checking for sudo..."
+  if ! command -v sudo >/dev/null 2>&1 || ! command -v visudo >/dev/null 2>&1; then
+    warn "sudo is not installed. The collector will run, but remote updates will fail until sudo is installed and the collector is reinstalled or upgraded."
+  fi
+  succeeded
 }
 
 # This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
@@ -2068,19 +2087,46 @@ create_manager_yml()
 {
   manager_yml_path="$1"
   if [ ! -f "$manager_yml_path" ]; then
-    # Note here: We create the file and change permissions of the file here BEFORE writing info to it
-    # We do this because the file may contain a secret key, so we want 0 window when the
-    # file is readable by anyone other than the agent & root
-    command printf '' >> "$manager_yml_path"
+    # AIX has no runuser. SRC runs the collector as root there, and the
+    # collector user is a locked account nothing runs as, so no unprivileged
+    # user can plant a link. Root creates the file and limits it to the agent
+    # & root before writing to it, since it may contain a secret key.
+    if [ "$OS_TYPE" = "AIX" ]; then
+      command printf '' >> "$manager_yml_path"
 
-    chgrp "$COLLECTOR_GROUP" "$manager_yml_path"
-    chown "$COLLECTOR_USER" "$manager_yml_path"
-    chmod 0640 "$manager_yml_path"
+      chgrp "$COLLECTOR_GROUP" "$manager_yml_path"
+      chown "$COLLECTOR_USER" "$manager_yml_path"
+      chmod 0640 "$manager_yml_path"
 
-    command printf 'endpoint: "%s"\n' "$OPAMP_ENDPOINT" > "$manager_yml_path"
-    [ -n "$OPAMP_LABELS" ] && command printf 'labels: "%s"\n' "$OPAMP_LABELS" >> "$manager_yml_path"
-    [ -n "$OPAMP_SECRET_KEY" ] && command printf 'secret_key: "%s"\n' "$OPAMP_SECRET_KEY" >> "$manager_yml_path"
+      command printf 'endpoint: "%s"\n' "$OPAMP_ENDPOINT" > "$manager_yml_path"
+      [ -n "$OPAMP_LABELS" ] && command printf 'labels: "%s"\n' "$OPAMP_LABELS" >> "$manager_yml_path"
+      [ -n "$OPAMP_SECRET_KEY" ] && command printf 'secret_key: "%s"\n' "$OPAMP_SECRET_KEY" >> "$manager_yml_path"
+      return 0
+    fi
+
+    # The collector user owns the install directory and can replace
+    # manager.yaml with a symbolic link, which root would follow. So the file
+    # is written as that user, and a link only reaches files the user could
+    # already change. The file may contain a secret key, so the umask keeps it
+    # from being readable by anyone other than the agent & root from the
+    # moment it is created. The contents go through stdin so the secret key
+    # isn't in any process's arguments.
+    {
+      command printf 'endpoint: "%s"\n' "$OPAMP_ENDPOINT"
+      [ -n "$OPAMP_LABELS" ] && command printf 'labels: "%s"\n' "$OPAMP_LABELS"
+      [ -n "$OPAMP_SECRET_KEY" ] && command printf 'secret_key: "%s"\n' "$OPAMP_SECRET_KEY"
+    } | runuser -u "$COLLECTOR_USER" -g "$COLLECTOR_GROUP" -- sh -c 'umask 027 && cat > "$1"' sh "$manager_yml_path"
   fi
+}
+
+# tail_follow_flag prints the tail flag that follows a log across rotation where this
+# OS's tail supports it (-F), and plain follow (-f) where it does not.
+tail_follow_flag()
+{
+  case "$OS_TYPE" in
+    AIX) command printf '%s' '-f' ;;
+    *) command printf '%s' '-F' ;;
+  esac
 }
 
 # This will display the results of an installation
@@ -2103,7 +2149,7 @@ display_results()
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
-    info "Logs Command:       $(fg_cyan "sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
+    info "Logs Command:       $(fg_cyan "sudo tail $(tail_follow_flag) ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
     info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 

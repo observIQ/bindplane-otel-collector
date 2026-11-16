@@ -16,6 +16,11 @@
 
 set -e
 
+# Never create a file that group or others can write, whatever umask the
+# package manager runs with. This keeps the systemd unit and drop-ins and
+# the sudoers drop-in root-only from the moment they are created.
+umask go-w
+
 # Read's optional package overrides. Users should deploy the override
 # file before installing BDOT for the first time. The override should
 # not be modified unless uninstalling and re-installing.
@@ -33,6 +38,19 @@ set -e
 : "${BDOT_GROUP:=bdot}"
 
 
+# run_as_home_owner runs a command that writes in BDOT_CONFIG_HOME. When
+# unprivileged, the runtime user owns BDOT_CONFIG_HOME and can replace any
+# entry in it with a symbolic link, which root would follow. So the command
+# runs as that user and can only reach files the user could already change.
+# Otherwise nothing runs as the runtime user, and the command runs as root.
+run_as_home_owner() {
+    if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+        runuser -u "$BDOT_USER" -g "$BDOT_GROUP" -- "$@"
+    else
+        "$@"
+    fi
+}
+
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
@@ -41,17 +59,34 @@ install() {
     share_dir="/usr/share/observiq-otel-collector"
     stage_dir="${share_dir}/stage/observiq-otel-collector"
 
+    # The package manager unpacks the stage owned by root, and this function
+    # gives it to the runtime user below. If this script failed after that and
+    # runs again, for example with "dpkg --configure", the runtime user may
+    # have replaced entries in the stage with symbolic links. Take the stage
+    # back first. chown -R changes links themselves and doesn't follow them.
+    chown -R root:root "$stage_dir"
+
     # Rename binaries in staging directory to avoid Linux binary locking issues
     # during copy operation
     mv "${stage_dir}/observiq-otel-collector" "${stage_dir}/observiq-otel-collector.new"
+
+    # Goreleaser does not set plugin file permissions. When unprivileged,
+    # finish_permissions doesn't change files in BDOT_CONFIG_HOME, so set them
+    # here while root still owns the stage. find doesn't follow links.
+    if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+        find "$stage_dir/plugins" -type f -exec chmod 0640 {} +
+    fi
 
     # Prepare staged files with runtime ownership so destination does not need
     # post-copy ownership changes. This helps to ensure permissions do not flap
     # between root and the runtime user.
     chown -R "$BDOT_USER:$BDOT_GROUP" "$stage_dir"
 
-    # Ensure updater is owned by root.
-    chown root:root "$stage_dir/updater"
+    # Ensure updater is owned by root. When unprivileged, the runtime user
+    # copies the files into BDOT_CONFIG_HOME, so it owns the updater anyway.
+    if [ "${BDOT_UNPRIVILEGED}" != "true" ]; then
+        chown root:root "$stage_dir/updater"
+    fi
 
     # Seed default configs only when absent so upgrades/reinstalls preserve
     # user edits. The stage dir is ephemeral, so pruning it here is safe.
@@ -61,12 +96,17 @@ install() {
         fi
     done
 
-    cp -r --preserve \
+    # Remove each existing file before copying over it instead of writing
+    # into it. A root install leaves the updater owned by root, which the
+    # runtime user can't write but can remove, since it owns
+    # BDOT_CONFIG_HOME. A symbolic link in place of a file is replaced, not
+    # followed.
+    run_as_home_owner cp -r --preserve --remove-destination \
       "$stage_dir"/* \
       "${BDOT_CONFIG_HOME}"
 
     # Perform atomic moves for binary files to replace running binaries
-    mv "${BDOT_CONFIG_HOME}/observiq-otel-collector.new" "${BDOT_CONFIG_HOME}/observiq-otel-collector"
+    run_as_home_owner mv "${BDOT_CONFIG_HOME}/observiq-otel-collector.new" "${BDOT_CONFIG_HOME}/observiq-otel-collector"
 
     rm -rf "$share_dir"
 }
@@ -78,6 +118,10 @@ install_service() {
     install_initd_service
   fi
 }
+
+# PATH for the collector service. The updater inherits it and runs sudo and
+# systemctl through it.
+service_path="/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 
 install_systemd_service() {
   config_file="/usr/lib/systemd/system/observiq-otel-collector.service"
@@ -100,7 +144,7 @@ StartLimitBurst=5
 Type=simple
 User=root
 Group=${BDOT_GROUP}
-Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PATH=${service_path}
 Environment=BINDPLANE_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=BINDPLANE_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 WorkingDirectory=${BDOT_CONFIG_HOME}
@@ -125,15 +169,21 @@ EOF
     mkdir -p "$override_dir"
     echo "Created systemd override directory at $override_dir"
   fi
+  # systemd applies these drop-ins to the service, so only root may change them.
+  chown root:root "$override_dir"
+  chmod 0755 "$override_dir"
 
-  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
-  # unprivileged user.
+  # Write the User= drop-in when BDOT_UNPRIVILEGED is true. Otherwise there is
+  # none to remove: check_runtime_user_change refuses the install when one is
+  # present, and preremove.sh removes it on uninstall.
   override_user_path="${override_dir}/10-package-customizations-username.conf"
   if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
     cat << EOF > "${override_user_path}"
 [Service]
 User=${BDOT_USER}
 EOF
+    chown root:root "${override_user_path}"
+    chmod 0644 "${override_user_path}"
     echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
   fi
 }
@@ -483,6 +533,14 @@ manage_service() {
 }
 
 finish_permissions() {
+  # When unprivileged, root must not change files in BDOT_CONFIG_HOME, because
+  # the runtime user owns it and can replace any entry with a symbolic link.
+  # install already copied the files as that user and set the plugin modes in
+  # the stage, and the collector creates its own log file.
+  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+    return 0
+  fi
+
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
   chown -R "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
@@ -496,7 +554,274 @@ finish_permissions() {
   chown "$BDOT_USER:$BDOT_GROUP" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
+sudoers_file="/etc/sudoers.d/bindplane-otel-collector"
+
+remove_sudoers() {
+  if [ -f "$sudoers_file" ]; then
+    echo "Removing sudoers drop-in: $sudoers_file"
+    rm -f "$sudoers_file"
+  fi
+}
+
+# install_sudoers lets BDOT_USER stop and start the collector service so the
+# updater can replace the collector's files. Any process running as BDOT_USER
+# can run these commands, so they must never take a path, file content or
+# argument that BDOT_USER controls. The drop-in holds these two commands and
+# a single Defaults line that turns off requiretty. Don't add other commands
+# or Defaults.
+install_sudoers() {
+  if ! command -v systemctl > /dev/null 2>&1; then
+    echo "systemd not found, skipping sudoers drop-in"
+    remove_sudoers
+    return 0
+  fi
+  if ! command -v visudo > /dev/null 2>&1; then
+    echo "WARNING: sudo is not installed (visudo not found), so the sudoers drop-in was not written and remote updates will fail. Install sudo, then reinstall or upgrade this package." >&2
+    remove_sudoers
+    return 0
+  fi
+  if [ "$BDOT_USER" = "root" ]; then
+    remove_sudoers
+    return 0
+  fi
+
+  # Only allow plain user names so BDOT_USER can't be parsed as sudoers syntax
+  # (%group, #uid, +netgroup, lists, whitespace). The characters are listed
+  # explicitly because bracket ranges such as A-Z depend on the locale.
+  # check_user_name in preinstall.sh runs the same check before anything is
+  # installed, so keep the two the same.
+  case "$BDOT_USER" in
+    ""|-*|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-]*)
+      echo "ERROR: BDOT_USER \"${BDOT_USER}\" can't be used in a sudoers rule" >&2
+      exit 1
+      ;;
+  esac
+  # sudoers parses an upper case word such as ALL or ADMINS as a reserved word
+  # or an alias, not as a user name.
+  case "$BDOT_USER" in
+    *[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) ;;
+    [ABCDEFGHIJKLMNOPQRSTUVWXYZ]*)
+      echo "ERROR: BDOT_USER \"${BDOT_USER}\" can't be used in a sudoers rule" >&2
+      exit 1
+      ;;
+  esac
+
+  systemctl_path="$(command -v systemctl)"
+  case "$systemctl_path" in
+    /*) ;;
+    *)
+      echo "ERROR: could not resolve an absolute path for systemctl" >&2
+      exit 1
+      ;;
+  esac
+
+  # sudo skips files in /etc/sudoers.d whose names contain a ".", so the
+  # file isn't read until it has passed validation and been renamed.
+  tmp_file="${sudoers_file}.tmp"
+  mkdir -p "$(dirname "$sudoers_file")"
+  rm -f "$tmp_file"
+  cat << EOF > "$tmp_file"
+# Sudoers drop-in for the Bindplane Distribution for OpenTelemetry Collector.
+# Generated by the package for runtime user "${BDOT_USER}". It lets the updater
+# stop and start the collector service while it replaces the collector's files.
+# Any process running as "${BDOT_USER}" can run these commands. Don't add others.
+# The updater has no TTY, so requiretty is off for this user. It grants nothing.
+Defaults:${BDOT_USER} !requiretty
+${BDOT_USER} ALL=(root) NOPASSWD: ${systemctl_path} start observiq-otel-collector.service
+${BDOT_USER} ALL=(root) NOPASSWD: ${systemctl_path} stop observiq-otel-collector.service
+EOF
+  chown root:root "$tmp_file"
+  chmod 0440 "$tmp_file"
+
+  if ! visudo -cf "$tmp_file" > /dev/null 2>&1; then
+    rm -f "$tmp_file"
+    echo "ERROR: generated sudoers drop-in failed validation" >&2
+    exit 1
+  fi
+
+  echo "Installing sudoers drop-in to $sudoers_file"
+  mv -f "$tmp_file" "$sudoers_file"
+}
+
+# check_sudo_grant warns when the host stops BDOT_USER from using the sudoers
+# drop-in from inside the service, which makes every remote update fail at
+# "systemctl stop". It only warns and never fails the install. It must run
+# after manage_service so systemd has loaded the current unit and drop-ins.
+check_sudo_grant() {
+  # The drop-in exists only when install_sudoers wrote it during this run.
+  if [ ! -f "$sudoers_file" ] || [ -z "$systemctl_path" ]; then
+    return 0
+  fi
+
+  if ! command -v sudo > /dev/null 2>&1; then
+    echo "WARNING: sudo is not installed, so remote updates will fail. Install sudo." >&2
+    return 0
+  fi
+
+  # Ask sudo as BDOT_USER, in a new session without a TTY, as the updater
+  # runs. Asking as root with "sudo -l -U" would apply root's Defaults, such as
+  # requiretty, instead of BDOT_USER's. Like the updater, pass a bare
+  # systemctl with the service's PATH. sudo then looks it up in secure_path, or
+  # in that PATH when secure_path isn't set, and must find the file named in
+  # the drop-in.
+  if command -v runuser > /dev/null 2>&1 && command -v setsid > /dev/null 2>&1; then
+    grant_ok=true
+    grant_err=""
+    for action in start stop; do
+      if ! action_err="$(LC_ALL=C setsid runuser -u "$BDOT_USER" -- env PATH="$service_path" sudo -n -l systemctl "$action" observiq-otel-collector.service 2>&1 > /dev/null)"; then
+        grant_ok=false
+        grant_err="${grant_err}${action_err}"
+      fi
+    done
+  else
+    echo "WARNING: runuser or setsid not found, so the sudoers drop-in could not be checked." >&2
+    grant_ok=true
+  fi
+  if [ "$grant_ok" = "false" ]; then
+    echo "WARNING: sudo does not allow ${BDOT_USER} to run the commands in ${sudoers_file}, so remote updates will fail." >&2
+    case "$grant_err" in
+      *"must have a tty"*)
+        echo "  sudo requires a TTY (requiretty) for ${BDOT_USER}. A \"Defaults requiretty\" line that sudo reads after the drop-in overrides its \"!requiretty\"." >&2
+        ;;
+    esac
+    if ! grep -Eq '^[[:space:]]*[@#]includedir[[:space:]]+/etc/sudoers\.d/?[[:space:]]*$' /etc/sudoers 2> /dev/null; then
+      echo "  /etc/sudoers has no \"@includedir /etc/sudoers.d\" line, so sudo does not read the drop-in." >&2
+    fi
+    nsswitch_sudoers="$(grep -E '^[[:space:]]*sudoers:' /etc/nsswitch.conf 2> /dev/null | head -n 1)" || true
+    if [ -n "$nsswitch_sudoers" ] && ! echo "$nsswitch_sudoers" | grep -qw files; then
+      echo "  /etc/nsswitch.conf has \"${nsswitch_sudoers}\" without \"files\", so sudo does not read /etc/sudoers.d." >&2
+    fi
+    echo "  Run \"sudo -l -U ${BDOT_USER}\" to see the rules sudo applies to ${BDOT_USER}." >&2
+  fi
+
+  # With no_new_privs set, sudo can't gain root inside the service. systemd
+  # sets it for NoNewPrivileges=yes and, for a non-root service, for each of
+  # these other settings. systemctl show reports each setting as written, so
+  # check them all. An unset list prints as empty or as "~" (an empty deny
+  # list). Older systemd prints some lists as "[unprintable]", which can't be
+  # checked.
+  nnp_bool_props="NoNewPrivileges RestrictSUIDSGID PrivateDevices ProtectKernelTunables ProtectKernelModules ProtectKernelLogs ProtectClock MemoryDenyWriteExecute RestrictRealtime LockPersonality DynamicUser"
+  nnp_list_props="SystemCallFilter SystemCallArchitectures RestrictAddressFamilies"
+  set --
+  for prop in $nnp_bool_props $nnp_list_props; do
+    set -- "$@" -p "$prop"
+  done
+  if ! unit_props="$(systemctl show "$@" observiq-otel-collector.service 2> /dev/null)"; then
+    return 0
+  fi
+
+  nnp_set=""
+  while IFS='=' read -r key value; do
+    case " $nnp_list_props " in
+      *" $key "*)
+        case "$value" in
+          ""|"~"|"[unprintable]") ;;
+          *) nnp_set="${nnp_set} ${key}=" ;;
+        esac
+        ;;
+      *)
+        if [ "$value" = "yes" ]; then
+          nnp_set="${nnp_set} ${key}=yes"
+        fi
+        ;;
+    esac
+  done << EOF
+$unit_props
+EOF
+  if [ -n "$nnp_set" ]; then
+    echo "WARNING: observiq-otel-collector.service sets${nnp_set}, which turns on no_new_privs and stops sudo from working inside the service, so remote updates will fail. Remove these settings from the service's drop-ins." >&2
+  fi
+}
+
+# check_runtime_user_change fails the install before anything is changed when
+# the package overrides would change the user that an unprivileged install
+# runs as. That user owns BDOT_CONFIG_HOME and can replace any entry in it
+# with a symbolic link, and an install for root or for another user would
+# follow those links as root. It also refuses to make an existing root
+# install unprivileged, which would start the collector as the runtime user
+# against files root created, such as those in storage/. The package writes
+# the User= drop-in and root owns it, so the runtime user can't change it.
+# preinstall.sh runs the same check, so keep the two the same. This script
+# runs it too because dpkg can run it again, for example with
+# "dpkg --configure", after the overrides changed.
+check_runtime_user_change() {
+    user_dropin="/etc/systemd/system/observiq-otel-collector.service.d/10-package-customizations-username.conf"
+
+    # Whether this replaces an installed package: dpkg passes "upgrade" to
+    # preinst and the previous version to "configure", and rpm counts more
+    # than one installed instance. dpkg also passes the previous version to
+    # "configure" when it installs a package that was removed but not
+    # purged. Removing the package deletes the collector binary, so without
+    # it there is no install to replace.
+    upgrade=false
+    case "$1" in
+        upgrade) upgrade=true ;;
+        configure) [ -z "$2" ] || upgrade=true ;;
+        [0-9]*) [ "$1" -lt 2 ] || upgrade=true ;;
+    esac
+    if [ ! -e "${BDOT_CONFIG_HOME}/observiq-otel-collector" ]; then
+        upgrade=false
+    fi
+
+    if [ -f "$user_dropin" ]; then
+        current_user="$(sed -n 's/^User=//p' "$user_dropin")"
+        if [ "$BDOT_UNPRIVILEGED" = "true" ] && [ "$BDOT_USER" = "$current_user" ]; then
+            return
+        fi
+        set_by="set by ${user_dropin}"
+    elif [ "$BDOT_UNPRIVILEGED" = "true" ] && [ "$upgrade" = "true" ]; then
+        current_user="root"
+        set_by="since there is no ${user_dropin}"
+    else
+        return 0
+    fi
+
+    # Name the override file to set the values in. Both are sourced, and
+    # /etc/sysconfig last, so it wins. rpm passes a number as $1, dpkg a word.
+    override_file="/etc/default/observiq-otel-collector"
+    if [ -f /etc/sysconfig/observiq-otel-collector ]; then
+        override_file="/etc/sysconfig/observiq-otel-collector"
+    elif [ ! -f "$override_file" ]; then
+        case "$1" in
+            [0-9]*) override_file="/etc/sysconfig/observiq-otel-collector" ;;
+        esac
+    fi
+
+    echo "ERROR: The collector service runs as \"${current_user}\", ${set_by}." >&2
+    echo "Changing BDOT_UNPRIVILEGED or BDOT_USER on an existing install is not supported. To change them, uninstall the package, remove ${BDOT_CONFIG_HOME}, and install it again." >&2
+    echo "To keep the existing install, set these values in ${override_file}, as described at https://docs.bindplane.com/configuration/bindplane-otel-collector/linux-package-configuration:" >&2
+    if [ -f "$user_dropin" ]; then
+        echo "    BDOT_UNPRIVILEGED=true" >&2
+        echo "    BDOT_USER=${current_user}" >&2
+    else
+        echo "    BDOT_UNPRIVILEGED=false" >&2
+    fi
+    echo "Then install the package again." >&2
+    exit 1
+}
+
+# dpkg runs the installed package's postinst with abort-upgrade, abort-remove
+# or abort-deconfigure when the new package's preinst or the prerm failed,
+# for example when check_runtime_user_change refused the upgrade. The
+# installed files are untouched and the stage directory is gone, so there is
+# nothing to do, and failing here would leave the package half-installed.
+# rpm passes a number instead.
+case "$1" in
+    abort-*)
+        exit 0
+        ;;
+esac
+
+check_runtime_user_change "$@"
 install
 install_service
 finish_permissions
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  install_sudoers
+else
+  remove_sudoers
+fi
 manage_service
+if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+  check_sudo_grant
+fi

@@ -50,6 +50,8 @@ run_case() {
 run_case linux-all-present Linux ""          ok
 # v1 Linux needs awk only to verify signatures, which verification_missing_tools checks
 run_case linux-no-awk      Linux "awk"       ok
+run_case linux-no-runuser  Linux "runuser"   fail runuser
+run_case aix-no-runuser    AIX   "runuser"   ok
 run_case aix-no-gunzip     AIX   "gunzip"    fail gunzip
 run_case aix-no-both       AIX   "gunzip awk" fail gunzip awk
 run_case aix-no-iostat      AIX   "iostat"    ok
