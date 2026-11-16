@@ -439,25 +439,35 @@ bundle_files() {
 
     if [ "$collector_version" = v2 ]; then
         # v2 logs: supervisor.log in the install dir plus the supervisor_storage logs.
+        # On AIX the supervisor also writes its stderr to supervisor.err, rolled to
+        # supervisor.err.1 on each start, so a crash before a restart is in .1.
+        supervisor_files="supervisor.log supervisor.err supervisor.err.1"
         have_v2_logs=false
-        for log_file in "$collector_dir/supervisor.log" "$collector_dir"/supervisor_storage/*.log; do
+        for name in $supervisor_files; do
+            [ -f "$collector_dir/$name" ] && have_v2_logs=true
+        done
+        for log_file in "$collector_dir"/supervisor_storage/*.log; do
             [ -f "$log_file" ] && have_v2_logs=true
         done
         if [ "$have_v2_logs" = false ]; then
             info "No logs found for the v2 collector in $(fg_red "$collector_dir")$(reset)"
         elif [ "$response" = "n" ]; then
             info "Collecting all v2 collector logs"
-            for log_file in "$collector_dir/supervisor.log" "$collector_dir"/supervisor_storage/*.log; do
+            for name in $supervisor_files; do
+                [ -f "$collector_dir/$name" ] && cp "$collector_dir/$name" "$log_stage/"
+            done
+            for log_file in "$collector_dir"/supervisor_storage/*.log; do
                 [ -f "$log_file" ] && cp "$log_file" "$log_stage/"
             done
         else
             # supervisor.log (the supervisor) and supervisor_storage/agent.log (the
-            # collector) are distinct live logs. Collect supervisor.log plus the
+            # collector) are distinct live logs. Collect the supervisor files plus the
             # newest supervisor_storage log so neither is dropped by a race.
-            if [ -f "$collector_dir/supervisor.log" ]; then
-                cp "$collector_dir/supervisor.log" "$log_stage/"
-                info "Added file $(fg_cyan "$collector_dir/supervisor.log")$(reset) to the tar file."
-            fi
+            for name in $supervisor_files; do
+                [ -f "$collector_dir/$name" ] || continue
+                cp "$collector_dir/$name" "$log_stage/"
+                info "Added file $(fg_cyan "$collector_dir/$name")$(reset) to the tar file."
+            done
             newest_storage=""
             for log_file in "$collector_dir"/supervisor_storage/*.log; do
                 [ -f "$log_file" ] || continue

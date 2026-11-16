@@ -40,6 +40,8 @@ fake_install() {
     mkdir -p "$1/supervisor_storage"
     echo "supervisor line token=logsecret" > "$1/supervisor.log"
     echo "agent line password: logsecret" > "$1/supervisor_storage/agent.log"
+    echo "supervisor stderr token=logsecret" > "$1/supervisor.err"
+    echo "previous run stderr token=logsecret" > "$1/supervisor.err.1"
     printf 'server:\n  headers:\n    Authorization: Secret-Key managersecret\n' > "$1/supervisor.yaml"
     echo "api_key: configsecret" > "$1/supervisor_storage/effective.yaml"
   fi
@@ -73,7 +75,7 @@ run_case() {
 run_case aix-v1 AIX v1 \
   "collector.log observiq_collector.err config.yaml manager.yaml src_status.log oslevel.txt user_limits.txt procfiles.txt system_stats.txt"
 run_case aix-v2 AIX v2 \
-  "supervisor.log agent.log supervisor.yaml effective.yaml src_status.log oslevel.txt user_limits.txt procfiles.txt system_stats.txt"
+  "supervisor.log supervisor.err supervisor.err.1 agent.log supervisor.yaml effective.yaml src_status.log oslevel.txt user_limits.txt procfiles.txt system_stats.txt"
 # Simulated Linux needs the host's Linux tools (GNU sed), so not on AIX.
 if [ "$(uname -s)" != AIX ]; then
 run_case linux-v1 Linux v1 \
