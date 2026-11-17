@@ -274,6 +274,21 @@ The Bindplane Distro for OpenTelemetry Collector is an open source project. If y
 
 All sorts of contributions are **welcome and extremely helpful**. 🙌
 
+## Support
+
+This distribution is supported by the Dynatrace Support team, in accordance with the Dynatrace [support policy].
+
+For full support coverage, contact Dynatrace through the official support channels. Issues reported via GitHub are handled on a best-effort basis; support contracts and SLAs don't apply.
+
+Each minor version is supported for three months. Fixes are provided either as a patch release for the latest supported minor version or as part of a subsequent minor version release.
+
+This distribution depends on components provided upstream by the OpenTelemetry community. New versions of the distribution with updated upstream components are released on at least a monthly cadence. If the OpenTelemetry community decides to make a breaking change, it will be pulled into this distribution as we upgrade to newer versions of these upstream components. For the complete list of changes, please refer to the changelogs provided in the [opentelemetry-collector] releases and [opentelemetry-collector-contrib] releases pages. Further information on the stability guarantees provided upstream can be found in the definitions for the [OpenTelemetry Collector stability levels].
+
+[support policy]: https://support.dynatrace.com/
+[opentelemetry-collector releases]: https://github.com/open-telemetry/opentelemetry-collector/releases
+[opentelemetry-collector-contrib releases]: https://github.com/open-telemetry/opentelemetry-collector-contrib/releases
+[OpenTelemetry Collector stability levels]: https://github.com/open-telemetry/opentelemetry-collector#stability-levels
+
 ## How can we help?
 
 If you need any additional help feel free to reach out to us at support@observiq.com.
