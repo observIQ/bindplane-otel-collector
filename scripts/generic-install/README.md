@@ -43,6 +43,8 @@ sudo ./install_unix.sh -d mydistribution -r
 | `-h, --help`         | Show help message                       | No       |
 
 - Either `--file` must be provided or `--url` & `--version`.
+- The distribution name can only contain letters, digits, `.`, `_` and `-`, so the installation directory is always `/opt/<distribution>`.
+- Uninstall removes the files the install wrote, then the installation directory if it's empty. Anything else in the directory stays, and the script says so.
 
 ### Installation Process
 
