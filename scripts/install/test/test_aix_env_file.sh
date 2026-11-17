@@ -71,13 +71,13 @@ check custom_home_replaces_only_default_prefix $ok
 
 # AIX can't use an install directory with whitespace or a double quote
 for bad in '/srv/my bdot' '/srv/a"b' '/srv/a	b'; do
-  if sh -c ". '$WORK/lib.sh'; $QUIET; BDOT_CONFIG_HOME='$bad'; check_aix_config_home" > /dev/null 2>&1; then
+  if sh -c ". '$WORK/lib.sh'; $QUIET; BDOT_CONFIG_HOME='$bad'; check_install_dir" > /dev/null 2>&1; then
     check "rejects_unsafe_home $bad" false
   else
     check "rejects_unsafe_home $bad" true
   fi
 done
-sh -c ". '$WORK/lib.sh'; $QUIET; BDOT_CONFIG_HOME='/srv/bdot-custom'; check_aix_config_home" > /dev/null 2>&1 && ok=true || ok=false
+sh -c ". '$WORK/lib.sh'; $QUIET; BDOT_CONFIG_HOME='/srv/bdot-custom'; check_install_dir" > /dev/null 2>&1 && ok=true || ok=false
 check accepts_plain_home $ok
 
 # uninstall: removes the env file and every backup, and nothing else in its directory

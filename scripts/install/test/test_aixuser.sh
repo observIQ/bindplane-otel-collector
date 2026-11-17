@@ -29,12 +29,13 @@ run_case() {
   for p in $(IFS=:; for d in $PATH; do printf '%s\n' "$d"/*; done); do
     [ -e "$p" ] && [ ! -e "$bin/${p##*/}" ] || continue   # first match on PATH wins, like the shell
     ln -s "$p" "$bin/${p##*/}"; done
-  stubs="uname tar gunzip mkdir mv cp chmod chown lsgroup lssrc lsuser mkgroup mkuser rmuser useradd userdel chuser"
+  stubs="uname tar gunzip mv chmod chown lsgroup lssrc lsuser mkgroup mkuser rmuser useradd userdel chuser"
   for t in $stubs; do rm -f "$bin/$t"; done
   printf '#!/bin/sh\necho AIX\n' > "$bin/uname"
-  printf '#!/bin/sh\nexit %s\n' "$tar_rc" > "$bin/tar"
-  # The install dir is /opt, which a test can't write, and set -e would end the run there
-  for t in gunzip mkdir mv cp chmod chown; do printf '#!/bin/sh\nexit 0\n' > "$bin/$t"; done
+  # tar extracts to its last argument; a successful one leaves the packaged env file there
+  printf '#!/bin/sh\nfor d; do :; done\n[ %s = 0 ] && mkdir -p "$d/install" && echo H=/opt/observiq-otel-collector > "$d/install/observiq-otel-collector.env"\nexit %s\n' "$tar_rc" "$tar_rc" > "$bin/tar"
+  # Install into a temp dir. Ownership changes need root, and set -e would end the run there
+  for t in gunzip mv chmod chown; do printf '#!/bin/sh\nexit 0\n' > "$bin/$t"; done
   printf '#!/bin/sh\nexit 0\n' > "$bin/lsgroup"
   printf '#!/bin/sh\n' > "$bin/lssrc"
   if [ "$exists" = yes ]; then u=0; else u=1; fi
@@ -42,7 +43,7 @@ run_case() {
   for t in mkgroup mkuser rmuser useradd userdel chuser; do printf '#!/bin/sh\necho "%s $*" >> "%s"\n' "$t" "$log" > "$bin/$t"; done
   for t in $stubs; do chmod +x "$bin/$t"; done
   PATH="$bin" "$bin/sh" -c ". '$WORK/lib.sh'
-    COLLECTOR_USER=bdot; COLLECTOR_GROUP=bdot; package_out_file_path=$WORK/pkg.tar.gz
+    COLLECTOR_USER=bdot; COLLECTOR_GROUP=bdot; package_out_file_path=$WORK/pkg.tar.gz; BDOT_CONFIG_HOME=$WORK/home-$name
     install_aix; $after" > "$WORK/out-$name" 2>&1
   ok=true
   for e in "$@"; do

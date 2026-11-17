@@ -1107,6 +1107,7 @@ http_download() {
 # extracting the binaries, and then removing the archive.
 install_package()
 {
+  check_install_dir
   banner "Installing Bindplane Agent"
   increase_indent
 
@@ -1976,8 +1977,6 @@ verify_package_aix() {
 # ownership the deb and rpm postinstall script sets: everything bdot, the updater root.
 install_aix()
 {
-  check_aix_config_home
-
   # Create the user and group if they don't already exist. Group must be first.
   if ! lsgroup "$COLLECTOR_GROUP" > /dev/null 2>&1; then
     mkgroup "$COLLECTOR_GROUP" > /dev/null || error_exit "$LINENO" "Failed to create group '$COLLECTOR_GROUP'"
@@ -2028,7 +2027,10 @@ install_aix()
     slibclean > /dev/null 2>&1 || true
   fi
 
-  if ! cp -Rf "$_aix_stage"/* "$BDOT_CONFIG_HOME/"; then
+  # Set ownership on the staged files, as the deb and rpm postinstall does, so the
+  # install directory itself never needs a recursive chown
+  chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" "$_aix_stage"
+  if ! cp -Rpf "$_aix_stage"/* "$BDOT_CONFIG_HOME/"; then
     rm -rf "$_aix_stage"
     error_exit "$LINENO" "Failed to copy the package into $BDOT_CONFIG_HOME"
   fi
@@ -2036,7 +2038,7 @@ install_aix()
 
   install_aix_env_file "$BDOT_CONFIG_HOME/install/observiq-otel-collector.env"
 
-  chown -R "$COLLECTOR_USER":"$COLLECTOR_GROUP" "$BDOT_CONFIG_HOME"
+  aix_chown_install
   chown root:system "$BDOT_CONFIG_HOME/updater"
 
   if [ "$_aix_was_running" = true ]; then
@@ -2045,16 +2047,82 @@ install_aix()
   fi
 }
 
-# check_aix_config_home rejects an install directory AIX can't use. mkuser refuses a
-# home with whitespace, and startsrc -e splits the env file on spaces, where a double
-# quote would swallow the rest of it.
-check_aix_config_home()
+# check_install_path rejects an install directory path that install or uninstall
+# could damage the system through: a relative path, one with whitespace, a double
+# quote, ':', '.' or '..' (mkuser refuses whitespace in a home, and startsrc -e
+# splits the env file on spaces), or a core system directory. Trailing slashes are
+# removed first.
+check_install_path()
 {
+  while :; do
+    case "$BDOT_CONFIG_HOME" in
+      ?*/) BDOT_CONFIG_HOME=${BDOT_CONFIG_HOME%/} ;;
+      *) break ;;
+    esac
+  done
   case "$BDOT_CONFIG_HOME" in
-    *[[:space:]]* | *'"'*)
-      error_exit "$LINENO" "BDOT_CONFIG_HOME can't contain whitespace or a double quote on AIX"
+    /*) ;;
+    *) error_exit "$LINENO" "BDOT_CONFIG_HOME must be an absolute path" ;;
+  esac
+  case "$BDOT_CONFIG_HOME" in
+    *[[:space:]]* | *'"'* | *:* | *//* | */./* | */. | */../* | */..)
+      error_exit "$LINENO" "BDOT_CONFIG_HOME can't contain whitespace, a double quote, ':', '.' or '..'"
       ;;
   esac
+  case "$BDOT_CONFIG_HOME" in
+    / | /bin | /boot | /dev | /etc | /home | /lib | /lib32 | /lib64 | /libx32 | /media | /mnt | /opt | /proc | /root | /run | /sbin | /snap | /srv | /sys | /tmp | \
+    /usr | /usr/bin | /usr/include | /usr/lib | /usr/lib32 | /usr/lib64 | /usr/libexec | /usr/local | /usr/local/bin | /usr/local/lib | /usr/sbin | /usr/share | \
+    /var | /var/cache | /var/lib | /var/log | /var/opt | /var/run | /var/spool | /var/tmp)
+      error_exit "$LINENO" "BDOT_CONFIG_HOME can't be the system directory $BDOT_CONFIG_HOME"
+      ;;
+  esac
+  if [ "$OS_TYPE" = "AIX" ]; then
+    case "$BDOT_CONFIG_HOME" in
+      /admin | /lpp | /usr/lpp | /usr/sys | /usr/ccs | /usr/java8_64 | /var/adm)
+        error_exit "$LINENO" "BDOT_CONFIG_HOME can't be the system directory $BDOT_CONFIG_HOME"
+        ;;
+    esac
+  fi
+}
+
+# check_install_dir runs check_install_path, then refuses a non-empty directory
+# that holds no file a collector install writes, since it's likely someone else's.
+check_install_dir()
+{
+  check_install_path
+  [ -d "$BDOT_CONFIG_HOME" ] || return 0
+  _empty=true
+  for _entry in "$BDOT_CONFIG_HOME"/* "$BDOT_CONFIG_HOME"/.[!.]*; do
+    [ -e "$_entry" ] || continue
+    case "${_entry##*/}" in
+      observiq-otel-collector | updater | config.yaml | logging.yaml | manager.yaml | log | storage | plugins | install | VERSION.txt | gpg-keys.tar.gz | package_statuses.json) return 0 ;;
+    esac
+    _empty=false
+  done
+  [ "$_empty" = true ] || error_exit "$LINENO" "$BDOT_CONFIG_HOME isn't empty and doesn't hold a collector install"
+}
+
+# aix_chown_install gives the collector user the install directory and the files it
+# writes, never recursively.
+aix_chown_install()
+{
+  for _path in "" /log /storage /config.yaml /logging.yaml /manager.yaml; do
+    if [ -e "$BDOT_CONFIG_HOME$_path" ]; then chown "$COLLECTOR_USER":"$COLLECTOR_GROUP" "$BDOT_CONFIG_HOME$_path"; fi
+  done
+}
+
+# aix_remove_install removes what the package installed and the collector wrote,
+# by name, never the install directory itself. Like the deb and rpm postremove, it
+# keeps config.yaml, logging.yaml, manager.yaml and storage/.
+aix_remove_install()
+{
+  for _f in package_statuses.json VERSION.txt LICENSE gpg-keys.tar.gz updater observiq-otel-collector; do
+    rm -f "$BDOT_CONFIG_HOME/$_f"
+  done
+  for _d in plugins log install .staging; do
+    rm -rf "${BDOT_CONFIG_HOME:?}/$_d"
+  done
+  rmdir "$BDOT_CONFIG_HOME" 2>/dev/null || true
 }
 
 # install_aix_env_file moves the packaged service environment to $AIX_ENV_FILE,
@@ -2207,7 +2275,7 @@ uninstall_package()
       dpkg -r "observiq-otel-collector" > /dev/null 2>&1
       ;;
     mkssys)
-      rm -rf "$BDOT_CONFIG_HOME"
+      aix_remove_install
       # Also remove the backups install_aix_env_file keeps
       rm -f "$AIX_ENV_FILE" "$AIX_ENV_FILE".*.bak
       ;;
@@ -2224,6 +2292,7 @@ uninstall_package()
 
 uninstall()
 {
+  check_install_path
   set_package_type
   banner "Uninstalling Bindplane Agent"
   increase_indent
