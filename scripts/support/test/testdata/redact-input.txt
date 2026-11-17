@@ -1,0 +1,48 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  otlphttp:
+    endpoint: https://admin:hunter2@example.com:4318/v1
+    headers:
+      Authorization: Bearer abc.DEF-123_xyz
+      X-Api-Key: plainkey123
+  splunk_hec:
+    token: 00000000-1111-2222-3333-444444444444
+    PASSWORD: UpperCaseSecret
+    Secret_Key: MixedCase
+    client_id: my-client
+    api_key:
+  awss3:
+    access_key_id: AKIAABCDEFGHIJKLMNOP
+  tls:
+    key_file: /etc/ssl/key.pem
+    cert_pem: |
+      -----BEGIN CERTIFICATE-----
+      MIIBcert
+      -----END CERTIFICATE-----
+    key_pem: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEsecretline
+      -----END PRIVATE KEY-----
+    other: kept
+    passphrase: >-
+      folded secret
+      second line
+    after: kept
+  - password: listitem
+  - name: keep
+inline: -----BEGIN RSA PRIVATE KEY----- abc -----END RSA PRIVATE KEY----- tail
+multi start -----BEGIN EC PRIVATE KEY-----
+body
+-----END EC PRIVATE KEY----- after
+2026-10-21T12:00:00Z info connecting with password=Sup3r;token="quoted" user=bob
+2026-10-21T12:00:01Z jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig_part-1 done
+postgres://u:p@db:5432/x and mysql://root:pw@h/db
+authorization: Basic Zm9vOmJhcg==
+secret_key: "already quoted"
+Bearer TOKENabc/+= trailing
+crlf_password: value
+crlf_token: value
