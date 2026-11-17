@@ -2281,6 +2281,9 @@ uninstall() {
       _stop_wait=$((_stop_wait + 1))
       sleep 1
     done
+    if lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q -E ' (active|stopping)'; then
+      error_exit "$LINENO" "Service did not stop within $AIX_SRC_WAIT_SECONDS seconds"
+    fi
     succeeded
 
     info "Removing service registration..."
