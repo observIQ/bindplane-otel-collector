@@ -14,7 +14,8 @@
 # limitations under the License.
 
 # Tests that the AIX uninstall finishes whether the collector is stopped or
-# running, and removes the subsystem only once it has stopped.
+# running, removes the subsystem only once it has stopped, and fails without
+# removing anything when the collector never stops.
 # Usage: test_aix_uninstall.sh [path-to-install_unix.sh]
 SCRIPT=${1:-$(dirname "$0")/../install_unix.sh}
 WORK=$(mktemp -d)
@@ -42,7 +43,15 @@ run_case() {
     rmitab() { echo rmitab >> '$log'; }
     uninstall_aix() { echo uninstall_aix >> '$log'; }
     uninstall" > "$WORK/out-$name" 2>&1
-  if grep -qx uninstall_aix "$log" && grep -qx 'rmssys polls_left=0' "$log" && grep -qx rmitab "$log"; then
+  rc=$?
+  if [ "$name" = never-stops ]; then
+    # Removes nothing and fails once the wait runs out
+    if [ $rc -ne 0 ] && grep -q 'did not stop within 120 seconds' "$WORK/out-$name" && ! grep -qE 'rmssys|rmitab|uninstall_aix' "$log"; then
+      pass=$((pass+1)); echo "PASS $name"
+    else
+      fail=$((fail+1)); echo "FAIL $name rc=$rc"; sed 's/^/  log: /' "$log"; tail -3 "$WORK/out-$name"
+    fi
+  elif grep -qx uninstall_aix "$log" && grep -qx 'rmssys polls_left=0' "$log" && grep -qx rmitab "$log"; then
     pass=$((pass+1)); echo "PASS $name"
   else
     fail=$((fail+1)); echo "FAIL $name"; sed 's/^/  log: /' "$log"; tail -3 "$WORK/out-$name"
@@ -52,6 +61,7 @@ run_case() {
 run_case already-stopped 1 0
 run_case running         0 0
 run_case slow-to-stop    0 3
+run_case never-stops     0 1000
 
 rm -rf "$WORK"
 echo "pass=$pass fail=$fail"; [ $fail -eq 0 ]
