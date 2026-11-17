@@ -167,12 +167,13 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 			report = logsReport(req.SessionID, []byte("{}"))
 			break
 		}
-		payload, err := buf.ConstructPayload(&plog.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
+		payload, stats, err := buf.ConstructPayloadWithStats(&plog.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct logs payload", zap.Error(err))
+			sp.logger.Error("construct logs payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = logsReport(req.SessionID, payload)
+		report.Metadata = newReportMetadata(stats)
 
 	case "metrics":
 		buf := sp.snapShotter.MetricBufferFor(componentID)
@@ -180,12 +181,13 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 			report = metricsReport(req.SessionID, []byte("{}"))
 			break
 		}
-		payload, err := buf.ConstructPayload(&pmetric.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
+		payload, stats, err := buf.ConstructPayloadWithStats(&pmetric.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct metrics payload", zap.Error(err))
+			sp.logger.Error("construct metrics payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = metricsReport(req.SessionID, payload)
+		report.Metadata = newReportMetadata(stats)
 
 	case "traces":
 		buf := sp.snapShotter.TraceBufferFor(componentID)
@@ -193,18 +195,22 @@ func (sp *snapshotProcessor) handleSnapshotRequest(cm *protobufs.CustomMessage) 
 			report = tracesReport(req.SessionID, []byte("{}"))
 			break
 		}
-		payload, err := buf.ConstructPayload(&ptrace.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
+		payload, stats, err := buf.ConstructPayloadWithStats(&ptrace.JSONMarshaler{}, req.SearchQuery, req.MinimumTimestamp, req.MaximumPayloadSizeBytes)
 		if err != nil {
-			sp.logger.Error("construct traces payload", zap.Error(err))
+			sp.logger.Error("construct traces payload", append(newReportMetadata(stats).logFields(), zap.Error(err))...)
 			return
 		}
 		report = tracesReport(req.SessionID, payload)
+		report.Metadata = newReportMetadata(stats)
 
 	default:
 		sp.logger.Error("invalid pipeline type in snapshot request", zap.String("pipeline_type", req.PipelineType))
 		return
 	}
 
+	if m := report.Metadata; m != nil {
+		sp.logger.Debug("snapshot request served", append([]zap.Field{zap.String("pipeline_type", req.PipelineType)}, m.logFields()...)...)
+	}
 	body, err := json.Marshal(report)
 	if err != nil {
 		sp.logger.Error("marshal snapshot report", zap.Error(err))

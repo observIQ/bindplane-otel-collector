@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report"
+	"github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"gopkg.in/yaml.v3"
 )
 
@@ -352,4 +354,215 @@ func TestHandleSnapshotRequest_WrongProcessorIDIsIgnored(t *testing.T) {
 	require.Never(t, func() bool {
 		return len(handler.sentMessages()) > 0
 	}, 50*time.Millisecond, 10*time.Millisecond, "request for a different processor must not be answered")
+}
+
+// newStartedProcessor wires a processor to a fake OpAMP handler so a test can
+// push requests in and read the gzipped reports back out.
+func newStartedProcessor(t *testing.T) (*snapshotProcessor, *fakeHandler, component.ID) {
+	t.Helper()
+	reporter := report.NewSnapshotReporter(nil)
+	t.Cleanup(overwriteSnapshotSet(t, reporter))
+
+	handler := newFakeHandler()
+	extID := component.MustNewID("opamp_connection")
+	host := newHost(&fakeRegistry{handler: handler}, extID)
+
+	processorID := component.MustNewIDWithName("snapshotprocessor", "x")
+	sp := newSnapshotProcessor(zap.NewNop(), &Config{Enabled: true, OpAMP: extID}, processorID)
+	require.NoError(t, sp.start(context.Background(), host))
+	t.Cleanup(func() { require.NoError(t, sp.stop(context.Background())) })
+	return sp, handler, processorID
+}
+
+// requestRawReport sends a snapshot request and returns the decompressed JSON
+// of the wantCount-th report the handler sent.
+func requestRawReport(t *testing.T, handler *fakeHandler, processorID component.ID, pipelineType, sessionID string, wantCount int) []byte {
+	t.Helper()
+	body, err := yaml.Marshal(snapshotRequest{Processor: processorID, PipelineType: pipelineType, SessionID: sessionID})
+	require.NoError(t, err)
+	handler.inbound <- &protobufs.CustomMessage{Type: snapshotRequestType, Data: body}
+
+	// Generous: an on-demand request legitimately waits a second for a fill.
+	require.Eventually(t, func() bool {
+		return len(handler.sentMessages()) >= wantCount
+	}, 5*time.Second, 10*time.Millisecond)
+
+	gz, err := gzip.NewReader(bytes.NewReader(handler.sentMessages()[wantCount-1].data))
+	require.NoError(t, err)
+	rawJSON, err := io.ReadAll(gz)
+	require.NoError(t, err)
+	return rawJSON
+}
+
+func TestHandleSnapshotRequest_ReportCarriesMetadata(t *testing.T) {
+	cases := []struct {
+		pipelineType string
+		save         func(t *testing.T, sp *snapshotProcessor)
+		count        func(t *testing.T, payload []byte) int
+	}{
+		{
+			pipelineType: "logs",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				logs := plog.NewLogs()
+				lrs := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 3; i++ {
+					lrs.AppendEmpty().Body().SetStr("hello")
+				}
+				_, err := sp.processLogs(context.Background(), logs)
+				require.NoError(t, err)
+			},
+			count: func(t *testing.T, payload []byte) int {
+				ld, err := (&plog.JSONUnmarshaler{}).UnmarshalLogs(payload)
+				require.NoError(t, err)
+				return ld.LogRecordCount()
+			},
+		},
+		{
+			pipelineType: "metrics",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				metrics := pmetric.NewMetrics()
+				m := metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+				m.SetName("m")
+				dps := m.SetEmptyGauge().DataPoints()
+				for i := 0; i < 3; i++ {
+					dps.AppendEmpty().SetIntValue(int64(i))
+				}
+				_, err := sp.processMetrics(context.Background(), metrics)
+				require.NoError(t, err)
+			},
+			count: func(t *testing.T, payload []byte) int {
+				md, err := (&pmetric.JSONUnmarshaler{}).UnmarshalMetrics(payload)
+				require.NoError(t, err)
+				return md.DataPointCount()
+			},
+		},
+		{
+			pipelineType: "traces",
+			save: func(t *testing.T, sp *snapshotProcessor) {
+				traces := ptrace.NewTraces()
+				spans := traces.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans()
+				for i := 0; i < 3; i++ {
+					spans.AppendEmpty().SetName("s")
+				}
+				_, err := sp.processTraces(context.Background(), traces)
+				require.NoError(t, err)
+			},
+			count: func(t *testing.T, payload []byte) int {
+				td, err := (&ptrace.JSONUnmarshaler{}).UnmarshalTraces(payload)
+				require.NoError(t, err)
+				return td.SpanCount()
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.pipelineType, func(t *testing.T) {
+			sp, handler, processorID := newStartedProcessor(t)
+			tc.save(t, sp)
+
+			var got snapshotReport
+			require.NoError(t, json.Unmarshal(requestRawReport(t, handler, processorID, tc.pipelineType, "s1", 1), &got))
+			require.NotNil(t, got.Metadata)
+			assert.Equal(t, "continuous", got.Metadata.Mode)
+			assert.True(t, got.Metadata.Filled)
+			assert.Zero(t, got.Metadata.FillWaitMs)
+			assert.Equal(t, 3, got.Metadata.Records)
+			assert.Equal(t, tc.count(t, got.TelemetryPayload), got.Metadata.Records)
+		})
+	}
+}
+
+func TestHandleSnapshotRequest_NoBufferReportHasNoMetadata(t *testing.T) {
+	_, handler, processorID := newStartedProcessor(t)
+
+	// Nothing was ever saved, so there is no buffer and nothing to describe.
+	var got map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(requestRawReport(t, handler, processorID, "logs", "s1", 1), &got))
+	assert.NotContains(t, got, "metadata")
+	assert.JSONEq(t, "{}", string(got["telemetry_payload"]))
+}
+
+func TestHandleSnapshotRequest_ReportDecodesWithoutMetadataField(t *testing.T) {
+	sp, handler, processorID := newStartedProcessor(t)
+	logs := plog.NewLogs()
+	logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr("hello")
+	_, err := sp.processLogs(context.Background(), logs)
+	require.NoError(t, err)
+
+	// A server built before metadata existed decodes into this shape and
+	// must keep working.
+	var legacy struct {
+		SessionID        string          `json:"session_id"`
+		TelemetryType    string          `json:"telemetry_type"`
+		TelemetryPayload json.RawMessage `json:"telemetry_payload"`
+	}
+	raw := requestRawReport(t, handler, processorID, "logs", "s1", 1)
+	require.Contains(t, string(raw), `"metadata"`)
+	require.NoError(t, json.Unmarshal(raw, &legacy))
+	assert.Equal(t, "s1", legacy.SessionID)
+	assert.Equal(t, "logs", legacy.TelemetryType)
+	require.NotEmpty(t, legacy.TelemetryPayload)
+}
+
+// TestHandleSnapshotRequest_PayloadCannotFit covers the failure path: a
+// payload that cannot be made to fit even at the lowest retention is logged
+// with the request's stats, and no report is sent.
+func TestHandleSnapshotRequest_PayloadCannotFit(t *testing.T) {
+	reporter := report.NewSnapshotReporter(nil)
+	t.Cleanup(overwriteSnapshotSet(t, reporter))
+	handler := newFakeHandler()
+	extID := component.MustNewID("opamp_connection")
+	host := newHost(&fakeRegistry{handler: handler}, extID)
+	processorID := component.MustNewIDWithName("snapshotprocessor", "x")
+	core, logs := observer.New(zap.ErrorLevel)
+	sp := newSnapshotProcessor(zap.New(core), &Config{Enabled: true, OpAMP: extID}, processorID)
+	require.NoError(t, sp.start(context.Background(), host))
+	t.Cleanup(func() { require.NoError(t, sp.stop(context.Background())) })
+
+	ld := plog.NewLogs()
+	lrs := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+	for i := 0; i < 3; i++ {
+		lrs.AppendEmpty().Body().SetStr("hello")
+	}
+	_, err := sp.processLogs(context.Background(), ld)
+	require.NoError(t, err)
+
+	// One byte cannot hold even an empty gzip stream, so every retention fails.
+	body, err := yaml.Marshal(snapshotRequest{Processor: processorID, PipelineType: "logs", SessionID: "too-small", MaximumPayloadSizeBytes: 1})
+	require.NoError(t, err)
+	handler.inbound <- &protobufs.CustomMessage{Type: snapshotRequestType, Data: body}
+
+	const msg = "construct logs payload"
+	require.Eventually(t, func() bool {
+		return logs.FilterMessage(msg).Len() == 1
+	}, 5*time.Second, 10*time.Millisecond)
+	fields := logs.FilterMessage(msg).All()[0].ContextMap()
+	assert.Equal(t, "continuous", fields["mode"])
+	assert.Equal(t, true, fields["filled"])
+	assert.Contains(t, fields, "fill_wait_ms")
+	assert.Contains(t, fields, "duration_ms")
+	assert.Contains(t, fields["error"], "too large")
+	assert.Empty(t, handler.sentMessages(), "no report is sent for a request that failed")
+}
+
+// TestReportMetadata checks the metadata for a request that waited the whole
+// fill wait and was served the last known records, and that sub-millisecond
+// timings are kept rather than truncated.
+func TestReportMetadata(t *testing.T) {
+	m := newReportMetadata(snapshot.RequestStats{
+		Mode:     snapshot.ModeOnDemand,
+		Filled:   false,
+		FillWait: 1002 * time.Millisecond,
+		Duration: 1002*time.Millisecond + 312*time.Microsecond,
+		Records:  100,
+	})
+	assert.Equal(t, "on_demand", m.Mode)
+	assert.False(t, m.Filled)
+	assert.InDelta(t, 1002, m.FillWaitMs, 1e-9)
+	assert.InDelta(t, 1002.312, m.DurationMs, 1e-9)
+	assert.Equal(t, 100, m.Records)
+
+	m = newReportMetadata(snapshot.RequestStats{Mode: snapshot.ModeContinuous, Filled: true, Duration: 312 * time.Microsecond, Records: 7})
+	assert.Zero(t, m.FillWaitMs)
+	assert.InDelta(t, 0.312, m.DurationMs, 1e-9)
 }
