@@ -71,6 +71,8 @@ if [ "$OS_TYPE" = "AIX" ]; then
   #   Subsystem name: used with -s flag for mkssys, rmssys, lssrc status checks
   AIX_SRC_GROUP="bpcollector"
   AIX_SRC_SUBSYSTEM="bindplane-otel-collector"
+  # stopsrc returns before the subsystem stops, and AIX can be slow to stop it
+  AIX_SRC_WAIT_SECONDS=120
   config_apply_timeout="150"
   bootstrap_timeout="120"
 else
@@ -2272,11 +2274,17 @@ uninstall() {
     succeeded
   elif [ "$SVC_PRE" = "mkssys" ]; then
     info "Stopping service..."
-    stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1
+    # stopsrc fails when the collector is already stopped, so ignore it and wait
+    stopsrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1 || true
+    _stop_wait=0
+    while lssrc -s "$AIX_SRC_SUBSYSTEM" 2>/dev/null | grep -q -E ' (active|stopping)' && [ "$_stop_wait" -lt "$AIX_SRC_WAIT_SECONDS" ]; do
+      _stop_wait=$((_stop_wait + 1))
+      sleep 1
+    done
     succeeded
 
     info "Removing service registration..."
-    if lssrc -g "$AIX_SRC_GROUP" > /dev/null 2>&1; then
+    if lssrc -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1; then
       rmssys -s "$AIX_SRC_SUBSYSTEM" > /dev/null 2>&1
     fi
     if lsitab "$AIX_SRC_GROUP" > /dev/null 2>&1; then
