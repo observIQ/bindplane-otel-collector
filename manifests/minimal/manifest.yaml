@@ -18,6 +18,7 @@ exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.162.0
   - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.162.0
 processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.162.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.162.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.162.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/snapshotprocessor v1.1.0
@@ -26,6 +27,7 @@ processors:
 receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.162.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.162.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.162.0
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.162.0
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.162.0
