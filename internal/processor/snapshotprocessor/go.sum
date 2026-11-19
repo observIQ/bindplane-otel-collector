@@ -4,8 +4,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.2.0 h1:kwi1XQIEy/sawxrjRzEEWPzFaOK7bAuuHN6tGGFXSPA=
 github.com/dynatrace/dynatrace-bindplane-otel-collector/pkg/report v1.2.0/go.mod h1:k5y3vhLLV0m1QYNsQh5Bqd/s2om3/3O45+hmTtmn5ps=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261116155315-80fc01d0d900 h1:x13n/VP9VEgE0pHgh47AdqvsaJUl6qOnHMOvZ9mMTfg=
-github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.3.1-0.20261116155315-80fc01d0d900/go.mod h1:uTlRcCFGaPJ5Ja5I11/6RwX+jpcZzo03vhX7yJV5faw=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.4.0 h1:VAopQUz0S/fD2Gc/kN1AVyBM/mpYozNdR7iLamGUpWo=
+github.com/dynatrace/dynatrace-bindplane-otel-contrib/pkg/snapshot v1.4.0/go.mod h1:AYZnQWSDipj1Yd7q2MmmnTz9HZ2XGvE2jNLrRklemzw=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.4 h1:tG4xh9yMsRCAiodLVTxyrkzSZ9+o0L1Kg/+cPVcbP/8=
 github.com/go-logr/logr v1.4.4/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
@@ -36,10 +36,10 @@ github.com/open-telemetry/opamp-go v0.25.0 h1:UXXSQBtXWxa1ClY85caMrsdiry9dnCZn+L
 github.com/open-telemetry/opamp-go v0.25.0/go.mod h1:xgYySBY286Bei9/0gFH0X+l6h51fQnvZcLvglDQf9DI=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.165.1 h1:ROQgGn0IUGFpxOrjmP8LE3J6N8zLpL7/xt10doC1CxQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.165.1/go.mod h1:rXMdPyJ5AawdadXtuFFxVZq5mYjUt53rVufx0sz3Mlw=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.164.1 h1:Nf1r5btI0tFLAofjSMbI51qwUDHDzxB3VQvKAoDkfTI=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.164.1/go.mod h1:11XcOuV36UyWWNUogbeLulQ86MkmzAEo3u0v7Fo9AAY=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.164.1 h1:Xmj/ptkrKnMGPaaWcLplVw0czXI1txV0VQW4LvIP+z0=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.164.1/go.mod h1:m35oPRTuzmdit0lfy0EzfAUlvnqpIZIyLBqm4rGQMPY=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.165.1 h1:cpcF2aJsk/0LVPpN4a5C3jwgu54qI7cGtMO0bAF5BBk=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.165.1/go.mod h1:8DH2X+BeAa4GJKSdcvhtr9gyblw5hvB2XyEAKxNd9r8=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.165.1 h1:2Qf8Me+OZfdY/dF/vS/1J93spGBbG/JJDXtk6vE8fWA=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.165.1/go.mod h1:4C9XQNZXN6Y6S6lWukCteEGM+brwwP1hruzVRPaJ3WI=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
@@ -77,8 +77,8 @@ go.opentelemetry.io/collector/pdata/pprofile v0.165.0 h1:f3ck50XbrrzuYFbQedzVGaS
 go.opentelemetry.io/collector/pdata/pprofile v0.165.0/go.mod h1:Y2cX6KJo98pxqOeLdTeIn1lIbh+FFsIPtp7BUo91zfo=
 go.opentelemetry.io/collector/pdata/testdata v0.165.0 h1:lz/Qz9P/Jpx/wLGBDjyq4VSQDVU2/vouafF2RcWKUds=
 go.opentelemetry.io/collector/pdata/testdata v0.165.0/go.mod h1:JrWyCieu6vo258ZRs8Epqmb9maLWyWHaFcH28DNC+4o=
-go.opentelemetry.io/collector/pdata/xpdata v0.164.0 h1:L+IRe9bH0fBkd+s56yf6oMurDWTkeWAkwxOkJz+4ndI=
-go.opentelemetry.io/collector/pdata/xpdata v0.164.0/go.mod h1:i9DyMV7TNRSktkuM9wYp6dFQvrylSnUGthlCrrMjZVs=
+go.opentelemetry.io/collector/pdata/xpdata v0.165.0 h1:H3ELfAaxWNHo75YccGqAM3pJ7Mh4wBnFRNqmdmdg0go=
+go.opentelemetry.io/collector/pdata/xpdata v0.165.0/go.mod h1:G5N63Z+Jh15uT2bpxISgQXe+qQrZJFebNdo2Xe0Y8vk=
 go.opentelemetry.io/collector/pipeline v1.71.0 h1:wDBBwg4oxnpZgb+RtpDPgCXfIdVzKBuT16idMk/XLS4=
 go.opentelemetry.io/collector/pipeline v1.71.0/go.mod h1:4S7iD/7hGDNXg4yPi+5es5WTvwo/Uie2OoHio79xokI=
 go.opentelemetry.io/collector/processor v1.71.0 h1:8MLOi/iaEmzX5kwBkotW3GjF+cmIMcKSKekXLHwUF7w=
