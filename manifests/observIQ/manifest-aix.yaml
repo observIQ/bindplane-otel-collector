@@ -30,7 +30,7 @@ extensions:
   # (collector lifecycle, OpAMP client, packagestate, report manager),
   # consumed from the Dynatrace distro. cmd/collector/main.go calls its
   # runtime.Run; the Makefile stamps BDOT identity into it via -X.
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension v1.3.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension v1.4.0
 
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.165.0
@@ -78,7 +78,7 @@ processors:
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.4.0
   # Bindplane snapshot processor — its own internal go.mod, local replace below.
-  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.112.0
+  - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.113.0
 
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.165.0
@@ -124,10 +124,10 @@ replaces:
   - github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
   # The commits being replaced to are built on the OTel v0.164.1 tag. 
   # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20261102211310-a87cc5aaaf37
+  - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20261119153247-0f6e7e87475e
   # The JMX receiver was removed in OTel v0.157.0. Pinned to a fork that we must maintain until we can migrate users to a new solution.
   # The commit being replaced to is built on the OTel v0.164.1 tag. 
   # https://github.com/observIQ/opentelemetry-collector-contrib/tree/bdot-1.112.0
-  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261102211310-a87cc5aaaf37
+  - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/jmxreceiver v0.0.0-20261119153247-0f6e7e87475e
   # AIX host metrics come from the Bindplane gopsutil fork, which is maintained permanently.
   - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 e2df4e3a6834128af75def2c9b66737e59c4b974
