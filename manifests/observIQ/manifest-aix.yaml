@@ -12,20 +12,20 @@ conf_resolver:
   default_uri_scheme: "env"
 
 extensions:
-  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.164.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.164.1
+  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.165.1
   # Bindplane OpAMP connection extension. Internal module under
   # (collector lifecycle, OpAMP client, packagestate, report manager),
   # consumed from the Dynatrace distro. cmd/collector/main.go calls its
@@ -33,86 +33,86 @@ extensions:
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-collector/extension/opampconnectionextension v1.3.0
 
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.164.0
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.164.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.164.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.164.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.164.1
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/opampexporter v1.3.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.165.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.165.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.165.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.165.1
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/opampexporter v1.4.0
 
 processors:
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.164.0
-  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.164.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/logdedupprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/logstransformprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricsgenerationprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.164.1
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/datapointcountprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/logcountprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/lookupprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/maskprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricextractprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricstatsprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/randomfailureprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/samplingprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/spancountprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.3.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.165.0
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/logdedupprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/logstransformprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricsgenerationprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.165.1
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/datapointcountprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/logcountprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/lookupprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/maskprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricextractprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/metricstatsprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/randomfailureprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/removeemptyvaluesprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/resourceattributetransposerprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/samplingprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/spancountprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/throughputmeasurementprocessor v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/processor/topologyprocessor v1.4.0
   # Bindplane snapshot processor — its own internal go.mod, local replace below.
   - gomod: github.com/observiq/bindplane-otel-collector/internal/processor/snapshotprocessor v1.112.0
 
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.164.0
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.164.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.164.1
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.165.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.165.1
   # keep this version pinned at v0.156.0 for the correct version to be reported in available components
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.156.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.164.1
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pcapreceiver v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/routereceiver v1.3.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.3.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.165.1
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pcapreceiver v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/pluginreceiver v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/routereceiver v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/receiver/telemetrygeneratorreceiver v1.4.0
 
 connectors:
-  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.164.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.164.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.164.1
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.165.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.165.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.165.1
 
 providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.70.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.70.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.70.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.70.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.71.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.71.0
 
 replaces:
   # Internal Go modules — point ocb at the local checkouts.
