@@ -82,7 +82,7 @@ exporters:
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.4.0
-  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/opampexporter v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/opampexporter v1.4.1
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/qradar v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/snowflakeexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/webhookexporter v1.4.0
