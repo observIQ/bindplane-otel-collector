@@ -78,6 +78,7 @@ exporters:
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/azureloganalyticsexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/chronicleexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/chronicleforwarderexporter v1.4.0
+  - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/exabeamexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlecloudstorageexporter v1.4.0
   - gomod: github.com/dynatrace/dynatrace-bindplane-otel-contrib/exporter/googlemanagedprometheusexporter v1.4.0
